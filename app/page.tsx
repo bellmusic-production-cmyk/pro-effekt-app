@@ -142,6 +142,7 @@ export default function Home() {
 
   const [customer, setCustomer] = useState("");
   const [device, setDevice] = useState(fallbackDevices[0]);
+  const [customDeviceName, setCustomDeviceName] = useState("");
   const [issue, setIssue] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Mittel");
@@ -681,6 +682,7 @@ export default function Home() {
     setEditingTicket(null);
     setCustomer("");
     setDevice(deviceNames[0] || fallbackDevices[0]);
+    setCustomDeviceName("");
     setIssue("");
     setDescription("");
     setPriority("Mittel");
@@ -711,6 +713,7 @@ export default function Home() {
     setEditingTicket(ticket);
     setCustomer(ticket.customer || "");
     setDevice(ticket.device || deviceNames[0] || fallbackDevices[0]);
+    setCustomDeviceName("");
     setIssue(ticket.issue || "");
     setDescription(ticket.description || "");
     setPriority(ticket.priority || "Mittel");
@@ -745,16 +748,27 @@ export default function Home() {
   }
 
   async function createTicket() {
-    if (!customer || !issue || !description) {
-      alert("Bitte alle Felder ausfüllen.");
+    const currentCustomerName = isCustomer
+      ? profileCustomer?.company || userProfile?.company || ""
+      : customer;
+
+    const currentCustomerId = isCustomer
+      ? userProfile?.customer_id || null
+      : customers.find((item) => item.company === customer)?.id || null;
+
+    const currentDeviceName = customDeviceName.trim() || device;
+
+    if (!currentCustomerName || !currentDeviceName || !issue || !description) {
+      alert("Bitte Kunde, Gerät, Betreff und Beschreibung ausfüllen.");
       return;
     }
 
     const { error } = await supabase.from("tickets").insert([
       {
         ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
-        customer,
-        device,
+        customer: currentCustomerName,
+        customer_id: currentCustomerId,
+        device: currentDeviceName,
         issue,
         description,
         priority,
@@ -767,12 +781,12 @@ export default function Home() {
       return;
     }
 
-    const relatedDevice = devices.find((item) => item.name === device);
+    const relatedDevice = devices.find((item) => item.name === currentDeviceName);
 
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Ticket erstellt",
-      `${issue} · Kunde: ${customer}`,
+      `${issue} · Kunde: ${currentCustomerName}`,
       "Ticket"
     );
 
@@ -1412,6 +1426,9 @@ FE-SERVICE`
     : isTechnician
       ? ["Techniker", "Service-Tickets", "Geräte", "Dokumente"]
       : ["Kundenportal", "Service-Tickets", "Dokumente"];
+  const availableTicketDevices = isCustomer && userProfile?.customer_id
+    ? devices.filter((item) => item.customer_id === userProfile.customer_id)
+    : devices;
   const portalCustomers = isCustomer && userProfile?.customer_id
     ? customers.filter((item) => item.id === userProfile.customer_id)
     : customers;
@@ -1574,10 +1591,10 @@ FE-SERVICE`
           </button>
         </aside>
 
-        <section className="w-full min-w-0 flex-1 overflow-x-hidden p-4 lg:p-10">
+        <section className="w-full min-w-0 flex-1 overflow-x-hidden p-5 lg:p-10">
           <div className="mb-6 rounded-[32px] bg-white p-6 shadow-sm">
             <p className="font-bold text-green-600">{isAdmin ? "Admin-Ansicht" : isTechnician ? "Techniker-Ansicht" : "Kundenportal"}</p>
-            <h2 className="mt-2 text-4xl font-black">{activePage}</h2>
+            <h2 className="mt-2 text-3xl font-black leading-tight lg:text-4xl">{activePage}</h2>
             <p className="mt-3 text-slate-600">
               Geschützter Bereich mit echter Datenbank.
             </p>
@@ -1594,7 +1611,7 @@ FE-SERVICE`
               </span>
             </div>
 
-            <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
               {visibleNavItems.map((item) => (
                 <button
                   key={item}
@@ -1604,7 +1621,7 @@ FE-SERVICE`
                     resetDeviceForm();
                     resetCustomerForm();
                   }}
-                  className={`min-w-0 rounded-2xl px-3 py-3 text-center text-xs font-bold sm:text-sm ${
+                  className={`min-w-0 rounded-2xl px-4 py-4 text-center text-base font-black ${
                     activePage === item
                       ? "bg-green-500 text-[#07130d]"
                       : "bg-white/10 text-green-300"
@@ -2776,11 +2793,18 @@ FE-SERVICE`
                   </h3>
 
                   <div className="mt-5 space-y-4">
-                    {customers.length > 0 ? (
+                    {isCustomer ? (
+                      <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+                        <p className="text-sm font-bold text-green-700">Kunde</p>
+                        <p className="mt-1 text-base font-black text-slate-900">
+                          {profileCustomer?.company || userProfile?.company || "Dein Kundenkonto"}
+                        </p>
+                      </div>
+                    ) : customers.length > 0 ? (
                       <select
                         value={customer}
                         onChange={(e) => setCustomer(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-3"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-bold"
                       >
                         <option value="">Kunde auswählen</option>
                         {customerNames.map((item) => (
@@ -2792,19 +2816,38 @@ FE-SERVICE`
                         value={customer}
                         onChange={(e) => setCustomer(e.target.value)}
                         placeholder="Kunde / Firma"
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-3"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                       />
                     )}
 
-                    <select
-                      value={device}
-                      onChange={(e) => setDevice(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-3"
-                    >
-                      {deviceNames.map((item) => (
-                        <option key={item}>{item}</option>
-                      ))}
-                    </select>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-bold text-slate-700">
+                        Gerät
+                      </p>
+
+                      {availableTicketDevices.length > 0 && (
+                        <select
+                          value={device}
+                          onChange={(e) => setDevice(e.target.value)}
+                          className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-bold"
+                        >
+                          {availableTicketDevices.map((item) => (
+                            <option key={item.id} value={item.name}>{item.name}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                        oder neues Gerät eintragen
+                      </div>
+
+                      <input
+                        value={customDeviceName}
+                        onChange={(e) => setCustomDeviceName(e.target.value)}
+                        placeholder="z. B. Life Fitness Laufband, Seriennummer, Standort"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                      />
+                    </div>
 
                     <input
                       value={issue}
@@ -3027,36 +3070,146 @@ FE-SERVICE`
           {activePage === "Kundenportal" && (
             <div className="space-y-6">
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
-                <h3 className="text-2xl font-black">Kundenportal</h3>
-                <p className="mt-2 text-slate-600">
-                  Kundenansicht vorbereitet: pro Kunde siehst du Tickets, Gerätebezug und Dokumentstatus.
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-green-600">
+                  Kundenportal
                 </p>
+                <h3 className="mt-2 text-3xl font-black leading-tight">
+                  {profileCustomer?.company || userProfile?.company || "Mein Servicebereich"}
+                </h3>
+                <p className="mt-3 text-base leading-relaxed text-slate-700">
+                  Hier findest du deine Geräte, deine offenen Tickets und kannst direkt eine neue Service-Anfrage erstellen.
+                </p>
+              </div>
 
-                <div className="mt-6 space-y-4">
-                  {portalCustomers.length === 0 ? (
-                    <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">Noch keine Kundendaten vorhanden.</div>
-                  ) : (
-                    portalCustomers.map((item) => {
-                      const customerTickets = tickets.filter((ticket) => ticket.customer === item.company);
-                      return (
-                        <div key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                              <h4 className="text-xl font-black">{item.company}</h4>
-                              <p className="mt-2 text-sm text-slate-600">{item.contact_person || "Kein Ansprechpartner"} · {item.email || "Keine E-Mail"}</p>
-                              <p className="mt-1 text-sm text-slate-500">Tickets: {customerTickets.length}</p>
-                            </div>
-                            <button
-                              onClick={() => alert(`Portal-Link vorbereitet für ${item.company}`)}
-                              className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-bold text-white"
-                            >
-                              Portal-Link vorbereiten
-                            </button>
-                          </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatCard
+                  label="Meine Geräte"
+                  value={devices.filter((item) => item.customer_id === userProfile?.customer_id).length}
+                />
+                <StatCard
+                  label="Meine Tickets"
+                  value={filteredTickets.length}
+                />
+                <StatCard
+                  label="Dokumente"
+                  value={documents.filter((item) => item.customer_id === userProfile?.customer_id || devices.some((deviceItem) => deviceItem.id === item.device_id && deviceItem.customer_id === userProfile?.customer_id)).length}
+                />
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-[32px] bg-white p-6 shadow-sm">
+                  <h3 className="text-2xl font-black">Neues Ticket erstellen</h3>
+                  <p className="mt-2 text-base text-slate-700">
+                    Wähle eines deiner Geräte aus oder trage ein neues Gerät frei ein.
+                  </p>
+
+                  <div className="mt-5 space-y-4">
+                    <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+                      <p className="text-sm font-bold text-green-700">Kunde</p>
+                      <p className="mt-1 text-base font-black text-slate-900">
+                        {profileCustomer?.company || userProfile?.company || "Dein Kundenkonto"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-bold text-slate-700">Gerät</p>
+                      {availableTicketDevices.length > 0 && (
+                        <select
+                          value={device}
+                          onChange={(e) => setDevice(e.target.value)}
+                          className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-bold"
+                        >
+                          {availableTicketDevices.map((item) => (
+                            <option key={item.id} value={item.name}>{item.name}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                        oder neues Gerät eintragen
+                      </div>
+
+                      <input
+                        value={customDeviceName}
+                        onChange={(e) => setCustomDeviceName(e.target.value)}
+                        placeholder="Gerätename, Seriennummer oder Standort"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                      />
+                    </div>
+
+                    <input
+                      value={issue}
+                      onChange={(e) => setIssue(e.target.value)}
+                      placeholder="Problem / Betreff"
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                    />
+
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Bitte beschreibe das Problem möglichst genau. Fotos kannst du unter Dokumente hochladen."
+                      rows={6}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base leading-relaxed"
+                    />
+
+                    <button
+                      onClick={createTicket}
+                      className="w-full rounded-2xl bg-green-600 py-5 text-lg font-black text-white"
+                    >
+                      Ticket senden
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="rounded-[32px] bg-white p-6 shadow-sm">
+                    <h3 className="text-2xl font-black">Meine Geräte</h3>
+                    <div className="mt-4 space-y-3">
+                      {devices.filter((item) => item.customer_id === userProfile?.customer_id).length === 0 ? (
+                        <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
+                          Noch keine Geräte zugeordnet. Du kannst oben trotzdem ein Gerät frei eintragen.
                         </div>
-                      );
-                    })
-                  )}
+                      ) : (
+                        devices
+                          .filter((item) => item.customer_id === userProfile?.customer_id)
+                          .map((item) => (
+                            <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                              <p className="text-lg font-black">{item.name}</p>
+                              <p className="mt-1 text-base text-slate-700">
+                                {item.serial_number || "Keine Seriennummer"} · {item.location || "Kein Standort"}
+                              </p>
+                              <p className="mt-2 text-sm font-bold text-green-700">
+                                Nächste Prüfung: {item.next_check || "Nicht geplant"}
+                              </p>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[32px] bg-white p-6 shadow-sm">
+                    <h3 className="text-2xl font-black">Meine Tickets</h3>
+                    <div className="mt-4 space-y-3">
+                      {filteredTickets.length === 0 ? (
+                        <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
+                          Noch keine Tickets vorhanden.
+                        </div>
+                      ) : (
+                        filteredTickets.map((ticket) => (
+                          <div key={ticket.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-green-600">
+                              {ticket.ticket_number}
+                            </p>
+                            <h4 className="mt-2 text-lg font-black">{ticket.issue}</h4>
+                            <p className="mt-2 text-base text-slate-700">Gerät: {ticket.device}</p>
+                            <span className={`mt-3 inline-block rounded-full px-4 py-2 text-sm font-black ${statusClass(ticket.status)}`}>
+                              {ticket.status}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3218,8 +3371,8 @@ FE-SERVICE`
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-3xl bg-white p-6 shadow-sm">
-      <p className="text-3xl font-black">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{label}</p>
+      <p className="text-4xl font-black">{value}</p>
+      <p className="mt-2 text-base font-bold text-slate-600">{label}</p>
     </div>
   );
 }
