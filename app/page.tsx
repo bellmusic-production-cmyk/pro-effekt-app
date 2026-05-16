@@ -1596,7 +1596,7 @@ FE-SERVICE`
             <p className="font-bold text-green-600">{isAdmin ? "Admin-Ansicht" : isTechnician ? "Techniker-Ansicht" : "Kundenportal"}</p>
             <h2 className="mt-2 text-3xl font-black leading-tight lg:text-4xl">{activePage}</h2>
             <p className="mt-3 text-slate-600">
-              Geschützter Bereich mit echter Datenbank.
+           
             </p>
           </div>
 
