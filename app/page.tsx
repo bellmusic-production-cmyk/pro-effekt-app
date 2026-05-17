@@ -4077,9 +4077,7 @@ FE-SERVICE`,
 
           {activePage === "Dashboard" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                FE-SERVICE · Betriebsbereit · Menü logisch nach Tagesablauf sortiert.
-              </div>
+             
 
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
                 <div className="mb-5"><FeServiceLogo dark /></div>
