@@ -3953,7 +3953,7 @@ FE-SERVICE`,
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-slate-100 pb-8 text-slate-900 lg:pb-0">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--fe-black)] pb-8 text-slate-900 lg:bg-slate-100 lg:pb-0">
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
         <aside className="hidden w-72 bg-[#07130d] p-6 text-white lg:flex lg:flex-col">
           <div className="flex flex-col items-center">
@@ -3996,7 +3996,7 @@ FE-SERVICE`,
           </button>
         </aside>
 
-        <section className="w-full min-w-0 flex-1 overflow-x-hidden p-5 lg:p-10">
+        <section className="w-full min-w-0 flex-1 overflow-x-hidden px-5 pb-5 pt-0 lg:p-10">
           <div className="mb-6 hidden rounded-[24px] bg-white p-4 shadow-sm lg:block">
             <p className="text-sm font-black uppercase tracking-[0.2em] text-green-600">
               FE-SERVICE
@@ -4009,7 +4009,7 @@ FE-SERVICE`,
             </p>
           </div>
 
-          <div className="sticky top-0 z-30 -mx-5 mb-5 border-b border-[var(--fe-green)]/20 bg-[var(--fe-black)] px-4 py-3 shadow-lg lg:hidden">
+          <div className="sticky top-0 z-30 -mx-5 mb-5 border-b border-[var(--fe-green)]/20 bg-[var(--fe-black)] px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-lg lg:hidden">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fe-green)]">
@@ -4078,7 +4078,7 @@ FE-SERVICE`,
           {activePage === "Dashboard" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN · Struktur bereinigt, Demo-Bereiche entfernt, Admin-Menü logisch sortiert.
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND · Struktur bereinigt, Demo-Bereiche entfernt, Admin-Menü logisch sortiert.
               </div>
 
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
@@ -4325,7 +4325,7 @@ FE-SERVICE`,
           {activePage === "Kalender" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
               </div>
 
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
@@ -4535,7 +4535,7 @@ FE-SERVICE`,
           {activePage === "Benachrichtigungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -4668,7 +4668,7 @@ FE-SERVICE`,
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -4986,7 +4986,7 @@ FE-SERVICE`,
           {activePage === "Auswertungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
               </div>
 
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
@@ -5910,7 +5910,7 @@ FE-SERVICE`,
           {activePage === "Verträge" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -6146,7 +6146,7 @@ FE-SERVICE`,
           {activePage === "Wartungsplanung" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN · Struktur bereinigt, Demo-Bereiche entfernt, Admin-Menü logisch sortiert.
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND · Struktur bereinigt, Demo-Bereiche entfernt, Admin-Menü logisch sortiert.
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -6378,7 +6378,7 @@ FE-SERVICE`,
             <div className="space-y-4 pb-24">
               <div className="rounded-[32px] bg-white p-5 shadow-sm lg:p-6">
                 <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                  SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                  SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
                 </div>
 
                 <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -6784,7 +6784,7 @@ FE-SERVICE`,
           {activePage === "QR-Scan" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-                SCHRITT 44 AKTIV · VERTRÄGE BEARBEITEN + LÖSCHEN
+                SCHRITT 45 AKTIV · MOBILE HEADER OHNE WEISSEN RAND
               </div>
 
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
