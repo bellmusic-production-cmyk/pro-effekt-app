@@ -5655,7 +5655,7 @@ FE-SERVICE`,
                 <StatCard label="Aktiv" value={activeContracts.length} />
                 <StatCard
                   label="MRR"
-                  value={`${monthlyRecurringRevenue.toFixed(0)} €`}
+                  value={monthlyRecurringRevenue}
                 />
                 <StatCard
                   label="Auto-Wartungen"
