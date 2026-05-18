@@ -2180,7 +2180,7 @@ export default function Home() {
         <img
           src="/fe-service-logo.png"
           alt="FE-Service"
-          className="h-9 w-auto rounded-md object-contain"
+          className="mx-auto h-auto w-full max-w-[320px] object-contain"
           onError={(event) => {
             event.currentTarget.style.display = "none";
           }}
@@ -3873,7 +3873,7 @@ FE-SERVICE`,
             <h2 className="mt-12 text-5xl font-black">Business Portal</h2>
 
             <p className="mt-6 max-w-xl text-center text-lg text-slate-300">
-              Service-Tickets, Wartungen und Kundenanfragen sicher verwalten.
+              Service-Tickets, UVV-Wartungen und Kundenanfragen sicher verwalten.
             </p>
           </div>
 
@@ -3895,7 +3895,7 @@ FE-SERVICE`,
                 className="mx-auto mt-5 w-56 object-contain"
               />
 
-              <h2 className="mt-8 text-5xl font-black">Login</h2>
+              <h2 className="mt-8 text-5xl font-black">Business Portal</h2>
             </div>
 
             <div className="space-y-4">
@@ -3918,9 +3918,7 @@ FE-SERVICE`,
               <button
                 onClick={login}
                 className="w-full rounded-2xl bg-green-600 py-4 text-lg font-bold text-white hover:bg-green-700"
-              >
-                Einloggen
-              </button>
+              >Business Portal</button>
             </div>
           </div>
         </section>
@@ -4606,12 +4604,12 @@ FE-SERVICE`,
                       onChange={(e) => setNotificationMessage(e.target.value)}
                       placeholder="Nachricht"
                       rows={5}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
                     />
 
                     <button
                       onClick={saveNotification}
-                      className="w-full rounded-2xl bg-[var(--fe-green)] py-4 font-black text-black transition hover:opacity-90"
+                      className="h-14 w-full rounded-2xl bg-[var(--fe-green)] text-lg font-black text-white shadow-lg shadow-green-900/30 transition hover:opacity-90"
                     >
                       Benachrichtigung speichern
                     </button>
@@ -4729,7 +4727,7 @@ FE-SERVICE`,
                       value={invoiceTitle}
                       onChange={(e) => setInvoiceTitle(e.target.value)}
                       placeholder="Leistung / Position"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
                     />
 
                     <div className="grid gap-3 md:grid-cols-3">
@@ -5998,7 +5996,7 @@ FE-SERVICE`,
                         onChange={(e) => setContractSlaHours(e.target.value)}
                         type="number"
                         placeholder="SLA Stunden"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
                       />
 
                       <input
@@ -6007,7 +6005,7 @@ FE-SERVICE`,
                         type="number"
                         step="0.01"
                         placeholder="Monatspauschale €"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
                       />
 
                       <input
