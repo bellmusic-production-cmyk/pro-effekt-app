@@ -709,7 +709,7 @@ export default function Home() {
       .order("next_due", { ascending: true });
 
     if (error) {
-      console.error("Wartungsplanung konnte nicht geladen werden:", error.message);
+      console.error("UVV-/Wartungsplanung konnte nicht geladen werden:", error.message);
       setMaintenancePlans([]);
       return;
     }
@@ -1434,7 +1434,11 @@ export default function Home() {
             ${serviceReport || ticket.service_report || "Keine Arbeiten dokumentiert."}
           </div>
 
-          <h2>Prüfsiegel / Prüfung</h2>
+          <h2>Prüfsiegel / UVV-Prüfung</h2>
+          <div class="box">
+            UVV- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
+            Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
+          </div>
           <div class="box grid">
             <div><div class="label">Prüfsiegelnummer</div><div class="value">${serviceBadgeNumber || ticket.inspection_badge_number || "-"}</div></div>
             <div><div class="label">Gültig bis</div><div class="value">${serviceBadgeExpires || ticket.inspection_expires || "-"}</div></div>
@@ -1646,7 +1650,11 @@ export default function Home() {
             ${ticket.service_report || serviceReport || "Keine Arbeiten dokumentiert."}
           </div>
 
-          <h2>Prüfsiegel / Prüfung</h2>
+          <h2>Prüfsiegel / UVV-Prüfung</h2>
+          <div class="box">
+            UVV- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
+            Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
+          </div>
           <div class="box grid">
             <div><div class="label">Prüfsiegelnummer</div><div class="value">${ticket.inspection_badge_number || serviceBadgeNumber || "-"}</div></div>
             <div><div class="label">Gültig bis</div><div class="value">${ticket.inspection_expires || serviceBadgeExpires || "-"}</div></div>
@@ -2797,11 +2805,11 @@ export default function Home() {
             <div><strong>Prüfstatus</strong><br />${inspection.label}</div>
           </div>
 
-          <h2>Wartungsplanung</h2>
+          <h2>UVV- und UVV-/Wartungsplanung</h2>
           <div class="box">
-            <p><strong>Wartungsplan:</strong> ${plan?.title || "Kein Wartungsplan hinterlegt"}</p>
+            <p><strong>UVV-/Wartungsplan:</strong> ${plan?.title || "Kein Wartungsplan hinterlegt"}</p>
             <p><strong>Intervall:</strong> ${plan?.interval_days || "-"} Tage</p>
-            <p><strong>Nächste Wartung:</strong> ${plan?.next_due || "Nicht geplant"}</p>
+            <p><strong>Nächste UVV/Wartung:</strong> ${plan?.next_due || "Nicht geplant"}</p>
           </div>
 
           <h2>Hinweise</h2>
@@ -3061,7 +3069,7 @@ FE-SERVICE`,
     const maintenanceRows = customerDevices.map((deviceItem) => ({
       device_id: deviceItem.id,
       customer_id: contract.customer_id,
-      title: `Automatische Wartung · ${contract.contract_number} · ${deviceItem.name}`,
+      title: `Automatische UVV/Wartung · ${contract.contract_number} · ${deviceItem.name}`,
       maintenance_type: contract.contract_type || "Wartungsvertrag",
       interval_days: intervalMonths * 30,
       next_due: nextDue.toISOString().split("T")[0],
@@ -3082,7 +3090,7 @@ FE-SERVICE`,
     for (const deviceItem of customerDevices) {
       await createDeviceHistory(
         deviceItem.id,
-        "Wartung automatisch erzeugt",
+        "UVV/Wartung automatisch erzeugt",
         `${contract.contract_number} · nächste Wartung: ${nextDue.toISOString().split("T")[0]}`,
         "Vertrag",
       );
@@ -3776,9 +3784,9 @@ FE-SERVICE`,
       : "Kundenportal";
 
   const portalSubtitle = isAdmin
-    ? "Vollzugriff auf Kunden, Geräte, Tickets, Wartung, Einsatz, Teile, Dokumente und Berichte."
+    ? "Vollzugriff auf Kunden, Geräte, Tickets, UVV-Wartung, Einsatz, Teile, Dokumente und Berichte."
     : isTechnician
-      ? "Einsatzbereich für Tickets, Geräte, Prüfungen, Fotos und Serviceberichte."
+      ? "Einsatzbereich für Tickets, Geräte, UVV-Prüfungen, Fotos und Serviceberichte."
       : "Eigene Geräte, Tickets und Dokumente im Überblick.";
 
   const primaryActionLabel = isAdmin
@@ -3794,21 +3802,22 @@ FE-SERVICE`,
 
   function navItemLabel(item: string) {
     const labels: Record<string, string> = {
-      Dashboard: "Zentrale",
-      Auswertungen: "KPI",
+      Dashboard: "Start",
+      Einsatz: "Einsatz",
+      Kalender: "Kalender",
+      "Service-Tickets": "Tickets",
       Kunden: "Kunden",
       Geräte: "Geräte",
       "QR-Scan": "QR-Scan",
-      "Service-Tickets": "Tickets",
-      Prüfungen: "Prüfungen",
-      Wartungsplanung: "Wartung",
-      Kalender: "Kalender",
-      Benachrichtigungen: "Mails",
-      Dokumente: "Dokumente",
-      Einsatz: "Einsatz",
-      Kundenportal: "Portal",
+      Wartungsplanung: "UVV & Wartung",
+      Prüfungen: "UVV-Prüfungen",
       Ersatzteile: "Teile",
+      Dokumente: "Dokumente",
       Rechnungen: "Rechnungen",
+      Verträge: "Verträge",
+      Benachrichtigungen: "Kommunikation",
+      Auswertungen: "Auswertung",
+      Kundenportal: "Portal",
     };
 
     return labels[item] || item;
@@ -4077,7 +4086,9 @@ FE-SERVICE`,
 
           {activePage === "Dashboard" && (
             <div className="space-y-6">
-             
+              <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
+                FE-SERVICE · Betriebsbereit · Menü logisch nach Tagesablauf sortiert.
+              </div>
 
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
                 <div className="mb-5"><FeServiceLogo dark /></div>
@@ -4088,7 +4099,7 @@ FE-SERVICE`,
                   FE-Service Leitstand
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Alle offenen Servicefälle, Einsätze, Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
+                  Alle offenen Servicefälle, Einsätze, UVV-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
                 </p>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
@@ -4106,7 +4117,7 @@ FE-SERVICE`,
                     onClick={() => openPage("Wartungsplanung")}
                     className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
                   >
-                    Wartung planen
+                    UVV/Wartung planen
                     <span className="mt-1 block text-xs font-bold opacity-80">
                       Kunde + Gerät wählen
                     </span>
@@ -4137,7 +4148,7 @@ FE-SERVICE`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Offene Tickets" value={openAdminTickets.length} />
                 <StatCard label="Heute Einsätze" value={todaysAdminTickets.length} />
-                <StatCard label="Wartung überfällig" value={overdueAdminMaintenancePlans.length} />
+                <StatCard label="UVV/Wartung überfällig" value={overdueAdminMaintenancePlans.length} />
                 <StatCard label="Teile niedrig" value={lowStockParts.length} />
               </div>
 
@@ -4236,11 +4247,11 @@ FE-SERVICE`,
 
               <div className="grid gap-6 xl:grid-cols-3">
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Überfällige Wartungen</h3>
+                  <h3 className="text-xl font-black">Überfällige UVV/Wartungen</h3>
                   <div className="mt-5 space-y-3">
                     {overdueAdminMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine überfälligen Wartungen.
+                        Keine überfälligen UVV/Wartungen.
                       </div>
                     ) : (
                       overdueAdminMaintenancePlans.slice(0, 5).map((plan) => (
@@ -4334,7 +4345,7 @@ FE-SERVICE`,
                   Tagesplanung & Tourenübersicht
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Tickets und Wartungen werden nach Datum und Techniker zusammengeführt.
+                  Tickets, UVV-Prüfungen und Wartungen werden nach Datum und Techniker zusammengeführt.
                 </p>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -4371,7 +4382,7 @@ FE-SERVICE`,
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets" value={calendarTickets.length} />
-                <StatCard label="Wartungen" value={calendarMaintenancePlans.length} />
+                <StatCard label="UVV/Wartungen" value={calendarMaintenancePlans.length} />
                 <StatCard
                   label="Offene Einsätze"
                   value={
@@ -4470,7 +4481,7 @@ FE-SERVICE`,
                     <div>
                       <h3 className="text-xl font-black">Wartungen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Wartungspläne mit Fälligkeit am gewählten Tag.
+                        UVV- und Wartungspläne mit Fälligkeit am gewählten Tag.
                       </p>
                     </div>
                     <button
@@ -4484,7 +4495,7 @@ FE-SERVICE`,
                   <div className="mt-5 space-y-3">
                     {calendarMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Wartungen für diesen Tag.
+                        Keine UVV/Wartungen für diesen Tag.
                       </div>
                     ) : (
                       calendarMaintenancePlans.map((plan) => {
@@ -4544,7 +4555,7 @@ FE-SERVICE`,
               </div>
 
               <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-                Verträge können automatisch Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
+                Verträge können automatisch UVV- und Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -4558,7 +4569,7 @@ FE-SERVICE`,
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
                       <option>Einsatzbestätigung</option>
-                      <option>Wartungserinnerung</option>
+                      <option>UVV-/Wartungserinnerung</option>
                       <option>Ticketstatus</option>
                       <option>Interner Hinweis</option>
                     </select>
@@ -5022,7 +5033,7 @@ FE-SERVICE`,
                 </div>
 
                 <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">Wartungsquote</p>
+                  <p className="text-sm font-bold text-slate-500">UVV-/Wartungsquote</p>
                   <p className="mt-2 text-xl font-black text-purple-700">
                     {maintenanceCompletionRate}%
                   </p>
@@ -5461,7 +5472,7 @@ FE-SERVICE`,
                     }
                     className="rounded-2xl bg-yellow-100 px-4 py-4 font-bold text-yellow-700"
                   >
-                    Wartung planen
+                    UVV/Wartung planen
                   </button>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -5533,7 +5544,7 @@ FE-SERVICE`,
               </div>
 
               <div className="mt-10">
-                <h4 className="text-xl font-black">Wartungsplanung</h4>
+                <h4 className="text-xl font-black">UVV-/Wartungsplanung</h4>
 
                 {getMaintenancePlanForDevice(selectedDeviceView.id) ? (
                   <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -5963,6 +5974,7 @@ FE-SERVICE`,
                         onChange={(e) => setContractType(e.target.value)}
                         className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
+                        <option>UVV-Wartungsvertrag</option>
                         <option>Wartungsvertrag</option>
                         <option>Servicevertrag</option>
                         <option>Premium SLA</option>
@@ -6148,7 +6160,7 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="Wartungen gesamt" value={maintenancePlans.length} />
+                <StatCard label="UVV/Wartungen gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
                   value={maintenancePlans.filter((plan) => (plan.status || "Geplant") === "Geplant").length}
@@ -6165,12 +6177,12 @@ FE-SERVICE`,
 
               {(isAdmin || isTechnician) && (
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Wartung planen</h3>
+                  <h3 className="text-xl font-black">UVV/Wartung planen</h3>
                   <p className="mt-2 text-slate-600">
-                    Plane Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
+                    Plane UVV-Prüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
                   <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                    Wichtig: Gleichnamige Geräte bei verschiedenen Kunden werden über Kunde + Gerät eindeutig getrennt.
+                    UVV- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht oder Kundendokumente nachvollzogen werden.
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -6211,9 +6223,10 @@ FE-SERVICE`,
                       onChange={(e) => setMaintenanceType(e.target.value)}
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
+                      <option>UVV-Wartung</option>
+                      <option>UVV-Prüfung</option>
                       <option>Regelwartung</option>
                       <option>Sicherheitsprüfung</option>
-                      <option>UVV-Prüfung</option>
                       <option>Reparatur-Nachkontrolle</option>
                       <option>Prüfsiegel-Erneuerung</option>
                     </select>
