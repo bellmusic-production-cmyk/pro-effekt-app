@@ -2180,7 +2180,7 @@ export default function Home() {
         <img
           src="/fe-service-logo.png"
           alt="FE-Service"
-          className="mx-auto h-auto w-full max-w-[300px] object-contain"
+          className="mx-auto h-auto w-full max-w-[320px] object-contain drop-shadow-xl"
           onError={(event) => {
             event.currentTarget.style.display = "none";
           }}
@@ -4005,7 +4005,7 @@ FE-SERVICE`,
 
         <section className="w-full min-w-0 flex-1 overflow-x-hidden px-5 pb-5 pt-0 lg:p-10">
           <div className="mb-6 hidden rounded-[24px] bg-white p-4 shadow-sm lg:block">
-            <p className="text-center text-2xl font-black tracking-[0.35em] text-[var(--fe-green)]">
+            <p className="fe-login-brand text-center text-2xl font-black uppercase tracking-[0.35em] text-[var(--fe-green)]">
               FE-SERVICE
             </p>
             <h2 className="mt-2 text-xl font-black leading-tight lg:text-4xl">
@@ -4609,7 +4609,7 @@ FE-SERVICE`,
 
                     <button
                       onClick={saveNotification}
-                      className="h-14 w-full rounded-2xl bg-[var(--fe-green)] text-lg font-black text-white shadow-lg shadow-green-900/30 transition hover:opacity-90 active:scale-[0.99]"
+                      className="fe-login-button h-14 w-full rounded-2xl bg-[var(--fe-green)] text-lg font-black text-white shadow-lg shadow-green-900/30 transition hover:opacity-90 active:scale-[0.99]"
                     >
                       Benachrichtigung speichern
                     </button>
