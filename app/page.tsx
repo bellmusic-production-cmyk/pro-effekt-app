@@ -4591,14 +4591,14 @@ FE-SERVICE`,
                       value={notificationRecipient}
                       onChange={(e) => setNotificationRecipient(e.target.value)}
                       placeholder="Empfänger (E-Mail / intern)"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      className="w-full rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
                     />
 
                     <input
                       value={notificationSubject}
                       onChange={(e) => setNotificationSubject(e.target.value)}
                       placeholder="Betreff"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      className="w-full rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
                     />
 
                     <textarea
@@ -4611,7 +4611,7 @@ FE-SERVICE`,
 
                     <button
                       onClick={saveNotification}
-                      className="w-full rounded-2xl bg-green-600 py-4 font-black text-white"
+                      className="w-full rounded-2xl bg-[var(--fe-green)] py-4 font-black text-black transition hover:opacity-90"
                     >
                       Benachrichtigung speichern
                     </button>
@@ -4739,7 +4739,7 @@ FE-SERVICE`,
                         placeholder="Netto-Betrag"
                         type="number"
                         step="0.01"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
                       />
 
                       <input
@@ -4748,7 +4748,7 @@ FE-SERVICE`,
                         placeholder="MwSt %"
                         type="number"
                         step="0.01"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
                       />
 
                       <select
@@ -6885,7 +6885,7 @@ FE-SERVICE`,
                 />
               </div>
 
-              <div className="rounded-[32px] bg-white p-6 shadow-sm">
+              <div className="rounded-[32px] border border-[var(--fe-green)]/20 bg-[var(--fe-black)] p-6 text-white shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h3 className="text-2xl font-black">Gerätesuche</h3>
