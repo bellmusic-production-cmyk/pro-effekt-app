@@ -2180,7 +2180,7 @@ export default function Home() {
         <img
           src="/fe-service-logo.png"
           alt="FE-Service"
-          className="mx-auto h-auto w-full max-w-[320px] object-contain"
+          className="mx-auto h-auto w-full max-w-[300px] object-contain"
           onError={(event) => {
             event.currentTarget.style.display = "none";
           }}
@@ -4005,7 +4005,7 @@ FE-SERVICE`,
 
         <section className="w-full min-w-0 flex-1 overflow-x-hidden px-5 pb-5 pt-0 lg:p-10">
           <div className="mb-6 hidden rounded-[24px] bg-white p-4 shadow-sm lg:block">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-green-600">
+            <p className="text-center text-2xl font-black tracking-[0.35em] text-[var(--fe-green)]">
               FE-SERVICE
             </p>
             <h2 className="mt-2 text-xl font-black leading-tight lg:text-4xl">
@@ -4589,14 +4589,14 @@ FE-SERVICE`,
                       value={notificationRecipient}
                       onChange={(e) => setNotificationRecipient(e.target.value)}
                       placeholder="Empfänger (E-Mail / intern)"
-                      className="w-full rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
+                      className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
                     />
 
                     <input
                       value={notificationSubject}
                       onChange={(e) => setNotificationSubject(e.target.value)}
                       placeholder="Betreff"
-                      className="w-full rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
+                      className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
                     />
 
                     <textarea
@@ -4604,12 +4604,12 @@ FE-SERVICE`,
                       onChange={(e) => setNotificationMessage(e.target.value)}
                       placeholder="Nachricht"
                       rows={5}
-                      className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
                     />
 
                     <button
                       onClick={saveNotification}
-                      className="h-14 w-full rounded-2xl bg-[var(--fe-green)] text-lg font-black text-white shadow-lg shadow-green-900/30 transition hover:opacity-90"
+                      className="h-14 w-full rounded-2xl bg-[var(--fe-green)] text-lg font-black text-white shadow-lg shadow-green-900/30 transition hover:opacity-90 active:scale-[0.99]"
                     >
                       Benachrichtigung speichern
                     </button>
@@ -4727,7 +4727,7 @@ FE-SERVICE`,
                       value={invoiceTitle}
                       onChange={(e) => setInvoiceTitle(e.target.value)}
                       placeholder="Leistung / Position"
-                      className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
                     />
 
                     <div className="grid gap-3 md:grid-cols-3">
@@ -4737,7 +4737,7 @@ FE-SERVICE`,
                         placeholder="Netto-Betrag"
                         type="number"
                         step="0.01"
-                        className="rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
 
                       <input
@@ -4746,7 +4746,7 @@ FE-SERVICE`,
                         placeholder="MwSt %"
                         type="number"
                         step="0.01"
-                        className="rounded-2xl border border-[var(--fe-green)]/20 bg-[#07130d] px-5 py-4 text-white placeholder:text-slate-500"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
 
                       <select
@@ -5996,7 +5996,7 @@ FE-SERVICE`,
                         onChange={(e) => setContractSlaHours(e.target.value)}
                         type="number"
                         placeholder="SLA Stunden"
-                        className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
 
                       <input
@@ -6005,7 +6005,7 @@ FE-SERVICE`,
                         type="number"
                         step="0.01"
                         placeholder="Monatspauschale €"
-                        className="h-14 w-full rounded-2xl border border-[var(--fe-green)]/25 bg-[#102219] px-5 text-white outline-none placeholder:text-slate-500 focus:border-[var(--fe-green)]"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
 
                       <input
@@ -6883,7 +6883,7 @@ FE-SERVICE`,
                 />
               </div>
 
-              <div className="rounded-[32px] border border-[var(--fe-green)]/20 bg-[var(--fe-black)] p-6 text-white shadow-sm">
+              <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h3 className="text-2xl font-black">Gerätesuche</h3>
