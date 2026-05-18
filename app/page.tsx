@@ -185,8 +185,7 @@ const navItems = [
   "Kunden",
   "Geräte",
   "QR-Scan",
-  "Wartungsplanung",
-  "Prüfungen",
+  "Abnahmeprotokoll",
   "Ersatzteile",
   "Dokumente",
   "Rechnungen",
@@ -226,6 +225,31 @@ const documentCategories = [
   "Rechnungen",
   "Fotos",
 ];
+
+const abnahmeProtocolQuestions = [
+  "Sichtprüfung",
+  "Allgemeiner Betrieb des Gerätes",
+  "Rahmen / Schweißnähte geprüft",
+  "Schmierung der beweglichen Teile",
+  "Mechanische Prüfung / Standfestigkeit geprüft",
+  "Schraubverbindungen geprüft",
+  "Polster / Verkleidung / Sattel / Lenker",
+  "Funktionsprüfung allgemein / Schutzeinrichtung",
+  "Seile / Zugseile geprüft",
+  "Einstellungen / Lager geprüft",
+  "Laufgurt geprüft / eingestellt",
+  "DGUV (UVV)-Unfallverhütungsvorschrift Prüfung",
+];
+
+type AbnahmeProtocolCheck = {
+  question: string;
+  ja: boolean;
+  ok: boolean;
+  vs: boolean;
+  df: boolean;
+  comment: string;
+};
+
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
@@ -287,6 +311,47 @@ export default function Home() {
   const [maintenanceAssignedTo, setMaintenanceAssignedTo] = useState("");
   const [maintenanceStatus, setMaintenanceStatus] = useState("Geplant");
   const [maintenanceNote, setMaintenanceNote] = useState("");
+
+  const [abnahmeCustomerId, setAbnahmeCustomerId] = useState("");
+  const [abnahmeDeviceId, setAbnahmeDeviceId] = useState("");
+  const [abnahmeTicketId, setAbnahmeTicketId] = useState("");
+  const [abnahmeDate, setAbnahmeDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [abnahmeAddressObject, setAbnahmeAddressObject] = useState("");
+  const [abnahmeOrderNumber, setAbnahmeOrderNumber] = useState("");
+  const [abnahmeCustomerNumber, setAbnahmeCustomerNumber] = useState("");
+  const [abnahmeContractType, setAbnahmeContractType] = useState("Wartungsvertrag");
+  const [abnahmeDguvChecked, setAbnahmeDguvChecked] = useState(true);
+  const [abnahmeUvvChecked, setAbnahmeUvvChecked] = useState(true);
+  const [abnahmePage, setAbnahmePage] = useState("1");
+  const [abnahmePagesTotal, setAbnahmePagesTotal] = useState("1");
+  const [abnahmeManufacturer, setAbnahmeManufacturer] = useState("");
+  const [abnahmeModel, setAbnahmeModel] = useState("");
+  const [abnahmeSerial, setAbnahmeSerial] = useState("");
+  const [abnahmeDefects, setAbnahmeDefects] = useState("");
+  const [abnahmeDeviceResult, setAbnahmeDeviceResult] = useState("OK");
+  const [abnahmeChecks, setAbnahmeChecks] = useState<AbnahmeProtocolCheck[]>(
+    abnahmeProtocolQuestions.map((question) => ({
+      question,
+      ja: false,
+      ok: false,
+      vs: false,
+      df: false,
+      comment: "",
+    })),
+  );
+  const [abnahmeBadgeApplied, setAbnahmeBadgeApplied] = useState(false);
+  const [abnahmeRecommendation, setAbnahmeRecommendation] = useState("");
+  const [abnahmeRepairRecommendedAt, setAbnahmeRepairRecommendedAt] = useState("");
+  const [abnahmeOfferFollows, setAbnahmeOfferFollows] = useState("Ja");
+  const [abnahmeNextInspection, setAbnahmeNextInspection] = useState("");
+  const [abnahmeTechnicianName, setAbnahmeTechnicianName] = useState("");
+  const [abnahmeTechnicianShort, setAbnahmeTechnicianShort] = useState("");
+  const [abnahmeCustomerResponsible, setAbnahmeCustomerResponsible] = useState("");
+  const [abnahmeTechnicianSignature, setAbnahmeTechnicianSignature] = useState("");
+  const [abnahmeCustomerSignature, setAbnahmeCustomerSignature] = useState("");
+
 
   const [serviceReport, setServiceReport] = useState("");
   const [serviceBadgeNumber, setServiceBadgeNumber] = useState("");
@@ -378,6 +443,12 @@ export default function Home() {
   const [qrScanStatus, setQrScanStatus] = useState("Scanner bereit.");
   const [qrScannerActive, setQrScannerActive] = useState(false);
   const qrScannerRef = useRef<any>(null);
+
+  const abnahmeTechnicianCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const abnahmeCustomerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const abnahmeTechnicianDrawingRef = useRef(false);
+  const abnahmeCustomerDrawingRef = useRef(false);
+
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewName, setPreviewName] = useState("");
 
@@ -3338,6 +3409,558 @@ FE-SERVICE`,
     return ticket?.customer || "Nicht zugeordnet";
   }
 
+
+  function resetAbnahmeProtocolForm() {
+    setAbnahmeCustomerId("");
+    setAbnahmeDeviceId("");
+    setAbnahmeTicketId("");
+    setAbnahmeDate(new Date().toISOString().split("T")[0]);
+    setAbnahmeAddressObject("");
+    setAbnahmeOrderNumber("");
+    setAbnahmeCustomerNumber("");
+    setAbnahmeContractType("Wartungsvertrag");
+    setAbnahmeDguvChecked(true);
+    setAbnahmeUvvChecked(true);
+    setAbnahmePage("1");
+    setAbnahmePagesTotal("1");
+    setAbnahmeManufacturer("");
+    setAbnahmeModel("");
+    setAbnahmeSerial("");
+    setAbnahmeDefects("");
+    setAbnahmeDeviceResult("OK");
+    setAbnahmeChecks(
+      abnahmeProtocolQuestions.map((question) => ({
+        question,
+        ja: false,
+        ok: false,
+        vs: false,
+        df: false,
+        comment: "",
+      })),
+    );
+    setAbnahmeBadgeApplied(false);
+    setAbnahmeRecommendation("");
+    setAbnahmeRepairRecommendedAt("");
+    setAbnahmeOfferFollows("Ja");
+    setAbnahmeNextInspection("");
+    setAbnahmeTechnicianName("");
+    setAbnahmeTechnicianShort("");
+    setAbnahmeCustomerResponsible("");
+    setAbnahmeTechnicianSignature("");
+    setAbnahmeCustomerSignature("");
+    clearSignatureCanvas("technician");
+    clearSignatureCanvas("customer");
+  }
+
+  function updateAbnahmeCheck(
+    index: number,
+    field: "ja" | "ok" | "vs" | "df" | "comment",
+    value: boolean | string,
+  ) {
+    setAbnahmeChecks((prev) =>
+      prev.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
+  }
+
+  function fillAbnahmeFromDevice(deviceId: string) {
+    setAbnahmeDeviceId(deviceId);
+
+    const selectedDevice = devices.find((item) => item.id === Number(deviceId));
+
+    if (!selectedDevice) return;
+
+    if (selectedDevice.customer_id) {
+      setAbnahmeCustomerId(String(selectedDevice.customer_id));
+    }
+
+    setAbnahmeManufacturer(selectedDevice.manufacturer || "");
+    setAbnahmeModel(selectedDevice.name || "");
+    setAbnahmeSerial(selectedDevice.serial_number || "");
+    setAbnahmeAddressObject(selectedDevice.location || "");
+    setAbnahmeDefects(selectedDevice.note || "");
+  }
+
+  function getAbnahmeCanvasContext(canvas: HTMLCanvasElement | null) {
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+
+    if (canvas.width !== Math.floor(rect.width * ratio)) {
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.scale(ratio, ratio);
+        context.lineWidth = 2.5;
+        context.lineCap = "round";
+        context.strokeStyle = "#0f172a";
+      }
+    }
+
+    return canvas.getContext("2d");
+  }
+
+  function signaturePoint(
+    event: any,
+    canvas: HTMLCanvasElement,
+  ) {
+    const rect = canvas.getBoundingClientRect();
+
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+
+  function startSignature(
+    who: "technician" | "customer",
+    event: any,
+  ) {
+    const canvas =
+      who === "technician"
+        ? abnahmeTechnicianCanvasRef.current
+        : abnahmeCustomerCanvasRef.current;
+
+    if (!canvas) return;
+
+    const context = getAbnahmeCanvasContext(canvas);
+    if (!context) return;
+
+    canvas.setPointerCapture(event.pointerId);
+
+    const point = signaturePoint(event, canvas);
+
+    if (who === "technician") {
+      abnahmeTechnicianDrawingRef.current = true;
+    } else {
+      abnahmeCustomerDrawingRef.current = true;
+    }
+
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }
+
+  function drawSignature(
+    who: "technician" | "customer",
+    event: any,
+  ) {
+    const isDrawing =
+      who === "technician"
+        ? abnahmeTechnicianDrawingRef.current
+        : abnahmeCustomerDrawingRef.current;
+
+    if (!isDrawing) return;
+
+    const canvas =
+      who === "technician"
+        ? abnahmeTechnicianCanvasRef.current
+        : abnahmeCustomerCanvasRef.current;
+
+    if (!canvas) return;
+
+    const context = getAbnahmeCanvasContext(canvas);
+    if (!context) return;
+
+    const point = signaturePoint(event, canvas);
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  }
+
+  function finishSignature(who: "technician" | "customer") {
+    const canvas =
+      who === "technician"
+        ? abnahmeTechnicianCanvasRef.current
+        : abnahmeCustomerCanvasRef.current;
+
+    if (who === "technician") {
+      abnahmeTechnicianDrawingRef.current = false;
+      setAbnahmeTechnicianSignature(canvas?.toDataURL("image/png") || "");
+    } else {
+      abnahmeCustomerDrawingRef.current = false;
+      setAbnahmeCustomerSignature(canvas?.toDataURL("image/png") || "");
+    }
+  }
+
+  function clearSignatureCanvas(who: "technician" | "customer") {
+    const canvas =
+      who === "technician"
+        ? abnahmeTechnicianCanvasRef.current
+        : abnahmeCustomerCanvasRef.current;
+
+    if (!canvas) return;
+
+    const context = canvas.getContext("2d");
+    context?.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (who === "technician") {
+      setAbnahmeTechnicianSignature("");
+    } else {
+      setAbnahmeCustomerSignature("");
+    }
+  }
+
+  function buildAbnahmeProtocolHtml() {
+    const selectedCustomer = customers.find(
+      (item) => item.id === Number(abnahmeCustomerId),
+    );
+    const selectedDevice = devices.find(
+      (item) => item.id === Number(abnahmeDeviceId),
+    );
+    const selectedTicket = tickets.find(
+      (item) => item.id === Number(abnahmeTicketId),
+    );
+    const technicianName =
+      abnahmeTechnicianName ||
+      userProfile?.full_name ||
+      userProfile?.company ||
+      session?.user?.email ||
+      "Nicht angegeben";
+
+    const checkRows = abnahmeChecks
+      .map(
+        (item, index) => `
+          <tr>
+            <td class="question">${index + 1}. ${item.question}</td>
+            <td>${item.ja ? "X" : ""}</td>
+            <td>${item.ok ? "X" : ""}</td>
+            <td>${item.vs ? "X" : ""}</td>
+            <td>${item.df ? "X" : ""}</td>
+            <td>${index + 1}</td>
+            <td>${abnahmeManufacturer || selectedDevice?.manufacturer || ""}</td>
+            <td>${abnahmeModel || selectedDevice?.name || ""}</td>
+            <td>${abnahmeSerial || selectedDevice?.serial_number || ""}</td>
+            <td>${item.comment || (index === 0 ? abnahmeDefects : "")}</td>
+            <td>${abnahmeDeviceResult}</td>
+          </tr>
+        `,
+      )
+      .join("");
+
+    return `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung</title>
+          <style>
+            * { box-sizing: border-box; }
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              color: #111827;
+              margin: 0;
+              padding: 22px;
+              background: white;
+              font-size: 11px;
+            }
+            .page {
+              width: 100%;
+              max-width: 1120px;
+              margin: 0 auto;
+              border: 1px solid #111827;
+              padding: 14px;
+            }
+            .top {
+              display: grid;
+              grid-template-columns: 1fr 2fr 1fr;
+              gap: 12px;
+              align-items: start;
+            }
+            .logo {
+              height: 42px;
+              max-width: 180px;
+              object-fit: contain;
+            }
+            h1 {
+              margin: 0;
+              text-align: center;
+              font-size: 16px;
+              text-decoration: underline;
+            }
+            .small { font-size: 10px; }
+            .line {
+              display: inline-block;
+              min-width: 160px;
+              border-bottom: 1px solid #111827;
+              min-height: 16px;
+              padding: 0 4px;
+            }
+            .line.short { min-width: 70px; }
+            .line.mid { min-width: 120px; }
+            .row { margin-top: 7px; }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 12px;
+            }
+            th, td {
+              border: 1px solid #111827;
+              padding: 4px;
+              vertical-align: top;
+              text-align: center;
+            }
+            th {
+              font-size: 10px;
+              font-weight: 700;
+              background: #f3f4f6;
+            }
+            td.question {
+              text-align: left;
+              width: 280px;
+              font-weight: 600;
+            }
+            .footer-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 16px;
+              margin-top: 14px;
+            }
+            .footer-line {
+              border-bottom: 1px solid #111827;
+              min-height: 20px;
+              padding: 2px 4px;
+            }
+            .signature-row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 24px;
+              margin-top: 20px;
+            }
+            .signature-box {
+              border-top: 1px solid #111827;
+              padding-top: 8px;
+              min-height: 72px;
+            }
+            .signature-img {
+              max-height: 64px;
+              max-width: 240px;
+              object-fit: contain;
+              display: block;
+              margin-bottom: 6px;
+            }
+            .company {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-top: 18px;
+              font-size: 10px;
+            }
+            .company-logo {
+              height: 26px;
+              object-fit: contain;
+            }
+            .print-button {
+              margin-top: 18px;
+              padding: 12px 18px;
+              border: 0;
+              border-radius: 12px;
+              background: #16a34a;
+              color: white;
+              font-weight: 800;
+            }
+            @media print {
+              body { padding: 0; }
+              .page { border: 0; max-width: none; }
+              .print-button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="page">
+            <div class="top">
+              <div>
+                <img src="/fe-service-logo.png" class="logo" onerror="this.style.display='none'" />
+              </div>
+              <div>
+                <h1>Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung für Sport-Fitness – Kraft & Medizin Geräte</h1>
+              </div>
+              <div class="small" style="text-align:right;">
+                Seite <span class="line short">${abnahmePage}</span> von
+                <span class="line short">${abnahmePagesTotal}</span> Seiten Insgesamt:
+              </div>
+            </div>
+
+            <div class="row">
+              Datum der Prüfung <span class="line mid">${abnahmeDate}</span>
+              Adresse / Objekt <span class="line">${abnahmeAddressObject || selectedCustomer?.address || selectedDevice?.location || ""}</span>
+            </div>
+
+            <div class="row">
+              Auftr. Nr. / Kunden Nr. <span class="line mid">${abnahmeOrderNumber || selectedTicket?.ticket_number || ""}</span>
+              <span class="line mid">${abnahmeCustomerNumber || selectedCustomer?.id || ""}</span>
+              Wartungsvertrag ( ${abnahmeContractType === "Wartungsvertrag" ? "X" : ""} )
+              Einmalige Wartung ( ${abnahmeContractType === "Einmalige Wartung" ? "X" : ""} )
+              Abnahme ( ${abnahmeContractType === "Abnahme" ? "X" : ""} )
+              DGUV202-044 ( ${abnahmeDguvChecked ? "X" : ""} )
+              UVV-Unfallverhütungsvorschrift Prüfung ( ${abnahmeUvvChecked ? "X" : ""} )
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Prüfpunkt</th>
+                  <th>Ja</th>
+                  <th>OK</th>
+                  <th>VS</th>
+                  <th>DF</th>
+                  <th>P.-Nr.</th>
+                  <th>Hersteller</th>
+                  <th>Modell / NR</th>
+                  <th>Seriennr.</th>
+                  <th>Mängel</th>
+                  <th>DF / OK / Rep</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${checkRows}
+                <tr>
+                  <td class="question">Prüfplakette angebracht</td>
+                  <td colspan="2">N ( ${abnahmeBadgeApplied ? "" : "X"} )</td>
+                  <td colspan="2">OK ( ${abnahmeBadgeApplied ? "X" : ""} )</td>
+                  <td colspan="6"></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="footer-grid">
+              <div>
+                Techniker:
+                <div class="footer-line">${technicianName}</div>
+              </div>
+              <div>
+                Datum:
+                <div class="footer-line">${abnahmeDate}</div>
+              </div>
+              <div>
+                Kürzel:
+                <div class="footer-line">${abnahmeTechnicianShort}</div>
+              </div>
+            </div>
+
+            <div class="row">
+              Empfehlung: <span class="line">${abnahmeRecommendation}</span>
+            </div>
+
+            <div class="row">
+              Folge Reparatur-Auftrag empfohlen bei:
+              <span class="line">${abnahmeRepairRecommendedAt}</span>
+              Angebot folgt Ja ( ${abnahmeOfferFollows === "Ja" ? "X" : ""} )
+              Nein ( ${abnahmeOfferFollows === "Nein" ? "X" : ""} )
+            </div>
+
+            <div class="row">
+              Nächste Prüfung:
+              <span class="line mid">${abnahmeNextInspection}</span>
+            </div>
+
+            <div class="signature-row">
+              <div class="signature-box">
+                ${abnahmeTechnicianSignature ? `<img src="${abnahmeTechnicianSignature}" class="signature-img" />` : ""}
+                Unterschrift Techniker
+              </div>
+              <div class="signature-box">
+                ${abnahmeCustomerSignature ? `<img src="${abnahmeCustomerSignature}" class="signature-img" />` : ""}
+                Unterschrift Kunde / Verantwortlicher: ${abnahmeCustomerResponsible || "-"}
+              </div>
+            </div>
+
+            <div class="company">
+              <div>
+                <strong>FE-Service oHG</strong><br/>
+                Fitness Equipment Service
+              </div>
+              <div>
+                Diese digitale Prüfung wurde über die FE-SERVICE Plattform erstellt.
+              </div>
+            </div>
+
+            <button onclick="window.print()" class="print-button">
+              Drucken / als PDF speichern
+            </button>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  async function archiveAbnahmeProtocolHtml() {
+    const selectedTicket = abnahmeTicketId
+      ? tickets.find((item) => item.id === Number(abnahmeTicketId))
+      : null;
+    const selectedDevice = abnahmeDeviceId
+      ? devices.find((item) => item.id === Number(abnahmeDeviceId))
+      : null;
+
+    const html = buildAbnahmeProtocolHtml();
+    const fileName = `Abnahmeprotokoll-DGUV-UVV-${Date.now().toString().slice(-6)}.html`;
+    const filePath = `Pruefprotokolle/${Date.now()}-${fileName}`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+
+    const uploadResult = await supabase.storage
+      .from("documents")
+      .upload(filePath, blob, {
+        contentType: "text/html;charset=utf-8",
+        upsert: false,
+      });
+
+    if (uploadResult.error) {
+      alert(`Protokoll konnte nicht archiviert werden: ${uploadResult.error.message}`);
+      return;
+    }
+
+    const insertResult = await supabase.from("documents").insert([
+      {
+        file_name: fileName,
+        file_path: filePath,
+        category: "Prüfprotokolle",
+        file_size: blob.size,
+        device_id: selectedDevice?.id || null,
+        ticket_id: selectedTicket?.id || null,
+        customer_id:
+          Number(abnahmeCustomerId) ||
+          selectedTicket?.customer_id ||
+          selectedDevice?.customer_id ||
+          null,
+      },
+    ]);
+
+    if (insertResult.error) {
+      alert(`Protokoll wurde hochgeladen, aber nicht gelistet: ${insertResult.error.message}`);
+      return;
+    }
+
+    await createDeviceHistory(
+      selectedDevice?.id || null,
+      "Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung archiviert",
+      `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
+      "Prüfprotokoll",
+    );
+
+    await loadDocuments();
+    alert("Abnahmeprotokoll wurde archiviert.");
+  }
+
+  function printAbnahmeProtocol() {
+    if (!abnahmeCustomerId || !abnahmeDeviceId) {
+      alert("Bitte Kunde und Gerät auswählen.");
+      return;
+    }
+
+    const html = buildAbnahmeProtocolHtml();
+    const printWindow = window.open("", "_blank");
+
+    if (!printWindow) {
+      alert("Popup wurde blockiert. Bitte Popups erlauben.");
+      return;
+    }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+
   async function saveInvoice() {
     if (!isAdmin) {
       alert("Nur Admins können Rechnungen und Angebote erstellen.");
@@ -3829,7 +4452,7 @@ FE-SERVICE`,
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Geräte", "Wartungsplanung", "Prüfungen", "Ersatzteile", "Dokumente"]
+      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
       : ["Kundenportal", "Service-Tickets", "Geräte", "Dokumente", "Rechnungen"];
 
   function navItemLabel(item: string) {
@@ -3841,8 +4464,7 @@ FE-SERVICE`,
       Kunden: "Kunden",
       Geräte: "Geräte",
       "QR-Scan": "QR-Scan",
-      Wartungsplanung: "UVV & Wartung",
-      Prüfungen: "UVV-Prüfungen",
+      Abnahmeprotokoll: "Abnahmeprotokoll",
       Ersatzteile: "Teile",
       Dokumente: "Dokumente",
       Rechnungen: "Rechnungen",
@@ -4141,12 +4763,12 @@ FE-SERVICE`,
                   </button>
 
                   <button
-                    onClick={() => openPage("Wartungsplanung")}
+                    onClick={() => openPage("Abnahmeprotokoll")}
                     className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
                   >
-                    UVV/Wartung planen
+                    Abnahmeprotokoll
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Kunde + Gerät wählen
+                      Wartung + DGUV / U.V.V
                     </span>
                   </button>
 
@@ -4512,7 +5134,7 @@ FE-SERVICE`,
                       </p>
                     </div>
                     <button
-                      onClick={() => openPage("Wartungsplanung")}
+                      onClick={() => openPage("Abnahmeprotokoll")}
                       className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-black text-white"
                     >
                       Wartung
@@ -5505,7 +6127,7 @@ FE-SERVICE`,
                     }
                     className="rounded-2xl bg-yellow-100 px-4 py-4 font-bold text-yellow-700"
                   >
-                    UVV/Wartung planen
+                    Abnahmeprotokoll
                   </button>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -6186,6 +6808,406 @@ FE-SERVICE`,
             </div>
           )}
 
+          {activePage === "Abnahmeprotokoll" && (
+            <div className="space-y-6">
+              <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
+                  Digitales Prüfprotokoll
+                </p>
+                <h3 className="mt-2 text-3xl font-black md:text-4xl">
+                  Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung
+                </h3>
+                <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
+                  Ein gemeinsames Formular für Wartung, DGUV202-044 und U.V.V.-Prüfung.
+                  Der Techniker arbeitet die Prüfpunkte direkt am Handy ab, Kunde und Techniker unterschreiben digital.
+                </p>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
+                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <h3 className="text-xl font-black">Kopfbereich</h3>
+
+                  <div className="mt-5 space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        value={abnahmeDate}
+                        onChange={(e) => setAbnahmeDate(e.target.value)}
+                        type="date"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+
+                      <input
+                        value={abnahmeOrderNumber}
+                        onChange={(e) => setAbnahmeOrderNumber(e.target.value)}
+                        placeholder="Auftragsnummer"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+                    </div>
+
+                    <select
+                      value={abnahmeCustomerId}
+                      onChange={(e) => {
+                        setAbnahmeCustomerId(e.target.value);
+                        const selectedCustomer = customers.find(
+                          (item) => item.id === Number(e.target.value),
+                        );
+                        setAbnahmeAddressObject(selectedCustomer?.address || "");
+                        setAbnahmeCustomerNumber(
+                          selectedCustomer ? String(selectedCustomer.id) : "",
+                        );
+                      }}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                    >
+                      <option value="">Kunde auswählen</option>
+                      {portalCustomers.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.company || item.contact_person || `Kunde ${item.id}`}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={abnahmeDeviceId}
+                      onChange={(e) => fillAbnahmeFromDevice(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                    >
+                      <option value="">Gerät auswählen</option>
+                      {availableTicketDevices
+                        .filter((item) =>
+                          abnahmeCustomerId
+                            ? item.customer_id === Number(abnahmeCustomerId)
+                            : true,
+                        )
+                        .map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} · {item.serial_number || "ohne Seriennr."}
+                          </option>
+                        ))}
+                    </select>
+
+                    <select
+                      value={abnahmeTicketId}
+                      onChange={(e) => setAbnahmeTicketId(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                    >
+                      <option value="">Optional Ticket verknüpfen</option>
+                      {filteredTickets.map((ticket) => (
+                        <option key={ticket.id} value={ticket.id}>
+                          {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
+                        </option>
+                      ))}
+                    </select>
+
+                    <textarea
+                      value={abnahmeAddressObject}
+                      onChange={(e) => setAbnahmeAddressObject(e.target.value)}
+                      placeholder="Adresse / Objekt"
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <input
+                        value={abnahmeCustomerNumber}
+                        onChange={(e) => setAbnahmeCustomerNumber(e.target.value)}
+                        placeholder="Kunden-Nr."
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+
+                      <input
+                        value={abnahmePage}
+                        onChange={(e) => setAbnahmePage(e.target.value)}
+                        placeholder="Seite"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+
+                      <input
+                        value={abnahmePagesTotal}
+                        onChange={(e) => setAbnahmePagesTotal(e.target.value)}
+                        placeholder="Seiten insgesamt"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+                    </div>
+
+                    <select
+                      value={abnahmeContractType}
+                      onChange={(e) => setAbnahmeContractType(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                    >
+                      <option>Wartungsvertrag</option>
+                      <option>Einmalige Wartung</option>
+                      <option>Abnahme</option>
+                    </select>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 font-bold">
+                        <input
+                          type="checkbox"
+                          checked={abnahmeDguvChecked}
+                          onChange={(e) => setAbnahmeDguvChecked(e.target.checked)}
+                        />
+                        DGUV202-044
+                      </label>
+
+                      <label className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 font-bold">
+                        <input
+                          type="checkbox"
+                          checked={abnahmeUvvChecked}
+                          onChange={(e) => setAbnahmeUvvChecked(e.target.checked)}
+                        />
+                        UVV-Unfallverhütungsvorschrift Prüfung
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <h3 className="text-xl font-black">Geräte- und Ergebnisdaten</h3>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <input
+                      value={abnahmeManufacturer}
+                      onChange={(e) => setAbnahmeManufacturer(e.target.value)}
+                      placeholder="Hersteller"
+                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+                    <input
+                      value={abnahmeModel}
+                      onChange={(e) => setAbnahmeModel(e.target.value)}
+                      placeholder="Modell / NR"
+                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+                    <input
+                      value={abnahmeSerial}
+                      onChange={(e) => setAbnahmeSerial(e.target.value)}
+                      placeholder="Seriennummer"
+                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+                    <select
+                      value={abnahmeDeviceResult}
+                      onChange={(e) => setAbnahmeDeviceResult(e.target.value)}
+                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                    >
+                      <option>OK</option>
+                      <option>DF</option>
+                      <option>Rep</option>
+                    </select>
+                  </div>
+
+                  <textarea
+                    value={abnahmeDefects}
+                    onChange={(e) => setAbnahmeDefects(e.target.value)}
+                    placeholder="Mängel / Feststellungen"
+                    rows={5}
+                    className="mt-4 w-full rounded-2xl border border-slate-300 px-5 py-4"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <h3 className="text-xl font-black">Prüffragen nach Vorlage</h3>
+                <p className="mt-2 text-sm font-semibold text-slate-500">
+                  Jeder Punkt wird wie im Papierformular mit Ja, OK, VS, DF und optionalem Mangeltext dokumentiert.
+                </p>
+
+                <div className="mt-5 space-y-3">
+                  {abnahmeChecks.map((item, index) => (
+                    <div
+                      key={item.question}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-green-600">
+                            Punkt {index + 1}
+                          </p>
+                          <h4 className="mt-1 text-lg font-black">
+                            {item.question}
+                          </h4>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          {(["ja", "ok", "vs", "df"] as const).map((field) => (
+                            <label
+                              key={field}
+                              className="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-black uppercase"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={Boolean(item[field])}
+                                onChange={(e) =>
+                                  updateAbnahmeCheck(index, field, e.target.checked)
+                                }
+                              />
+                              {field.toUpperCase()}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <input
+                        value={item.comment}
+                        onChange={(e) =>
+                          updateAbnahmeCheck(index, "comment", e.target.value)
+                        }
+                        placeholder="Mangel / Bemerkung zu diesem Prüfpunkt"
+                        className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-2">
+                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <h3 className="text-xl font-black">Abschluss</h3>
+
+                  <div className="mt-5 space-y-4">
+                    <label className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 font-bold">
+                      <input
+                        type="checkbox"
+                        checked={abnahmeBadgeApplied}
+                        onChange={(e) => setAbnahmeBadgeApplied(e.target.checked)}
+                      />
+                      Prüfplakette angebracht
+                    </label>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        value={abnahmeTechnicianName}
+                        onChange={(e) => setAbnahmeTechnicianName(e.target.value)}
+                        placeholder="Techniker"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+
+                      <input
+                        value={abnahmeTechnicianShort}
+                        onChange={(e) => setAbnahmeTechnicianShort(e.target.value)}
+                        placeholder="Kürzel"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+                    </div>
+
+                    <textarea
+                      value={abnahmeRecommendation}
+                      onChange={(e) => setAbnahmeRecommendation(e.target.value)}
+                      placeholder="Empfehlung"
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+                    <input
+                      value={abnahmeRepairRecommendedAt}
+                      onChange={(e) => setAbnahmeRepairRecommendedAt(e.target.value)}
+                      placeholder="Folge Reparatur-Auftrag empfohlen bei"
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <select
+                        value={abnahmeOfferFollows}
+                        onChange={(e) => setAbnahmeOfferFollows(e.target.value)}
+                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      >
+                        <option>Ja</option>
+                        <option>Nein</option>
+                      </select>
+
+                      <input
+                        value={abnahmeNextInspection}
+                        onChange={(e) => setAbnahmeNextInspection(e.target.value)}
+                        type="date"
+                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+                    </div>
+
+                    <input
+                      value={abnahmeCustomerResponsible}
+                      onChange={(e) => setAbnahmeCustomerResponsible(e.target.value)}
+                      placeholder="Kunde / Verantwortlicher"
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <h3 className="text-xl font-black">Unterschriften am Handy</h3>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">
+                    Direkt mit Finger oder Stift unterschreiben.
+                  </p>
+
+                  <div className="mt-5 space-y-5">
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="font-black">Techniker</p>
+                        <button
+                          onClick={() => clearSignatureCanvas("technician")}
+                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black"
+                        >
+                          Löschen
+                        </button>
+                      </div>
+                      <canvas
+                        ref={abnahmeTechnicianCanvasRef}
+                        onPointerDown={(e) => startSignature("technician", e)}
+                        onPointerMove={(e) => drawSignature("technician", e)}
+                        onPointerUp={() => finishSignature("technician")}
+                        onPointerCancel={() => finishSignature("technician")}
+                        className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="font-black">Kunde</p>
+                        <button
+                          onClick={() => clearSignatureCanvas("customer")}
+                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black"
+                        >
+                          Löschen
+                        </button>
+                      </div>
+                      <canvas
+                        ref={abnahmeCustomerCanvasRef}
+                        onPointerDown={(e) => startSignature("customer", e)}
+                        onPointerMove={(e) => drawSignature("customer", e)}
+                        onPointerUp={() => finishSignature("customer")}
+                        onPointerCancel={() => finishSignature("customer")}
+                        className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <button
+                  onClick={printAbnahmeProtocol}
+                  className="rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
+                >
+                  PDF / Druckansicht öffnen
+                </button>
+
+                <button
+                  onClick={archiveAbnahmeProtocolHtml}
+                  className="rounded-2xl bg-blue-100 px-6 py-4 font-black text-blue-700"
+                >
+                  Protokoll archivieren
+                </button>
+
+                <button
+                  onClick={resetAbnahmeProtocolForm}
+                  className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
+                >
+                  Formular leeren
+                </button>
+              </div>
+            </div>
+          )}
+
           {activePage === "Wartungsplanung" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
@@ -6210,7 +7232,7 @@ FE-SERVICE`,
 
               {(isAdmin || isTechnician) && (
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">UVV/Wartung planen</h3>
+                  <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
                   <p className="mt-2 text-slate-600">
                     Plane UVV-Prüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
