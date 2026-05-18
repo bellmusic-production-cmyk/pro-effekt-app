@@ -490,9 +490,16 @@ export default function Home() {
   ]);
 
   const filteredDocuments = useMemo(() => {
-    if (activeDocumentCategory === "Alle") return documents;
-    return documents.filter((item) => item.category === activeDocumentCategory);
-  }, [documents, activeDocumentCategory]);
+    const customerFilteredDocuments = isCustomer
+      ? documents.filter((item) => item.customer_id === userProfile?.customer_id)
+      : documents;
+
+    if (activeDocumentCategory === "Alle") return customerFilteredDocuments;
+
+    return customerFilteredDocuments.filter(
+      (item) => item.category === activeDocumentCategory,
+    );
+  }, [documents, activeDocumentCategory, isCustomer, userProfile]);
 
   const inspectionStats = useMemo(() => {
     const ok = devices.filter(
@@ -2081,8 +2088,8 @@ export default function Home() {
   }
 
   function categoryCount(category: string) {
-    if (category === "Alle") return documents.length;
-    return documents.filter((item) => item.category === category).length;
+    if (category === "Alle") return visibleDocuments.length;
+    return visibleDocuments.filter((item) => item.category === category).length;
   }
 
   function fileSizeText(size: number | null) {
@@ -2391,6 +2398,13 @@ export default function Home() {
     const customer = customers.find((item) => item.id === customerId);
     return customer?.company || customer?.contact_person || `Kunde ${customerId}`;
   }
+
+  function belongsToCurrentCustomer(customerId?: number | null) {
+    if (!isCustomer) return true;
+    if (!userProfile?.customer_id) return false;
+    return customerId === userProfile.customer_id;
+  }
+
 
   function getCustomerLabel(customer: Customer) {
     return (
@@ -3693,6 +3707,23 @@ FE-SERVICE`,
     .filter((item) => item.status !== "Bezahlt" && item.status !== "Storniert")
     .reduce((sum, item) => sum + Number(item.amount_gross || 0), 0);
 
+  const visibleInvoices = useMemo(() => {
+    if (isCustomer) {
+      return invoices.filter((item) => item.customer_id === userProfile?.customer_id);
+    }
+
+    return invoices;
+  }, [invoices, isCustomer, userProfile]);
+
+  const visibleDocuments = useMemo(() => {
+    if (isCustomer) {
+      return documents.filter((item) => item.customer_id === userProfile?.customer_id);
+    }
+
+    return documents;
+  }, [documents, isCustomer, userProfile]);
+
+
   const completedTicketsCount = tickets.filter(
     (ticket) =>
       ticket.status === "Abgeschlossen" ||
@@ -4010,10 +4041,20 @@ FE-SERVICE`,
           <div className="sticky top-0 z-30 -mx-5 mb-5 border-b border-[var(--fe-green)]/20 bg-[var(--fe-black)] px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-lg lg:hidden">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fe-green)]">
-                  FE-SERVICE
-                </p>
-                <h2 className="mt-1 text-xl font-black leading-tight text-white">
+                <div className="flex items-center gap-3">
+                  <img
+                    src="/fe-service-logo.png"
+                    alt="FE-Service Logo"
+                    className="h-9 w-auto max-w-[104px] object-contain"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fe-green)]">
+                    FE-SERVICE
+                  </p>
+                </div>
+                <h2 className="mt-2 text-xl font-black leading-tight text-white">
                   {portalTitle}
                 </h2>
                 <p className="mt-1 max-w-[260px] truncate text-xs font-semibold text-slate-300">
@@ -4666,13 +4707,14 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="Gesamt" value={invoices.length} />
-                <StatCard label="Entwürfe" value={invoices.filter((item) => item.status === "Entwurf").length} />
-                <StatCard label="Offen" value={invoices.filter((item) => item.status === "Offen").length} />
-                <StatCard label="Bezahlt" value={invoices.filter((item) => item.status === "Bezahlt").length} />
+                <StatCard label="Gesamt" value={visibleInvoices.length} />
+                <StatCard label="Entwürfe" value={visibleInvoices.filter((item) => item.status === "Entwurf").length} />
+                <StatCard label="Offen" value={visibleInvoices.filter((item) => item.status === "Offen").length} />
+                <StatCard label="Bezahlt" value={visibleInvoices.filter((item) => item.status === "Bezahlt").length} />
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
+                {isAdmin && (
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnung / Angebot erstellen</h3>
                   <p className="mt-2 text-slate-600">
@@ -4765,17 +4807,18 @@ FE-SERVICE`,
                     </button>
                   </div>
                 </div>
+                )}
 
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnungen & Angebote</h3>
 
                   <div className="mt-5 space-y-3">
-                    {invoices.length === 0 ? (
+                    {visibleInvoices.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Noch keine Rechnungen oder Angebote vorhanden.
                       </div>
                     ) : (
-                      invoices.map((item) => (
+                      visibleInvoices.map((item) => (
                         <div
                           key={item.id}
                           className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -4802,6 +4845,7 @@ FE-SERVICE`,
                             </div>
 
                             <div className="flex flex-col gap-2 xl:w-52">
+{isAdmin && (
                               <select
                                 value={item.status}
                                 onChange={(e) => updateInvoiceStatus(item.id, e.target.value)}
@@ -4813,6 +4857,7 @@ FE-SERVICE`,
                                 <option>Bezahlt</option>
                                 <option>Storniert</option>
                               </select>
+                              )}
 
                               <button
                                 onClick={() => printInvoice(item)}
@@ -4821,12 +4866,14 @@ FE-SERVICE`,
                                 PDF / Druck
                               </button>
 
+{isAdmin && (
                               <button
                                 onClick={() => deleteInvoice(item.id)}
                                 className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
                               >
                                 Löschen
                               </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -5148,7 +5195,7 @@ FE-SERVICE`,
                       >
                         <p className="font-black">{status}</p>
                         <p className="text-xl font-black">
-                          {invoices.filter((item) => item.status === status).length}
+                          {visibleInvoices.filter((item) => item.status === status).length}
                         </p>
                       </div>
                     ))}
@@ -5160,7 +5207,7 @@ FE-SERVICE`,
                   <div className="mt-5 space-y-3">
                     <div className="rounded-2xl bg-slate-50 p-4">
                       <p className="text-4xl font-black">
-                        {documents.filter((item) => item.category === "Serviceberichte").length}
+                        {visibleDocuments.filter((item) => item.category === "Serviceberichte").length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
                         archivierte Berichte
