@@ -5917,8 +5917,8 @@ FE-SERVICE`,
                 <StatCard label="Teile niedrig" value={lowStockParts.length} />
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-2">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Offene Tickets</h3>
@@ -6212,7 +6212,7 @@ FE-SERVICE`,
                                 <p className="text-xs font-black text-green-600">
                                   {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number}
                                 </p>
-                                <h4 className="mt-1 text-xl font-black">
+                                <h4 className="mt-1 break-words text-xl font-black">
                                   {ticket.customer}
                                 </h4>
                                 <p className="mt-2 text-sm text-slate-600">
@@ -7319,7 +7319,7 @@ FE-SERVICE`,
               )}
 
               <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Kundenliste mit Geräteüberblick</h3>
+                <h3 className="break-words text-xl font-black">Kundenliste mit Geräteüberblick</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                     Such- und Lesemodus: Techniker können Kundendaten und zugewiesene Geräte ansehen, aber nicht bearbeiten.
@@ -7329,7 +7329,7 @@ FE-SERVICE`,
                 <input
                   value={customerDirectorySearch}
                   onChange={(e) => setCustomerDirectorySearch(e.target.value)}
-                  placeholder="Kunden suchen: Firma, Vorname, Nachname, Ort, PLZ, E-Mail, Telefon"
+                  placeholder="Kunden suchen"
                   className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
@@ -7344,8 +7344,8 @@ FE-SERVICE`,
                         key={item.id}
                         className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
+                        <div className="flex min-w-0 flex-col gap-4">
+                          <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-green-600">
                               {getCustomerDisplayName(item) || "Kein Ansprechpartner"}
                             </p>
