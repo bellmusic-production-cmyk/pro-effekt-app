@@ -8398,7 +8398,15 @@ FE-SERVICE`,
                       value={abnahmeAddressObject}
                       onChange={(e) => setAbnahmeAddressObject(e.target.value)}
 
-                    {/* FE-SERVICE ABNAHME SUCHERGEBNISSE START */}
+                    
+
+
+                      placeholder="Adresse / Objekt"
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+
+{/* FE-SERVICE ABNAHME SUCHERGEBNISSE START */}
                     <div className="grid gap-4 xl:grid-cols-2">
                       <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center justify-between gap-3">
@@ -8492,11 +8500,6 @@ FE-SERVICE`,
                     </div>
                     {/* FE-SERVICE ABNAHME SUCHERGEBNISSE ENDE */}
 
-
-                      placeholder="Adresse / Objekt"
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
 
                     <div className="grid gap-3 md:grid-cols-3">
                       <input
