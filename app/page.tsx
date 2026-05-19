@@ -5481,22 +5481,49 @@ FE-SERVICE`,
   })();
 
   const abnahmeCustomers = (() => {
-    const search = abnahmeCustomerSearch.toLowerCase().trim();
+    const search = abnahmeCustomerSearch.trim().toLowerCase();
 
     const baseCustomers =
       isCustomer && userProfile?.customer_id
         ? customers.filter((customerItem) => customerItem.id === userProfile.customer_id)
         : customers;
 
-    if (!search) return baseCustomers;
-
-    return baseCustomers.filter((customerItem) =>
-      getCustomerSearchText(customerItem).includes(search),
+    const sortedCustomers = [...baseCustomers].sort((a, b) =>
+      String(getCustomerDisplayName(a) || getCustomerLabel(a)).localeCompare(
+        String(getCustomerDisplayName(b) || getCustomerLabel(b)),
+      ),
     );
+
+    if (!search) return sortedCustomers;
+
+    return sortedCustomers.filter((customerItem) => {
+      const text = [
+        customerItem.company,
+        customerItem.first_name,
+        customerItem.last_name,
+        customerItem.contact_person,
+        customerItem.email,
+        customerItem.phone,
+        customerItem.address,
+        customerItem.street,
+        customerItem.house_number,
+        customerItem.postal_code,
+        customerItem.city,
+        customerItem.country,
+        getCustomerDisplayName(customerItem),
+        getCustomerLabel(customerItem),
+        buildCustomerAddress(customerItem),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(search);
+    });
   })();
 
   const abnahmeDevices = (() => {
-    const search = abnahmeDeviceSearch.toLowerCase().trim();
+    const search = abnahmeDeviceSearch.trim().toLowerCase();
 
     const baseDevices =
       isCustomer && userProfile?.customer_id
@@ -5522,7 +5549,7 @@ FE-SERVICE`,
         ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
         : null;
 
-      return [
+      const text = [
         deviceItem.name,
         deviceItem.manufacturer,
         getManufacturerNameById(deviceItem.manufacturer_id),
@@ -5530,14 +5557,19 @@ FE-SERVICE`,
         deviceItem.location,
         deviceItem.status,
         deviceItem.note,
+        linkedCustomer?.company,
+        linkedCustomer?.first_name,
+        linkedCustomer?.last_name,
+        linkedCustomer?.contact_person,
         linkedCustomer ? getCustomerDisplayName(linkedCustomer) : "",
         linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
         linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
       ]
         .filter(Boolean)
         .join(" ")
-        .toLowerCase()
-        .includes(search);
+        .toLowerCase();
+
+      return text.includes(search);
     });
   })();
 
@@ -8394,35 +8426,24 @@ FE-SERVICE`,
                       ))}
                     </select>
 
-                    <textarea
-                      value={abnahmeAddressObject}
-                      onChange={(e) => setAbnahmeAddressObject(e.target.value)}
-
                     
-
-
-                      placeholder="Adresse / Objekt"
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
-
-{/* FE-SERVICE ABNAHME SUCHERGEBNISSE START */}
+                    {/* FE-SERVICE ABNAHME LIVE-SUCHE START */}
                     <div className="grid gap-4 xl:grid-cols-2">
-                      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                      <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-lg font-black text-slate-900">Kunden-Suchergebnisse</h4>
+                          <h4 className="text-lg font-black text-slate-900">Kunden finden</h4>
                           <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
-                            {abnahmeCustomers.length}
+                            {abnahmeCustomers.length} Treffer
                           </span>
                         </div>
 
-                        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
                           {abnahmeCustomers.length === 0 ? (
-                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                              Kein Kunde gefunden. Suchbegriff prüfen oder Kunden neu anlegen.
+                            <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                              Kein Kunde gefunden.
                             </div>
                           ) : (
-                            abnahmeCustomers.slice(0, 30).map((customerItem) => (
+                            abnahmeCustomers.slice(0, 25).map((customerItem) => (
                               <button
                                 key={customerItem.id}
                                 type="button"
@@ -8435,7 +8456,7 @@ FE-SERVICE`,
                                 className={`w-full rounded-2xl border p-4 text-left transition ${
                                   String(customerItem.id) === abnahmeCustomerId
                                     ? "border-green-500 bg-green-50"
-                                    : "border-slate-200 bg-white hover:border-green-300"
+                                    : "border-slate-200 bg-slate-50 hover:border-green-300 hover:bg-green-50/40"
                                 }`}
                               >
                                 <p className="font-black text-slate-900">
@@ -8445,7 +8466,8 @@ FE-SERVICE`,
                                   {buildCustomerAddress(customerItem) || "Keine Adresse hinterlegt"}
                                 </p>
                                 <p className="mt-1 text-xs font-bold text-slate-400">
-                                  {customerItem.email || ""} {customerItem.phone ? `· ${customerItem.phone}` : ""}
+                                  {customerItem.email || "Keine E-Mail"}
+                                  {customerItem.phone ? ` · ${customerItem.phone}` : ""}
                                 </p>
                               </button>
                             ))
@@ -8453,21 +8475,21 @@ FE-SERVICE`,
                         </div>
                       </div>
 
-                      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                      <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-lg font-black text-slate-900">Geräte-Suchergebnisse</h4>
+                          <h4 className="text-lg font-black text-slate-900">Geräte finden</h4>
                           <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
-                            {abnahmeDevices.length}
+                            {abnahmeDevices.length} Treffer
                           </span>
                         </div>
 
-                        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
                           {abnahmeDevices.length === 0 ? (
-                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                              Kein Gerät gefunden. Geräte-Suche, Seriennummer oder Hersteller prüfen.
+                            <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                              Kein Gerät gefunden.
                             </div>
                           ) : (
-                            abnahmeDevices.slice(0, 40).map((deviceItem) => (
+                            abnahmeDevices.slice(0, 35).map((deviceItem) => (
                               <button
                                 key={deviceItem.id}
                                 type="button"
@@ -8478,7 +8500,7 @@ FE-SERVICE`,
                                 className={`w-full rounded-2xl border p-4 text-left transition ${
                                   String(deviceItem.id) === abnahmeDeviceId
                                     ? "border-green-500 bg-green-50"
-                                    : "border-slate-200 bg-white hover:border-green-300"
+                                    : "border-slate-200 bg-slate-50 hover:border-green-300 hover:bg-green-50/40"
                                 }`}
                               >
                                 <p className="font-black text-slate-900">
@@ -8498,10 +8520,20 @@ FE-SERVICE`,
                         </div>
                       </div>
                     </div>
-                    {/* FE-SERVICE ABNAHME SUCHERGEBNISSE ENDE */}
+                    {/* FE-SERVICE ABNAHME LIVE-SUCHE ENDE */}
+
+<textarea
+                      value={abnahmeAddressObject}
+                      onChange={(e) => setAbnahmeAddressObject(e.target.value)}
+
+                    
 
 
-                    <div className="grid gap-3 md:grid-cols-3">
+                      placeholder="Adresse / Objekt"
+                      rows={3}
+                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+<div className="grid gap-3 md:grid-cols-3">
                       <input
                         value={abnahmeCustomerNumber}
                         onChange={(e) => setAbnahmeCustomerNumber(e.target.value)}
