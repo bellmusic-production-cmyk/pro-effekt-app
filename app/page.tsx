@@ -5497,11 +5497,11 @@ FE-SERVICE`,
     if (!search) return sortedCustomers;
 
     return sortedCustomers.filter((customerItem) => {
-      const text = [
+      const searchableText = [
         customerItem.company,
+        customerItem.contact_person,
         customerItem.first_name,
         customerItem.last_name,
-        customerItem.contact_person,
         customerItem.email,
         customerItem.phone,
         customerItem.address,
@@ -5518,7 +5518,7 @@ FE-SERVICE`,
         .join(" ")
         .toLowerCase();
 
-      return text.includes(search);
+      return searchableText.includes(search);
     });
   })();
 
@@ -5549,7 +5549,7 @@ FE-SERVICE`,
         ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
         : null;
 
-      const text = [
+      const searchableText = [
         deviceItem.name,
         deviceItem.manufacturer,
         getManufacturerNameById(deviceItem.manufacturer_id),
@@ -5558,9 +5558,9 @@ FE-SERVICE`,
         deviceItem.status,
         deviceItem.note,
         linkedCustomer?.company,
+        linkedCustomer?.contact_person,
         linkedCustomer?.first_name,
         linkedCustomer?.last_name,
-        linkedCustomer?.contact_person,
         linkedCustomer ? getCustomerDisplayName(linkedCustomer) : "",
         linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
         linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
@@ -5569,7 +5569,7 @@ FE-SERVICE`,
         .join(" ")
         .toLowerCase();
 
-      return text.includes(search);
+      return searchableText.includes(search);
     });
   })();
 
@@ -8362,50 +8362,138 @@ FE-SERVICE`,
                       />
                     </div>
 
-                    <input
-                      value={abnahmeCustomerSearch}
-                      onChange={(e) => setAbnahmeCustomerSearch(e.target.value)}
-                      placeholder="Kunde suchen: Firma, Name, Ort, PLZ"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
-                    />
+                    {/* FE-SERVICE ABNAHME DIREKTSUCHE START */}
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                        <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
+                          Kunde suchen und auswählen
+                        </label>
+                        <input
+                          value={abnahmeCustomerSearch}
+                          onChange={(e) => setAbnahmeCustomerSearch(e.target.value)}
+                          placeholder="Name, Firma, Ort, PLZ, E-Mail"
+                          className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-green-500"
+                        />
+                        <p className="mt-2 text-xs font-bold text-slate-500">
+                          {customers.length} Kunden geladen · {abnahmeCustomers.length} Treffer
+                        </p>
 
-                    <select
+                        <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                          {abnahmeCustomers.length === 0 ? (
+                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-red-600">
+                              Kein Kunde gefunden.
+                            </div>
+                          ) : (
+                            abnahmeCustomers.slice(0, 30).map((customerItem) => (
+                              <button
+                                key={customerItem.id}
+                                type="button"
+                                onClick={() => {
+                                  setAbnahmeCustomerId(String(customerItem.id));
+                                  setAbnahmeCustomerSearch(getCustomerDisplayName(customerItem) || getCustomerLabel(customerItem));
+                                  setAbnahmeAddressObject(buildCustomerAddress(customerItem));
+                                  setAbnahmeCustomerNumber(String(customerItem.id));
+                                }}
+                                className={`w-full rounded-2xl border p-4 text-left transition ${
+                                  String(customerItem.id) === abnahmeCustomerId
+                                    ? "border-green-500 bg-green-50"
+                                    : "border-slate-200 bg-white hover:border-green-400"
+                                }`}
+                              >
+                                <p className="font-black text-slate-900">
+                                  {getCustomerDisplayName(customerItem) || getCustomerLabel(customerItem)}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">
+                                  {buildCustomerAddress(customerItem) || "Keine Adresse hinterlegt"}
+                                </p>
+                                <p className="mt-1 text-xs font-bold text-slate-400">
+                                  {customerItem.email || "Keine E-Mail"}
+                                  {customerItem.phone ? ` · ${customerItem.phone}` : ""}
+                                </p>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                        <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
+                          Gerät suchen und auswählen
+                        </label>
+                        <input
+                          value={abnahmeDeviceSearch}
+                          onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
+                          placeholder="Gerätename, Seriennummer, Hersteller, Standort"
+                          className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-green-500"
+                        />
+                        <p className="mt-2 text-xs font-bold text-slate-500">
+                          {devices.length} Geräte geladen · {abnahmeDevices.length} Treffer
+                        </p>
+
+                        <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                          {abnahmeDevices.length === 0 ? (
+                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-red-600">
+                              Kein Gerät gefunden.
+                            </div>
+                          ) : (
+                            abnahmeDevices.slice(0, 40).map((deviceItem) => (
+                              <button
+                                key={deviceItem.id}
+                                type="button"
+                                onClick={() => {
+                                  fillAbnahmeFromDevice(String(deviceItem.id));
+                                  setAbnahmeDeviceSearch(deviceItem.name || "");
+                                }}
+                                className={`w-full rounded-2xl border p-4 text-left transition ${
+                                  String(deviceItem.id) === abnahmeDeviceId
+                                    ? "border-green-500 bg-green-50"
+                                    : "border-slate-200 bg-white hover:border-green-400"
+                                }`}
+                              >
+                                <p className="font-black text-slate-900">
+                                  {deviceItem.name}
+                                </p>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">
+                                  {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
+                                  {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
+                                </p>
+                                <p className="mt-1 text-xs font-bold text-slate-400">
+                                  {deviceItem.location || "Kein Standort"}
+                                  {deviceItem.customer_id ? ` · ${getCustomerNameById(deviceItem.customer_id)}` : " · keinem Kunden zugeordnet"}
+                                </p>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* FE-SERVICE ABNAHME DIREKTSUCHE ENDE */}
+
+<select
                       value={abnahmeCustomerId}
                       onChange={(e) => {
-                        setAbnahmeCustomerId(e.target.value);
-                        const selectedCustomer = customers.find(
-                          (item) => item.id === Number(e.target.value),
-                        );
+                        const nextCustomerId = e.target.value;
+                        const selectedCustomer = customers.find((item) => item.id === Number(nextCustomerId));
+                        setAbnahmeCustomerId(nextCustomerId);
                         setAbnahmeAddressObject(selectedCustomer ? buildCustomerAddress(selectedCustomer) : "");
-                        setAbnahmeDeviceId("");
-                        setAbnahmeDeviceSearch("");
-                        setAbnahmeCustomerNumber(
-                          selectedCustomer ? String(selectedCustomer.id) : "",
-                        );
+                        setAbnahmeCustomerSearch(selectedCustomer ? getCustomerDisplayName(selectedCustomer) || getCustomerLabel(selectedCustomer) : "");
+                        setAbnahmeCustomerNumber(selectedCustomer ? String(selectedCustomer.id) : "");
                       }}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Kunde auswählen</option>
+                      <option value="">Kunde manuell auswählen</option>
                       {abnahmeCustomers.map((item) => (
                         <option key={item.id} value={item.id}>
                           {getCustomerLabel(item)}
                         </option>
                       ))}
                     </select>
-
-                    <input
-                      value={abnahmeDeviceSearch}
-                      onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
-                      placeholder="Gerät suchen: Name, Seriennummer, Hersteller, Standort"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
-                    />
-
-                    <select
+<select
                       value={abnahmeDeviceId}
                       onChange={(e) => fillAbnahmeFromDevice(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Gerät auswählen</option>
+                      <option value="">Gerät manuell auswählen</option>
                       {abnahmeDevices.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name} · {item.serial_number || "ohne Seriennr."}
@@ -8426,103 +8514,7 @@ FE-SERVICE`,
                       ))}
                     </select>
 
-                    
-                    {/* FE-SERVICE ABNAHME LIVE-SUCHE START */}
-                    <div className="grid gap-4 xl:grid-cols-2">
-                      <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-lg font-black text-slate-900">Kunden finden</h4>
-                          <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
-                            {abnahmeCustomers.length} Treffer
-                          </span>
-                        </div>
-
-                        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-                          {abnahmeCustomers.length === 0 ? (
-                            <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
-                              Kein Kunde gefunden.
-                            </div>
-                          ) : (
-                            abnahmeCustomers.slice(0, 25).map((customerItem) => (
-                              <button
-                                key={customerItem.id}
-                                type="button"
-                                onClick={() => {
-                                  setAbnahmeCustomerId(String(customerItem.id));
-                                  setAbnahmeCustomerSearch(getCustomerDisplayName(customerItem) || getCustomerLabel(customerItem));
-                                  setAbnahmeAddressObject(buildCustomerAddress(customerItem));
-                                  setAbnahmeCustomerNumber(String(customerItem.id));
-                                }}
-                                className={`w-full rounded-2xl border p-4 text-left transition ${
-                                  String(customerItem.id) === abnahmeCustomerId
-                                    ? "border-green-500 bg-green-50"
-                                    : "border-slate-200 bg-slate-50 hover:border-green-300 hover:bg-green-50/40"
-                                }`}
-                              >
-                                <p className="font-black text-slate-900">
-                                  {getCustomerDisplayName(customerItem) || getCustomerLabel(customerItem)}
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
-                                  {buildCustomerAddress(customerItem) || "Keine Adresse hinterlegt"}
-                                </p>
-                                <p className="mt-1 text-xs font-bold text-slate-400">
-                                  {customerItem.email || "Keine E-Mail"}
-                                  {customerItem.phone ? ` · ${customerItem.phone}` : ""}
-                                </p>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-lg font-black text-slate-900">Geräte finden</h4>
-                          <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
-                            {abnahmeDevices.length} Treffer
-                          </span>
-                        </div>
-
-                        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-                          {abnahmeDevices.length === 0 ? (
-                            <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
-                              Kein Gerät gefunden.
-                            </div>
-                          ) : (
-                            abnahmeDevices.slice(0, 35).map((deviceItem) => (
-                              <button
-                                key={deviceItem.id}
-                                type="button"
-                                onClick={() => {
-                                  fillAbnahmeFromDevice(String(deviceItem.id));
-                                  setAbnahmeDeviceSearch(deviceItem.name || "");
-                                }}
-                                className={`w-full rounded-2xl border p-4 text-left transition ${
-                                  String(deviceItem.id) === abnahmeDeviceId
-                                    ? "border-green-500 bg-green-50"
-                                    : "border-slate-200 bg-slate-50 hover:border-green-300 hover:bg-green-50/40"
-                                }`}
-                              >
-                                <p className="font-black text-slate-900">
-                                  {deviceItem.name}
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
-                                  {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                  {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
-                                </p>
-                                <p className="mt-1 text-xs font-bold text-slate-400">
-                                  {deviceItem.location || "Kein Standort"}
-                                  {deviceItem.customer_id ? ` · ${getCustomerNameById(deviceItem.customer_id)}` : " · keinem Kunden zugeordnet"}
-                                </p>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {/* FE-SERVICE ABNAHME LIVE-SUCHE ENDE */}
-
-<textarea
+                    <textarea
                       value={abnahmeAddressObject}
                       onChange={(e) => setAbnahmeAddressObject(e.target.value)}
 
