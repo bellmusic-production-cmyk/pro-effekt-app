@@ -8061,27 +8061,27 @@ FE-SERVICE`,
                       <option>Abnahme</option>
                     </select>
 
-                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                      <label className="flex min-h-[92px] min-w-0 items-center gap-4 rounded-2xl bg-slate-50 p-4 font-bold">
+                    <div className="grid grid-cols-1 gap-3">
+                      <label className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-bold shadow-sm">
                         <input
                           type="checkbox"
                           checked={abnahmeDguvChecked}
                           onChange={(e) => setAbnahmeDguvChecked(e.target.checked)}
-                          className="h-5 w-5 shrink-0 accent-green-600"
+                          className="mt-1 h-5 w-5 shrink-0 accent-green-600"
                         />
-                        <span className="min-w-0 break-words leading-snug text-slate-900">
+                        <span className="min-w-0 flex-1 text-base leading-snug text-slate-900 [overflow-wrap:anywhere]">
                           DGUV202-044
                         </span>
                       </label>
 
-                      <label className="flex min-h-[92px] min-w-0 items-center gap-4 rounded-2xl bg-slate-50 p-4 font-bold">
+                      <label className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-bold shadow-sm">
                         <input
                           type="checkbox"
                           checked={abnahmeUvvChecked}
                           onChange={(e) => setAbnahmeUvvChecked(e.target.checked)}
-                          className="h-5 w-5 shrink-0 accent-green-600"
+                          className="mt-1 h-5 w-5 shrink-0 accent-green-600"
                         />
-                        <span className="min-w-0 break-words leading-snug text-slate-900">
+                        <span className="min-w-0 flex-1 text-base leading-snug text-slate-900 [overflow-wrap:anywhere]">
                           UVV-Unfallverhütungsvorschrift Prüfung
                         </span>
                       </label>
