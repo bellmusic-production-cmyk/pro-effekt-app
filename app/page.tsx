@@ -7157,7 +7157,7 @@ FE-SERVICE`,
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
 
-                                      {/* FE-SERVICE CUSTOMER DEVICE MULTISELECT START */}
+                    {/* FE-SERVICE CUSTOMER DEVICE MULTISELECT START */}
                     <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                         <div>
@@ -7165,7 +7165,7 @@ FE-SERVICE`,
                             Geräte diesem Kunden zuweisen
                           </h4>
                           <p className="mt-1 text-sm font-semibold text-slate-500">
-                            Suche Geräte gezielt nach Name, Seriennummer, Hersteller oder Standort. Es werden maximal 25 Treffer angezeigt.
+                            Suche gezielt nach Geräten. Es werden maximal 25 Treffer angezeigt, damit die Seite auch bei vielen Geräten schnell bleibt.
                           </p>
                         </div>
 
@@ -7186,13 +7186,16 @@ FE-SERVICE`,
                           <p className="text-sm font-black text-slate-700">
                             Ausgewählte Geräte
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setAssignedDeviceIds([])}
-                            className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 hover:bg-red-100 hover:text-red-700"
-                          >
-                            Auswahl leeren
-                          </button>
+
+                          {assignedDeviceIds.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAssignedDeviceIds([])}
+                              className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 hover:bg-red-100 hover:text-red-700"
+                            >
+                              Auswahl leeren
+                            </button>
+                          )}
                         </div>
 
                         {assignedCustomerDevices.length === 0 ? (
@@ -7208,6 +7211,7 @@ FE-SERVICE`,
                               >
                                 {deviceItem.name}
                                 {deviceItem.serial_number ? ` · ${deviceItem.serial_number}` : ""}
+
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -7278,7 +7282,7 @@ FE-SERVICE`,
                     </div>
                     {/* FE-SERVICE CUSTOMER DEVICE MULTISELECT ENDE */}
 
-                    <button
+<button
                       onClick={createCustomer}
                       className="w-full rounded-2xl bg-green-600 py-4 font-bold text-white"
                     >
