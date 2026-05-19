@@ -3969,35 +3969,204 @@ FE-SERVICE`,
   }
 
   async function createAbnahmeProtocolPdfBlob() {
+    const selectedCustomer = customers.find(
+      (item) => item.id === Number(abnahmeCustomerId),
+    );
+    const selectedDevice = devices.find(
+      (item) => item.id === Number(abnahmeDeviceId),
+    );
+    const selectedTicket = abnahmeTicketId
+      ? tickets.find((item) => item.id === Number(abnahmeTicketId))
+      : null;
+
+    const technicianName =
+      abnahmeTechnicianName ||
+      userProfile?.full_name ||
+      userProfile?.company ||
+      session?.user?.email ||
+      "Nicht angegeben";
+
     const pdf = new jsPDF("p", "mm", "a4");
-    const container = document.createElement("div");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    container.innerHTML = buildAbnahmeProtocolHtml();
-    container.style.position = "fixed";
-    container.style.left = "-10000px";
-    container.style.top = "0";
-    container.style.width = "1120px";
-    container.style.background = "white";
+    let y = 14;
 
-    const printButton = container.querySelector(".print-button");
-    if (printButton) {
-      printButton.remove();
+    function clean(value: any) {
+      return String(value ?? "")
+        .replace(/\\s+/g, " ")
+        .trim();
     }
 
-    document.body.appendChild(container);
+    function addWrappedText(value: any, x: number, currentY: number, maxWidth: number, size = 8) {
+      pdf.setFontSize(size);
+      const lines = pdf.splitTextToSize(clean(value) || "-", maxWidth);
+      pdf.text(lines, x, currentY);
+      return currentY + lines.length * (size * 0.42) + 2;
+    }
 
-    await new Promise<void>((resolve) => {
-      pdf.html(container, {
-        callback: () => resolve(),
-        x: 0,
-        y: 0,
-        width: 210,
-        windowWidth: 1120,
-        autoPaging: "text",
-      });
+    function drawCell(x: number, cellY: number, w: number, h: number, value: any, size = 7, bold = false) {
+      pdf.rect(x, cellY, w, h);
+      pdf.setFont("helvetica", bold ? "bold" : "normal");
+      pdf.setFontSize(size);
+      const cellText = pdf.splitTextToSize(clean(value), Math.max(4, w - 2));
+      pdf.text(cellText, x + 1.5, cellY + 4);
+      pdf.setFont("helvetica", "normal");
+    }
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.text("Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung", pageWidth / 2, y, {
+      align: "center",
     });
 
-    document.body.removeChild(container);
+    y += 7;
+    pdf.setFontSize(9);
+    pdf.text("für Sport-Fitness - Kraft & Medizin Geräte", pageWidth / 2, y, {
+      align: "center",
+    });
+
+    y += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text(`Datum der Prüfung: ${abnahmeDate || "-"}`, 14, y);
+    pdf.text(`Seite ${abnahmePage || "1"} von ${abnahmePagesTotal || "1"}`, 155, y);
+
+    y += 6;
+    pdf.text(`Kunde: ${selectedCustomer?.company || selectedCustomer?.contact_person || "-"}`, 14, y);
+    pdf.text(`Kunden-Nr.: ${abnahmeCustomerNumber || selectedCustomer?.id || "-"}`, 120, y);
+
+    y += 6;
+    pdf.text(`Adresse / Objekt: ${abnahmeAddressObject || selectedCustomer?.address || selectedDevice?.location || "-"}`, 14, y);
+
+    y += 6;
+    pdf.text(`Auftrag: ${abnahmeOrderNumber || selectedTicket?.ticket_number || "-"}`, 14, y);
+    pdf.text(`Vertragsart: ${abnahmeContractType}`, 80, y);
+    pdf.text(`DGUV202-044: ${abnahmeDguvChecked ? "Ja" : "Nein"}`, 140, y);
+    pdf.text(`UVV: ${abnahmeUvvChecked ? "Ja" : "Nein"}`, 175, y);
+
+    y += 8;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Gerätedaten", 14, y);
+    pdf.setFont("helvetica", "normal");
+
+    y += 3;
+    drawCell(14, y, 42, 10, "Hersteller", 7, true);
+    drawCell(56, y, 54, 10, "Modell / NR", 7, true);
+    drawCell(110, y, 42, 10, "Seriennummer", 7, true);
+    drawCell(152, y, 30, 10, "Ergebnis", 7, true);
+
+    y += 10;
+    drawCell(14, y, 42, 12, abnahmeManufacturer || selectedDevice?.manufacturer || "-", 7);
+    drawCell(56, y, 54, 12, abnahmeModel || selectedDevice?.name || "-", 7);
+    drawCell(110, y, 42, 12, abnahmeSerial || selectedDevice?.serial_number || "-", 7);
+    drawCell(152, y, 30, 12, abnahmeDeviceResult || "-", 7);
+
+    y += 18;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Prüfpunkte", 14, y);
+    pdf.setFont("helvetica", "normal");
+
+    y += 4;
+    const colX = [14, 105, 116, 127, 138, 149];
+    const colW = [91, 11, 11, 11, 11, 47];
+
+    drawCell(colX[0], y, colW[0], 8, "Prüfpunkt", 7, true);
+    drawCell(colX[1], y, colW[1], 8, "Ja", 7, true);
+    drawCell(colX[2], y, colW[2], 8, "OK", 7, true);
+    drawCell(colX[3], y, colW[3], 8, "VS", 7, true);
+    drawCell(colX[4], y, colW[4], 8, "DF", 7, true);
+    drawCell(colX[5], y, colW[5], 8, "Mangel / Bemerkung", 7, true);
+
+    y += 8;
+
+    abnahmeChecks.forEach((item, index) => {
+      if (y > 255) {
+        pdf.addPage();
+        y = 14;
+      }
+
+      const rowHeight = 9;
+      drawCell(colX[0], y, colW[0], rowHeight, `${index + 1}. ${item.question}`, 6.5);
+      drawCell(colX[1], y, colW[1], rowHeight, item.ja ? "X" : "", 7, true);
+      drawCell(colX[2], y, colW[2], rowHeight, item.ok ? "X" : "", 7, true);
+      drawCell(colX[3], y, colW[3], rowHeight, item.vs ? "X" : "", 7, true);
+      drawCell(colX[4], y, colW[4], rowHeight, item.df ? "X" : "", 7, true);
+      drawCell(colX[5], y, colW[5], rowHeight, item.comment || (index === 0 ? abnahmeDefects : ""), 6.5);
+      y += rowHeight;
+    });
+
+    if (y > 240) {
+      pdf.addPage();
+      y = 14;
+    }
+
+    y += 6;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Abschluss", 14, y);
+    pdf.setFont("helvetica", "normal");
+
+    y += 6;
+    pdf.text(`Prüfplakette angebracht: ${abnahmeBadgeApplied ? "Ja" : "Nein"}`, 14, y);
+    pdf.text(`Nächste Prüfung: ${abnahmeNextInspection || "-"}`, 100, y);
+
+    y += 6;
+    pdf.text(`Techniker: ${technicianName}`, 14, y);
+    pdf.text(`Kürzel: ${abnahmeTechnicianShort || "-"}`, 120, y);
+
+    y += 6;
+    pdf.text(`Angebot folgt: ${abnahmeOfferFollows || "-"}`, 14, y);
+    pdf.text(`Folge Reparatur-Auftrag empfohlen bei: ${abnahmeRepairRecommendedAt || "-"}`, 80, y);
+
+    y += 7;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Empfehlung / Hinweise", 14, y);
+    pdf.setFont("helvetica", "normal");
+    y = addWrappedText(abnahmeRecommendation || "-", 14, y + 5, 170, 8);
+
+    if (y > 230) {
+      pdf.addPage();
+      y = 14;
+    }
+
+    y += 8;
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Unterschriften", 14, y);
+    pdf.setFont("helvetica", "normal");
+
+    y += 6;
+    pdf.rect(14, y, 82, 34);
+    pdf.rect(110, y, 82, 34);
+
+    if (abnahmeTechnicianSignature) {
+      try {
+        pdf.addImage(abnahmeTechnicianSignature, "PNG", 18, y + 4, 70, 20);
+      } catch {
+        // Signatur konnte nicht eingebettet werden.
+      }
+    }
+
+    if (abnahmeCustomerSignature) {
+      try {
+        pdf.addImage(abnahmeCustomerSignature, "PNG", 114, y + 4, 70, 20);
+      } catch {
+        // Signatur konnte nicht eingebettet werden.
+      }
+    }
+
+    pdf.setFontSize(8);
+    pdf.text("Unterschrift Techniker", 18, y + 30);
+    pdf.text(`Kunde / Verantwortlicher: ${abnahmeCustomerResponsible || "-"}`, 114, y + 30);
+
+    y += 44;
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("FE-Service e.K.", 14, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Fitness Equipment Service - Digital erstellt über die FE-SERVICE Plattform", 14, y + 5);
+
+    pdf.setFontSize(7);
+    pdf.text(`Erstellt am: ${new Date().toLocaleString("de-DE")}`, 14, pageHeight - 10);
 
     return pdf.output("blob") as Blob;
   }
