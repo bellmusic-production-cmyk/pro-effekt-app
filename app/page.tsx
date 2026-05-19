@@ -5489,13 +5489,26 @@ FE-SERVICE`,
 
   const abnahmeDevices = (() => {
     const search = abnahmeDeviceSearch.toLowerCase().trim();
-    const baseDevices = availableTicketDevices.filter((deviceItem) =>
-      abnahmeCustomerId ? deviceItem.customer_id === Number(abnahmeCustomerId) : true,
-    );
 
-    if (!search) return baseDevices;
+    const roleFilteredDevices =
+      isCustomer && userProfile?.customer_id
+        ? devices.filter((deviceItem) => deviceItem.customer_id === userProfile.customer_id)
+        : devices;
 
-    return baseDevices.filter((deviceItem) => {
+    const sortedDevices = [...roleFilteredDevices].sort((a, b) => {
+      const selectedCustomerId = abnahmeCustomerId ? Number(abnahmeCustomerId) : null;
+      const aMatchesCustomer = selectedCustomerId ? a.customer_id === selectedCustomerId : false;
+      const bMatchesCustomer = selectedCustomerId ? b.customer_id === selectedCustomerId : false;
+
+      if (aMatchesCustomer && !bMatchesCustomer) return -1;
+      if (!aMatchesCustomer && bMatchesCustomer) return 1;
+
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+
+    if (!search) return sortedDevices;
+
+    return sortedDevices.filter((deviceItem) => {
       const linkedCustomer = deviceItem.customer_id
         ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
         : null;
@@ -5509,6 +5522,7 @@ FE-SERVICE`,
         deviceItem.status,
         deviceItem.note,
         linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+        linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
       ]
         .filter(Boolean)
         .join(" ")
