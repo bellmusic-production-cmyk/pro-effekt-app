@@ -221,7 +221,7 @@ const deviceStatusOptions = [
 
 const documentCategories = [
   "Alle",
-  "Prüfprotokolle",
+  "Abnahmeprotokolle",
   "Serviceberichte",
   "Rechnungen",
   "Fotos",
@@ -366,7 +366,7 @@ export default function Home() {
   const [priorityFilter, setPriorityFilter] = useState("Alle");
 
   const [uploading, setUploading] = useState(false);
-  const [uploadCategory, setUploadCategory] = useState("Prüfprotokolle");
+  const [uploadCategory, setUploadCategory] = useState("Abnahmeprotokolle");
   const [activeDocumentCategory, setActiveDocumentCategory] = useState("Alle");
   const [documentSearchTerm, setDocumentSearchTerm] = useState("");
   const [documentCustomerFilter, setDocumentCustomerFilter] = useState("Alle");
@@ -980,7 +980,7 @@ export default function Home() {
     const safeFileName = file.name.replaceAll(" ", "-");
 
     const safeCategory =
-      uploadCategory === "Prüfprotokolle" ? "Pruefprotokolle" : uploadCategory;
+      uploadCategory === "Abnahmeprotokolle" ? "Abnahmeprotokolle" : uploadCategory;
 
     const filePath = `${safeCategory}/${Date.now()}-${safeFileName}`;
 
@@ -1036,7 +1036,7 @@ export default function Home() {
     const safeFileName = file.name.replaceAll(" ", "-");
 
     const safeCategory =
-      uploadCategory === "Prüfprotokolle" ? "Pruefprotokolle" : uploadCategory;
+      uploadCategory === "Abnahmeprotokolle" ? "Abnahmeprotokolle" : uploadCategory;
 
     const filePath = `${safeCategory}/${Date.now()}-${safeFileName}`;
 
@@ -1103,7 +1103,7 @@ export default function Home() {
 
     const safeFileName = file.name.replaceAll(" ", "-");
     const safeCategory =
-      uploadCategory === "Prüfprotokolle" ? "Pruefprotokolle" : uploadCategory;
+      uploadCategory === "Abnahmeprotokolle" ? "Abnahmeprotokolle" : uploadCategory;
     const filePath = `${safeCategory}/${Date.now()}-${ticket.ticket_number}-${safeFileName}`;
 
     const uploadResult = await supabase.storage
