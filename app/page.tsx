@@ -8617,7 +8617,7 @@ FE-SERVICE`,
                   >
                     Geräte
                     <span className="mt-1 block text-sm font-bold opacity-80">
-                      QR / Details
+                      
                     </span>
                   </button>
 
