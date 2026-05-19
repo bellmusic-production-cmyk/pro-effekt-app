@@ -35,6 +35,7 @@ type Ticket = {
 type Device = {
   id: number;
   name: string;
+  manufacturer_id: number | null;
   manufacturer?: string | null;
   serial_number: string | null;
   location: string | null;
