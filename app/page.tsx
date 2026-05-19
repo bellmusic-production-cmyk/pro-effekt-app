@@ -7318,8 +7318,8 @@ FE-SERVICE`,
               </div>
               )}
 
-              <div className="mt-8 min-w-0 rounded-[28px] bg-white p-5 shadow-sm">
-                <h3 className="text-xl font-black text-slate-900">Bestehende Kunden durchsuchen</h3>
+              <div className="w-full min-w-0 rounded-[32px] bg-white p-6 shadow-sm">
+                <h3 className="text-2xl font-black text-slate-900">Kunden suchen und verwalten</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                     Such- und Lesemodus: Techniker können Kundendaten und zugewiesene Geräte ansehen, aber nicht bearbeiten.
@@ -7330,7 +7330,7 @@ FE-SERVICE`,
                   value={customerDirectorySearch}
                   onChange={(e) => setCustomerDirectorySearch(e.target.value)}
                   placeholder="Kunde suchen: Firma, Name, Ort, PLZ, E-Mail oder Telefon"
-                  className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
+                  className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold outline-none focus:border-green-500"
                 />
                 {/* FE-SERVICE CUSTOMER SEARCH COUNTER */}
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold text-slate-500">
@@ -7349,28 +7349,28 @@ FE-SERVICE`,
                 </div>
 
 
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
                   {customerDirectorySearch.trim().length < 2 ? (
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                       Mindestens 2 Zeichen eingeben, um Kunden zu suchen.
                     </div>
                   ) : filteredCustomerDirectory.length === 0 ? (
-                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
                       Kein Kunde gefunden.
                     </div>
                   ) : (
                     filteredCustomerDirectory.slice(0, 30).map((item) => (
                       <div
                         key={item.id}
-                        className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                        className="min-w-[280px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-5"
                       >
-                        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                          <div className="min-w-0 flex-1">
-                            <p className="break-words text-xs font-bold text-green-600">
+                        <div className="flex min-w-0 flex-col gap-4">
+                          <div className="min-w-0">
+                            <p className="whitespace-normal break-words text-xs font-bold text-green-600">
                               {getCustomerDisplayName(item) || "Kein Ansprechpartner"}
                             </p>
 
-                            <h4 className="mt-1 break-words text-xl font-black text-slate-900">
+                            <h4 className="mt-1 whitespace-normal break-words text-xl font-black text-slate-900">
                               {item.company}
                             </h4>
 
@@ -7426,7 +7426,7 @@ FE-SERVICE`,
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 flex-row flex-wrap gap-2 xl:flex-col">
+                          <div className="flex flex-wrap gap-2">
                             <button
                               onClick={() => createTicketFromCustomer(item)}
                               className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
