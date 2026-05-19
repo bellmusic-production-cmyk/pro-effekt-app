@@ -4081,22 +4081,89 @@ FE-SERVICE`,
       return;
     }
 
-    await archiveAbnahmeProtocolHtml(true);
+    try {
+      const selectedTicket = abnahmeTicketId
+        ? tickets.find((item) => item.id === Number(abnahmeTicketId))
+        : null;
 
-    const html = buildAbnahmeProtocolHtml();
-    const printWindow = window.open("", "_blank");
+      const selectedDevice = abnahmeDeviceId
+        ? devices.find((item) => item.id === Number(abnahmeDeviceId))
+        : null;
 
-    if (!printWindow) {
-      alert("Popup wurde blockiert. Bitte Popups erlauben.");
-      return;
+      const pdfBlob = await createAbnahmeProtocolPdfBlob();
+      const fileName = `Abnahmeprotokoll-DGUV-UVV-${Date.now()
+        .toString()
+        .slice(-6)}.pdf`;
+      const filePath = `Abnahmeprotokolle/${Date.now()}-${fileName}`;
+
+      const uploadResult = await supabase.storage
+        .from("documents")
+        .upload(filePath, pdfBlob, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
+
+      if (uploadResult.error) {
+        console.error("PDF Upload fehlgeschlagen:", uploadResult.error);
+        alert(`PDF Upload fehlgeschlagen: ${uploadResult.error.message}`);
+        return;
+      }
+
+      const insertResult = await supabase.from("documents").insert([
+        {
+          file_name: fileName,
+          file_path: filePath,
+          category: "Abnahmeprotokolle",
+          file_size: pdfBlob.size,
+          device_id: selectedDevice?.id || null,
+          ticket_id: selectedTicket?.id || null,
+          customer_id:
+            Number(abnahmeCustomerId) ||
+            selectedTicket?.customer_id ||
+            selectedDevice?.customer_id ||
+            null,
+        },
+      ]);
+
+      if (insertResult.error) {
+        console.error("PDF wurde hochgeladen, aber nicht archiviert:", insertResult.error);
+        alert(`PDF wurde hochgeladen, aber nicht archiviert: ${insertResult.error.message}`);
+        return;
+      }
+
+      await createDeviceHistory(
+        selectedDevice?.id || null,
+        "Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung als PDF archiviert",
+        `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
+        "PDF",
+      );
+
+      await loadDocuments();
+
+      const html = buildAbnahmeProtocolHtml();
+      const printWindow = window.open("", "_blank");
+
+      if (!printWindow) {
+        alert("PDF wurde archiviert. Popup wurde blockiert. Bitte Popups erlauben.");
+        return;
+      }
+
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+
+      alert("Abnahmeprotokoll wurde als PDF unter Dokumente → Abnahmeprotokolle gespeichert.");
+    } catch (error: any) {
+      console.error("PDF Erstellung/Archivierung fehlgeschlagen:", error);
+      alert(
+        `PDF Erstellung oder Archivierung fehlgeschlagen: ${
+          error?.message || "unbekannter Fehler"
+        }`,
+      );
     }
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
   }
 
 
