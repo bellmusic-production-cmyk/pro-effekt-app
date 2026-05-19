@@ -7329,7 +7329,7 @@ FE-SERVICE`,
                       Kundenliste mit Geräteüberblick
                     </h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Suche nach Firma, Ansprechpartner, Ort, E-Mail oder Telefon. Für bessere Übersicht werden maximal 30 Treffer angezeigt.
+                      Suche nach Firma, Ansprechpartner, Ort, E-Mail oder Telefon. Maximal 30 Treffer werden angezeigt.
                     </p>
                   </div>
 
@@ -7356,7 +7356,7 @@ FE-SERVICE`,
                     Keine Kunden gefunden.
                   </div>
                 ) : (
-                  <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {filteredCustomerDirectory.slice(0, 30).map((item) => {
                       const customerDevices = getDevicesForCustomer(item.id);
 
@@ -7476,7 +7476,6 @@ FE-SERVICE`,
                     </div>
                   )}
               </div>
-
 
           )}
 
