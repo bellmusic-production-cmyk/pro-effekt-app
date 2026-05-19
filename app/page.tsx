@@ -4009,7 +4009,7 @@ FE-SERVICE`,
     return pdf.output("blob") as Blob;
   }
 
-  async function archiveAbnahmeProtocolHtml() {
+  async function archiveAbnahmeProtocolHtml(silent = false) {
     const selectedTicket = abnahmeTicketId
       ? tickets.find((item) => item.id === Number(abnahmeTicketId))
       : null;
@@ -4063,7 +4063,9 @@ FE-SERVICE`,
       );
 
       await loadDocuments();
-      alert("Abnahmeprotokoll wurde als echtes PDF archiviert.");
+      if (!silent) {
+        alert("Abnahmeprotokoll wurde als echtes PDF archiviert.");
+      }
     } catch (error: any) {
       alert(
         `PDF konnte nicht erzeugt werden. Bitte prüfen, ob jsPDF installiert ist. Fehler: ${
@@ -4073,11 +4075,29 @@ FE-SERVICE`,
     }
   }
 
-  function printAbnahmeProtocol() {
+  async function printAbnahmeProtocol() {
     if (!abnahmeCustomerId || !abnahmeDeviceId) {
       alert("Bitte Kunde und Gerät auswählen.");
       return;
     }
+
+    await archiveAbnahmeProtocolHtml(true);
+
+    const html = buildAbnahmeProtocolHtml();
+    const printWindow = window.open("", "_blank");
+
+    if (!printWindow) {
+      alert("Popup wurde blockiert. Bitte Popups erlauben.");
+      return;
+    }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  }
 
     const html = buildAbnahmeProtocolHtml();
     const printWindow = window.open("", "_blank");
@@ -7395,14 +7415,14 @@ FE-SERVICE`,
                   onClick={printAbnahmeProtocol}
                   className="rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
                 >
-                  PDF / Druckansicht öffnen
+                  PDF speichern & Druckansicht öffnen
                 </button>
 
                 <button
                   onClick={archiveAbnahmeProtocolHtml}
                   className="rounded-2xl bg-blue-100 px-6 py-4 font-black text-blue-700"
                 >
-                  PDF archivieren
+                  Nur im Archiv speichern
                 </button>
 
                 <button
@@ -9205,7 +9225,6 @@ FE-SERVICE`,
       <div className="hidden" />
     </main>
   );
-}
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
