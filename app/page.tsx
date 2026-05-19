@@ -7318,8 +7318,8 @@ FE-SERVICE`,
               </div>
               )}
 
-              <div className="min-w-0 rounded-[28px] bg-white p-5 shadow-sm">
-                <h3 className="text-xl font-black text-slate-900">Kunden suchen und verwalten</h3>
+              <div className="mt-8 min-w-0 rounded-[28px] bg-white p-5 shadow-sm">
+                <h3 className="text-xl font-black text-slate-900">Bestehende Kunden durchsuchen</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                     Such- und Lesemodus: Techniker können Kundendaten und zugewiesene Geräte ansehen, aber nicht bearbeiten.
@@ -7335,7 +7335,7 @@ FE-SERVICE`,
                 {/* FE-SERVICE CUSTOMER SEARCH COUNTER */}
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold text-slate-500">
                   {customerDirectorySearch.trim().length < 2 ? (
-                    <span>Suche startet ab 2 Zeichen.</span>
+                    <span>Suche ab 2 Zeichen.</span>
                   ) : (
                     <>
                       <span>{filteredCustomerDirectory.length} Treffer gefunden.</span>
