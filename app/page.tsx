@@ -830,7 +830,7 @@ export default function Home() {
     });
 
     if (error) {
-      alert("Login fehlgeschlagen.");
+      alert(`Login fehlgeschlagen: ${error.message}`);
       return;
     }
   }
@@ -2943,15 +2943,16 @@ export default function Home() {
   }
 
 
-  function getCustomerDisplayName(customer: Customer) {
+  function getCustomerDisplayName(customer?: Customer | null) {
+    if (!customer) return "";
     const fullName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
     return fullName || customer.contact_person || customer.company || customer.email || `Kunde ${customer.id}`;
   }
 
   function buildCustomerAddress(customer?: Customer | null) {
-    
     if (!customer) return "";
-const structuredAddress = [
+
+    const structuredAddress = [
       `${customer.street || ""} ${customer.house_number || ""}`.trim(),
       `${customer.postal_code || ""} ${customer.city || ""}`.trim(),
       customer.country || "",
@@ -2972,7 +2973,8 @@ const structuredAddress = [
       .join(", ");
   }
 
-  function getCustomerSearchText(customer: Customer) {
+  function getCustomerSearchText(customer?: Customer | null) {
+    if (!customer) return "";
     return [
       customer.company,
       customer.contact_person,
@@ -4303,7 +4305,7 @@ FE-SERVICE`,
 
             <div class="row">
               Datum der Prüfung <span class="line mid">${abnahmeDate}</span>
-              Adresse / Objekt <span class="line">${abnahmeAddressObject || selectedCustomer ? buildCustomerAddress(selectedCustomer) : selectedDevice?.location || ""}</span>
+              Adresse / Objekt <span class="line">${abnahmeAddressObject || (selectedCustomer ? buildCustomerAddress(selectedCustomer) : selectedDevice?.location || "")}</span>
             </div>
 
             <div class="row">
@@ -4486,7 +4488,7 @@ FE-SERVICE`,
     y += 5;
     pdf.text(`Kunde: ${selectedCustomer?.company || selectedCustomer?.contact_person || "-"}`, 10, y);
     pdf.text(
-      `Adresse / Objekt: ${abnahmeAddressObject || selectedCustomer ? buildCustomerAddress(selectedCustomer) : selectedDevice?.location || "-"}`,
+      `Adresse / Objekt: ${abnahmeAddressObject || (selectedCustomer ? buildCustomerAddress(selectedCustomer) : selectedDevice?.location || "-")}`,
       90,
       y,
     );
