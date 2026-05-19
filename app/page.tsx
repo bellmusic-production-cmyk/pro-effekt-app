@@ -427,7 +427,6 @@ export default function Home() {
   const [customerCity, setCustomerCity] = useState("");
   const [customerCountry, setCustomerCountry] = useState("Deutschland");
   const [assignedDeviceIds, setAssignedDeviceIds] = useState<string[]>([]);
-  const [customerDeviceAssignSearch, setCustomerDeviceAssignSearch] = useState("");
 
   const [partName, setPartName] = useState("");
   const [partSku, setPartSku] = useState("");
@@ -1506,7 +1505,6 @@ export default function Home() {
     setCustomerCity("");
     setCustomerCountry("Deutschland");
     setAssignedDeviceIds([]);
-    setCustomerDeviceAssignSearch("");
   }
 
   function resetPartForm() {
@@ -5575,48 +5573,6 @@ FE-SERVICE`,
     });
   })();
 
-
-  const editingCustomerIdForDeviceAssignment = editingCustomer
-    ? Number((editingCustomer as Customer).id)
-    : null;
-
-  const assignedCustomerDevices = devices.filter((deviceItem) =>
-    assignedDeviceIds.includes(String(deviceItem.id)),
-  );
-
-  const customerDeviceAssignResults = (() => {
-    const search = customerDeviceAssignSearch.trim().toLowerCase();
-
-    if (!search || search.length < 2) return [];
-
-    return devices
-      .filter((deviceItem) => !assignedDeviceIds.includes(String(deviceItem.id)))
-      .filter((deviceItem) => {
-        const linkedCustomer = deviceItem.customer_id
-          ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
-          : null;
-
-        const searchText = [
-          deviceItem.name,
-          deviceItem.manufacturer,
-          getManufacturerNameById(deviceItem.manufacturer_id),
-          deviceItem.serial_number,
-          deviceItem.location,
-          deviceItem.status,
-          deviceItem.note,
-          linkedCustomer ? getCustomerDisplayName(linkedCustomer) : "",
-          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        return searchText.includes(search);
-      })
-      .slice(0, 25);
-  })();
-
   if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#07130d] text-white">
@@ -7159,138 +7115,57 @@ FE-SERVICE`,
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
 
-                  
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h4 className="text-lg font-black text-slate-900">
-                          Geräte diesem Kunden zuweisen
-                        </h4>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
-                          Geräte gezielt suchen statt alle Geräte als Liste zu laden. Es werden maximal 25 Treffer angezeigt.
-                        </p>
-                      </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="mb-3 text-sm font-bold text-slate-700">
+                      Geräte diesem Kunden zuweisen
+                    </p>
 
-                      <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-black text-green-700">
-                        {assignedDeviceIds.length} ausgewählt
-                      </span>
-                    </div>
-
-                    <input
-                      value={customerDeviceAssignSearch}
-                      onChange={(event) => setCustomerDeviceAssignSearch(event.target.value)}
-                      placeholder="Gerät suchen: Name, Seriennummer, Hersteller, Standort"
-                      className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-green-500"
-                    />
-
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-black text-slate-700">
-                          Ausgewählte Geräte
-                        </p>
-
-                        {assignedDeviceIds.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setAssignedDeviceIds([])}
-                            className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 hover:bg-red-100 hover:text-red-700"
+                    {devices.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        Noch keine Geräte vorhanden.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {devices.map((deviceItem) => (
+                          <label
+                            key={deviceItem.id}
+                            className="flex items-center gap-3 rounded-xl bg-white p-3 text-sm font-bold"
                           >
-                            Auswahl leeren
-                          </button>
-                        )}
-                      </div>
-
-                      {assignedCustomerDevices.length === 0 ? (
-                        <p className="mt-3 text-sm font-semibold text-slate-400">
-                          Noch keine Geräte ausgewählt.
-                        </p>
-                      ) : (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {assignedCustomerDevices.map((deviceItem) => (
-                            <span
-                              key={deviceItem.id}
-                              className="inline-flex max-w-full items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-black text-green-800"
-                            >
-                              <span className="truncate">
-                                {deviceItem.name}
-                                {deviceItem.serial_number ? ` · ${deviceItem.serial_number}` : ""}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setAssignedDeviceIds((prev) =>
-                                    prev.filter((id) => id !== String(deviceItem.id)),
-                                  )
-                                }
-                                className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-xs font-black text-green-900 hover:bg-red-100 hover:text-red-700"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
-                      {customerDeviceAssignSearch.trim().length < 2 ? (
-                        <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Mindestens 2 Zeichen eingeben, um Geräte zu suchen.
-                        </div>
-                      ) : customerDeviceAssignResults.length === 0 ? (
-                        <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Kein passendes Gerät gefunden.
-                        </div>
-                      ) : (
-                        customerDeviceAssignResults.map((deviceItem) => {
-                          const assignedOtherCustomerName =
-                            deviceItem.customer_id &&
-                            deviceItem.customer_id !== editingCustomerIdForDeviceAssignment
-                              ? getCustomerNameById(deviceItem.customer_id)
-                              : "";
-
-                          return (
-                            <button
-                              key={deviceItem.id}
-                              type="button"
-                              onClick={() => {
-                                const deviceId = String(deviceItem.id);
-                                setAssignedDeviceIds((prev) =>
-                                  Array.from(new Set([...prev, deviceId])),
-                                );
-                                setCustomerDeviceAssignSearch("");
-                              }}
-                              className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-green-400 hover:bg-green-50"
-                            >
-                              <p className="break-words font-black text-slate-900">
-                                {deviceItem.name}
-                              </p>
-
-                              <p className="mt-1 break-words text-sm font-bold text-slate-500">
-                                {deviceItem.manufacturer ||
-                                  getManufacturerNameById(deviceItem.manufacturer_id) ||
-                                  "Hersteller unbekannt"}
-                                {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
-                              </p>
-
-                              <p className="mt-1 break-words text-xs font-semibold text-slate-400">
-                                {deviceItem.location || "Kein Standort"}
-                              </p>
-
-                              {assignedOtherCustomerName && (
-                                <p className="mt-2 rounded-xl bg-yellow-100 px-3 py-2 text-xs font-black text-yellow-800">
-                                  Aktuell zugeordnet: {assignedOtherCustomerName}
-                                </p>
+                            <input
+                              type="checkbox"
+                              checked={assignedDeviceIds.includes(
+                                String(deviceItem.id),
                               )}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setAssignedDeviceIds((prev) => [
+                                    ...prev,
+                                    String(deviceItem.id),
+                                  ]);
+                                } else {
+                                  setAssignedDeviceIds((prev) =>
+                                    prev.filter(
+                                      (id) => id !== String(deviceItem.id),
+                                    ),
+                                  );
+                                }
+                              }}
+                            />
+                            <span>{deviceItem.name}</span>
+                            {deviceItem.customer_id &&
+                              deviceItem.customer_id !==
+                                editingCustomer?.id && (
+                                <span className="ml-auto rounded-full bg-yellow-100 px-2 py-1 text-xs text-yellow-700">
+                                  bereits zugewiesen
+                                </span>
+                              )}
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-{editingCustomer ? (
+                  {editingCustomer ? (
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
                         onClick={updateCustomer}
@@ -7318,112 +7193,87 @@ FE-SERVICE`,
               </div>
               )}
 
-              
-
-            </div>
-
-              <div className="w-full rounded-[32px] bg-white p-5 shadow-sm">
-                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                  <div>
-                    <h3 className="text-2xl font-black text-slate-900">
-                      Kundenliste mit Geräteüberblick
-                    </h3>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Suche nach Firma, Ansprechpartner, Ort, E-Mail oder Telefon. Maximal 30 Treffer werden angezeigt.
-                    </p>
-                  </div>
-
-                  <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-600">
-                    {customerDirectorySearch.trim().length < 2
-                      ? "Suche ab 2 Zeichen"
-                      : `${filteredCustomerDirectory.length} Treffer`}
-                  </span>
-                </div>
+              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <h3 className="text-xl font-black">Kundenliste mit Geräteüberblick</h3>
+                {!isAdmin && (
+                  <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
+                    Such- und Lesemodus: Techniker können Kundendaten und zugewiesene Geräte ansehen, aber nicht bearbeiten.
+                  </p>
+                )}
 
                 <input
                   value={customerDirectorySearch}
                   onChange={(e) => setCustomerDirectorySearch(e.target.value)}
-                  placeholder="Kunden suchen: Firma, Name, Ort, PLZ, E-Mail oder Telefon"
-                  className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold outline-none focus:border-green-500"
+                  placeholder="Kunden suchen: Firma, Vorname, Nachname, Ort, PLZ, E-Mail, Telefon"
+                  className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
-                {customerDirectorySearch.trim().length < 2 ? (
-                  <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm font-bold text-slate-500">
-                    Bitte mindestens 2 Zeichen eingeben, um Kunden zu suchen.
-                  </div>
-                ) : filteredCustomerDirectory.length === 0 ? (
-                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center text-sm font-bold text-slate-500">
-                    Keine Kunden gefunden.
-                  </div>
-                ) : (
-                  <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {filteredCustomerDirectory.slice(0, 30).map((item) => {
-                      const customerDevices = getDevicesForCustomer(item.id);
-
-                      return (
-                        <article
-                          key={item.id}
-                          className="flex min-w-0 flex-col rounded-3xl border border-slate-200 bg-slate-50 p-5"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-black uppercase tracking-[0.12em] text-green-600">
-                              Kunde #{item.id}
+                <div className="mt-5 space-y-3">
+                  {filteredCustomerDirectory.length === 0 ? (
+                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
+                      Keine Kunden gefunden.
+                    </div>
+                  ) : (
+                    filteredCustomerDirectory.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-xs font-bold text-green-600">
+                              {getCustomerDisplayName(item) || "Kein Ansprechpartner"}
                             </p>
 
-                            <h4 className="mt-1 break-words text-xl font-black leading-tight text-slate-900">
-                              {getCustomerDisplayName(item) || item.company || "Unbenannter Kunde"}
+                            <h4 className="mt-1 text-xl font-black">
+                              {item.company}
                             </h4>
 
-                            {item.company && getCustomerDisplayName(item) !== item.company && (
-                              <p className="mt-1 break-words text-sm font-bold text-slate-500">
-                                {item.company}
-                              </p>
-                            )}
+                            <p className="mt-2 text-sm text-slate-600">
+                              E-Mail: {item.email || "Nicht angegeben"}
+                            </p>
 
-                            <div className="mt-3 space-y-1 text-sm font-semibold leading-snug text-slate-600">
-                              <p className="break-words">
-                                E-Mail: {item.email || "Nicht angegeben"}
-                              </p>
-                              <p className="break-words">
-                                Telefon: {item.phone || "Nicht angegeben"}
-                              </p>
-                              <p className="break-words text-slate-500">
-                                {buildCustomerAddress(item) || "Keine Adresse vorhanden."}
-                              </p>
-                            </div>
+                            <p className="text-sm text-slate-600">
+                              Telefon: {item.phone || "Nicht angegeben"}
+                            </p>
 
-                            <div className="mt-4 rounded-2xl border border-green-100 bg-white p-3">
+                            <p className="mt-2 text-sm text-slate-500">
+                              {buildCustomerAddress(item) || "Keine Adresse vorhanden."}
+                            </p>
+
+                            <div className="mt-4 rounded-2xl border border-green-100 bg-white p-4">
                               <div className="flex items-center justify-between gap-3">
                                 <p className="text-sm font-black text-green-700">
                                   Zugewiesene Geräte
                                 </p>
 
-                                <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
-                                  {customerDevices.length}
+                                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-black text-green-700">
+                                  {getDevicesForCustomer(item.id).length} Gerät(e)
                                 </span>
                               </div>
 
-                              {customerDevices.length === 0 ? (
-                                <p className="mt-2 text-sm font-semibold text-slate-400">
-                                  Keine Geräte zugewiesen.
+                              {getDevicesForCustomer(item.id).length === 0 ? (
+                                <p className="mt-3 text-sm font-semibold text-slate-400">
+                                  Noch keine Geräte zugewiesen.
                                 </p>
                               ) : (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {customerDevices.slice(0, 6).map((deviceItem) => (
-                                    <button
-                                      key={deviceItem.id}
-                                      type="button"
-                                      onClick={() => setSelectedDeviceView(deviceItem)}
-                                      className="max-w-full truncate rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-green-100 hover:text-green-700"
-                                      title={deviceItem.serial_number || "Keine Seriennummer"}
-                                    >
-                                      {deviceItem.name}
-                                    </button>
-                                  ))}
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {getDevicesForCustomer(item.id)
+                                    .slice(0, 8)
+                                    .map((deviceItem) => (
+                                      <button
+                                        key={deviceItem.id}
+                                        onClick={() => setSelectedDeviceView(deviceItem)}
+                                        className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-green-100 hover:text-green-700"
+                                        title={deviceItem.serial_number || "Keine Seriennummer"}
+                                      >
+                                        {deviceItem.name}
+                                      </button>
+                                    ))}
 
-                                  {customerDevices.length > 6 && (
+                                  {getDevicesForCustomer(item.id).length > 8 && (
                                     <span className="rounded-full bg-slate-200 px-3 py-2 text-xs font-black text-slate-600">
-                                      +{customerDevices.length - 6} weitere
+                                      +{getDevicesForCustomer(item.id).length - 8} weitere
                                     </span>
                                   )}
                                 </div>
@@ -7431,14 +7281,10 @@ FE-SERVICE`,
                             </div>
                           </div>
 
-                          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                          <div className="flex flex-col gap-2">
                             <button
-                              type="button"
-                              onClick={() => {
-                                setCustomer(item.company || getCustomerDisplayName(item) || "");
-                                setActivePage("Service-Tickets");
-                              }}
-                              className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700"
+                              onClick={() => createTicketFromCustomer(item)}
+                              className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
                             >
                               Ticket
                             </button>
@@ -7446,37 +7292,28 @@ FE-SERVICE`,
                             {isAdmin && (
                               <>
                                 <button
-                                  type="button"
                                   onClick={() => startEditCustomer(item)}
-                                  className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-black text-green-700"
+                                  className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700"
                                 >
                                   Bearbeiten
                                 </button>
 
                                 <button
-                                  type="button"
                                   onClick={() => deleteCustomer(item.id)}
-                                  className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
+                                  className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                                 >
                                   Löschen
                                 </button>
                               </>
                             )}
                           </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {customerDirectorySearch.trim().length >= 2 &&
-                  filteredCustomerDirectory.length > 30 && (
-                    <div className="mt-4 rounded-2xl bg-yellow-50 p-4 text-sm font-bold text-yellow-800">
-                      Es werden die ersten 30 Treffer angezeigt. Bitte Suche verfeinern.
-                    </div>
+                        </div>
+                      </div>
+                    ))
                   )}
+                </div>
               </div>
-
+            </div>
           )}
 
                     {activePage === "Hersteller" && (isAdmin || isTechnician) && (
