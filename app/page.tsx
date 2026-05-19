@@ -7208,10 +7208,10 @@ FE-SERVICE`,
                           </div>
                         ) : (
                           devices.map((deviceItem) => {
-                            const linkedCustomer =
-                              deviceItem.customer_id && deviceItem.customer_id !== editingCustomer?.id
-                                ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
-                                : null;
+                            const assignedOtherCustomerName =
+                              deviceItem.customer_id && (!editingCustomer || deviceItem.customer_id !== editingCustomer.id)
+                                ? getCustomerNameById(deviceItem.customer_id)
+                                : "";
 
                             const checked = assignedDeviceIds.includes(String(deviceItem.id));
 
@@ -7253,9 +7253,9 @@ FE-SERVICE`,
                                     {deviceItem.location || "Kein Standort"}
                                   </span>
 
-                                  {linkedCustomer && (
+                                  {assignedOtherCustomerName && (
                                     <span className="mt-2 block rounded-xl bg-yellow-100 px-3 py-2 text-xs font-black text-yellow-800">
-                                      Aktuell zugeordnet: {getCustomerLabel(linkedCustomer)}
+                                      Aktuell zugeordnet: {assignedOtherCustomerName}
                                     </span>
                                   )}
                                 </span>
