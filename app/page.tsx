@@ -5642,7 +5642,7 @@ FE-SERVICE`,
               <img
                 src="/fe-service-logo.png"
                 alt="Fitness Equipment Service"
-                className="mx-auto mt-6 h-auto w-full max-w-[300px] object-contain drop-shadow-xl"
+                className="mx-auto mt-6 h-auto w-full max-w-[220px] object-contain drop-shadow-xl"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
