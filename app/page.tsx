@@ -5482,9 +5482,17 @@ FE-SERVICE`,
 
   const abnahmeCustomers = (() => {
     const search = abnahmeCustomerSearch.toLowerCase().trim();
-    if (!search) return portalCustomers;
 
-    return portalCustomers.filter((customerItem) => getCustomerSearchText(customerItem).includes(search));
+    const baseCustomers =
+      isCustomer && userProfile?.customer_id
+        ? customers.filter((customerItem) => customerItem.id === userProfile.customer_id)
+        : customers;
+
+    if (!search) return baseCustomers;
+
+    return baseCustomers.filter((customerItem) =>
+      getCustomerSearchText(customerItem).includes(search),
+    );
   })();
 
   const abnahmeDevices = (() => {
@@ -5495,8 +5503,9 @@ FE-SERVICE`,
         ? devices.filter((deviceItem) => deviceItem.customer_id === userProfile.customer_id)
         : devices;
 
+    const selectedCustomerId = abnahmeCustomerId ? Number(abnahmeCustomerId) : null;
+
     const sortedDevices = [...roleFilteredDevices].sort((a, b) => {
-      const selectedCustomerId = abnahmeCustomerId ? Number(abnahmeCustomerId) : null;
       const aMatchesCustomer = selectedCustomerId ? a.customer_id === selectedCustomerId : false;
       const bMatchesCustomer = selectedCustomerId ? b.customer_id === selectedCustomerId : false;
 
@@ -5513,7 +5522,7 @@ FE-SERVICE`,
         ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
         : null;
 
-      return [
+      const searchableText = [
         deviceItem.name,
         deviceItem.manufacturer,
         getManufacturerNameById(deviceItem.manufacturer_id),
@@ -5521,13 +5530,15 @@ FE-SERVICE`,
         deviceItem.location,
         deviceItem.status,
         deviceItem.note,
+        linkedCustomer ? getCustomerDisplayName(linkedCustomer) : "",
         linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
         linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
       ]
         .filter(Boolean)
         .join(" ")
-        .toLowerCase()
-        .includes(search);
+        .toLowerCase();
+
+      return searchableText.includes(search);
     });
   })();
 
@@ -8363,7 +8374,7 @@ FE-SERVICE`,
                       onChange={(e) => fillAbnahmeFromDevice(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Gerät auswählen</option>
+                      <option value="">{abnahmeDevices.length === 0 ? "Keine Geräte gefunden" : "Gerät auswählen"}</option>
                       {abnahmeDevices.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name} · {item.serial_number || "ohne Seriennr."}
@@ -9196,7 +9207,7 @@ FE-SERVICE`,
                         onChange={(e) => setInspectionDeviceId(e.target.value)}
                         className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
-                        <option value="">Gerät auswählen</option>
+                        <option value="">{abnahmeDevices.length === 0 ? "Keine Geräte gefunden" : "Gerät auswählen"}</option>
                         {devices.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name}
