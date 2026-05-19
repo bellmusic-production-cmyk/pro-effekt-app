@@ -4099,17 +4099,6 @@ FE-SERVICE`,
     }, 500);
   }
 
-    const html = buildAbnahmeProtocolHtml();
-    const printWindow = window.open("", "_blank");
-
-    if (!printWindow) {
-      alert("Popup wurde blockiert. Bitte Popups erlauben.");
-      return;
-    }
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-  }
 
 
   async function saveInvoice() {
@@ -5851,19 +5840,21 @@ FE-SERVICE`,
                           </div>
 
                           <div className="flex gap-2">
+                            <div className="flex flex-col gap-3 sm:flex-row">
                             <button
                               onClick={() => openDocument(item)}
-                              className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
+                              className="rounded-[20px] bg-[#dfe7ff] px-6 py-4 text-lg font-black text-[#4455dd]"
                             >
                               Öffnen
                             </button>
 
                             <button
                               onClick={() => deleteDocument(item)}
-                              className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
+                              className="rounded-[20px] bg-[#f3dede] px-6 py-4 text-lg font-black text-[#bb2d2d]"
                             >
                               Löschen
                             </button>
+                          </div>
                           </div>
                         </div>
                       ))
@@ -7828,9 +7819,10 @@ FE-SERVICE`,
                           className="min-h-[56px] rounded-3xl bg-green-600 px-4 py-3 text-sm font-black text-white active:scale-[0.99]"
                         >
                           Abschließen
+                        </button>
 
-                          {/* TECHNIKER DATEI-UPLOAD */}
-                          <div className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5">
+                        {/* TECHNIKER DATEI-UPLOAD */}
+                        <div className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5">
                             <h4 className="text-xl font-black text-blue-800">
                               Fotos & Dokumente zum Einsatz
                             </h4>
@@ -7894,10 +7886,7 @@ FE-SERVICE`,
                                 ))
                               )}
                             </div>
-                          </div>
-
-
-                        </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -9225,6 +9214,7 @@ FE-SERVICE`,
       <div className="hidden" />
     </main>
   );
+}
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
