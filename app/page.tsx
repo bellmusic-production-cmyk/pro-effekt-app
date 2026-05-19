@@ -5423,14 +5423,14 @@ FE-SERVICE`,
       ? customers.filter((item) => item.id === userProfile.customer_id)
       : customers;
 
-  const filteredCustomerDirectory = useMemo(() => {
+  const filteredCustomerDirectory = (() => {
     const search = customerDirectorySearch.toLowerCase().trim();
     if (!search) return customers;
 
     return customers.filter((customerItem) => getCustomerSearchText(customerItem).includes(search));
-  }, [customers, customerDirectorySearch]);
+  })();
 
-  const filteredDeviceDirectory = useMemo(() => {
+  const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearch.toLowerCase().trim();
     if (!search) return devices;
 
@@ -5456,9 +5456,9 @@ FE-SERVICE`,
         .toLowerCase()
         .includes(search);
     });
-  }, [devices, customers, manufacturers, deviceDirectorySearch]);
+  })();
 
-  const filteredManufacturerDirectory = useMemo(() => {
+  const filteredManufacturerDirectory = (() => {
     const search = manufacturerDirectorySearch.toLowerCase().trim();
     if (!search) return manufacturers;
 
@@ -5478,16 +5478,16 @@ FE-SERVICE`,
         .toLowerCase()
         .includes(search),
     );
-  }, [manufacturers, manufacturerDirectorySearch]);
+  })();
 
-  const abnahmeCustomers = useMemo(() => {
+  const abnahmeCustomers = (() => {
     const search = abnahmeCustomerSearch.toLowerCase().trim();
     if (!search) return portalCustomers;
 
     return portalCustomers.filter((customerItem) => getCustomerSearchText(customerItem).includes(search));
-  }, [portalCustomers, abnahmeCustomerSearch]);
+  })();
 
-  const abnahmeDevices = useMemo(() => {
+  const abnahmeDevices = (() => {
     const search = abnahmeDeviceSearch.toLowerCase().trim();
     const baseDevices = availableTicketDevices.filter((deviceItem) =>
       abnahmeCustomerId ? deviceItem.customer_id === Number(abnahmeCustomerId) : true,
@@ -5515,7 +5515,7 @@ FE-SERVICE`,
         .toLowerCase()
         .includes(search);
     });
-  }, [availableTicketDevices, abnahmeCustomerId, abnahmeDeviceSearch, customers, manufacturers]);
+  })();
 
   if (authLoading) {
     return (
