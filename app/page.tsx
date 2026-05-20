@@ -334,8 +334,10 @@ export default function Home() {
   const [editingPart, setEditingPart] = useState<ServicePart | null>(null);
 
   const [customer, setCustomer] = useState("");
-  const [device, setDevice] = useState(fallbackDevices[0]);
+  const [device, setDevice] = useState("");
   const [customDeviceName, setCustomDeviceName] = useState("");
+  const [ticketCustomerSearch, setTicketCustomerSearch] = useState("");
+  const [ticketDeviceSearch, setTicketDeviceSearch] = useState("");
   const [issue, setIssue] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Mittel");
@@ -958,10 +960,6 @@ export default function Home() {
     }
 
     setDevices(data || []);
-
-    if (data && data.length > 0 && !data.some((item) => item.name === device)) {
-      setDevice(data[0].name);
-    }
   }
 
   async function loadCustomers() {
@@ -1498,8 +1496,10 @@ export default function Home() {
   function resetTicketForm() {
     setEditingTicket(null);
     setCustomer("");
-    setDevice(deviceNames[0] || fallbackDevices[0]);
+    setDevice("");
     setCustomDeviceName("");
+    setTicketCustomerSearch("");
+    setTicketDeviceSearch("");
     setIssue("");
     setDescription("");
     setPriority("Mittel");
@@ -1564,7 +1564,9 @@ export default function Home() {
     setActivePage("Service-Tickets");
     setEditingTicket(ticket);
     setCustomer(ticket.customer || "");
-    setDevice(ticket.device || deviceNames[0] || fallbackDevices[0]);
+    setTicketCustomerSearch(ticket.customer || "");
+    setDevice(ticket.device || "");
+    setTicketDeviceSearch(ticket.device || "");
     setCustomDeviceName("");
     setIssue(ticket.issue || "");
     setDescription(ticket.description || "");
@@ -1630,15 +1632,22 @@ export default function Home() {
       ? customers.find((item) => item.id === relatedDevice.customer_id)
       : null;
 
+    const selectedCustomer =
+      selectedTicketCustomer ||
+      customers.find((item) => item.company === customer) ||
+      customers.find((item) => getCustomerLabel(item) === customer) ||
+      customerFromDevice ||
+      null;
+
     const currentCustomerName = isCustomer
       ? profileCustomer?.company || userProfile?.company || ""
-      : customer || customerFromDevice?.company || "Vor-Ort / nicht zugeordnet";
+      : selectedCustomer
+        ? getCustomerLabel(selectedCustomer)
+        : customer || "Vor-Ort / nicht zugeordnet";
 
     const currentCustomerId = isCustomer
       ? userProfile?.customer_id || null
-      : customers.find((item) => item.company === currentCustomerName)?.id ||
-        customerFromDevice?.id ||
-        null;
+      : selectedCustomer?.id || null;
 
     if (!currentDeviceName || !issue || !description) {
       alert("Bitte Gerät, Betreff und Beschreibung ausfüllen.");
@@ -2488,8 +2497,11 @@ export default function Home() {
       : null;
 
     setActivePage("Service-Tickets");
-    setCustomer(linkedCustomer?.company || "");
+    const nextCustomerName = linkedCustomer ? getCustomerLabel(linkedCustomer) : "";
+    setCustomer(nextCustomerName);
+    setTicketCustomerSearch(nextCustomerName);
     setDevice(item.name);
+    setTicketDeviceSearch(item.name);
     setCustomDeviceName("");
     setIssue(`Service für ${item.name}`);
     setDescription(item.note || "");
@@ -2499,7 +2511,11 @@ export default function Home() {
 
   function createTicketFromCustomer(item: Customer) {
     setActivePage("Service-Tickets");
-    setCustomer(item.company || "");
+    const nextCustomerName = getCustomerLabel(item);
+    setCustomer(nextCustomerName);
+    setTicketCustomerSearch(nextCustomerName);
+    setDevice("");
+    setTicketDeviceSearch("");
     setIssue(`Service-Anfrage ${item.company || ""}`);
     setDescription(
       `Ansprechpartner: ${item.contact_person || "nicht angegeben"}\nTelefon: ${
@@ -5563,6 +5579,62 @@ FE-SERVICE`,
     isCustomer && userProfile?.customer_id
       ? customers.filter((item) => item.id === userProfile.customer_id)
       : customers;
+
+  const filteredTicketCustomers = (() => {
+    const search = ticketCustomerSearch.toLowerCase().trim();
+
+    if (!search || search.length < 2) {
+      return [];
+    }
+
+    return portalCustomers
+      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
+      .slice(0, 30);
+  })();
+
+  const selectedTicketCustomer =
+    portalCustomers.find((customerItem) => customerItem.company === customer) ||
+    portalCustomers.find((customerItem) => getCustomerLabel(customerItem) === customer) ||
+    null;
+
+  const filteredTicketDevices = (() => {
+    const search = ticketDeviceSearch.toLowerCase().trim();
+
+    if (!search || search.length < 2) {
+      return [];
+    }
+
+    const baseDevices = selectedTicketCustomer
+      ? availableTicketDevices.filter((deviceItem) => deviceItem.customer_id === selectedTicketCustomer.id)
+      : availableTicketDevices;
+
+    return baseDevices
+      .filter((deviceItem) => {
+        const linkedCustomer = deviceItem.customer_id
+          ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
+          : null;
+
+        return [
+          deviceItem.name,
+          deviceItem.manufacturer,
+          getManufacturerNameById(deviceItem.manufacturer_id),
+          deviceItem.serial_number,
+          deviceItem.location,
+          deviceItem.status,
+          deviceItem.note,
+          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .slice(0, 30);
+  })();
+
+  const selectedTicketDevice =
+    availableTicketDevices.find((deviceItem) => deviceItem.name === device) || null;
 
   const filteredCustomerDirectory = (() => {
     const search = customerDirectorySearch.toLowerCase().trim();
@@ -10065,50 +10137,176 @@ FE-SERVICE`,
                             "Dein Kundenkonto"}
                         </p>
                       </div>
-                    ) : customers.length > 0 ? (
-                      <select
-                        value={customer}
-                        onChange={(e) => setCustomer(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-bold"
-                      >
-                        <option value="">Kunde auswählen</option>
-                        {customerNames.map((item) => (
-                          <option key={item}>{item}</option>
-                        ))}
-                      </select>
                     ) : (
-                      <input
-                        value={customer}
-                        onChange={(e) => setCustomer(e.target.value)}
-                        placeholder="Kunde / Firma"
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
-                      />
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-bold text-slate-700">
+                          Kunde suchen und auswählen
+                        </p>
+
+                        <input
+                          value={ticketCustomerSearch}
+                          onChange={(e) => {
+                            setTicketCustomerSearch(e.target.value);
+                            setCustomer("");
+                            setDevice("");
+                            setTicketDeviceSearch("");
+                          }}
+                          placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
+                          className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                        />
+
+                        {customer && (
+                          <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                              Ausgewählter Kunde
+                            </p>
+                            <p className="mt-1 text-base font-black text-slate-900">
+                              {customer}
+                            </p>
+                          </div>
+                        )}
+
+                        {!customer && ticketCustomerSearch.trim().length < 2 && (
+                          <p className="mt-3 text-sm font-bold text-slate-500">
+                            Bitte mindestens 2 Zeichen eingeben. Es wird keine Endlosliste geladen.
+                          </p>
+                        )}
+
+                        {!customer &&
+                          ticketCustomerSearch.trim().length >= 2 &&
+                          filteredTicketCustomers.length === 0 && (
+                            <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                              Kein Kunde gefunden.
+                            </p>
+                          )}
+
+                        {!customer && filteredTicketCustomers.length > 0 && (
+                          <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                            {filteredTicketCustomers.map((customerItem) => (
+                              <button
+                                key={customerItem.id}
+                                type="button"
+                                onClick={() => {
+                                  const nextCustomerName = getCustomerLabel(customerItem);
+                                  setCustomer(nextCustomerName);
+                                  setTicketCustomerSearch(nextCustomerName);
+                                  setDevice("");
+                                  setTicketDeviceSearch("");
+                                }}
+                                className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-green-300 hover:bg-green-50"
+                              >
+                                <p className="font-black text-slate-900">
+                                  {getCustomerLabel(customerItem)}
+                                </p>
+                                <p className="mt-1 text-xs font-semibold text-slate-500">
+                                  {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} · ` : ""}
+                                  {buildCustomerAddress(customerItem) || "Keine Adresse"}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-bold text-slate-700">Gerät</p>
+                      <p className="text-sm font-bold text-slate-700">
+                        Gerät suchen und auswählen
+                      </p>
 
-                      {availableTicketDevices.length > 0 && (
-                        <select
-                          value={device}
-                          onChange={(e) => setDevice(e.target.value)}
-                          className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-bold"
-                        >
-                          {availableTicketDevices.map((item) => (
-                            <option key={item.id} value={item.name}>
-                              {item.name}
-                            </option>
-                          ))}
-                        </select>
+                      <input
+                        value={ticketDeviceSearch}
+                        onChange={(e) => {
+                          setTicketDeviceSearch(e.target.value);
+                          setDevice("");
+                          setCustomDeviceName("");
+                        }}
+                        placeholder={
+                          selectedTicketCustomer
+                            ? "Gerät dieses Kunden suchen: Name, Seriennummer, Standort..."
+                            : "Gerät suchen: Name, Seriennummer, Standort, Kunde..."
+                        }
+                        className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                      />
+
+                      {device && selectedTicketDevice && (
+                        <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                            Ausgewähltes Gerät
+                          </p>
+                          <p className="mt-1 text-base font-black text-slate-900">
+                            {selectedTicketDevice.name}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                            {selectedTicketDevice.serial_number ? `SN: ${selectedTicketDevice.serial_number} · ` : ""}
+                            {selectedTicketDevice.location || "Kein Standort"}
+                          </p>
+                        </div>
+                      )}
+
+                      {!device && ticketDeviceSearch.trim().length < 2 && (
+                        <p className="mt-3 text-sm font-bold text-slate-500">
+                          Bitte mindestens 2 Zeichen eingeben. Es wird kein Gerät automatisch ausgewählt.
+                        </p>
+                      )}
+
+                      {!device &&
+                        ticketDeviceSearch.trim().length >= 2 &&
+                        filteredTicketDevices.length === 0 && (
+                          <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                            Kein Gerät gefunden.
+                          </p>
+                        )}
+
+                      {!device && filteredTicketDevices.length > 0 && (
+                        <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
+                          {filteredTicketDevices.map((deviceItem) => {
+                            const linkedCustomer = deviceItem.customer_id
+                              ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
+                              : null;
+
+                            return (
+                              <button
+                                key={deviceItem.id}
+                                type="button"
+                                onClick={() => {
+                                  setDevice(deviceItem.name);
+                                  setTicketDeviceSearch(deviceItem.name);
+                                  setCustomDeviceName("");
+
+                                  if (!customer && linkedCustomer) {
+                                    const nextCustomerName = getCustomerLabel(linkedCustomer);
+                                    setCustomer(nextCustomerName);
+                                    setTicketCustomerSearch(nextCustomerName);
+                                  }
+                                }}
+                                className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-green-300 hover:bg-green-50"
+                              >
+                                <p className="font-black text-slate-900">
+                                  {deviceItem.name}
+                                </p>
+                                <p className="mt-1 text-xs font-semibold text-slate-500">
+                                  {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
+                                  {deviceItem.location || "Kein Standort"}
+                                  {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
 
                       <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        oder neues Gerät eintragen
+                        oder neues Gerät / freien Gerätenamen eintragen
                       </div>
 
                       <input
                         value={customDeviceName}
-                        onChange={(e) => setCustomDeviceName(e.target.value)}
+                        onChange={(e) => {
+                          setCustomDeviceName(e.target.value);
+                          setDevice("");
+                          setTicketDeviceSearch("");
+                        }}
                         placeholder="z. B. Life Fitness Laufband, Seriennummer, Standort"
                         className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                       />
