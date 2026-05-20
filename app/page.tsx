@@ -631,7 +631,44 @@ export default function Home() {
     priorityFilter,
   ]);
 
-  const filteredDocuments = useMemo(() => {
+  
+  function getDocumentCustomerName(item: any): string {
+    const customerId =
+      item?.customer_id ??
+      item?.customerId ??
+      item?.customer ??
+      item?.customer_number ??
+      null;
+
+    const customer = customers.find((customerItem: any) => {
+      return (
+        customerItem.id === customerId ||
+        String(customerItem.id) === String(customerId) ||
+        customerItem.company === item?.customer ||
+        customerItem.company === item?.customer_name ||
+        getCustomerDisplayName(customerItem) === item?.customer ||
+        getCustomerDisplayName(customerItem) === item?.customer_name
+      );
+    });
+
+    if (!customer) {
+      return (
+        item?.customer_name ||
+        item?.customer ||
+        item?.company ||
+        "Unbekannter Kunde"
+      );
+    }
+
+    return (
+      customer.company ||
+      getCustomerDisplayName(customer) ||
+      `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
+      "Unbekannter Kunde"
+    );
+  }
+
+const filteredDocuments = useMemo(() => {
     const search = documentSearchTerm.toLowerCase().trim();
 
     const customerFilteredDocuments =
