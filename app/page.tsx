@@ -5566,10 +5566,18 @@ FE-SERVICE`,
 
   const filteredCustomerDirectory = (() => {
     const search = customerDirectorySearch.toLowerCase().trim();
-    if (!search) return customers;
 
-    return customers.filter((customerItem) => getCustomerSearchText(customerItem).includes(search));
+    if (!search || search.length < 2) {
+      return [];
+    }
+
+    return customers
+      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
+      .slice(0, 80);
   })();
+
+  const customerDirectorySearchIsActive =
+    customerDirectorySearch.trim().length >= 2;
 
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearch.toLowerCase().trim();
@@ -7513,7 +7521,7 @@ FE-SERVICE`,
               )}
 
               <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="break-words text-xl font-black">Kundenliste mit Geräteüberblick</h3>
+                <h3 className="break-words text-xl font-black">Kundensuche mit Geräteüberblick</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                     Such- und Lesemodus: Techniker können Kundendaten und zugewiesene Geräte ansehen, aber nicht bearbeiten.
@@ -7527,10 +7535,30 @@ FE-SERVICE`,
                   className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
+                <div className="mt-3 rounded-2xl border border-green-100 bg-green-50 p-4 text-sm font-bold text-green-800">
+                  {customerDirectorySearchIsActive
+                    ? `${filteredCustomerDirectory.length} Treffer werden angezeigt. Bitte Suche verfeinern, falls der Kunde nicht dabei ist.`
+                    : `Bitte mindestens 2 Zeichen eingeben. Es werden nicht automatisch alle ${customers.length} Kunden geladen.`}
+                </div>
+
                 <div className="mt-5 space-y-3">
                   {filteredCustomerDirectory.length === 0 ? (
-                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
-                      Keine Kunden gefunden.
+                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">
+                      {customerDirectorySearchIsActive ? (
+                        <p className="font-bold">
+                          Keine passenden Kunden gefunden. Bitte Suchbegriff prüfen oder neuen Kunden anlegen.
+                        </p>
+                      ) : (
+                        <div>
+                          <p className="text-lg font-black text-slate-800">
+                            Kundenliste bereit
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-500">
+                            Aus Performance- und Übersichtsgründen werden nicht alle Kunden automatisch angezeigt.
+                            Nutze oben die Suche nach Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     filteredCustomerDirectory.map((item) => (
