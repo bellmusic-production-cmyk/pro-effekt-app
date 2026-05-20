@@ -632,6 +632,41 @@ export default function Home() {
   ]);
 
   
+
+  function getCustomerDisplayName(customer: any): string {
+    if (!customer) return "Unbekannter Kunde";
+
+    if (
+      typeof customer.display_name === "string" &&
+      customer.display_name.trim() !== ""
+    ) {
+      return customer.display_name.trim();
+    }
+
+    if (
+      typeof customer.company === "string" &&
+      customer.company.trim() !== ""
+    ) {
+      return customer.company.trim();
+    }
+
+    const firstName =
+      typeof customer.first_name === "string" ? customer.first_name.trim() : "";
+
+    const lastName =
+      typeof customer.last_name === "string" ? customer.last_name.trim() : "";
+
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    if (fullName !== "") return fullName;
+
+    if (typeof customer.email === "string" && customer.email.trim() !== "") {
+      return customer.email.trim();
+    }
+
+    return "Unbekannter Kunde";
+  }
+
   function getDocumentCustomerName(item: any): string {
     const customerId =
       item?.customer_id ??
