@@ -7879,18 +7879,18 @@ FE-SERVICE`,
                   </p>
                 )}
 
-                <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+                <div className="mt-5 space-y-3">
                   <input
                     value={customerDirectorySearch}
                     onChange={(e) => setCustomerDirectorySearch(e.target.value)}
-                    placeholder="Kunden suchen"
-                    className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
+                    placeholder="Kunden suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
+                    className="block w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-green-500 focus:ring-4 focus:ring-green-100"
                   />
 
                   <select
                     value={customerTypeFilter}
                     onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    className="rounded-2xl border border-slate-300 px-5 py-4 font-black"
+                    className="block w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-black text-slate-900 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100 md:max-w-xs"
                   >
                     <option value="Alle">Alle Kundentypen</option>
                     <option value="B2B">Nur B2B</option>
