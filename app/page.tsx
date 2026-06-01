@@ -602,6 +602,14 @@ export default function Home() {
   }, [userProfile?.role]);
 
   useEffect(() => {
+    if (!session?.user?.id || !activePage) return;
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, activePage);
+    }
+  }, [activePage, session?.user?.id]);
+
+  useEffect(() => {
     if (devices.length === 0) return;
 
     const params = new URLSearchParams(window.location.search);
@@ -936,17 +944,65 @@ export default function Home() {
     setUserProfile(data as UserProfile);
     setProfileLoading(false);
 
-    if (data.role === "admin") {
-      setActivePage("Dashboard");
-    }
+    const adminPages = [
+      "Dashboard",
+      "Einsatz",
+      "Kalender",
+      "Service-Tickets",
+      "Kunden",
+      "Geräte",
+      "Hersteller",
+      "QR-Scan",
+      "Abnahmeprotokoll",
+      "Ersatzteile",
+      "Dokumente",
+      "Rechnungen",
+      "Verträge",
+      "Benachrichtigungen",
+      "Auswertungen",
+    ];
 
-    if (data.role === "technician") {
-      setActivePage("Einsatz");
-    }
+    const technicianPages = [
+      "Einsatz",
+      "Kalender",
+      "QR-Scan",
+      "Service-Tickets",
+      "Kunden",
+      "Geräte",
+      "Hersteller",
+      "Abnahmeprotokoll",
+      "Ersatzteile",
+      "Dokumente",
+    ];
 
-    if (data.role === "customer") {
-      setActivePage("Kundenportal");
-    }
+    const customerPages = [
+      "Kundenportal",
+      "Service-Tickets",
+      "Geräte",
+      "Dokumente",
+      "Rechnungen",
+    ];
+
+    const allowedPages =
+      data.role === "admin"
+        ? adminPages
+        : data.role === "technician"
+          ? technicianPages
+          : customerPages;
+
+    const defaultPage =
+      data.role === "admin"
+        ? "Dashboard"
+        : data.role === "technician"
+          ? "Einsatz"
+          : "Kundenportal";
+
+    const savedPage =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(`fe-service-active-page-${userId}`)
+        : null;
+
+    setActivePage(savedPage && allowedPages.includes(savedPage) ? savedPage : defaultPage);
   }
 
   async function loadTickets() {
@@ -5725,6 +5781,11 @@ FE-SERVICE`,
 
   function openPage(item: string) {
     setActivePage(item);
+
+    if (typeof window !== "undefined" && session?.user?.id) {
+      window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, item);
+    }
+
     resetTicketForm();
     resetDeviceForm();
     resetCustomerForm();
