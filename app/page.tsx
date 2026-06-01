@@ -518,6 +518,9 @@ export default function Home() {
   const [documentCustomerFilter, setDocumentCustomerFilter] = useState("Alle");
   const [documentDeviceFilter, setDocumentDeviceFilter] = useState("Alle");
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [selectedUploadCustomerId, setSelectedUploadCustomerId] = useState("");
+  const [uploadCustomerSearch, setUploadCustomerSearch] = useState("");
+  const [uploadDeviceSearch, setUploadDeviceSearch] = useState("");
   const [selectedDeviceView, setSelectedDeviceView] = useState<Device | null>(
     null,
   );
@@ -1250,6 +1253,20 @@ export default function Home() {
 
     if (!file) return;
 
+    const selectedUploadDevice = selectedDeviceId
+      ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId))
+      : null;
+
+    const uploadCustomerId =
+      selectedUploadCustomerId ||
+      (selectedUploadDevice?.customer_id ? String(selectedUploadDevice.customer_id) : "");
+
+    if (uploadCategory === "Abnahmeprotokolle" && !uploadCustomerId) {
+      alert("Bitte für das Abnahmeprotokoll zuerst einen Kunden auswählen.");
+      event.target.value = "";
+      return;
+    }
+
     setUploading(true);
 
     const safeFileName = file.name.replaceAll(" ", "-");
@@ -1276,26 +1293,29 @@ export default function Home() {
         category: uploadCategory,
         file_size: file.size,
         device_id: selectedDeviceId ? Number(selectedDeviceId) : null,
+        customer_id: uploadCustomerId ? Number(uploadCustomerId) : null,
       },
     ]);
 
     setUploading(false);
 
     if (insertResult.error) {
-      alert("Datei wurde hochgeladen, aber nicht gespeichert.");
+      alert(`Datei wurde hochgeladen, aber nicht gespeichert: ${insertResult.error.message}`);
       return;
     }
 
     await createDeviceHistory(
       selectedDeviceId ? Number(selectedDeviceId) : null,
-      "Dokument hochgeladen",
-      `${uploadCategory}: ${file.name}`,
+      "Dokument hochgeladen und zugeordnet",
+      `${uploadCategory}: ${file.name} · Kunde: ${uploadCustomerId ? getCustomerNameById(Number(uploadCustomerId)) : "Nicht zugeordnet"}`,
       "Dokument",
     );
 
     event.target.value = "";
+    setSelectedDeviceId("");
+    setUploadDeviceSearch("");
     await loadDocuments();
-    alert("Dokument erfolgreich hochgeladen.");
+    alert("Dokument erfolgreich hochgeladen und dem Kunden zugeordnet.");
   }
 
   async function handleDeviceFileUpload(
@@ -1332,6 +1352,7 @@ export default function Home() {
         category: uploadCategory,
         file_size: file.size,
         device_id: deviceId,
+        customer_id: devices.find((deviceItem) => deviceItem.id === deviceId)?.customer_id || null,
       },
     ]);
 
@@ -5636,6 +5657,64 @@ FE-SERVICE`,
   const selectedTicketDevice =
     availableTicketDevices.find((deviceItem) => deviceItem.name === device) || null;
 
+  const selectedUploadCustomer =
+    selectedUploadCustomerId
+      ? customers.find((customerItem) => customerItem.id === Number(selectedUploadCustomerId)) || null
+      : null;
+
+  const filteredUploadCustomers = (() => {
+    const search = uploadCustomerSearch.toLowerCase().trim();
+
+    if (!search || search.length < 2) {
+      return [];
+    }
+
+    return customers
+      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
+      .slice(0, 30);
+  })();
+
+  const filteredUploadDevices = (() => {
+    const search = uploadDeviceSearch.toLowerCase().trim();
+
+    if (!search || search.length < 2) {
+      return [];
+    }
+
+    const baseDevices = selectedUploadCustomerId
+      ? devices.filter((deviceItem) => deviceItem.customer_id === Number(selectedUploadCustomerId))
+      : devices;
+
+    return baseDevices
+      .filter((deviceItem) => {
+        const linkedCustomer = deviceItem.customer_id
+          ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
+          : null;
+
+        return [
+          deviceItem.name,
+          deviceItem.manufacturer,
+          getManufacturerNameById(deviceItem.manufacturer_id),
+          deviceItem.serial_number,
+          deviceItem.location,
+          deviceItem.status,
+          deviceItem.note,
+          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .slice(0, 30);
+  })();
+
+  const selectedUploadDevice =
+    selectedDeviceId
+      ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId)) || null
+      : null;
+
   const filteredCustomerDirectory = (() => {
     const search = customerDirectorySearch.toLowerCase().trim();
 
@@ -6878,53 +6957,230 @@ FE-SERVICE`,
               </div>
 
               <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-col gap-4">
                   <div>
                     <h3 className="text-xl font-black">Dokumente</h3>
 
                     <p className="mt-2 text-slate-600">
-                      Kategorie und Gerät wählen, Datei hochladen und
-                      automatisch zuordnen.
+                      Abnahmeprotokoll oder Dokument hochladen, Kunde per Suche auswählen und Gerät optional zuordnen.
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-3 md:flex-row">
-                    <select
-                      value={uploadCategory}
-                      onChange={(e) => setUploadCategory(e.target.value)}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                    >
-                      {documentCategories
-                        .filter((item) => item !== "Alle")
-                        .map((item) => (
-                          <option key={item}>{item}</option>
-                        ))}
-                    </select>
+                  <div className="rounded-[24px] border border-green-100 bg-green-50 p-4">
+                    <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_minmax(0,1fr)_220px]">
+                      <div>
+                        <label className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                          Kategorie
+                        </label>
+                        <select
+                          value={uploadCategory}
+                          onChange={(e) => setUploadCategory(e.target.value)}
+                          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                        >
+                          {documentCategories
+                            .filter((item) => item !== "Alle")
+                            .map((item) => (
+                              <option key={item}>{item}</option>
+                            ))}
+                        </select>
+                      </div>
 
-                    <select
-                      value={selectedDeviceId}
-                      onChange={(e) => setSelectedDeviceId(e.target.value)}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                    >
-                      <option value="">Kein Gerät</option>
+                      <div>
+                        <label className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                          Kunde zuweisen
+                        </label>
+                        <input
+                          value={uploadCustomerSearch}
+                          onChange={(e) => {
+                            setUploadCustomerSearch(e.target.value);
+                            setSelectedUploadCustomerId("");
+                            setSelectedDeviceId("");
+                            setUploadDeviceSearch("");
+                          }}
+                          placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
+                          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                        />
 
-                      {devices.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
+                        {selectedUploadCustomer && (
+                          <div className="mt-3 rounded-2xl border border-green-200 bg-white p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                              Ausgewählter Kunde
+                            </p>
+                            <p className="mt-1 font-black text-slate-900">
+                              {getCustomerLabel(selectedUploadCustomer)}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {selectedUploadCustomer.customer_number ? `Kunden-Nr. ${selectedUploadCustomer.customer_number} · ` : ""}
+                              {buildCustomerAddress(selectedUploadCustomer) || "Keine Adresse"}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedUploadCustomerId("");
+                                setUploadCustomerSearch("");
+                                setSelectedDeviceId("");
+                                setUploadDeviceSearch("");
+                              }}
+                              className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
+                            >
+                              Auswahl ändern
+                            </button>
+                          </div>
+                        )}
 
-                    <label className="cursor-pointer rounded-2xl bg-green-600 px-6 py-4 font-bold text-white hover:bg-green-700">
-                      {uploading ? "Upload läuft..." : "Dokument hochladen"}
+                        {!selectedUploadCustomer &&
+                          uploadCustomerSearch.trim().length >= 2 &&
+                          filteredUploadCustomers.length > 0 && (
+                            <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+                              {filteredUploadCustomers.map((customerItem) => (
+                                <button
+                                  key={customerItem.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const nextCustomerName = getCustomerLabel(customerItem);
+                                    setSelectedUploadCustomerId(String(customerItem.id));
+                                    setUploadCustomerSearch(nextCustomerName);
+                                    setSelectedDeviceId("");
+                                    setUploadDeviceSearch("");
+                                  }}
+                                  className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-green-300 hover:bg-green-50"
+                                >
+                                  <p className="font-black text-slate-900">
+                                    {getCustomerLabel(customerItem)}
+                                  </p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} · ` : ""}
+                                    {buildCustomerAddress(customerItem) || "Keine Adresse"}
+                                  </p>
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        disabled={uploading}
-                      />
-                    </label>
+                        {!selectedUploadCustomer &&
+                          uploadCustomerSearch.trim().length >= 2 &&
+                          filteredUploadCustomers.length === 0 && (
+                            <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                              Kein Kunde gefunden.
+                            </p>
+                          )}
+
+                        {!selectedUploadCustomer && uploadCustomerSearch.trim().length < 2 && (
+                          <p className="mt-3 text-xs font-bold text-slate-500">
+                            Für Abnahmeprotokolle ist ein Kunde Pflicht.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                          Gerät optional zuweisen
+                        </label>
+                        <input
+                          value={uploadDeviceSearch}
+                          onChange={(e) => {
+                            setUploadDeviceSearch(e.target.value);
+                            setSelectedDeviceId("");
+                          }}
+                          placeholder={
+                            selectedUploadCustomer
+                              ? "Gerät dieses Kunden suchen..."
+                              : "Gerät suchen..."
+                          }
+                          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                        />
+
+                        {selectedUploadDevice && (
+                          <div className="mt-3 rounded-2xl border border-green-200 bg-white p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                              Ausgewähltes Gerät
+                            </p>
+                            <p className="mt-1 font-black text-slate-900">
+                              {selectedUploadDevice.name}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {selectedUploadDevice.serial_number ? `SN: ${selectedUploadDevice.serial_number} · ` : ""}
+                              {selectedUploadDevice.location || "Kein Standort"}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDeviceId("");
+                                setUploadDeviceSearch("");
+                              }}
+                              className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
+                            >
+                              Gerät entfernen
+                            </button>
+                          </div>
+                        )}
+
+                        {!selectedUploadDevice &&
+                          uploadDeviceSearch.trim().length >= 2 &&
+                          filteredUploadDevices.length > 0 && (
+                            <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+                              {filteredUploadDevices.map((deviceItem) => {
+                                const linkedCustomer = deviceItem.customer_id
+                                  ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
+                                  : null;
+
+                                return (
+                                  <button
+                                    key={deviceItem.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedDeviceId(String(deviceItem.id));
+                                      setUploadDeviceSearch(deviceItem.name);
+
+                                      if (!selectedUploadCustomerId && linkedCustomer) {
+                                        setSelectedUploadCustomerId(String(linkedCustomer.id));
+                                        setUploadCustomerSearch(getCustomerLabel(linkedCustomer));
+                                      }
+                                    }}
+                                    className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-green-300 hover:bg-green-50"
+                                  >
+                                    <p className="font-black text-slate-900">
+                                      {deviceItem.name}
+                                    </p>
+                                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                                      {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
+                                      {deviceItem.location || "Kein Standort"}
+                                      {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                        {!selectedUploadDevice &&
+                          uploadDeviceSearch.trim().length >= 2 &&
+                          filteredUploadDevices.length === 0 && (
+                            <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                              Kein Gerät gefunden.
+                            </p>
+                          )}
+                      </div>
+
+                      <div className="flex flex-col justify-end">
+                        <label className={`cursor-pointer rounded-2xl px-6 py-4 text-center font-black text-white ${
+                          uploading ? "bg-slate-400" : "bg-green-600 hover:bg-green-700"
+                        }`}>
+                          {uploading ? "Upload läuft..." : "Dokument hochladen"}
+
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            disabled={uploading}
+                          />
+                        </label>
+
+                        <p className="mt-3 text-xs font-bold text-slate-500">
+                          Abnahmeprotokolle werden geschützt archiviert und dem Kunden zugeordnet.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
