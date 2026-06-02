@@ -7226,7 +7226,7 @@ FE-SERVICE`,
                     </button>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {openAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine offenen Tickets.
@@ -7235,7 +7235,7 @@ FE-SERVICE`,
                       openAdminTickets.slice(0, 5).map((ticket) => (
                         <div
                           key={ticket.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div>
@@ -7259,7 +7259,7 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Heutige Einsätze</h3>
@@ -7275,7 +7275,7 @@ FE-SERVICE`,
                     </button>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {todaysAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Heute keine Einsätze geplant.
@@ -7284,7 +7284,7 @@ FE-SERVICE`,
                       todaysAdminTickets.map((ticket) => (
                         <div
                           key={ticket.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <p className="text-xs font-black text-green-600">
                             {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number}
@@ -7303,9 +7303,9 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-3">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Überfällige UVV/Wartungen</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {overdueAdminMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine überfälligen UVV/Wartungen.
@@ -7331,9 +7331,9 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Teilebestand</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {lowStockParts.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine kritischen Teile.
@@ -7354,9 +7354,9 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Letzte Serviceberichte</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {recentServiceReports.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Noch keine Serviceberichte archiviert.
@@ -7365,7 +7365,7 @@ FE-SERVICE`,
                       recentServiceReports.map((doc) => (
                         <div
                           key={doc.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <p className="font-black text-slate-900">
                             {doc.file_name}
@@ -7386,7 +7386,7 @@ FE-SERVICE`,
                 </div>
               </div>
               <div className="grid gap-6 xl:grid-cols-2">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Abnahmeprotokolle / Prüffristen</h3>
@@ -7426,16 +7426,16 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Nächste Prüfungen aus Protokollen</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {nextAcceptanceProtocolDueItems.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine Prüffristen aus Abnahmeprotokollen hinterlegt.
                       </div>
                     ) : (
                       nextAcceptanceProtocolDueItems.map((documentItem) => (
-                        <div key={documentItem.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div key={documentItem.id} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                             <div>
                               <p className="text-xs font-black text-green-700">{documentItem.next_inspection_date || "-"}</p>
@@ -7458,7 +7458,7 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Geräte ohne Prüffrist</h3>
                 <p className="mt-1 text-sm font-semibold text-slate-500">
                   Geräte ohne nächstes Prüfdatum oder Ablaufdatum: {devicesWithoutInspectionDate.length}
@@ -7545,7 +7545,7 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Service-Einsätze</h3>
@@ -7561,7 +7561,7 @@ FE-SERVICE`,
                     </button>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine Service-Einsätze für diesen Tag.
@@ -7576,7 +7576,7 @@ FE-SERVICE`,
                         .map((ticket) => (
                           <div
                             key={ticket.id}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                            className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                           >
                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                               <div>
@@ -7586,15 +7586,15 @@ FE-SERVICE`,
                                 <h4 className="mt-1 break-words text-xl font-black">
                                   {ticket.customer}
                                 </h4>
-                                <p className="mt-2 text-sm text-slate-600">
+                                <p className="mt-2 break-words text-sm text-slate-600">
                                   {ticket.device} · {ticket.issue}
                                 </p>
-                                <p className="mt-1 text-sm font-bold text-slate-700">
+                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
                                   Techniker: {getTechnicianNameById(ticket.assigned_to)}
                                 </p>
                               </div>
 
-                              <div className="flex flex-col gap-2">
+                              <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
                                 <span className={`rounded-full px-4 py-2 text-sm font-bold ${statusClass(ticket.status)}`}>
                                   {ticket.status}
                                 </span>
@@ -7612,7 +7612,7 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Wartungen</h3>
@@ -7628,7 +7628,7 @@ FE-SERVICE`,
                     </button>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine UVV/Wartungen für diesen Tag.
@@ -7642,23 +7642,23 @@ FE-SERVICE`,
                         return (
                           <div
                             key={plan.id}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                            className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                           >
                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                               <div>
                                 <p className="text-xs font-black text-green-600">
                                   {plan.maintenance_type || "Wartung"}
                                 </p>
-                                <h4 className="mt-1 text-xl font-black">
+                                <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                   {plan.title || "Wartung"}
                                 </h4>
-                                <p className="mt-2 text-sm text-slate-600">
+                                <p className="mt-2 break-words text-sm text-slate-600">
                                   Kunde: {getCustomerNameById(plan.customer_id || deviceItem?.customer_id || null)}
                                 </p>
                                 <p className="mt-1 text-sm text-slate-600">
                                   Gerät: {deviceItem?.name || "Unbekanntes Gerät"}
                                 </p>
-                                <p className="mt-1 text-sm font-bold text-slate-700">
+                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
                                   Techniker: {getMaintenanceAssignedName(plan.assigned_to)}
                                 </p>
                               </div>
@@ -7762,7 +7762,7 @@ FE-SERVICE`,
                     </div>
 
                     <div className="mt-5 grid gap-4 xl:grid-cols-4">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Kunde</p>
                         <h4 className="mt-2 text-lg font-black text-slate-900">
                           {ticketCustomer ? getCustomerLabel(ticketCustomer) : currentTicket.customer || "Nicht zugeordnet"}
@@ -7778,7 +7778,7 @@ FE-SERVICE`,
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Gerät</p>
                         <h4 className="mt-2 text-lg font-black text-slate-900">
                           {ticketDevice?.name || currentTicket.device || "Noch nicht zugewiesen"}
@@ -7794,7 +7794,7 @@ FE-SERVICE`,
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Status</p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <span className={`rounded-full px-3 py-2 text-xs font-black ${statusClass(currentTicket.status)}`}>
@@ -7824,7 +7824,7 @@ FE-SERVICE`,
                     </div>
 
                     <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <h4 className="text-lg font-black">Zugehörige Dokumente</h4>
                           <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600">
@@ -7915,7 +7915,7 @@ FE-SERVICE`,
                       </div>
 
                       <div className="space-y-4">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           <h4 className="text-lg font-black">Kundengeräte</h4>
                           <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
                             {customerDevices.length === 0 ? (
@@ -7934,7 +7934,7 @@ FE-SERVICE`,
                           </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           <h4 className="text-lg font-black">Weitere Kundentickets</h4>
                           <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
                             {customerTickets.length === 0 ? (
@@ -7959,7 +7959,7 @@ FE-SERVICE`,
               })()}
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Benachrichtigung erstellen</h3>
 
                   <div className="mt-5 space-y-4">
@@ -8018,10 +8018,10 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Kommunikationszentrale</h3>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {notifications.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Noch keine Benachrichtigungen vorhanden.
@@ -8030,7 +8030,7 @@ FE-SERVICE`,
                       notifications.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
@@ -8038,7 +8038,7 @@ FE-SERVICE`,
                                 {item.type}
                               </p>
 
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {item.subject}
                               </h4>
 
@@ -8046,7 +8046,7 @@ FE-SERVICE`,
                                 Empfänger: {item.recipient}
                               </p>
 
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 {item.message}
                               </p>
                             </div>
@@ -8089,7 +8089,7 @@ FE-SERVICE`,
 
               <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
                 {isAdmin && (
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnung / Angebot erstellen</h3>
                   <p className="mt-2 text-slate-600">
                     Erstelle Angebote oder Rechnungen auf Basis eines Tickets oder frei als Admin.
@@ -8183,10 +8183,10 @@ FE-SERVICE`,
                 </div>
                 )}
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnungen & Angebote</h3>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {visibleInvoices.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Noch keine Rechnungen oder Angebote vorhanden.
@@ -8195,24 +8195,24 @@ FE-SERVICE`,
                       visibleInvoices.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
                               <p className="text-xs font-black text-green-600">
                                 {item.type} · {item.number}
                               </p>
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {item.title}
                               </h4>
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {getInvoiceCustomerName(item)}
                               </p>
                               <p className="mt-1 text-sm font-bold text-slate-800">
                                 Netto: {item.amount_net.toFixed(2)} € · Brutto: {item.amount_gross.toFixed(2)} €
                               </p>
                               {item.note && (
-                                <p className="mt-2 text-sm text-slate-500">
+                                <p className="mt-2 break-words text-sm text-slate-500">
                                   {item.note}
                                 </p>
                               )}
@@ -8301,7 +8301,7 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <div className="flex flex-col gap-4">
                   <div>
                     <h3 className="text-xl font-black">Dokumente</h3>
@@ -8789,7 +8789,7 @@ FE-SERVICE`,
                                     )}
                                   </div>
 
-                                  <div className="mt-4 flex flex-wrap gap-3">
+                                  <div className="mt-4 flex min-w-0 flex-wrap gap-2">
                                     <button
                                       onClick={() => openDocument(item)}
                                       className="rounded-2xl bg-[#dfe7ff] px-5 py-3 text-sm font-black text-[#4455dd]"
@@ -8883,13 +8883,13 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-2">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Technikerleistung</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
                     Zugewiesene und abgeschlossene Tickets je Techniker.
                   </p>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {technicianPerformance.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine Techniker vorhanden.
@@ -8898,7 +8898,7 @@ FE-SERVICE`,
                       technicianPerformance.map((item) => (
                         <div
                           key={item.technician.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex items-center justify-between gap-4">
                             <div>
@@ -8924,13 +8924,13 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Häufige Gerätefälle</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
                     Geräte mit den meisten Tickets.
                   </p>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {topDevicesByTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine Geräte vorhanden.
@@ -8939,7 +8939,7 @@ FE-SERVICE`,
                       topDevicesByTickets.map((item) => (
                         <div
                           key={item.device.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex items-center justify-between gap-4">
                             <div>
@@ -8965,9 +8965,9 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-3">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Top Kunden</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {topCustomersByTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine Kunden vorhanden.
@@ -8976,7 +8976,7 @@ FE-SERVICE`,
                       topCustomersByTickets.map((item) => (
                         <div
                           key={item.customer.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <p className="font-black">{item.customer.company}</p>
                           <p className="mt-1 text-sm font-bold text-green-700">
@@ -8988,9 +8988,9 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnungsstatus</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {["Entwurf", "Offen", "Gesendet", "Bezahlt", "Storniert"].map((status) => (
                       <div
                         key={status}
@@ -9005,9 +9005,9 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Serviceberichte</h3>
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     <div className="rounded-2xl bg-slate-50 p-4">
                       <p className="text-4xl font-black">
                         {visibleDocuments.filter((item) => item.category === "Serviceberichte").length}
@@ -9314,7 +9314,7 @@ FE-SERVICE`,
                     />
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="mb-3 text-sm font-black text-slate-700">Weitere Ansprechpartner</p>
 
                     <div className="grid gap-3 md:grid-cols-3">
@@ -9358,7 +9358,7 @@ FE-SERVICE`,
               </div>
               )}
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="break-words text-xl font-black">Kundensuche mit Geräteüberblick</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
@@ -9366,7 +9366,7 @@ FE-SERVICE`,
                   </p>
                 )}
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   <input
                     value={customerDirectorySearch}
                     onChange={(e) => setCustomerDirectorySearch(e.target.value)}
@@ -9391,7 +9391,7 @@ FE-SERVICE`,
                     : `Bitte mindestens 1 Zeichen eingeben. Insgesamt sind ${customers.length} Kunden geladen und per Suche abrufbar.`}
                 </div>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {filteredCustomerDirectory.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">
                       {customerDirectorySearchIsActive ? (
@@ -9414,7 +9414,7 @@ FE-SERVICE`,
                     filteredCustomerDirectory.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
                         <div className="flex min-w-0 flex-col gap-4">
                           <div className="min-w-0 flex-1">
@@ -9422,19 +9422,19 @@ FE-SERVICE`,
                               {getCustomerDisplayName(item) || "Kein Ansprechpartner"}
                             </p>
 
-                            <h4 className="mt-1 text-xl font-black">
+                            <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                               {item.company}
                             </h4>
 
-                            <p className="mt-2 text-sm text-slate-600">
+                            <p className="mt-2 break-words text-sm text-slate-600">
                               E-Mail: {item.email || "Nicht angegeben"}
                             </p>
 
-                            <p className="text-sm text-slate-600">
+                            <p className="break-words text-sm text-slate-600">
                               Telefon: {item.phone || "Nicht angegeben"}
                             </p>
 
-                            <p className="mt-2 text-sm text-slate-500">
+                            <p className="mt-2 break-words text-sm text-slate-500">
                               {buildCustomerAddress(item) || "Keine Adresse vorhanden."}
                             </p>
 
@@ -9478,10 +9478,10 @@ FE-SERVICE`,
                             </div>
                           </div>
 
-                          <div className="flex flex-col gap-2">
+                          <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
                             <button
                               onClick={() => createTicketFromCustomer(item)}
-                              className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
+                              className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                             >
                               Ticket
                             </button>
@@ -9490,14 +9490,14 @@ FE-SERVICE`,
                               <>
                                 <button
                                   onClick={() => startEditCustomer(item)}
-                                  className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700"
+                                  className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
                                 >
                                   Bearbeiten
                                 </button>
 
                                 <button
                                   onClick={() => deleteCustomer(item.id)}
-                                  className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
+                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
                                   Löschen
                                 </button>
@@ -9531,12 +9531,12 @@ FE-SERVICE`,
               <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                 <div className="space-y-6">
                   {isAdmin && (
-                    <details className="rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingManufacturer)}>
+                    <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingManufacturer)}>
                       <summary className="cursor-pointer text-xl font-black">
                         {editingManufacturer ? "Hersteller bearbeiten" : "Hersteller anlegen"}
                       </summary>
 
-                      <div className="mt-5 space-y-3">
+                      <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                         <input
                           value={manufacturerName}
                           onChange={(e) => setManufacturerName(e.target.value)}
@@ -9620,12 +9620,12 @@ FE-SERVICE`,
                   )}
 
                   {isAdmin && (
-                    <details className="rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
+                    <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
                       <summary className="cursor-pointer text-xl font-black">
                         {editingDeviceModel ? "Modell bearbeiten" : "Modell anlegen"}
                       </summary>
 
-                      <div className="mt-5 space-y-3">
+                      <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                         <select
                           value={modelManufacturerId}
                           onChange={(e) => setModelManufacturerId(e.target.value)}
@@ -9690,7 +9690,7 @@ FE-SERVICE`,
                   )}
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Katalog-Dropdown</h3>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
@@ -9752,7 +9752,7 @@ FE-SERVICE`,
                     </p>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {filteredManufacturerDirectory.length === 0 ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
                         Keine Hersteller gefunden.
@@ -9963,7 +9963,7 @@ FE-SERVICE`,
                     Abnahmeprotokoll
                   </button>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="mb-3 text-sm font-bold text-slate-600">
                       Dokument direkt hochladen
                     </p>
@@ -10107,7 +10107,7 @@ FE-SERVICE`,
 
                           <button
                             onClick={() => openDocument(doc)}
-                            className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
+                            className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                           >
                             Öffnen
                           </button>
@@ -10135,7 +10135,7 @@ FE-SERVICE`,
                       .map((ticket) => (
                         <div
                           key={ticket.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
@@ -10147,7 +10147,7 @@ FE-SERVICE`,
                                 {ticket.issue}
                               </h5>
 
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {ticket.customer}
                               </p>
 
@@ -10156,13 +10156,13 @@ FE-SERVICE`,
                               </p>
                             </div>
 
-                            <div className="flex flex-col gap-2">
+                            <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
                               <select
                                 value={ticket.status}
                                 onChange={(e) =>
                                   updateTicketStatus(ticket.id, e.target.value)
                                 }
-                                className="rounded-2xl border border-slate-300 px-4 py-2"
+                                className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm"
                               >
                                 {statusOptions.map((item) => (
                                   <option key={item}>{item}</option>
@@ -10171,7 +10171,7 @@ FE-SERVICE`,
 
                               <button
                                 onClick={() => startEdit(ticket)}
-                                className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700"
+                                className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
                               >
                                 Bearbeiten
                               </button>
@@ -10200,7 +10200,7 @@ FE-SERVICE`,
                       .map((entry) => (
                         <div
                           key={entry.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div>
@@ -10212,7 +10212,7 @@ FE-SERVICE`,
                                 {entry.title}
                               </h5>
 
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 {entry.description || "Keine Beschreibung"}
                               </p>
                             </div>
@@ -10383,7 +10383,7 @@ FE-SERVICE`,
               </div>
               )}
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Geräteliste</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
@@ -10398,7 +10398,7 @@ FE-SERVICE`,
                   className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {filteredDeviceDirectory.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
                       Keine Geräte gefunden.
@@ -10407,28 +10407,28 @@ FE-SERVICE`,
                     filteredDeviceDirectory.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
+                        <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-green-600">
                               {item.serial_number || "Keine Seriennummer"}
                             </p>
 
-                            <h4 className="mt-1 text-xl font-black">
+                            <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                               {item.name}
                             </h4>
 
-                            <p className="mt-2 text-sm text-slate-600">
+                            <p className="mt-2 break-words text-sm text-slate-600">
                               Standort: {item.location || "Nicht angegeben"}
                             </p>
 
-                            <p className="text-sm text-slate-600">
+                            <p className="break-words text-sm text-slate-600">
                               Nächste Prüfung:{" "}
                               {item.next_check || "Nicht geplant"}
                             </p>
 
-                            <p className="mt-2 text-sm text-slate-500">
+                            <p className="mt-2 break-words text-sm text-slate-500">
                               {item.note || "Kein Service-Hinweis vorhanden."}
                             </p>
 
@@ -10441,7 +10441,7 @@ FE-SERVICE`,
                             </span>
                           </div>
 
-                          <div className="flex flex-col gap-2">
+                          <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
                             <button
                               onClick={() => setSelectedDeviceView(item)}
                               className="rounded-2xl bg-slate-200 px-4 py-3 text-sm font-bold text-slate-800"
@@ -10450,7 +10450,7 @@ FE-SERVICE`,
                             </button>
                             <button
                               onClick={() => createTicketFromDevice(item)}
-                              className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
+                              className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                             >
                               Ticket
                             </button>
@@ -10459,14 +10459,14 @@ FE-SERVICE`,
                               <>
                                 <button
                                   onClick={() => startEditDevice(item)}
-                                  className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700"
+                                  className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
                                 >
                                   Bearbeiten
                                 </button>
 
                                 <button
                                   onClick={() => deleteDevice(item.id)}
-                                  className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
+                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
                                   Löschen
                                 </button>
@@ -10502,7 +10502,7 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">
                     Vertrag erstellen
                   </h3>
@@ -10620,12 +10620,12 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">
                     Vertragsübersicht
                   </h3>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {contracts.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Noch keine Verträge vorhanden.
@@ -10634,7 +10634,7 @@ FE-SERVICE`,
                       contracts.map((item) => (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
@@ -10642,11 +10642,11 @@ FE-SERVICE`,
                                 {item.contract_type} · {item.contract_number}
                               </p>
 
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {item.title}
                               </h4>
 
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {getCustomerNameById(item.customer_id || null)}
                               </p>
 
@@ -10669,7 +10669,7 @@ FE-SERVICE`,
                               </p>
 
                               {item.note && (
-                                <p className="mt-2 text-sm text-slate-500">
+                                <p className="mt-2 break-words text-sm text-slate-500">
                                   {item.note}
                                 </p>
                               )}
@@ -10735,7 +10735,7 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Prüfauftrag & Auswahl</h3>
                   <p className="mt-2 text-sm font-semibold text-slate-500">
                     Kunde, Gerät und Auftragsdaten für das Abnahmeprotokoll auswählen.
@@ -10982,7 +10982,7 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Geräte- und Ergebnisdaten</h3>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -11028,17 +11028,17 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Prüffragen nach Vorlage</h3>
                 <p className="mt-2 text-sm font-semibold text-slate-500">
                   Jeder Punkt wird wie im Papierformular mit Ja, OK, VS, DF und optionalem Mangeltext dokumentiert.
                 </p>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {abnahmeChecks.map((item, index) => (
                     <div
                       key={item.question}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                     >
                       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                         <div className="min-w-0">
@@ -11083,7 +11083,7 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-2">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abschluss</h3>
 
                   <div className="mt-5 space-y-4">
@@ -11154,7 +11154,7 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Unterschriften am Handy</h3>
                   <p className="mt-2 text-sm font-semibold text-slate-500">
                     Direkt mit Finger oder Stift unterschreiben.
@@ -11252,7 +11252,7 @@ FE-SERVICE`,
               </div>
 
               {(isAdmin || isTechnician) && (
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
                   <p className="mt-2 text-slate-600">
                     Plane UVV-Prüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
@@ -11373,7 +11373,7 @@ FE-SERVICE`,
                 </div>
               )}
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">
                   {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "Wartungsübersicht"}
                 </h3>
@@ -11394,17 +11394,17 @@ FE-SERVICE`,
                       return (
                         <div
                           key={plan.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                            <div className="flex-1">
+                            <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-green-600">
                                 {plan.maintenance_type || "Wartung"} · {deviceItem?.serial_number || "Keine Seriennummer"}
                               </p>
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {plan.title || `Wartung ${deviceItem?.name || ""}`}
                               </h4>
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {getCustomerNameById(plan.customer_id || deviceItem?.customer_id || null)}
                               </p>
                               <p className="mt-1 text-sm text-slate-600">
@@ -11445,7 +11445,7 @@ FE-SERVICE`,
                               {(isAdmin || isTechnician) && (
                                 <button
                                   onClick={() => deleteMaintenancePlan(plan.id)}
-                                  className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
+                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
                                   Löschen
                                 </button>
@@ -11557,10 +11557,10 @@ FE-SERVICE`,
                       <p className="text-xs font-bold text-green-600">
                         {ticket.ticket_number} · {ticket.customer}
                       </p>
-                      <h4 className="mt-1 text-xl font-black">
+                      <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                         {ticket.issue}
                       </h4>
-                      <p className="mt-2 text-sm text-slate-600">
+                      <p className="mt-2 break-words text-sm text-slate-600">
                         Gerät: {ticket.device}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
@@ -11660,7 +11660,7 @@ FE-SERVICE`,
                               </label>
                             </div>
 
-                            <div className="mt-5 space-y-3">
+                            <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                               {getDocumentsForTicket(ticket).length === 0 ? (
                                 <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
                                   Noch keine Dokumente vorhanden.
@@ -11706,7 +11706,7 @@ FE-SERVICE`,
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Prüfungen & Prüfsiegel</h3>
                 {(isAdmin || isTechnician) && (
                   <div className="mt-5 rounded-[28px] border border-green-200 bg-green-50 p-5">
@@ -11794,7 +11794,7 @@ FE-SERVICE`,
                       return (
                         <div
                           key={item.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
                             <div>
@@ -11802,7 +11802,7 @@ FE-SERVICE`,
                                 {item.serial_number || "Keine Seriennummer"}
                               </p>
 
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {item.name}
                               </h4>
 
@@ -12006,11 +12006,11 @@ FE-SERVICE`,
                                 ID {item.id} · {linkedCustomer?.company || "Kein Kunde"} · {item.serial_number || "Keine Seriennummer"}
                               </p>
 
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {item.name || "Unbenanntes Gerät"}
                               </h4>
 
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Standort: {item.location || "Nicht angegeben"}
                               </p>
 
@@ -12114,7 +12114,7 @@ FE-SERVICE`,
                         </p>
                       </div>
                     ) : (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-sm font-bold text-slate-700">
                           Kunde suchen und auswählen
                         </p>
@@ -12185,7 +12185,7 @@ FE-SERVICE`,
                       </div>
                     )}
 
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
                         Art des Tickets
                       </p>
@@ -12203,7 +12203,7 @@ FE-SERVICE`,
                       </select>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
                         Gerät suchen und auswählen <span className="text-slate-400">(optional)</span>
                       </p>
@@ -12332,7 +12332,7 @@ FE-SERVICE`,
                     />
 
                     {!editingTicket && (
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                           <div>
                             <p className="text-sm font-black text-slate-800">
@@ -12405,10 +12405,10 @@ FE-SERVICE`,
                   </div>
                 </div>
 
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Ticketliste</h3>
 
-                  <div className="mt-5 rounded-3xl bg-slate-50 p-4">
+                  <div className="mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4">
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -12450,7 +12450,7 @@ FE-SERVICE`,
                     </div>
                   </div>
 
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {filteredTickets.length === 0 ? (
                       <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
                         Keine Tickets gefunden.
@@ -12459,27 +12459,27 @@ FE-SERVICE`,
                       filteredTickets.map((ticket) => (
                         <div
                           key={ticket.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
+                          <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-green-600">
                                 {ticket.ticket_number}
                               </p>
 
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {ticket.issue}
                               </h4>
 
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {ticket.customer}
                               </p>
 
-                              <p className="text-sm text-slate-600">
+                              <p className="break-words text-sm text-slate-600">
                                 Gerät: {ticket.device || "Noch nicht zugewiesen"}
                               </p>
 
-                              <p className="mt-2 text-sm text-slate-500">
+                              <p className="mt-2 break-words text-sm text-slate-500">
                                 {ticket.description}
                               </p>
 
@@ -12487,7 +12487,7 @@ FE-SERVICE`,
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                                   Einsatzplanung
                                 </p>
-                                <p className="mt-1 text-sm font-bold text-slate-700">
+                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
                                   Techniker:{" "}
                                   {getTechnicianNameById(ticket.assigned_to)}
                                   {ticket.service_date
@@ -12558,16 +12558,16 @@ FE-SERVICE`,
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
                                   Nachweise
                                 </p>
-                                <p className="mt-1 text-sm font-bold text-slate-700">
+                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
                                   {getDocumentsForTicket(ticket).length} Datei(en) zugeordnet
                                 </p>
                                 {getDocumentsForTicket(ticket).length > 0 && (
-                                  <div className="mt-2 flex flex-wrap gap-2">
+                                  <div className="mt-2 flex min-w-0 flex-wrap gap-2">
                                     {getDocumentsForTicket(ticket).slice(0, 3).map((doc) => (
                                       <button
                                         key={doc.id}
                                         onClick={() => openDocument(doc)}
-                                        className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-blue-700"
+                                        className="max-w-full break-all rounded-xl bg-white px-3 py-2 text-left text-xs font-bold text-blue-700"
                                       >
                                         {doc.file_name}
                                       </button>
@@ -12576,7 +12576,7 @@ FE-SERVICE`,
                                 )}
                               </div>
 
-                              <div className="mt-4 flex flex-wrap gap-3">
+                              <div className="mt-4 flex min-w-0 flex-wrap gap-2">
                                 <span
                                   className={`rounded-full px-4 py-2 text-sm font-bold ${priorityClass(
                                     ticket.priority,
@@ -12601,7 +12601,7 @@ FE-SERVICE`,
                                       e.target.value,
                                     )
                                   }
-                                  className="rounded-2xl border border-slate-300 px-4 py-2"
+                                  className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm"
                                 >
                                   {statusOptions.map((item) => (
                                     <option key={item}>{item}</option>
@@ -12610,24 +12610,24 @@ FE-SERVICE`,
                               </div>
                             </div>
 
-                            <div className="flex flex-col gap-2">
+                            <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
                               <button
                                 onClick={() => setSelectedTicketView(ticket)}
-                                className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white"
+                                className="w-full rounded-2xl bg-slate-900 px-3 py-3 text-center text-xs font-bold text-white md:text-sm"
                               >
                                 Akte
                               </button>
 
                               <button
                                 onClick={() => startEdit(ticket)}
-                                className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700"
+                                className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
                               >
                                 Bearbeiten
                               </button>
 
                               <button
                                 onClick={() => printServiceReport(ticket)}
-                                className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
+                                className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                               >
                                 PDF
                               </button>
@@ -12635,7 +12635,7 @@ FE-SERVICE`,
                               {isAdmin && (
                                 <button
                                   onClick={() => deleteTicket(ticket.id)}
-                                  className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
+                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
                                   Löschen
                                 </button>
@@ -12653,7 +12653,7 @@ FE-SERVICE`,
 
           {activePage === "Kundenportal" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-green-600">
                   Kundenportal
                 </p>
@@ -12698,7 +12698,7 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">
                     Gerät melden & Service anfragen
                   </h3>
@@ -12790,7 +12790,7 @@ FE-SERVICE`,
                 </div>
 
                 <div className="space-y-6">
-                  <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                     <h3 className="text-xl font-black">Meine Geräte</h3>
                     <div className="mt-4 space-y-3">
                       {devices.filter(
@@ -12809,7 +12809,7 @@ FE-SERVICE`,
                           .map((item) => (
                             <div
                               key={item.id}
-                              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                              className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                             >
                               <p className="text-lg font-black">{item.name}</p>
                               <p className="mt-1 text-base text-slate-700">
@@ -12826,7 +12826,7 @@ FE-SERVICE`,
                     </div>
                   </div>
 
-                  <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                     <h3 className="text-xl font-black">Meine Wartungen</h3>
                     <div className="mt-4 space-y-3">
                       {assignedMaintenancePlans.length === 0 ? (
@@ -12837,7 +12837,7 @@ FE-SERVICE`,
                         assignedMaintenancePlans.map((plan) => (
                           <div
                             key={plan.id}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                            className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                           >
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-green-600">
                               {plan.maintenance_type || "Wartung"}
@@ -12857,7 +12857,7 @@ FE-SERVICE`,
                     </div>
                   </div>
 
-                  <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                  <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                     <h3 className="text-xl font-black">Meine Tickets</h3>
                     <div className="mt-4 space-y-3">
                       {filteredTickets.length === 0 ? (
@@ -12868,7 +12868,7 @@ FE-SERVICE`,
                         filteredTickets.map((ticket) => (
                           <div
                             key={ticket.id}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                            className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                           >
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-green-600">
                               {ticket.ticket_number}
@@ -13096,9 +13096,9 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Lagerbestand</h3>
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {serviceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch keine Ersatzteile angelegt. Admins können oben erste
@@ -13110,23 +13110,23 @@ FE-SERVICE`,
                       return (
                         <div
                           key={part.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                             <div>
                               <p className="text-xs font-bold text-green-600">
                                 {part.sku || part.category || "Ersatzteil"}
                               </p>
-                              <h4 className="mt-1 text-xl font-black">
+                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {part.name}
                               </h4>
-                              <p className="mt-2 text-sm text-slate-600">
+                              <p className="mt-2 break-words text-sm text-slate-600">
                                 Lagerort: {part.location || "nicht angegeben"} ·
                                 Mindestbestand: {part.min_stock ?? 0}{" "}
                                 {part.unit || "Stück"}
                               </p>
                               {part.note && (
-                                <p className="mt-2 text-sm text-slate-500">
+                                <p className="mt-2 break-words text-sm text-slate-500">
                                   {part.note}
                                 </p>
                               )}
@@ -13150,13 +13150,13 @@ FE-SERVICE`,
                                 <>
                                   <button
                                     onClick={() => startEditPart(part)}
-                                    className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700"
+                                    className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
                                   >
                                     Bearbeiten
                                   </button>
                                   <button
                                     onClick={() => deleteServicePart(part.id)}
-                                    className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
+                                    className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                   >
                                     Löschen
                                   </button>
@@ -13171,9 +13171,9 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Letzte Buchungen</h3>
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {partUsages.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch kein Verbrauch gebucht.
@@ -13182,7 +13182,7 @@ FE-SERVICE`,
                     partUsages.map((usage) => (
                       <div
                         key={usage.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                           <div>
