@@ -579,6 +579,8 @@ export default function Home() {
   const [selectedTicketView, setSelectedTicketView] = useState<Ticket | null>(null);
   const [ticketAkteUploadCategory, setTicketAkteUploadCategory] = useState("Lieferscheine");
   const [ticketAkteDocumentSearch, setTicketAkteDocumentSearch] = useState("");
+  const [ticketCreateUploadCategory, setTicketCreateUploadCategory] = useState("Lieferscheine");
+  const [ticketCreateFile, setTicketCreateFile] = useState<File | null>(null);
   const [qrSearchTerm, setQrSearchTerm] = useState("");
   const [qrSelectedDeviceId, setQrSelectedDeviceId] = useState("");
   const [qrManualCode, setQrManualCode] = useState("");
@@ -1761,6 +1763,51 @@ export default function Home() {
     alert("Dokument wurde dem Einsatz zugeordnet.");
   }
 
+  async function uploadInitialTicketDocument(
+    ticket: Ticket,
+    file: File,
+    category: string,
+    customerId: number | null,
+    deviceId: number | null,
+  ) {
+    const safeFileName = file.name.replaceAll(" ", "-");
+    const safeCategory = category || "Sonstige Dokumente";
+    const filePath = `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`;
+
+    const uploadResult = await supabase.storage
+      .from("documents")
+      .upload(filePath, file);
+
+    if (uploadResult.error) {
+      alert(`Ticket wurde erstellt, aber Dokument-Upload fehlgeschlagen: ${uploadResult.error.message}`);
+      return;
+    }
+
+    const insertResult = await supabase.from("documents").insert([
+      {
+        file_name: file.name,
+        file_path: filePath,
+        category: safeCategory,
+        file_size: file.size,
+        device_id: deviceId,
+        ticket_id: ticket.id,
+        customer_id: customerId,
+      },
+    ]);
+
+    if (insertResult.error) {
+      alert(`Ticket wurde erstellt, Datei wurde hochgeladen, aber nicht zugeordnet: ${insertResult.error.message}`);
+      return;
+    }
+
+    await createDeviceHistory(
+      deviceId,
+      "Dokument bei Ticketerstellung hochgeladen",
+      `${ticket.ticket_number || "Ticket"}: ${safeCategory} · ${file.name}`,
+      "Dokument",
+    );
+  }
+
   async function handleTicketAkteFileUpload(
     event: ChangeEvent<HTMLInputElement>,
     ticket: Ticket,
@@ -1927,6 +1974,8 @@ export default function Home() {
     setIssue("");
     setDescription("");
     setPriority("Mittel");
+    setTicketCreateUploadCategory("Lieferscheine");
+    setTicketCreateFile(null);
   }
 
   function resetDeviceForm() {
@@ -2109,10 +2158,18 @@ export default function Home() {
         }
       : baseTicketPayload;
 
-    let insertResult = await supabase.from("tickets").insert([ticketPayload]);
+    let insertResult = await supabase
+      .from("tickets")
+      .insert([ticketPayload])
+      .select("*")
+      .single();
 
     if (insertResult.error && insertResult.error.code === "42703") {
-      insertResult = await supabase.from("tickets").insert([baseTicketPayload]);
+      insertResult = await supabase
+        .from("tickets")
+        .insert([baseTicketPayload])
+        .select("*")
+        .single();
     }
 
     if (insertResult.error) {
@@ -2133,9 +2190,26 @@ export default function Home() {
       "Ticket",
     );
 
+    const createdTicket = insertResult.data as Ticket | null;
+
+    if (createdTicket && ticketCreateFile) {
+      await uploadInitialTicketDocument(
+        createdTicket,
+        ticketCreateFile,
+        ticketCreateUploadCategory,
+        currentCustomerId,
+        relatedDevice?.id || null,
+      );
+    }
+
     resetTicketForm();
     await loadTickets();
-    alert("Ticket wurde gespeichert.");
+    await loadDocuments();
+    alert(
+      ticketCreateFile
+        ? "Ticket wurde gespeichert und das Dokument wurde zugeordnet."
+        : "Ticket wurde gespeichert.",
+    );
   }
 
   async function updateTicket() {
@@ -12016,6 +12090,54 @@ FE-SERVICE`,
                       rows={5}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
+
+                    {!editingTicket && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <p className="text-sm font-black text-slate-800">
+                              Dokument direkt zum Ticket hochladen
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              Optional: z. B. Lieferschein, Foto, Rechnung oder sonstiges Dokument. Nach dem Speichern ist es direkt in der Ticket-Akte sichtbar.
+                            </p>
+                          </div>
+
+                          {ticketCreateFile && (
+                            <button
+                              type="button"
+                              onClick={() => setTicketCreateFile(null)}
+                              className="rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-bold text-red-700"
+                            >
+                              Datei entfernen
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <select
+                            value={ticketCreateUploadCategory}
+                            onChange={(e) => setTicketCreateUploadCategory(e.target.value)}
+                            className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
+                          >
+                            {documentCategories
+                              .filter((item) => item !== "Alle")
+                              .map((item) => (
+                                <option key={item}>{item}</option>
+                              ))}
+                          </select>
+
+                          <label className="cursor-pointer rounded-2xl border border-dashed border-green-400 bg-white px-4 py-3 text-center font-bold text-green-700 transition hover:bg-green-50">
+                            {ticketCreateFile ? ticketCreateFile.name : "Datei auswählen"}
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(event) => setTicketCreateFile(event.target.files?.[0] || null)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
 
                     {editingTicket ? (
                       <div className="grid gap-3 md:grid-cols-2">
