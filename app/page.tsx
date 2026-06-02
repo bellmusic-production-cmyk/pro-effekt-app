@@ -2693,8 +2693,18 @@ export default function Home() {
       return;
     }
 
-    if (!customerCompany) {
-      alert("Bitte Firmenname eingeben.");
+    const isPrivateCustomer = customerType === "Privatkunde";
+    const privateCustomerName = `${customerFirstName} ${customerLastName}`.trim();
+    const customerDisplayName = isPrivateCustomer
+      ? privateCustomerName || customerContact.trim()
+      : customerCompany.trim();
+
+    if (!customerDisplayName) {
+      alert(
+        isPrivateCustomer
+          ? "Bitte bei Privatkunden mindestens Vorname/Nachname oder Ansprechpartner eingeben."
+          : "Bitte Firmenname eingeben.",
+      );
       return;
     }
 
@@ -2705,8 +2715,8 @@ export default function Home() {
           customer_number: customerNumber.trim() || null,
           supplier_number: customerSupplierNumber.trim() || null,
           customer_type: customerType,
-          company: customerCompany,
-          contact_person: customerContact || `${customerFirstName} ${customerLastName}`.trim() || null,
+          company: isPrivateCustomer ? null : customerCompany.trim(),
+          contact_person: customerContact || privateCustomerName || null,
           first_name: customerFirstName.trim() || null,
           last_name: customerLastName.trim() || null,
           email: customerEmail,
@@ -2758,8 +2768,18 @@ export default function Home() {
 
     if (!editingCustomer) return;
 
-    if (!customerCompany) {
-      alert("Bitte Firmenname eingeben.");
+    const isPrivateCustomer = customerType === "Privatkunde";
+    const privateCustomerName = `${customerFirstName} ${customerLastName}`.trim();
+    const customerDisplayName = isPrivateCustomer
+      ? privateCustomerName || customerContact.trim()
+      : customerCompany.trim();
+
+    if (!customerDisplayName) {
+      alert(
+        isPrivateCustomer
+          ? "Bitte bei Privatkunden mindestens Vorname/Nachname oder Ansprechpartner eingeben."
+          : "Bitte Firmenname eingeben.",
+      );
       return;
     }
 
@@ -2767,8 +2787,8 @@ export default function Home() {
       .from("customers")
       .update({
         customer_type: customerType,
-        company: customerCompany,
-        contact_person: customerContact || `${customerFirstName} ${customerLastName}`.trim() || null,
+        company: isPrivateCustomer ? null : customerCompany.trim(),
+        contact_person: customerContact || privateCustomerName || null,
         first_name: customerFirstName.trim() || null,
         last_name: customerLastName.trim() || null,
         email: customerEmail,
@@ -8275,7 +8295,7 @@ FE-SERVICE`,
                   <input
                     value={customerCompany}
                     onChange={(e) => setCustomerCompany(e.target.value)}
-                    placeholder="Firma / Studio"
+                    placeholder={customerType === "Privatkunde" ? "Firma optional" : "Firma / Studio"}
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
 
