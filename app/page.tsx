@@ -1088,18 +1088,41 @@ export default function Home() {
   }
 
   async function loadCustomers() {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const pageSize = 1000;
+    let from = 0;
+    let loadedCustomers: Customer[] = [];
 
-    if (error) {
-      console.error("Kunden konnten nicht geladen werden:", error.message);
-      setCustomers([]);
-      return;
+    while (true) {
+      const to = from + pageSize - 1;
+
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        console.error("Kunden konnten nicht geladen werden:", error.message);
+        setCustomers(loadedCustomers);
+        return;
+      }
+
+      const batch = (data || []) as Customer[];
+      loadedCustomers = [...loadedCustomers, ...batch];
+
+      if (batch.length < pageSize) {
+        break;
+      }
+
+      from += pageSize;
+
+      if (from > 50000) {
+        console.warn("Kunden-Ladevorgang wurde zur Sicherheit bei 50.000 Datensätzen gestoppt.");
+        break;
+      }
     }
 
-    setCustomers(data || []);
+    setCustomers(loadedCustomers);
   }
 
 
@@ -6035,7 +6058,7 @@ FE-SERVICE`,
   const filteredTicketCustomers = (() => {
     const search = ticketCustomerSearch.toLowerCase().trim();
 
-    if (!search || search.length < 2) {
+    if (!search) {
       return [];
     }
 
@@ -6169,7 +6192,7 @@ FE-SERVICE`,
   })();
 
   const customerDirectorySearchIsActive =
-    customerDirectorySearch.trim().length >= 2;
+    customerDirectorySearch.trim().length >= 1;
 
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearch.toLowerCase().trim();
@@ -8577,7 +8600,7 @@ FE-SERVICE`,
                 <div className="mt-3 rounded-2xl border border-green-100 bg-green-50 p-4 text-sm font-bold text-green-800">
                   {customerDirectorySearchIsActive
                     ? `${filteredCustomerDirectory.length} Treffer werden angezeigt. Bitte Suche verfeinern, falls der Kunde nicht dabei ist.`
-                    : `Bitte mindestens 2 Zeichen eingeben. Es werden nicht automatisch alle ${customers.length} Kunden geladen.`}
+                    : `Bitte mindestens 1 Zeichen eingeben. Insgesamt sind ${customers.length} Kunden geladen und per Suche abrufbar.`}
                 </div>
 
                 <div className="mt-5 space-y-3">
@@ -8593,8 +8616,8 @@ FE-SERVICE`,
                             Kundenliste bereit
                           </p>
                           <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Aus Performance- und Übersichtsgründen werden nicht alle Kunden automatisch angezeigt.
-                            Nutze oben die Suche nach Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
+                            Alle geladenen Kunden sind über die Suche abrufbar. Aus Übersichtsgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
+                            Nutze oben Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
                           </p>
                         </div>
                       )}
