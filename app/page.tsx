@@ -537,6 +537,7 @@ export default function Home() {
   const [deviceDirectorySearch, setDeviceDirectorySearch] = useState("");
   const [manufacturerDirectorySearch, setManufacturerDirectorySearch] = useState("");
   const [deviceModelDirectorySearch, setDeviceModelDirectorySearch] = useState("");
+  const [catalogManufacturerId, setCatalogManufacturerId] = useState("");
   const [abnahmeCustomerSearch, setAbnahmeCustomerSearch] = useState("");
   const [abnahmeDeviceSearch, setAbnahmeDeviceSearch] = useState("");
 
@@ -8809,7 +8810,10 @@ FE-SERVICE`,
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     <input
                       value={manufacturerDirectorySearch}
-                      onChange={(e) => setManufacturerDirectorySearch(e.target.value)}
+                      onChange={(e) => {
+                        setManufacturerDirectorySearch(e.target.value);
+                        setCatalogManufacturerId("");
+                      }}
                       placeholder="Hersteller suchen"
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                     />
@@ -8822,28 +8826,68 @@ FE-SERVICE`,
                     />
                   </div>
 
+                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                    <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                      Hersteller-Katalog öffnen
+                    </label>
+                    <select
+                      value={catalogManufacturerId}
+                      onChange={(e) => setCatalogManufacturerId(e.target.value)}
+                      className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-lg font-black text-[#07130d]"
+                    >
+                      <option value="">
+                        Hersteller auswählen ({filteredManufacturerDirectory.length})
+                      </option>
+                      {filteredManufacturerDirectory.map((item) => {
+                        const modelCount = deviceModels.filter(
+                          (modelItem) => modelItem.manufacturer_id === item.id,
+                        ).length;
+                        const deviceCount = devices.filter(
+                          (deviceItem) =>
+                            deviceItem.manufacturer_id === item.id ||
+                            deviceItem.manufacturer === item.name,
+                        ).length;
+
+                        return (
+                          <option key={item.id} value={item.id}>
+                            {item.name} · {modelCount} Modell(e) · {deviceCount} Gerät(e)
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    <p className="mt-3 text-sm font-semibold text-slate-500">
+                      Dadurch bleibt die Seite kurz: Es wird immer nur der ausgewählte Hersteller geöffnet.
+                    </p>
+                  </div>
+
                   <div className="mt-5 space-y-3">
                     {filteredManufacturerDirectory.length === 0 ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
                         Keine Hersteller gefunden.
                       </p>
+                    ) : !catalogManufacturerId ? (
+                      <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
+                        Bitte oben einen Hersteller auswählen, um Modelle und Daten anzuzeigen.
+                      </p>
                     ) : (
-                      filteredManufacturerDirectory.map((item) => {
-                        const modelsForManufacturer = filteredDeviceModelDirectory.filter(
-                          (modelItem) => modelItem.manufacturer_id === item.id,
-                        );
-                        const devicesForManufacturer = devices.filter(
-                          (deviceItem) =>
-                            deviceItem.manufacturer_id === item.id ||
-                            deviceItem.manufacturer === item.name,
-                        );
+                      filteredManufacturerDirectory
+                        .filter((item) => String(item.id) === catalogManufacturerId)
+                        .map((item) => {
+                          const modelsForManufacturer = filteredDeviceModelDirectory.filter(
+                            (modelItem) => modelItem.manufacturer_id === item.id,
+                          );
+                          const devicesForManufacturer = devices.filter(
+                            (deviceItem) =>
+                              deviceItem.manufacturer_id === item.id ||
+                              deviceItem.manufacturer === item.name,
+                          );
 
-                        return (
-                          <details key={item.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                            <summary className="cursor-pointer list-none">
+                          return (
+                            <div key={item.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 <div>
-                                  <h4 className="text-xl font-black text-[#07130d]">{item.name}</h4>
+                                  <h4 className="text-2xl font-black text-[#07130d]">{item.name}</h4>
                                   <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
                                     {modelsForManufacturer.length} Modell(e) · {devicesForManufacturer.length} Gerät(e)
                                   </p>
@@ -8852,20 +8896,14 @@ FE-SERVICE`,
                                 {isAdmin && (
                                   <div className="flex flex-wrap gap-2">
                                     <button
-                                      onClick={(event) => {
-                                        event.preventDefault();
-                                        startEditManufacturer(item);
-                                      }}
+                                      onClick={() => startEditManufacturer(item)}
                                       className="rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
                                     >
                                       Bearbeiten
                                     </button>
 
                                     <button
-                                      onClick={(event) => {
-                                        event.preventDefault();
-                                        deleteManufacturer(item);
-                                      }}
+                                      onClick={() => deleteManufacturer(item)}
                                       className="rounded-2xl bg-red-100 px-4 py-2 text-sm font-black text-red-700"
                                     >
                                       Löschen
@@ -8873,76 +8911,75 @@ FE-SERVICE`,
                                   </div>
                                 )}
                               </div>
-                            </summary>
 
-                            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                              <div className="rounded-2xl bg-white p-4">
-                                <h5 className="font-black text-green-700">Herstellerdaten</h5>
-                                <div className="mt-3 space-y-2 text-sm font-semibold text-slate-600">
-                                  <p>Ansprechpartner: {item.contact_person || "-"}</p>
-                                  <p>Telefon: {item.phone || "-"}</p>
-                                  <p>E-Mail: {item.email || "-"}</p>
-                                  <p>Webseite: {item.website || "-"}</p>
-                                  <p>Ersatzteile: {item.parts_url || "-"}</p>
+                              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                                <div className="rounded-2xl bg-white p-4">
+                                  <h5 className="font-black text-green-700">Herstellerdaten</h5>
+                                  <div className="mt-3 space-y-2 text-sm font-semibold text-slate-600">
+                                    <p>Ansprechpartner: {item.contact_person || "-"}</p>
+                                    <p>Telefon: {item.phone || "-"}</p>
+                                    <p>E-Mail: {item.email || "-"}</p>
+                                    <p>Webseite: {item.website || "-"}</p>
+                                    <p>Ersatzteile: {item.parts_url || "-"}</p>
+                                  </div>
+                                  {item.note && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">{item.note}</p>}
                                 </div>
-                                {item.note && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">{item.note}</p>}
-                              </div>
 
-                              <div className="rounded-2xl bg-white p-4">
-                                <h5 className="font-black text-green-700">Modelle</h5>
-                                <select
-                                  className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
-                                  defaultValue=""
-                                >
-                                  <option value="">Modell-Dropdown öffnen</option>
-                                  {modelsForManufacturer.map((modelItem) => (
-                                    <option key={modelItem.id} value={modelItem.id}>
-                                      {modelItem.name} {modelItem.type ? `· ${modelItem.type}` : ""}
-                                    </option>
-                                  ))}
-                                </select>
+                                <div className="rounded-2xl bg-white p-4">
+                                  <h5 className="font-black text-green-700">Modelle</h5>
+                                  <select
+                                    className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
+                                    defaultValue=""
+                                  >
+                                    <option value="">Modell-Dropdown öffnen</option>
+                                    {modelsForManufacturer.map((modelItem) => (
+                                      <option key={modelItem.id} value={modelItem.id}>
+                                        {modelItem.name} {modelItem.type ? `· ${modelItem.type}` : ""}
+                                      </option>
+                                    ))}
+                                  </select>
 
-                                <div className="mt-3 space-y-2">
-                                  {modelsForManufacturer.length === 0 ? (
-                                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
-                                      Noch keine Modelle hinterlegt.
-                                    </p>
-                                  ) : (
-                                    modelsForManufacturer.map((modelItem) => (
-                                      <div key={modelItem.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div>
-                                            <p className="font-black text-slate-900">{modelItem.name}</p>
-                                            <p className="text-sm font-semibold text-slate-500">
-                                              {modelItem.category || "Kategorie offen"} · {modelItem.type || "Typ offen"}
-                                            </p>
-                                          </div>
-                                          {isAdmin && (
-                                            <div className="flex gap-2">
-                                              <button
-                                                onClick={() => startEditDeviceModel(modelItem)}
-                                                className="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700"
-                                              >
-                                                Edit
-                                              </button>
-                                              <button
-                                                onClick={() => deleteDeviceModel(modelItem)}
-                                                className="rounded-xl bg-red-100 px-3 py-2 text-xs font-black text-red-700"
-                                              >
-                                                Löschen
-                                              </button>
+                                  <div className="mt-3 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                                    {modelsForManufacturer.length === 0 ? (
+                                      <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+                                        Noch keine Modelle hinterlegt.
+                                      </p>
+                                    ) : (
+                                      modelsForManufacturer.map((modelItem) => (
+                                        <div key={modelItem.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                              <p className="font-black text-slate-900">{modelItem.name}</p>
+                                              <p className="text-sm font-semibold text-slate-500">
+                                                {modelItem.category || "Kategorie offen"} · {modelItem.type || "Typ offen"}
+                                              </p>
                                             </div>
-                                          )}
+                                            {isAdmin && (
+                                              <div className="flex gap-2">
+                                                <button
+                                                  onClick={() => startEditDeviceModel(modelItem)}
+                                                  className="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700"
+                                                >
+                                                  Edit
+                                                </button>
+                                                <button
+                                                  onClick={() => deleteDeviceModel(modelItem)}
+                                                  className="rounded-xl bg-red-100 px-3 py-2 text-xs font-black text-red-700"
+                                                >
+                                                  Löschen
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    ))
-                                  )}
+                                      ))
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </details>
-                        );
-                      })
+                          );
+                        })
                     )}
                   </div>
                 </div>
