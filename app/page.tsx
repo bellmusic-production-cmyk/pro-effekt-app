@@ -97,6 +97,17 @@ type Manufacturer = {
 };
 
 
+type DeviceModel = {
+  id: number;
+  manufacturer_id: number | null;
+  device_type: string | null;
+  model: string | null;
+  source: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+
 type DocumentItem = {
   id: number;
   file_name: string;
@@ -356,6 +367,9 @@ export default function Home() {
   const [deviceStatus, setDeviceStatus] = useState("Aktiv");
   const [deviceNextCheck, setDeviceNextCheck] = useState("");
   const [deviceNote, setDeviceNote] = useState("");
+  const [deviceModelOptions, setDeviceModelOptions] = useState<DeviceModel[]>([]);
+  const [deviceModelLoading, setDeviceModelLoading] = useState(false);
+  const [selectedDeviceModelId, setSelectedDeviceModelId] = useState("");
 
   const [inspectionDeviceId, setInspectionDeviceId] = useState("");
   const [inspectionBadgeNumber, setInspectionBadgeNumber] = useState("");
@@ -1072,6 +1086,57 @@ export default function Home() {
 
 
 
+  async function loadDeviceModelsForManufacturer(manufacturerId?: string) {
+    const targetManufacturerId = manufacturerId || deviceManufacturerId;
+
+    if (!targetManufacturerId) {
+      setDeviceModelOptions([]);
+      setSelectedDeviceModelId("");
+      alert("Bitte zuerst einen Hersteller aus der Verwaltung auswählen.");
+      return;
+    }
+
+    setDeviceModelLoading(true);
+
+    const { data, error } = await supabase
+      .from("device_models")
+      .select("id, manufacturer_id, device_type, model, source, note, created_at")
+      .eq("manufacturer_id", Number(targetManufacturerId))
+      .order("device_type", { ascending: true })
+      .order("model", { ascending: true });
+
+    setDeviceModelLoading(false);
+
+    if (error) {
+      console.error("Gerätemodelle konnten nicht geladen werden:", error.message);
+      setDeviceModelOptions([]);
+      setSelectedDeviceModelId("");
+      alert(`Gerätemodelle konnten nicht geladen werden: ${error.message}`);
+      return;
+    }
+
+    const mappedModels = (data || []).map((item: any) => ({
+      id: Number(item.id),
+      manufacturer_id: item.manufacturer_id === null || item.manufacturer_id === undefined
+        ? null
+        : Number(item.manufacturer_id),
+      device_type: item.device_type || null,
+      model: item.model || null,
+      source: item.source || null,
+      note: item.note || null,
+      created_at: item.created_at || "",
+    }));
+
+    setDeviceModelOptions(mappedModels);
+    setSelectedDeviceModelId("");
+
+    if (mappedModels.length === 0) {
+      alert("Für diesen Hersteller sind noch keine Gerätemodelle im Katalog hinterlegt.");
+    }
+  }
+
+
+
   async function loadDocuments() {
     const { data, error } = await supabase
       .from("documents")
@@ -1676,6 +1741,8 @@ export default function Home() {
     setDeviceName("");
     setDeviceManufacturer("");
     setDeviceManufacturerId("");
+    setDeviceModelOptions([]);
+    setSelectedDeviceModelId("");
     setDeviceSerial("");
     setDeviceLocation("");
     setDeviceStatus("Aktiv");
@@ -1747,6 +1814,8 @@ export default function Home() {
     setDeviceName(item.name || "");
     setDeviceManufacturer(item.manufacturer || "");
     setDeviceManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
+    setDeviceModelOptions([]);
+    setSelectedDeviceModelId("");
     setDeviceSerial(item.serial_number || "");
     setDeviceLocation(item.location || "");
     setDeviceStatus(item.status || "Aktiv");
@@ -2459,7 +2528,8 @@ export default function Home() {
       .from("devices")
       .update({
         name: deviceName,
-        manufacturer: deviceManufacturer || null,
+        manufacturer: manufacturers.find((item) => item.id === Number(deviceManufacturerId))?.name || deviceManufacturer || null,
+        manufacturer_id: deviceManufacturerId ? Number(deviceManufacturerId) : null,
         serial_number: deviceSerial,
         location: deviceLocation,
         status: deviceStatus,
@@ -8945,35 +9015,96 @@ FE-SERVICE`,
                   />
 
                   {isAdmin ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <select
-                        value={deviceManufacturerId}
-                        onChange={(e) => {
-                          setDeviceManufacturerId(e.target.value);
-                          const selectedManufacturer = manufacturers.find(
-                            (item) => item.id === Number(e.target.value),
-                          );
-                          setDeviceManufacturer(selectedManufacturer?.name || "");
-                        }}
-                        className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
-                      >
-                        <option value="">Hersteller aus Verwaltung wählen</option>
-                        {manufacturers.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="space-y-3">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <select
+                          value={deviceManufacturerId}
+                          onChange={(e) => {
+                            setDeviceManufacturerId(e.target.value);
+                            setDeviceModelOptions([]);
+                            setSelectedDeviceModelId("");
+                            const selectedManufacturer = manufacturers.find(
+                              (item) => item.id === Number(e.target.value),
+                            );
+                            setDeviceManufacturer(selectedManufacturer?.name || "");
+                          }}
+                          className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
+                        >
+                          <option value="">Hersteller aus Verwaltung wählen</option>
+                          {manufacturers.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
 
-                      <input
-                        value={deviceManufacturer}
-                        onChange={(e) => {
-                          setDeviceManufacturer(e.target.value);
-                          setDeviceManufacturerId("");
-                        }}
-                        placeholder="oder Hersteller frei eintragen"
-                        className="rounded-2xl border border-slate-300 px-5 py-3"
-                      />
+                        <input
+                          value={deviceManufacturer}
+                          onChange={(e) => {
+                            setDeviceManufacturer(e.target.value);
+                            setDeviceManufacturerId("");
+                            setDeviceModelOptions([]);
+                            setSelectedDeviceModelId("");
+                          }}
+                          placeholder="oder Hersteller frei eintragen"
+                          className="rounded-2xl border border-slate-300 px-5 py-3"
+                        />
+                      </div>
+
+                      <div className="rounded-[22px] border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <p className="text-sm font-black text-slate-800">Gerätemodell-Katalog</p>
+                            <p className="text-xs font-semibold text-slate-500">
+                              Erst Hersteller wählen, dann Modelle laden. Seriennummer bleibt individuell.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => loadDeviceModelsForManufacturer()}
+                            disabled={!deviceManufacturerId || deviceModelLoading}
+                            className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white disabled:opacity-40"
+                          >
+                            {deviceModelLoading ? "Modelle werden geladen..." : "Modelle laden"}
+                          </button>
+                        </div>
+
+                        {deviceModelOptions.length > 0 && (
+                          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
+                            <select
+                              value={selectedDeviceModelId}
+                              onChange={(e) => {
+                                setSelectedDeviceModelId(e.target.value);
+                                const selectedModel = deviceModelOptions.find(
+                                  (item) => item.id === Number(e.target.value),
+                                );
+                                if (selectedModel?.model) {
+                                  setDeviceName(selectedModel.model);
+                                }
+                              }}
+                              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
+                            >
+                              <option value="">Modell aus Katalog wählen</option>
+                              {deviceModelOptions.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                  {item.device_type ? `${item.device_type} · ` : ""}{item.model}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedDeviceModelId("");
+                                setDeviceModelOptions([]);
+                              }}
+                              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                            >
+                              Auswahl leeren
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <input
