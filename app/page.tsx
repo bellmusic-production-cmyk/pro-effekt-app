@@ -277,8 +277,23 @@ const documentCategories = [
   "Alle",
   "Abnahmeprotokolle",
   "Serviceberichte",
+  "Prüfberichte",
+  "UVV-Prüfungen",
+  "Wartungsprotokolle",
   "Rechnungen",
+  "Angebote",
+  "Lieferscheine",
+  "Bestellungen",
+  "Verträge",
+  "Bedienungsanleitungen",
+  "Ersatzteillisten",
+  "Datenblätter",
+  "Schaltpläne",
+  "Herstellerinformationen",
+  "Garantieunterlagen",
   "Fotos",
+  "Videos",
+  "Sonstige Dokumente",
 ];
 
 const abnahmeProtocolQuestions = [
