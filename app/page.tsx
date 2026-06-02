@@ -6918,9 +6918,9 @@ FE-SERVICE`,
   }
 
   return (
-    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--fe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-[#eef2f7] lg:pb-0">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--fe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
-        <aside className="sticky top-0 hidden h-screen w-80 shrink-0 border-r border-white/10 bg-[#07130d] p-6 text-white shadow-2xl shadow-black/20 lg:flex lg:flex-col">
+        <aside className="hidden w-72 bg-[#07130d] p-6 text-white lg:flex lg:flex-col">
           <div className="flex flex-col items-center">
             <h1 className="whitespace-nowrap text-center text-xl font-black tracking-[0.18em] text-green-500">
               FE-SERVICE
@@ -7006,8 +7006,8 @@ FE-SERVICE`,
           </button>
         </aside>
 
-        <section className="mx-auto w-full min-w-0 max-w-[1680px] flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:px-8 lg:py-8 xl:px-10">
-          <div className="mb-6 hidden min-w-0 overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm lg:block">
+        <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-10">
+          <div className="mb-6 hidden rounded-[24px] bg-white p-4 shadow-sm lg:block">
             <p className="fe-login-brand text-center text-2xl font-black uppercase tracking-[0.35em] text-[var(--fe-green)]">
               FE-SERVICE
             </p>
@@ -7145,19 +7145,19 @@ FE-SERVICE`,
 
           {activePage === "Dashboard" && (
             <div className="space-y-6">
-<div className="min-w-0 overflow-hidden rounded-[32px] bg-[#07130d] p-5 text-white shadow-sm sm:p-6 lg:p-8">
+<div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
                 <div className="mb-5 flex w-full justify-center overflow-hidden"><FeServiceLogo dark /></div>
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
                   Admin-Zentrale
                 </p>
-                <h3 className="mt-2 break-words text-3xl font-black leading-tight md:text-4xl">
+                <h3 className="mt-2 text-4xl font-black">
                   FE-Service Leitstand
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Alle offenen Servicefälle, Einsätze, UVV-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
                 </p>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <button
                     onClick={() => openPage("Service-Tickets")}
                     className="rounded-2xl bg-green-600 px-4 py-4 text-left font-black text-white"
@@ -7200,7 +7200,7 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <div className="grid gap-4 md:grid-cols-5">
                 <StatCard label="Offene Tickets" value={openAdminTickets.length} />
                 <StatCard label="Heute Einsätze" value={todaysAdminTickets.length} />
                 <StatCard label="UVV/Wartung überfällig" value={overdueAdminMaintenancePlans.length} />
@@ -7208,9 +7208,9 @@ FE-SERVICE`,
                 <StatCard label="Protokolle bald fällig" value={upcomingAcceptanceProtocols.length} />
               </div>
 
-              <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Offene Tickets</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -7236,15 +7236,15 @@ FE-SERVICE`,
                           key={ticket.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div>
-                              <p className="break-words text-xs font-black text-green-600">
+                              <p className="text-xs font-black text-green-600">
                                 {ticket.ticket_number} · {ticket.customer}
                               </p>
-                              <h4 className="mt-1 break-words text-lg font-black leading-tight">
+                              <h4 className="mt-1 text-lg font-black">
                                 {ticket.issue}
                               </h4>
-                              <p className="mt-1 break-words text-sm text-slate-600">
+                              <p className="mt-1 text-sm text-slate-600">
                                 Gerät: {ticket.device || "Noch nicht zugewiesen"} · Techniker: {getTechnicianNameById(ticket.assigned_to)}
                               </p>
                             </div>
@@ -7259,7 +7259,7 @@ FE-SERVICE`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Heutige Einsätze</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -7301,7 +7301,7 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="grid min-w-0 gap-6 xl:grid-cols-3">
+              <div className="grid gap-6 xl:grid-cols-3">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Überfällige UVV/Wartungen</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -7384,9 +7384,9 @@ FE-SERVICE`,
                   </div>
                 </div>
               </div>
-              <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+              <div className="grid gap-6 xl:grid-cols-2">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Abnahmeprotokolle / Prüffristen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -7476,7 +7476,7 @@ FE-SERVICE`,
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
                   Disposition
                 </p>
-                <h3 className="mt-2 break-words text-3xl font-black leading-tight md:text-4xl">
+                <h3 className="mt-2 text-4xl font-black">
                   Tagesplanung & Tourenübersicht
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
@@ -7545,7 +7545,7 @@ FE-SERVICE`,
 
               <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Service-Einsätze</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -7612,7 +7612,7 @@ FE-SERVICE`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Wartungen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -8836,7 +8836,7 @@ FE-SERVICE`,
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
                   Business Dashboard
                 </p>
-                <h3 className="mt-2 break-words text-3xl font-black leading-tight md:text-4xl">
+                <h3 className="mt-2 text-4xl font-black">
                   FE-Service Auswertungen
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
@@ -8881,7 +8881,7 @@ FE-SERVICE`,
                 <StatCard label="Prüfung bald fällig" value={soonInspectionsCount} />
               </div>
 
-              <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+              <div className="grid gap-6 xl:grid-cols-2">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Technikerleistung</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -8899,7 +8899,7 @@ FE-SERVICE`,
                           key={item.technician.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center justify-between gap-4">
                             <div>
                               <p className="font-black">
                                 {item.technician.full_name || item.technician.company || item.technician.id}
@@ -8940,7 +8940,7 @@ FE-SERVICE`,
                           key={item.device.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center justify-between gap-4">
                             <div>
                               <p className="font-black">{item.device.name}</p>
                               <p className="mt-1 text-sm text-slate-500">
@@ -8963,7 +8963,7 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="grid min-w-0 gap-6 xl:grid-cols-3">
+              <div className="grid gap-6 xl:grid-cols-3">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Top Kunden</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -9884,7 +9884,7 @@ FE-SERVICE`,
                     Geräte-Detailansicht
                   </p>
 
-                  <h3 className="mt-2 break-words text-3xl font-black leading-tight md:text-4xl">
+                  <h3 className="mt-2 text-4xl font-black">
                     {selectedDeviceView.name}
                   </h3>
 
@@ -10201,7 +10201,7 @@ FE-SERVICE`,
                           key={entry.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div>
                               <p className="text-xs font-bold text-green-600">
                                 {entry.type}
@@ -10408,7 +10408,7 @@ FE-SERVICE`,
                         key={item.id}
                         className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
-                        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-green-600">
                               {item.serial_number || "Keine Seriennummer"}
@@ -11081,7 +11081,7 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+              <div className="grid gap-6 xl:grid-cols-2">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abschluss</h3>
 
@@ -11879,7 +11879,7 @@ FE-SERVICE`,
                   Geräte-Scan
                 </p>
 
-                <h3 className="mt-2 break-words text-3xl font-black leading-tight md:text-4xl">
+                <h3 className="mt-2 text-4xl font-black">
                   QR-Code scannen oder Gerät suchen
                 </h3>
 
@@ -12460,7 +12460,7 @@ FE-SERVICE`,
                           key={ticket.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-green-600">
                                 {ticket.ticket_number}
@@ -13219,9 +13219,9 @@ FE-SERVICE`,
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-      <p className="break-words text-3xl font-black leading-tight md:text-4xl">{value}</p>
-      <p className="mt-2 break-words text-sm font-bold text-slate-600 md:text-base">{label}</p>
+    <div className="rounded-3xl bg-white p-6 shadow-sm">
+      <p className="text-4xl font-black">{value}</p>
+      <p className="mt-2 text-base font-bold text-slate-600">{label}</p>
     </div>
   );
 }
