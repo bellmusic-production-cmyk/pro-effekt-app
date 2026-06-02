@@ -96,16 +96,6 @@ type Manufacturer = {
   created_at: string;
 };
 
-type DeviceModel = {
-  id: number;
-  manufacturer_id: number | null;
-  device_type: string | null;
-  model: string | null;
-  source: string | null;
-  note: string | null;
-  created_at: string;
-};
-
 
 type DocumentItem = {
   id: number;
@@ -321,9 +311,6 @@ export default function Home() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
-  const [deviceModels, setDeviceModels] = useState<DeviceModel[]>([]);
-  const [deviceModelsLoading, setDeviceModelsLoading] = useState(false);
-  const [selectedDeviceModelId, setSelectedDeviceModelId] = useState("");
   const [editingManufacturer, setEditingManufacturer] = useState<Manufacturer | null>(null);
   const [manufacturerName, setManufacturerName] = useState("");
   const [manufacturerWebsite, setManufacturerWebsite] = useState("");
@@ -781,7 +768,6 @@ export default function Home() {
       await loadTickets();
       await loadDevices();
       await loadCustomers();
-      await loadManufacturers();
       await loadDocuments();
       await loadDeviceHistory();
       await loadMaintenancePlans();
@@ -910,8 +896,6 @@ export default function Home() {
       setTickets([]);
       setDevices([]);
       setCustomers([]);
-      setManufacturers([]);
-      setDeviceModels([]);
       setDocuments([]);
       setDeviceHistory([]);
       setMaintenancePlans([]);
@@ -1084,37 +1068,6 @@ export default function Home() {
     }
 
     setManufacturers((data || []) as Manufacturer[]);
-  }
-
-  async function loadDeviceModelsForManufacturer(manufacturerIdValue: string) {
-    setSelectedDeviceModelId("");
-    setDeviceModels([]);
-
-    const manufacturerId = Number(manufacturerIdValue);
-
-    if (!manufacturerIdValue || !Number.isFinite(manufacturerId)) {
-      return;
-    }
-
-    setDeviceModelsLoading(true);
-
-    const { data, error } = await supabase
-      .from("device_models")
-      .select("id, manufacturer_id, device_type, model, source, note, created_at")
-      .eq("manufacturer_id", manufacturerId)
-      .order("device_type", { ascending: true })
-      .order("model", { ascending: true });
-
-    setDeviceModelsLoading(false);
-
-    if (error) {
-      console.error("Gerätemodelle konnten nicht geladen werden:", error.message);
-      alert(`Gerätemodelle konnten nicht geladen werden: ${error.message}`);
-      setDeviceModels([]);
-      return;
-    }
-
-    setDeviceModels((data || []) as DeviceModel[]);
   }
 
 
@@ -1723,9 +1676,6 @@ export default function Home() {
     setDeviceName("");
     setDeviceManufacturer("");
     setDeviceManufacturerId("");
-    setSelectedDeviceModelId("");
-    setDeviceModels([]);
-    setDeviceModelsLoading(false);
     setDeviceSerial("");
     setDeviceLocation("");
     setDeviceStatus("Aktiv");
@@ -1797,12 +1747,6 @@ export default function Home() {
     setDeviceName(item.name || "");
     setDeviceManufacturer(item.manufacturer || "");
     setDeviceManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
-    setSelectedDeviceModelId("");
-    if (item.manufacturer_id) {
-      loadDeviceModelsForManufacturer(String(item.manufacturer_id));
-    } else {
-      setDeviceModels([]);
-    }
     setDeviceSerial(item.serial_number || "");
     setDeviceLocation(item.location || "");
     setDeviceStatus(item.status || "Aktiv");
@@ -2511,16 +2455,11 @@ export default function Home() {
       return;
     }
 
-    const selectedManufacturer = manufacturers.find(
-      (item) => item.id === Number(deviceManufacturerId),
-    );
-
     const { error } = await supabase
       .from("devices")
       .update({
         name: deviceName,
-        manufacturer: selectedManufacturer?.name || deviceManufacturer || null,
-        manufacturer_id: selectedManufacturer?.id || null,
+        manufacturer: deviceManufacturer || null,
         serial_number: deviceSerial,
         location: deviceLocation,
         status: deviceStatus,
@@ -9006,91 +8945,35 @@ FE-SERVICE`,
                   />
 
                   {isAdmin ? (
-                    <div className="space-y-3">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <select
-                          value={deviceManufacturerId}
-                          onChange={(e) => {
-                            const nextManufacturerId = e.target.value;
-                            setDeviceManufacturerId(nextManufacturerId);
-                            const selectedManufacturer = manufacturers.find(
-                              (item) => item.id === Number(nextManufacturerId),
-                            );
-                            setDeviceManufacturer(selectedManufacturer?.name || "");
-                            loadDeviceModelsForManufacturer(nextManufacturerId);
-                          }}
-                          className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
-                        >
-                          <option value="">Hersteller aus Verwaltung wählen</option>
-                          {manufacturers.map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.name}
-                            </option>
-                          ))}
-                        </select>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <select
+                        value={deviceManufacturerId}
+                        onChange={(e) => {
+                          setDeviceManufacturerId(e.target.value);
+                          const selectedManufacturer = manufacturers.find(
+                            (item) => item.id === Number(e.target.value),
+                          );
+                          setDeviceManufacturer(selectedManufacturer?.name || "");
+                        }}
+                        className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
+                      >
+                        <option value="">Hersteller aus Verwaltung wählen</option>
+                        {manufacturers.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
 
-                        <input
-                          value={deviceManufacturer}
-                          onChange={(e) => {
-                            setDeviceManufacturer(e.target.value);
-                            setDeviceManufacturerId("");
-                            setSelectedDeviceModelId("");
-                            setDeviceModels([]);
-                          }}
-                          placeholder="oder Hersteller frei eintragen"
-                          className="rounded-2xl border border-slate-300 px-5 py-3"
-                        />
-                      </div>
-
-                      {deviceManufacturerId && (
-                        <div className="rounded-[20px] border border-green-100 bg-green-50 p-3">
-                          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                            <select
-                              value={selectedDeviceModelId}
-                              onChange={(e) => {
-                                const nextModelId = e.target.value;
-                                setSelectedDeviceModelId(nextModelId);
-                                const selectedModel = deviceModels.find(
-                                  (item) => String(item.id) === nextModelId,
-                                );
-                                if (selectedModel?.model) {
-                                  setDeviceName(selectedModel.model);
-                                  setDeviceNote((prev) =>
-                                    selectedModel.device_type && !String(prev || "").includes("Gerätetyp:")
-                                      ? `${prev ? `${prev}\n` : ""}Gerätetyp: ${selectedModel.device_type}`
-                                      : prev,
-                                  );
-                                }
-                              }}
-                              className="min-w-0 flex-1 rounded-2xl border border-green-200 bg-white px-5 py-3 font-bold"
-                            >
-                              <option value="">Modell aus Katalog wählen</option>
-                              {deviceModels.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.device_type ? `${item.device_type} · ` : ""}
-                                  {item.model}
-                                </option>
-                              ))}
-                            </select>
-
-                            <button
-                              type="button"
-                              onClick={() => loadDeviceModelsForManufacturer(deviceManufacturerId)}
-                              className="rounded-2xl bg-green-600 px-5 py-3 text-sm font-black text-white"
-                            >
-                              {deviceModelsLoading ? "Lädt..." : "Modelle laden"}
-                            </button>
-                          </div>
-
-                          <p className="mt-2 text-xs font-bold text-green-800">
-                            {deviceModelsLoading
-                              ? "Gerätemodelle werden geladen..."
-                              : deviceModels.length > 0
-                                ? `${deviceModels.length} Modell(e) für diesen Hersteller gefunden.`
-                                : "Noch keine Modelle geladen oder keine Modelle für diesen Hersteller vorhanden."}
-                          </p>
-                        </div>
-                      )}
+                      <input
+                        value={deviceManufacturer}
+                        onChange={(e) => {
+                          setDeviceManufacturer(e.target.value);
+                          setDeviceManufacturerId("");
+                        }}
+                        placeholder="oder Hersteller frei eintragen"
+                        className="rounded-2xl border border-slate-300 px-5 py-3"
+                      />
                     </div>
                   ) : (
                     <input
