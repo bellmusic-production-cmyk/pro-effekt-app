@@ -296,6 +296,29 @@ const documentCategories = [
   "Sonstige Dokumente",
 ];
 
+const customerUploadDocumentCategories = [
+  "Fotos",
+  "Videos",
+  "Lieferscheine",
+  "Sonstige Dokumente",
+];
+
+const customerVisibleDocumentCategories = [
+  "Alle",
+  "Serviceberichte",
+  "Abnahmeprotokolle",
+  "Prüfberichte",
+  "UVV-Prüfungen",
+  "Wartungsprotokolle",
+  "Rechnungen",
+  "Angebote",
+  "Lieferscheine",
+  "Bedienungsanleitungen",
+  "Fotos",
+  "Videos",
+  "Sonstige Dokumente",
+];
+
 const abnahmeProtocolQuestions = [
   "Sichtprüfung",
   "Allgemeiner Betrieb des Gerätes",
@@ -732,6 +755,36 @@ export default function Home() {
     statusFilter,
     priorityFilter,
   ]);
+
+
+
+  const visibleRoleTickets = useMemo(() => {
+    return tickets.filter((ticket) => {
+      if (userProfile?.role === "customer") {
+        const linkedCustomer = userProfile.customer_id
+          ? customers.find((item) => item.id === userProfile.customer_id)
+          : null;
+
+        const belongsToCustomer =
+          ticket.customer_id === userProfile.customer_id ||
+          (!!linkedCustomer?.company && ticket.customer === linkedCustomer.company);
+
+        return belongsToCustomer;
+      }
+
+      if (userProfile?.role === "technician") {
+        const isAssignedToMe = ticket.assigned_to === userProfile.id;
+        const isOpenPoolTicket =
+          !ticket.assigned_to ||
+          ticket.status === "Offen" ||
+          ticket.status === "Zugewiesen";
+
+        return isAssignedToMe || isOpenPoolTicket;
+      }
+
+      return true;
+    });
+  }, [tickets, customers, userProfile]);
 
   const filteredDocuments = useMemo(() => {
     const search = documentSearchTerm.toLowerCase().trim();
@@ -1439,11 +1492,30 @@ export default function Home() {
       ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId))
       : null;
 
-    const uploadCustomerId =
-      selectedUploadCustomerId ||
-      (selectedUploadDevice?.customer_id ? String(selectedUploadDevice.customer_id) : "");
+    if (isCustomer && !userProfile?.customer_id) {
+      alert("Dein Kundenkonto ist noch keinem Kunden zugeordnet. Bitte FE-Service kontaktieren.");
+      event.target.value = "";
+      return;
+    }
 
-    const isAcceptanceProtocolUpload = uploadCategory === "Abnahmeprotokolle";
+    if (isCustomer && selectedUploadDevice && selectedUploadDevice.customer_id !== userProfile?.customer_id) {
+      alert("Dieses Gerät gehört nicht zu deinem Kundenkonto.");
+      event.target.value = "";
+      return;
+    }
+
+    if (isCustomer && !customerUploadDocumentCategories.includes(uploadCategory)) {
+      alert("Diese Dokumentkategorie darf im Kundenportal nicht hochgeladen werden.");
+      event.target.value = "";
+      return;
+    }
+
+    const uploadCustomerId = isCustomer
+      ? String(userProfile?.customer_id || "")
+      : selectedUploadCustomerId ||
+        (selectedUploadDevice?.customer_id ? String(selectedUploadDevice.customer_id) : "");
+
+    const isAcceptanceProtocolUpload = !isCustomer && uploadCategory === "Abnahmeprotokolle";
     const finalNextInspectionDate = calculateNextInspectionDateFromUpload();
 
     if (isAcceptanceProtocolUpload && !uploadCustomerId) {
@@ -5830,6 +5902,14 @@ FE-SERVICE`,
   const isTechnician = role === "technician";
   const isCustomer = role === "customer";
 
+  const visibleDocumentCategoriesForRole = isCustomer
+    ? documentCategories.filter((category) => customerVisibleDocumentCategories.includes(category))
+    : documentCategories;
+
+  const uploadDocumentCategoriesForRole = isCustomer
+    ? customerUploadDocumentCategories
+    : documentCategories.filter((category) => category !== "Alle");
+
   const todayDateString = new Date().toISOString().split("T")[0];
 
   const openAdminTickets = tickets.filter(
@@ -6293,6 +6373,10 @@ FE-SERVICE`,
   function openPage(item: string) {
     setActivePage(item);
 
+    if (item === "Dokumente" && isCustomer && !customerUploadDocumentCategories.includes(uploadCategory)) {
+      setUploadCategory("Sonstige Dokumente");
+    }
+
     if (typeof window !== "undefined" && session?.user?.id) {
       window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, item);
     }
@@ -6394,13 +6478,16 @@ FE-SERVICE`,
   const selectedTicketDevice =
     availableTicketDevices.find((deviceItem) => deviceItem.name === device) || null;
 
-  const selectedUploadCustomer =
-    selectedUploadCustomerId
+  const selectedUploadCustomer = isCustomer
+    ? profileCustomer || null
+    : selectedUploadCustomerId
       ? customers.find((customerItem) => customerItem.id === Number(selectedUploadCustomerId)) || null
       : null;
 
   const filteredUploadCustomers = (() => {
     const search = uploadCustomerSearch.toLowerCase().trim();
+
+    if (isCustomer) return [];
 
     if (!search || search.length < 2) {
       return [];
@@ -6418,9 +6505,11 @@ FE-SERVICE`,
       return [];
     }
 
-    const baseDevices = selectedUploadCustomerId
-      ? devices.filter((deviceItem) => deviceItem.customer_id === Number(selectedUploadCustomerId))
-      : devices;
+    const baseDevices = isCustomer && userProfile?.customer_id
+      ? devices.filter((deviceItem) => deviceItem.customer_id === userProfile.customer_id)
+      : selectedUploadCustomerId
+        ? devices.filter((deviceItem) => deviceItem.customer_id === Number(selectedUploadCustomerId))
+        : devices;
 
     return baseDevices
       .filter((deviceItem) => {
@@ -7671,8 +7760,7 @@ FE-SERVICE`,
                               onChange={(event) => setTicketAkteUploadCategory(event.target.value)}
                               className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
                             >
-                              {documentCategories
-                                .filter((category) => category !== "Alle")
+                              {uploadDocumentCategoriesForRole
                                 .map((category) => (
                                   <option key={category}>{category}</option>
                                 ))}
@@ -8094,7 +8182,7 @@ FE-SERVICE`,
           {activePage === "Dokumente" && (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-5">
-                {documentCategories.map((category) => (
+                {visibleDocumentCategoriesForRole.map((category) => (
                   <button
                     key={category}
                     onClick={() => {
@@ -8147,8 +8235,7 @@ FE-SERVICE`,
                           onChange={(e) => setUploadCategory(e.target.value)}
                           className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
                         >
-                          {documentCategories
-                            .filter((item) => item !== "Alle")
+                          {uploadDocumentCategoriesForRole
                             .map((item) => (
                               <option key={item}>{item}</option>
                             ))}
@@ -8157,21 +8244,33 @@ FE-SERVICE`,
 
                       <div>
                         <label className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
-                          Kunde zuweisen
+                          {isCustomer ? "Dein Kundenkonto" : "Kunde zuweisen"}
                         </label>
-                        <input
-                          value={uploadCustomerSearch}
-                          onChange={(e) => {
-                            setUploadCustomerSearch(e.target.value);
-                            setSelectedUploadCustomerId("");
-                            setSelectedDeviceId("");
-                            setUploadDeviceSearch("");
-                          }}
-                          placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
-                          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
-                        />
 
-                        {selectedUploadCustomer && (
+                        {isCustomer ? (
+                          <div className="mt-2 rounded-2xl border border-green-200 bg-white px-5 py-4">
+                            <p className="font-black text-slate-900">
+                              {profileCustomer ? getCustomerLabel(profileCustomer) : "Dein Kundenkonto"}
+                            </p>
+                            <p className="mt-1 text-xs font-bold text-slate-500">
+                              Dokumente werden ausschließlich deinem Kundenkonto zugeordnet.
+                            </p>
+                          </div>
+                        ) : (
+                          <input
+                            value={uploadCustomerSearch}
+                            onChange={(e) => {
+                              setUploadCustomerSearch(e.target.value);
+                              setSelectedUploadCustomerId("");
+                              setSelectedDeviceId("");
+                              setUploadDeviceSearch("");
+                            }}
+                            placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
+                            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                          />
+                        )}
+
+                        {!isCustomer && selectedUploadCustomer && (
                           <div className="mt-3 rounded-2xl border border-green-200 bg-white p-3">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
                               Ausgewählter Kunde
@@ -8198,7 +8297,7 @@ FE-SERVICE`,
                           </div>
                         )}
 
-                        {!selectedUploadCustomer &&
+                        {!isCustomer && !selectedUploadCustomer &&
                           uploadCustomerSearch.trim().length >= 2 &&
                           filteredUploadCustomers.length > 0 && (
                             <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -8235,7 +8334,7 @@ FE-SERVICE`,
                             </p>
                           )}
 
-                        {!selectedUploadCustomer && uploadCustomerSearch.trim().length < 2 && (
+                        {!isCustomer && !selectedUploadCustomer && uploadCustomerSearch.trim().length < 2 && (
                           <p className="mt-3 text-xs font-bold text-slate-500">
                             Für Abnahmeprotokolle ist ein Kunde Pflicht.
                           </p>
@@ -8332,7 +8431,7 @@ FE-SERVICE`,
                           )}
                       </div>
 
-                      {uploadCategory === "Abnahmeprotokolle" && (
+                      {!isCustomer && uploadCategory === "Abnahmeprotokolle" && (
                         <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 xl:col-span-3">
                           <p className="text-sm font-black text-yellow-800">
                             Prüffrist für handschriftliches Abnahmeprotokoll
@@ -8417,7 +8516,9 @@ FE-SERVICE`,
                         </label>
 
                         <p className="mt-3 text-xs font-bold text-slate-500">
-                          Abnahmeprotokolle werden geschützt archiviert und dem Kunden zugeordnet.
+                          {isCustomer
+                            ? "Dein Upload wird deinem Kundenkonto zugeordnet. Geschützte/interne Kategorien sind im Kundenportal gesperrt."
+                            : "Abnahmeprotokolle werden geschützt archiviert und dem Kunden zugeordnet."}
                         </p>
                       </div>
                     </div>
@@ -8445,18 +8546,24 @@ FE-SERVICE`,
                       className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                     />
 
-                    <select
-                      value={documentCustomerFilter}
-                      onChange={(e) => setDocumentCustomerFilter(e.target.value)}
-                      className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
-                    >
-                      <option value="Alle">Alle Kunden</option>
-                      {abnahmeCustomers.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {getCustomerLabel(item)}
-                        </option>
-                      ))}
-                    </select>
+                    {isCustomer ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 font-bold text-slate-600">
+                        Nur eigene Dokumente
+                      </div>
+                    ) : (
+                      <select
+                        value={documentCustomerFilter}
+                        onChange={(e) => setDocumentCustomerFilter(e.target.value)}
+                        className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="Alle">Alle Kunden</option>
+                        {abnahmeCustomers.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {getCustomerLabel(item)}
+                          </option>
+                        ))}
+                      </select>
+                    )}
 
                     <select
                       value={documentDeviceFilter}
@@ -9731,8 +9838,7 @@ FE-SERVICE`,
                       onChange={(e) => setUploadCategory(e.target.value)}
                       className="mb-3 w-full rounded-2xl border border-slate-300 px-4 py-3"
                     >
-                      {documentCategories
-                        .filter((item) => item !== "Alle")
+                      {uploadDocumentCategoriesForRole
                         .map((item) => (
                           <option key={item}>{item}</option>
                         ))}
@@ -11399,8 +11505,7 @@ FE-SERVICE`,
                                 onChange={(e) => setUploadCategory(e.target.value)}
                                 className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
                               >
-                                {documentCategories
-                                  .filter((item) => item !== "Alle")
+                                {uploadDocumentCategoriesForRole
                                   .map((item) => (
                                     <option key={item}>{item}</option>
                                   ))}
@@ -11827,21 +11932,21 @@ FE-SERVICE`,
           {activePage === "Service-Tickets" && (
             <>
               <div className="mb-6 grid gap-4 md:grid-cols-4">
-                <StatCard label="Gesamt Tickets" value={tickets.length} />
+                <StatCard label={isCustomer ? "Meine Tickets" : "Gesamt Tickets"} value={visibleRoleTickets.length} />
                 <StatCard
                   label="Offen"
-                  value={tickets.filter((t) => t.status === "Offen").length}
+                  value={visibleRoleTickets.filter((t) => t.status === "Offen").length}
                 />
                 <StatCard
                   label="In Bearbeitung"
                   value={
-                    tickets.filter((t) => t.status === "In Bearbeitung").length
+                    visibleRoleTickets.filter((t) => t.status === "In Bearbeitung").length
                   }
                 />
                 <StatCard
                   label="Erledigt"
                   value={
-                    tickets.filter(
+                    visibleRoleTickets.filter(
                       (t) =>
                         t.status === "Abgeschlossen" || t.status === "Erledigt",
                     ).length
@@ -12120,8 +12225,7 @@ FE-SERVICE`,
                             onChange={(e) => setTicketCreateUploadCategory(e.target.value)}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
                           >
-                            {documentCategories
-                              .filter((item) => item !== "Alle")
+                            {uploadDocumentCategoriesForRole
                               .map((item) => (
                                 <option key={item}>{item}</option>
                               ))}
@@ -12440,7 +12544,7 @@ FE-SERVICE`,
                 />
                 <StatCard
                   label="Meine Tickets"
-                  value={filteredTickets.length}
+                  value={visibleRoleTickets.length}
                 />
                 <StatCard
                   label="Dokumente"
