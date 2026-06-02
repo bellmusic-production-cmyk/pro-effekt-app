@@ -620,6 +620,7 @@ export default function Home() {
 
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewName, setPreviewName] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     checkSession();
@@ -6386,6 +6387,7 @@ FE-SERVICE`,
 
   function openPage(item: string) {
     setActivePage(item);
+    setMobileMenuOpen(false);
 
     if (item === "Dokumente" && isCustomer && !customerUploadDocumentCategories.includes(uploadCategory)) {
       setUploadCategory("Sonstige Dokumente");
@@ -6917,7 +6919,7 @@ FE-SERVICE`,
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[var(--fe-black)] pb-8 text-slate-900 lg:bg-slate-100 lg:pb-0">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--fe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
         <aside className="hidden w-72 bg-[#07130d] p-6 text-white lg:flex lg:flex-col">
           <div className="flex flex-col items-center">
@@ -7005,7 +7007,7 @@ FE-SERVICE`,
           </button>
         </aside>
 
-        <section className="w-full min-w-0 flex-1 overflow-x-hidden px-5 pb-5 pt-0 lg:p-10">
+        <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-10">
           <div className="mb-6 hidden rounded-[24px] bg-white p-4 shadow-sm lg:block">
             <p className="fe-login-brand text-center text-2xl font-black uppercase tracking-[0.35em] text-[var(--fe-green)]">
               FE-SERVICE
@@ -7018,82 +7020,126 @@ FE-SERVICE`,
             </p>
           </div>
 
-          <div className="sticky top-0 z-30 -mx-5 mb-5 border-b border-[var(--fe-green)]/20 bg-[var(--fe-black)] px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-lg lg:hidden">
-            <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="sticky top-0 z-40 -mx-3 mb-5 border-b border-[var(--fe-green)]/20 bg-[var(--fe-black)] px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-lg sm:-mx-5 sm:px-4 lg:hidden">
+            <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-2">
                   <img
                     src="/fe-service-logo.png"
                     alt="FE-Service Logo"
-                    className="h-9 w-auto max-w-[104px] object-contain"
+                    className="h-9 w-auto max-w-[96px] shrink-0 object-contain"
                     onError={(event) => {
                       event.currentTarget.style.display = "none";
                     }}
                   />
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fe-green)]">
-                    FE-SERVICE
-                  </p>
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-[var(--fe-green)]">
+                      FE-SERVICE
+                    </p>
+                    <p className="truncate text-xs font-semibold text-slate-300">
+                      {session.user.email}
+                    </p>
+                  </div>
                 </div>
-                <h2 className="mt-2 text-xl font-black leading-tight text-white">
-                  {portalTitle}
+                <h2 className="mt-2 max-w-[220px] truncate text-xl font-black leading-tight text-white">
+                  {pageTitle}
                 </h2>
-                <p className="mt-1 max-w-[260px] truncate text-xs font-semibold text-slate-300">
-                  {session.user.email}
-                </p>
               </div>
 
               <button
-                onClick={logout}
-                className="rounded-full bg-black px-4 py-2 text-xs font-black text-[var(--fe-green)]"
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="shrink-0 rounded-2xl border border-green-500/30 bg-green-500 px-4 py-3 text-sm font-black text-black shadow-lg shadow-green-950/30 active:scale-[0.98]"
+                aria-label="Menü öffnen"
               >
-                Logout
+                ☰ Menü
               </button>
-            </div>
-
-            <div className="mt-3 rounded-[24px] border border-white/10 bg-white/5 p-3">
-              <label className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[var(--fe-green)]">
-                Bereich
-              </label>
-              <select
-                value={activePage}
-                onChange={(e) => openPage(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-base font-black text-slate-900"
-              >
-                {navGroups.map((group) => (
-                  <optgroup key={group.title} label={`${group.icon} ${group.title}`}>
-                    {group.items.map((item) => (
-                      <option key={item} value={item}>
-                        {navItemLabel(item)}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
             </div>
           </div>
 
-          {previewUrl && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-              <div className="flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[32px] bg-white shadow-2xl">
-                <div className="flex items-center justify-between border-b border-slate-200 p-4">
-                  <div>
-                    <p className="text-sm font-bold text-green-600">Vorschau</p>
-                    <h3 className="text-lg font-black">{previewName}</h3>
+          {mobileMenuOpen && (
+            <div className="fixed inset-0 z-[70] bg-black/70 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+              <div
+                className="flex h-full max-h-[100dvh] w-[88vw] max-w-sm flex-col overflow-hidden bg-[#07130d] p-4 text-white shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4 pt-[env(safe-area-inset-top)]">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-[0.24em] text-green-400">FE-SERVICE</p>
+                    <h3 className="mt-1 text-2xl font-black">Menü</h3>
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-400">{session.user.email}</p>
                   </div>
-
                   <button
-                    onClick={closePreview}
-                    className="rounded-2xl bg-red-100 px-5 py-3 font-bold text-red-700"
+                    type="button"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="shrink-0 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white"
+                    aria-label="Menü schließen"
                   >
-                    Schließen
+                    ✕
                   </button>
                 </div>
 
-                <iframe
-                  src={previewUrl}
-                  className="h-full w-full"
-                  title="Dokumentvorschau"
-                />
+                <nav className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1 pb-[max(env(safe-area-inset-bottom),1rem)]">
+                  {navGroups.map((group) => (
+                    <div key={group.title} className="rounded-3xl border border-white/10 bg-white/[0.03] p-2">
+                      <p className="px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-green-400">
+                        {group.icon} {group.title}
+                      </p>
+                      <div className="space-y-1">
+                        {group.items.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => openPage(item)}
+                            className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition-all ${
+                              activePage === item
+                                ? "bg-green-600 text-white shadow-lg shadow-green-950/30"
+                                : "text-slate-300 hover:bg-white/5"
+                            }`}
+                          >
+                            {navItemLabel(item)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+
+                <button
+                  onClick={logout}
+                  className="mt-3 rounded-2xl bg-white/10 px-4 py-3 font-bold text-white"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+
+          {previewUrl && (
+            <div className="fixed inset-0 z-[80] flex items-stretch justify-center bg-black/80 p-0 sm:items-center sm:p-4">
+              <div className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-[90vh] sm:rounded-[32px]">
+                <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-sm sm:p-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-green-600">Vorschau</p>
+                    <h3 className="max-w-[62vw] truncate text-base font-black sm:max-w-none sm:text-lg">{previewName}</h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={closePreview}
+                    className="shrink-0 rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-lg active:scale-[0.98] sm:bg-red-100 sm:px-5 sm:text-red-700"
+                  >
+                    ✕ Schließen
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  <iframe
+                    src={previewUrl}
+                    className="h-full w-full max-w-full"
+                    title="Dokumentvorschau"
+                  />
+                </div>
               </div>
             </div>
           )}
