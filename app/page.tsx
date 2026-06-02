@@ -6033,17 +6033,16 @@ FE-SERVICE`,
   const calendarItemsCount =
     calendarTickets.length + calendarMaintenancePlans.length;
 
-  const technicianOpenTickets = assignedTickets.filter(
+  const activeEinsatzTickets = visibleRoleTickets.filter(
     (ticket) =>
-      ticket.status !== "Abgeschlossen" &&
-      ticket.status !== "Erledigt",
+      !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
   );
 
-  const technicianTodayTickets = assignedTickets.filter(
+  const technicianTodayTickets = visibleRoleTickets.filter(
     (ticket) => ticket.service_date === todayDateString,
   );
 
-  const technicianWaitingParts = assignedTickets.filter(
+  const technicianWaitingParts = visibleRoleTickets.filter(
     (ticket) => ticket.status === "Wartet auf Teile",
   );
 
@@ -11479,8 +11478,8 @@ FE-SERVICE`,
 
                   <div className="grid grid-cols-3 gap-2 rounded-3xl bg-slate-100 p-3 text-center">
                     <div>
-                      <p className="text-xl font-black">{technicianOpenTickets.length}</p>
-                      <p className="text-xs font-bold text-slate-500">Offen</p>
+                      <p className="text-xl font-black">{activeEinsatzTickets.length}</p>
+                      <p className="text-xs font-bold text-slate-500">Aktiv</p>
                     </div>
                     <div>
                       <p className="text-xl font-black">{technicianTodayTickets.length}</p>
