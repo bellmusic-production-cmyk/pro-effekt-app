@@ -577,6 +577,8 @@ export default function Home() {
     null,
   );
   const [selectedTicketView, setSelectedTicketView] = useState<Ticket | null>(null);
+  const [ticketAkteUploadCategory, setTicketAkteUploadCategory] = useState("Lieferscheine");
+  const [ticketAkteDocumentSearch, setTicketAkteDocumentSearch] = useState("");
   const [qrSearchTerm, setQrSearchTerm] = useState("");
   const [qrSelectedDeviceId, setQrSelectedDeviceId] = useState("");
   const [qrManualCode, setQrManualCode] = useState("");
@@ -1757,6 +1759,92 @@ export default function Home() {
     event.target.value = "";
     await loadDocuments();
     alert("Dokument wurde dem Einsatz zugeordnet.");
+  }
+
+  async function handleTicketAkteFileUpload(
+    event: ChangeEvent<HTMLInputElement>,
+    ticket: Ticket,
+  ) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const relatedDevice = getDeviceForTicket(ticket);
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const finalCustomerId =
+      ticket.customer_id || relatedCustomer?.id || relatedDevice?.customer_id || null;
+
+    setUploading(true);
+
+    const safeFileName = file.name.replaceAll(" ", "-");
+    const safeCategory = ticketAkteUploadCategory || "Sonstige Dokumente";
+    const filePath = `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`;
+
+    const uploadResult = await supabase.storage
+      .from("documents")
+      .upload(filePath, file);
+
+    if (uploadResult.error) {
+      setUploading(false);
+      alert(`Upload fehlgeschlagen: ${uploadResult.error.message}`);
+      event.target.value = "";
+      return;
+    }
+
+    const insertResult = await supabase.from("documents").insert([
+      {
+        file_name: file.name,
+        file_path: filePath,
+        category: safeCategory,
+        file_size: file.size,
+        device_id: relatedDevice?.id || null,
+        ticket_id: ticket.id,
+        customer_id: finalCustomerId,
+      },
+    ]);
+
+    setUploading(false);
+
+    if (insertResult.error) {
+      alert(`Datei wurde hochgeladen, aber nicht gespeichert: ${insertResult.error.message}`);
+      event.target.value = "";
+      return;
+    }
+
+    await createDeviceHistory(
+      relatedDevice?.id || null,
+      "Dokument in Ticket-Akte hochgeladen",
+      `${ticket.ticket_number || "Ticket"}: ${safeCategory} · ${file.name}`,
+      "Dokument",
+    );
+
+    event.target.value = "";
+    await loadDocuments();
+    alert("Dokument wurde dem Ticket, Kunden und Gerät zugeordnet.");
+  }
+
+  async function assignDocumentToTicketContext(documentItem: DocumentItem, ticket: Ticket) {
+    const relatedDevice = getDeviceForTicket(ticket);
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const finalCustomerId =
+      ticket.customer_id || relatedCustomer?.id || relatedDevice?.customer_id || documentItem.customer_id || null;
+
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        ticket_id: ticket.id,
+        customer_id: finalCustomerId,
+        device_id: documentItem.device_id || relatedDevice?.id || null,
+      })
+      .eq("id", documentItem.id);
+
+    if (error) {
+      alert(`Dokument konnte nicht zugeordnet werden: ${error.message}`);
+      return;
+    }
+
+    await loadDocuments();
+    setTicketAkteDocumentSearch("");
+    alert("Dokument wurde der Ticket-Akte zugeordnet.");
   }
 
   async function openDocument(item: DocumentItem) {
@@ -7368,6 +7456,34 @@ FE-SERVICE`,
                 const ticketCustomer = getCustomerForTicket(currentTicket);
                 const ticketDevice = getDeviceForTicket(currentTicket);
                 const contextDocuments = getDocumentsForTicketContext(currentTicket);
+                const documentSearch = ticketAkteDocumentSearch.trim().toLowerCase();
+                const attachableDocuments = documentSearch.length < 2
+                  ? []
+                  : documents
+                      .filter((documentItem) => !contextDocuments.some((existing) => existing.id === documentItem.id))
+                      .filter((documentItem) => {
+                        const linkedDevice = documentItem.device_id
+                          ? devices.find((deviceItem) => deviceItem.id === documentItem.device_id)
+                          : null;
+                        const linkedCustomer = documentItem.customer_id
+                          ? customers.find((customerItem) => customerItem.id === documentItem.customer_id)
+                          : null;
+
+                        return [
+                          documentItem.file_name,
+                          documentItem.category,
+                          getDocumentCustomerName(documentItem),
+                          getDeviceNameById(documentItem.device_id),
+                          linkedDevice?.serial_number,
+                          linkedDevice?.location,
+                          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")
+                          .toLowerCase()
+                          .includes(documentSearch);
+                      })
+                      .slice(0, 8);
                 const customerTickets = getTicketsForCustomerContext(ticketCustomer?.id).slice(0, 8);
                 const customerDevices = ticketCustomer?.id ? getDevicesForCustomer(ticketCustomer.id) : [];
 
@@ -7471,6 +7587,63 @@ FE-SERVICE`,
                           <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600">
                             {contextDocuments.length} Datei(en)
                           </span>
+                        </div>
+
+                        <div className="mt-4 rounded-2xl border border-blue-100 bg-white p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dokument direkt zur Ticket-Akte hinzufügen</p>
+                          <div className="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
+                            <select
+                              value={ticketAkteUploadCategory}
+                              onChange={(event) => setTicketAkteUploadCategory(event.target.value)}
+                              className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
+                            >
+                              {documentCategories
+                                .filter((category) => category !== "Alle")
+                                .map((category) => (
+                                  <option key={category}>{category}</option>
+                                ))}
+                            </select>
+
+                            <label className="flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-blue-600 px-4 text-sm font-black text-white transition hover:bg-blue-700">
+                              {uploading ? "Upload läuft..." : "Datei hochladen und zuordnen"}
+                              <input
+                                type="file"
+                                className="hidden"
+                                disabled={uploading}
+                                onChange={(event) => handleTicketAkteFileUpload(event, currentTicket)}
+                              />
+                            </label>
+                          </div>
+
+                          <div className="mt-3">
+                            <input
+                              value={ticketAkteDocumentSearch}
+                              onChange={(event) => setTicketAkteDocumentSearch(event.target.value)}
+                              placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
+                              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
+                            />
+
+                            {attachableDocuments.length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                {attachableDocuments.map((doc) => (
+                                  <div key={doc.id} className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 md:flex-row md:items-center md:justify-between">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-black text-slate-900">{doc.file_name}</p>
+                                      <p className="mt-1 text-xs font-bold text-slate-500">
+                                        {doc.category} · {getDocumentCustomerName(doc)} · {getDeviceNameById(doc.device_id)}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={() => assignDocumentToTicketContext(doc, currentTicket)}
+                                      className="shrink-0 rounded-2xl bg-green-100 px-4 py-2 text-xs font-black text-green-700"
+                                    >
+                                      Zuordnen
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
