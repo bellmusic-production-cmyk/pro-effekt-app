@@ -545,6 +545,7 @@ export default function Home() {
   const [uploadCategory, setUploadCategory] = useState("Abnahmeprotokolle");
   const [activeDocumentCategory, setActiveDocumentCategory] = useState("Alle");
   const [documentSearchTerm, setDocumentSearchTerm] = useState("");
+  const [documentQuickFilter, setDocumentQuickFilter] = useState("Alle");
   const [documentCustomerFilter, setDocumentCustomerFilter] = useState("Alle");
   const [documentDeviceFilter, setDocumentDeviceFilter] = useState("Alle");
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
@@ -748,7 +749,32 @@ export default function Home() {
         ticketNumber.includes(search) ||
         String(linkedTicket?.issue || "").toLowerCase().includes(search);
 
-      return matchesCategory && matchesCustomer && matchesDevice && matchesSearch;
+      const matchesQuickFilter = (() => {
+        if (documentQuickFilter === "Alle") return true;
+        if (item.category !== "Abnahmeprotokolle") return false;
+
+        const createdDate = item.created_at ? new Date(item.created_at) : null;
+        const nextDate = item.next_inspection_date ? new Date(item.next_inspection_date) : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (documentQuickFilter === "Dieser Monat") {
+          if (!createdDate) return false;
+          const now = new Date();
+          return createdDate.getFullYear() === now.getFullYear() && createdDate.getMonth() === now.getMonth();
+        }
+
+        if (!nextDate) return false;
+        nextDate.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (documentQuickFilter === "Bald fällig") return diffDays >= 0 && diffDays <= 30;
+        if (documentQuickFilter === "Überfällig") return nextDate.getTime() < today.getTime();
+
+        return true;
+      })();
+
+      return matchesCategory && matchesCustomer && matchesDevice && matchesSearch && matchesQuickFilter;
     });
   }, [
     documents,
@@ -756,6 +782,7 @@ export default function Home() {
     tickets,
     activeDocumentCategory,
     documentSearchTerm,
+    documentQuickFilter,
     documentCustomerFilter,
     documentDeviceFilter,
     userProfile,
@@ -5972,7 +5999,26 @@ FE-SERVICE`,
     resetPartForm();
     setSelectedDeviceView(null);
 
+    if (item !== "Dokumente") {
+      setDocumentQuickFilter("Alle");
+    }
+
     if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Überfällig") {
+    setActivePage("Dokumente");
+    setActiveDocumentCategory("Abnahmeprotokolle");
+    setUploadCategory("Abnahmeprotokolle");
+    setDocumentQuickFilter(filter);
+    setDocumentSearchTerm("");
+    setDocumentCustomerFilter("Alle");
+    setDocumentDeviceFilter("Alle");
+
+    if (typeof window !== "undefined" && session?.user?.id) {
+      window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, "Dokumente");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -6463,9 +6509,27 @@ FE-SERVICE`,
             </p>
           </div>
 
-          <nav className="mt-8 max-h-[calc(100vh-280px)] space-y-3 overflow-y-auto pr-1">
+          <nav className="mt-8 max-h-[calc(100vh-280px)] space-y-3 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {navGroups.map((group) => {
               const groupIsOpen = group.items.includes(activePage);
+
+              if (group.items.length === 1) {
+                const item = group.items[0];
+                return (
+                  <button
+                    key={group.title}
+                    onClick={() => openPage(item)}
+                    className={`flex w-full items-center gap-3 rounded-3xl border px-4 py-4 text-left text-sm font-black transition-all ${
+                      activePage === item
+                        ? "border-green-500 bg-green-600 text-white shadow-lg shadow-green-950/30"
+                        : "border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/5"
+                    }`}
+                  >
+                    <span>{group.icon}</span>
+                    <span>{navItemLabel(item)}</span>
+                  </button>
+                );
+              }
 
               return (
                 <details
@@ -6858,30 +6922,34 @@ FE-SERVICE`,
                       </p>
                     </div>
                     <button
-                      onClick={() => openPage("Dokumente")}
+                      onClick={() => openAbnahmeDocuments("Alle")}
                       className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-black text-white"
                     >
-                      Dokumente
+                      Abnahme öffnen
                     </button>
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-4">
-                    <div className="rounded-2xl bg-green-50 p-4">
+                    <button onClick={() => openAbnahmeDocuments("Alle")} className="rounded-2xl bg-green-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">Gesamt</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{acceptanceProtocolDocuments.length}</p>
-                    </div>
-                    <div className="rounded-2xl bg-blue-50 p-4">
+                      <p className="mt-2 text-xs font-black text-green-700">Öffnen</p>
+                    </button>
+                    <button onClick={() => openAbnahmeDocuments("Dieser Monat")} className="rounded-2xl bg-blue-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dieser Monat</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{acceptanceProtocolsThisMonth.length}</p>
-                    </div>
-                    <div className="rounded-2xl bg-yellow-50 p-4">
+                      <p className="mt-2 text-xs font-black text-blue-700">Öffnen</p>
+                    </button>
+                    <button onClick={() => openAbnahmeDocuments("Bald fällig")} className="rounded-2xl bg-yellow-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-700">Bald fällig</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{upcomingAcceptanceProtocols.length}</p>
-                    </div>
-                    <div className="rounded-2xl bg-red-50 p-4">
+                      <p className="mt-2 text-xs font-black text-yellow-700">Öffnen</p>
+                    </button>
+                    <button onClick={() => openAbnahmeDocuments("Überfällig")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Überfällig</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{overdueAcceptanceProtocols.length}</p>
-                    </div>
+                      <p className="mt-2 text-xs font-black text-red-700">Öffnen</p>
+                    </button>
                   </div>
                 </div>
 
@@ -7462,6 +7530,7 @@ FE-SERVICE`,
                     key={category}
                     onClick={() => {
                       setActiveDocumentCategory(category);
+                      setDocumentQuickFilter("Alle");
 
                       if (category !== "Alle") {
                         setUploadCategory(category);
@@ -7787,7 +7856,17 @@ FE-SERVICE`,
                 </div>
 
                 <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                  <h4 className="text-lg font-black">Archiv filtern</h4>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <h4 className="text-lg font-black">Archiv filtern</h4>
+                    {documentQuickFilter !== "Alle" && (
+                      <button
+                        onClick={() => setDocumentQuickFilter("Alle")}
+                        className="rounded-2xl bg-green-100 px-4 py-2 text-sm font-black text-green-700"
+                      >
+                        Filter: {documentQuickFilter} ×
+                      </button>
+                    )}
+                  </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
                     <input
@@ -7829,6 +7908,7 @@ FE-SERVICE`,
                         setDocumentCustomerFilter("Alle");
                         setDocumentDeviceFilter("Alle");
                         setActiveDocumentCategory("Alle");
+                        setDocumentQuickFilter("Alle");
                       }}
                       className="rounded-2xl bg-slate-900 px-5 py-4 font-black text-white"
                     >
@@ -9846,7 +9926,10 @@ FE-SERVICE`,
 
               <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Kopfbereich</h3>
+                  <h3 className="text-xl font-black">Prüfauftrag & Auswahl</h3>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">
+                    Kunde, Gerät und Auftragsdaten für das Abnahmeprotokoll auswählen.
+                  </p>
 
                   <div className="mt-5 space-y-4">
                     <div className="grid gap-3 md:grid-cols-2">
