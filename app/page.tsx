@@ -587,6 +587,8 @@ export default function Home() {
   const [documentQuickFilter, setDocumentQuickFilter] = useState("Alle");
   const [documentCustomerFilter, setDocumentCustomerFilter] = useState("Alle");
   const [documentDeviceFilter, setDocumentDeviceFilter] = useState("Alle");
+  const [expandedDocumentId, setExpandedDocumentId] = useState<number | null>(null);
+  const [documentPage, setDocumentPage] = useState(1);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [selectedUploadCustomerId, setSelectedUploadCustomerId] = useState("");
   const [uploadCustomerSearch, setUploadCustomerSearch] = useState("");
@@ -677,6 +679,18 @@ export default function Home() {
       window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, activePage);
     }
   }, [activePage, session?.user?.id]);
+
+
+  useEffect(() => {
+    setDocumentPage(1);
+    setExpandedDocumentId(null);
+  }, [
+    activeDocumentCategory,
+    documentSearchTerm,
+    documentQuickFilter,
+    documentCustomerFilter,
+    documentDeviceFilter,
+  ]);
 
   useEffect(() => {
     if (devices.length === 0) return;
@@ -6779,6 +6793,26 @@ FE-SERVICE`,
       .slice(0, 25);
   })();
 
+
+  const documentsPerPage = 50;
+  const totalDocumentPages = Math.max(1, Math.ceil(filteredDocuments.length / documentsPerPage));
+  const safeDocumentPage = Math.min(documentPage, totalDocumentPages);
+  const paginatedDocuments = filteredDocuments.slice(
+    (safeDocumentPage - 1) * documentsPerPage,
+    safeDocumentPage * documentsPerPage,
+  );
+
+  const compactDocumentCategories = [
+    "Alle",
+    "Lieferscheine",
+    "Rechnungen",
+    "Serviceberichte",
+    "Abnahmeprotokolle",
+    "Fotos",
+    "Verträge",
+    "Sonstige Dokumente",
+  ].filter((category) => visibleDocumentCategoriesForRole.includes(category));
+
   if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#07130d] text-white">
@@ -8181,37 +8215,44 @@ FE-SERVICE`,
 
           {activePage === "Dokumente" && (
             <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-5">
-                {visibleDocumentCategoriesForRole.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => {
-                      setActiveDocumentCategory(category);
-                      setDocumentQuickFilter("Alle");
-
-                      if (category !== "Alle") {
-                        setUploadCategory(category);
-                      }
-                    }}
-                    className={`rounded-3xl p-6 text-left shadow-sm transition-all ${
-                      activeDocumentCategory === category
-                        ? "bg-green-600 text-white"
-                        : "bg-white text-slate-900 hover:bg-slate-50"
-                    }`}
-                  >
-                    <p className="text-xl font-black">
-                      {categoryCount(category)}
+              <div className="rounded-[28px] bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h3 className="text-xl font-black">Dokumente</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Kompakte Archivansicht mit Kategorien, Suche und aufklappbaren Details.
                     </p>
+                  </div>
 
-                    <p className="mt-2 text-sm font-bold">{category}</p>
+                  <p className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600">
+                    {filteredDocuments.length} Treffer
+                  </p>
+                </div>
 
-                    {category !== "Alle" && (
-                      <p className="mt-3 text-xs opacity-70">
-                        Klick setzt Upload-Kategorie
-                      </p>
-                    )}
-                  </button>
-                ))}
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {compactDocumentCategories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        setActiveDocumentCategory(category);
+                        setDocumentQuickFilter("Alle");
+                        setDocumentPage(1);
+                        setExpandedDocumentId(null);
+
+                        if (category !== "Alle") {
+                          setUploadCategory(category);
+                        }
+                      }}
+                      className={`shrink-0 rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                        activeDocumentCategory === category
+                          ? "bg-green-600 text-white"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      {category} · {categoryCount(category)}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="rounded-[24px] bg-white p-4 shadow-sm">
@@ -8594,97 +8635,145 @@ FE-SERVICE`,
                 </div>
 
                 <div className="mt-8">
-                  <h4 className="text-xl font-black">
-                    {activeDocumentCategory === "Alle"
-                      ? "Alle Dokumente"
-                      : activeDocumentCategory}
-                  </h4>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <h4 className="text-xl font-black">
+                        {activeDocumentCategory === "Alle"
+                          ? "Dokumentenarchiv"
+                          : activeDocumentCategory}
+                      </h4>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        {filteredDocuments.length} Dokument(e) gefunden · Seite {safeDocumentPage} von {totalDocumentPages}
+                      </p>
+                    </div>
 
-                  <div className="mt-4 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={safeDocumentPage <= 1}
+                        onClick={() => setDocumentPage((prev) => Math.max(1, prev - 1))}
+                        className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
+                      >
+                        Zurück
+                      </button>
+                      <button
+                        type="button"
+                        disabled={safeDocumentPage >= totalDocumentPages}
+                        onClick={() => setDocumentPage((prev) => Math.min(totalDocumentPages, prev + 1))}
+                        className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
+                      >
+                        Weiter
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm">
                     {filteredDocuments.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Dateien in dieser Kategorie vorhanden.
+                      <div className="p-5 text-sm font-bold text-slate-500">
+                        Keine Dateien in dieser Auswahl vorhanden.
                       </div>
                     ) : (
-                      filteredDocuments.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between"
-                        >
-                          <div className="min-w-0">
-                            <p className="break-words text-lg font-black text-[#07130d]">
-                              {item.file_name}
-                            </p>
+                      <div className="divide-y divide-slate-100">
+                        {paginatedDocuments.map((item) => {
+                          const isExpanded = expandedDocumentId === item.id;
+                          const customerName = getDocumentCustomerName(item);
+                          const ticketNumber = getDocumentTicketNumber(item);
+                          const deviceName = getDeviceNameById(item.device_id);
 
-                            <p className="mt-1 text-sm font-semibold text-slate-500">
-                              {item.category} · {fileSizeText(item.file_size)}
-                            </p>
-
-                            <div className="mt-3 grid gap-1 text-sm md:grid-cols-2">
-                              <p className="font-bold text-slate-700">
-                                <span className="text-green-700">Kunde:</span>{" "}
-                                {getDocumentCustomerName(item)}
-                              </p>
-
-                              <p className="font-bold text-slate-700">
-                                <span className="text-green-700">Gerät:</span>{" "}
-                                {getDeviceNameById(item.device_id)}
-                              </p>
-
-                              <p className="font-bold text-slate-700">
-                                <span className="text-green-700">Ticket:</span>{" "}
-                                {getDocumentTicketNumber(item)}
-                              </p>
-
-                              <p className="font-bold text-slate-700">
-                                <span className="text-green-700">Techniker:</span>{" "}
-                                {getDocumentTechnicianName(item)}
-                              </p>
-
-                              <p className="font-bold text-slate-700 md:col-span-2">
-                                <span className="text-green-700">Datum:</span>{" "}
-                                {formatDate(item.created_at)}
-                              </p>
-
-                              {item.category === "Abnahmeprotokolle" && (
-                                <p className="font-bold text-slate-700 md:col-span-2">
-                                  <span className="text-green-700">Prüfung:</span>{" "}
-                                  {item.inspection_date || "-"} · nächste Prüfung: {item.next_inspection_date || "-"}
-                                  {item.inspection_badge_number ? ` · Siegel: ${item.inspection_badge_number}` : ""}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <div className="flex flex-col gap-3 sm:flex-row">
-                            <button
-                              onClick={() => openDocument(item)}
-                              className="rounded-[20px] bg-[#dfe7ff] px-6 py-4 text-lg font-black text-[#4455dd]"
-                            >
-                              Öffnen
-                            </button>
-
-                            {canDeleteDocument(item) ? (
-                              <button
-                                onClick={() => deleteDocument(item)}
-                                className="rounded-[20px] bg-[#f3dede] px-6 py-4 text-lg font-black text-[#bb2d2d]"
-                              >
-                                Löschen
-                              </button>
-                            ) : (
+                          return (
+                            <div key={item.id} className="bg-white">
                               <button
                                 type="button"
-                                onClick={() => alert(documentDeleteLockedReason(item))}
-                                className="rounded-[20px] bg-slate-100 px-6 py-4 text-lg font-black text-slate-400"
+                                onClick={() => setExpandedDocumentId(isExpanded ? null : item.id)}
+                                className="flex w-full flex-col gap-2 px-4 py-3 text-left transition hover:bg-slate-50 md:flex-row md:items-center md:justify-between"
                               >
-                                Geschützt
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex min-w-0 items-center gap-3">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-lg">
+                                      📄
+                                    </span>
+                                    <div className="min-w-0">
+                                      <p className="truncate text-base font-black text-[#07130d]">
+                                        {item.file_name}
+                                      </p>
+                                      <p className="mt-1 truncate text-xs font-bold text-slate-500">
+                                        {customerName} · {ticketNumber} · {formatDate(item.created_at)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex shrink-0 items-center gap-2 pl-12 md:pl-0">
+                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                                    {item.category}
+                                  </span>
+                                  <span className="text-lg font-black text-slate-400">
+                                    {isExpanded ? "⌃" : "⌄"}
+                                  </span>
+                                </div>
                               </button>
-                            )}
-                          </div>
-                          </div>
-                        </div>
-                      ))
+
+                              {isExpanded && (
+                                <div className="border-t border-slate-100 bg-slate-50 px-4 py-4 md:px-16">
+                                  <div className="grid gap-3 text-sm md:grid-cols-2">
+                                    <p className="font-bold text-slate-700">
+                                      <span className="text-green-700">Kunde:</span> {customerName}
+                                    </p>
+                                    <p className="font-bold text-slate-700">
+                                      <span className="text-green-700">Gerät:</span> {deviceName}
+                                    </p>
+                                    <p className="font-bold text-slate-700">
+                                      <span className="text-green-700">Ticket:</span> {ticketNumber}
+                                    </p>
+                                    <p className="font-bold text-slate-700">
+                                      <span className="text-green-700">Techniker:</span> {getDocumentTechnicianName(item)}
+                                    </p>
+                                    <p className="font-bold text-slate-700">
+                                      <span className="text-green-700">Größe:</span> {fileSizeText(item.file_size)}
+                                    </p>
+                                    <p className="font-bold text-slate-700">
+                                      <span className="text-green-700">Datum:</span> {formatDate(item.created_at)}
+                                    </p>
+
+                                    {item.category === "Abnahmeprotokolle" && (
+                                      <p className="font-bold text-slate-700 md:col-span-2">
+                                        <span className="text-green-700">Prüfung:</span> {item.inspection_date || "-"} · nächste Prüfung: {item.next_inspection_date || "-"}
+                                        {item.inspection_badge_number ? ` · Siegel: ${item.inspection_badge_number}` : ""}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="mt-4 flex flex-wrap gap-3">
+                                    <button
+                                      onClick={() => openDocument(item)}
+                                      className="rounded-2xl bg-[#dfe7ff] px-5 py-3 text-sm font-black text-[#4455dd]"
+                                    >
+                                      Öffnen
+                                    </button>
+
+                                    {canDeleteDocument(item) ? (
+                                      <button
+                                        onClick={() => deleteDocument(item)}
+                                        className="rounded-2xl bg-[#f3dede] px-5 py-3 text-sm font-black text-[#bb2d2d]"
+                                      >
+                                        Löschen
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => alert(documentDeleteLockedReason(item))}
+                                        className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-400"
+                                      >
+                                        Geschützt
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
