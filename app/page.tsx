@@ -36,6 +36,8 @@ type Device = {
   id: number;
   name: string;
   manufacturer_id: number | null;
+  model_id?: number | null;
+  model?: string | null;
   manufacturer?: string | null;
   serial_number: string | null;
   location: string | null;
@@ -92,6 +94,16 @@ type Manufacturer = {
   contact_person: string | null;
   address: string | null;
   parts_url: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+type DeviceModel = {
+  id: number;
+  manufacturer_id: number | null;
+  name: string;
+  category: string | null;
+  type: string | null;
   note: string | null;
   created_at: string;
 };
@@ -320,6 +332,13 @@ export default function Home() {
   const [manufacturerAddress, setManufacturerAddress] = useState("");
   const [manufacturerPartsUrl, setManufacturerPartsUrl] = useState("");
   const [manufacturerNote, setManufacturerNote] = useState("");
+  const [deviceModels, setDeviceModels] = useState<DeviceModel[]>([]);
+  const [editingDeviceModel, setEditingDeviceModel] = useState<DeviceModel | null>(null);
+  const [modelManufacturerId, setModelManufacturerId] = useState("");
+  const [modelName, setModelName] = useState("");
+  const [modelCategory, setModelCategory] = useState("");
+  const [modelType, setModelType] = useState("");
+  const [modelNote, setModelNote] = useState("");
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [deviceHistory, setDeviceHistory] = useState<DeviceHistory[]>([]);
   const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlan[]>(
@@ -351,6 +370,7 @@ export default function Home() {
   const [deviceName, setDeviceName] = useState("");
   const [deviceManufacturer, setDeviceManufacturer] = useState("");
   const [deviceManufacturerId, setDeviceManufacturerId] = useState("");
+  const [deviceModelId, setDeviceModelId] = useState("");
   const [deviceSerial, setDeviceSerial] = useState("");
   const [deviceLocation, setDeviceLocation] = useState("");
   const [deviceStatus, setDeviceStatus] = useState("Aktiv");
@@ -516,6 +536,7 @@ export default function Home() {
   const [customerTypeFilter, setCustomerTypeFilter] = useState("Alle");
   const [deviceDirectorySearch, setDeviceDirectorySearch] = useState("");
   const [manufacturerDirectorySearch, setManufacturerDirectorySearch] = useState("");
+  const [deviceModelDirectorySearch, setDeviceModelDirectorySearch] = useState("");
   const [abnahmeCustomerSearch, setAbnahmeCustomerSearch] = useState("");
   const [abnahmeDeviceSearch, setAbnahmeDeviceSearch] = useState("");
 
@@ -566,6 +587,7 @@ export default function Home() {
           loadDevices();
           loadCustomers();
           loadManufacturers();
+          loadDeviceModels();
           loadDocuments();
           loadDeviceHistory();
           loadMaintenancePlans();
@@ -598,6 +620,7 @@ export default function Home() {
   useEffect(() => {
     if (userProfile?.role === "admin" || userProfile?.role === "technician") {
       loadManufacturers();
+      loadDeviceModels();
     }
   }, [userProfile?.role]);
 
@@ -768,6 +791,8 @@ export default function Home() {
       await loadTickets();
       await loadDevices();
       await loadCustomers();
+      await loadManufacturers();
+      await loadDeviceModels();
       await loadDocuments();
       await loadDeviceHistory();
       await loadMaintenancePlans();
@@ -1068,6 +1093,26 @@ export default function Home() {
     }
 
     setManufacturers((data || []) as Manufacturer[]);
+  }
+
+  async function loadDeviceModels() {
+    if (!isAdmin && !isTechnician) {
+      setDeviceModels([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("device_models")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Modelle konnten nicht geladen werden:", error.message);
+      setDeviceModels([]);
+      return;
+    }
+
+    setDeviceModels((data || []) as DeviceModel[]);
   }
 
 
@@ -1676,6 +1721,7 @@ export default function Home() {
     setDeviceName("");
     setDeviceManufacturer("");
     setDeviceManufacturerId("");
+    setDeviceModelId("");
     setDeviceSerial("");
     setDeviceLocation("");
     setDeviceStatus("Aktiv");
@@ -1747,6 +1793,7 @@ export default function Home() {
     setDeviceName(item.name || "");
     setDeviceManufacturer(item.manufacturer || "");
     setDeviceManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
+    setDeviceModelId(item.model_id ? String(item.model_id) : "");
     setDeviceSerial(item.serial_number || "");
     setDeviceLocation(item.location || "");
     setDeviceStatus(item.status || "Aktiv");
@@ -2405,6 +2452,83 @@ export default function Home() {
     await loadManufacturers();
   }
 
+  function resetDeviceModelForm() {
+    setEditingDeviceModel(null);
+    setModelManufacturerId("");
+    setModelName("");
+    setModelCategory("");
+    setModelType("");
+    setModelNote("");
+  }
+
+  function startEditDeviceModel(item: DeviceModel) {
+    setEditingDeviceModel(item);
+    setModelManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
+    setModelName(item.name || "");
+    setModelCategory(item.category || "");
+    setModelType(item.type || "");
+    setModelNote(item.note || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function saveDeviceModel() {
+    if (!isAdmin) {
+      alert("Nur Admins können Modelle verwalten.");
+      return;
+    }
+
+    if (!modelManufacturerId || !modelName.trim()) {
+      alert("Bitte Hersteller und Modellname auswählen.");
+      return;
+    }
+
+    const payload = {
+      manufacturer_id: Number(modelManufacturerId),
+      name: modelName.trim(),
+      category: modelCategory.trim() || null,
+      type: modelType.trim() || null,
+      note: modelNote.trim() || null,
+    };
+
+    const result = editingDeviceModel
+      ? await supabase.from("device_models").update(payload).eq("id", editingDeviceModel.id)
+      : await supabase.from("device_models").insert([payload]);
+
+    if (result.error) {
+      alert(`Modell konnte nicht gespeichert werden: ${result.error.message}`);
+      return;
+    }
+
+    resetDeviceModelForm();
+    await loadDeviceModels();
+    alert("Modell wurde gespeichert.");
+  }
+
+  async function deleteDeviceModel(item: DeviceModel) {
+    if (!isAdmin) {
+      alert("Nur Admins können Modelle löschen.");
+      return;
+    }
+
+    const usedByDevices = devices.filter((deviceItem) => deviceItem.model_id === item.id);
+
+    if (usedByDevices.length > 0) {
+      alert(`Dieses Modell ist noch ${usedByDevices.length} Gerät(en) zugeordnet und kann nicht gelöscht werden.`);
+      return;
+    }
+
+    if (!confirm(`Modell "${item.name}" wirklich löschen?`)) return;
+
+    const { error } = await supabase.from("device_models").delete().eq("id", item.id);
+
+    if (error) {
+      alert(`Modell konnte nicht gelöscht werden: ${error.message}`);
+      return;
+    }
+
+    await loadDeviceModels();
+  }
+
   async function createDevice() {
     if (!isAdmin) {
       alert("Nur Admins können Geräte anlegen.");
@@ -2419,10 +2543,15 @@ export default function Home() {
     const selectedManufacturer = manufacturers.find(
       (item) => item.id === Number(deviceManufacturerId),
     );
+    const selectedModel = deviceModels.find(
+      (item) => item.id === Number(deviceModelId),
+    );
 
     const { error } = await supabase.from("devices").insert([
       {
         name: deviceName,
+        model_id: selectedModel?.id || null,
+        model: selectedModel?.name || null,
         manufacturer: selectedManufacturer?.name || deviceManufacturer || null,
         manufacturer_id: selectedManufacturer?.id || null,
         serial_number: deviceSerial,
@@ -2455,11 +2584,21 @@ export default function Home() {
       return;
     }
 
+    const selectedManufacturer = manufacturers.find(
+      (item) => item.id === Number(deviceManufacturerId),
+    );
+    const selectedModel = deviceModels.find(
+      (item) => item.id === Number(deviceModelId),
+    );
+
     const { error } = await supabase
       .from("devices")
       .update({
         name: deviceName,
-        manufacturer: deviceManufacturer || null,
+        model_id: selectedModel?.id || null,
+        model: selectedModel?.name || null,
+        manufacturer: selectedManufacturer?.name || deviceManufacturer || null,
+        manufacturer_id: selectedManufacturer?.id || null,
         serial_number: deviceSerial,
         location: deviceLocation,
         status: deviceStatus,
@@ -3172,6 +3311,11 @@ export default function Home() {
   function getManufacturerNameById(manufacturerId?: number | null) {
     if (!manufacturerId) return "";
     return manufacturers.find((item) => item.id === manufacturerId)?.name || "";
+  }
+
+  function getDeviceModelNameById(modelId?: number | null) {
+    if (!modelId) return "";
+    return deviceModels.find((item) => item.id === modelId)?.name || "";
   }
 
   function resetManufacturerForm() {
@@ -5842,6 +5986,8 @@ FE-SERVICE`,
 
         return [
           deviceItem.name,
+          deviceItem.model,
+          getDeviceModelNameById(deviceItem.model_id),
           deviceItem.manufacturer,
           getManufacturerNameById(deviceItem.manufacturer_id),
           deviceItem.serial_number,
@@ -5898,6 +6044,8 @@ FE-SERVICE`,
 
         return [
           deviceItem.name,
+          deviceItem.model,
+          getDeviceModelNameById(deviceItem.model_id),
           deviceItem.manufacturer,
           getManufacturerNameById(deviceItem.manufacturer_id),
           deviceItem.serial_number,
@@ -5989,6 +6137,34 @@ FE-SERVICE`,
         .toLowerCase()
         .includes(search),
     );
+  })();
+
+  const selectedDeviceManufacturerModels = deviceManufacturerId
+    ? deviceModels.filter((item) => item.manufacturer_id === Number(deviceManufacturerId))
+    : [];
+
+  const filteredDeviceModelDirectory = (() => {
+    const search = deviceModelDirectorySearch.toLowerCase().trim();
+    const baseModels = modelManufacturerId
+      ? deviceModels.filter((item) => item.manufacturer_id === Number(modelManufacturerId))
+      : deviceModels;
+
+    if (!search) return baseModels;
+
+    return baseModels.filter((modelItem) => {
+      const linkedManufacturer = getManufacturerNameById(modelItem.manufacturer_id);
+      return [
+        linkedManufacturer,
+        modelItem.name,
+        modelItem.category,
+        modelItem.type,
+        modelItem.note,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
   })();
 
   const abnahmeCustomers = (() => {
@@ -6107,6 +6283,8 @@ FE-SERVICE`,
 
         const searchText = [
           deviceItem.name,
+          deviceItem.model,
+          getDeviceModelNameById(deviceItem.model_id),
           deviceItem.manufacturer,
           getManufacturerNameById(deviceItem.manufacturer_id),
           deviceItem.serial_number,
@@ -8381,121 +8559,202 @@ FE-SERVICE`,
             <div className="space-y-6">
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
-                  {isAdmin ? "Admin-Verwaltung" : "Techniker-Suche"}
+                  {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                  Hersteller
+                  Hersteller, Geräte & Modelle
                 </h3>
                 <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
-                  Hersteller, Ansprechpartner, Webseite, Telefon und Ersatzteil-Links zentral durchsuchen.
-                  Techniker haben Leserechte, aber keine Bearbeitungsrechte.
+                  Die Katalogdaten sind platzsparend in Dropdowns und aufklappbaren Bereichen organisiert.
+                  Erst Hersteller wählen, dann Modelle und Geräte bearbeiten.
                 </p>
               </div>
 
-              <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
-                {isAdmin && (
-                <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">
-                    {editingManufacturer ? "Hersteller bearbeiten" : "Hersteller anlegen"}
-                  </h3>
+              <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                <div className="space-y-6">
+                  {isAdmin && (
+                    <details className="rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingManufacturer)}>
+                      <summary className="cursor-pointer text-xl font-black">
+                        {editingManufacturer ? "Hersteller bearbeiten" : "Hersteller anlegen"}
+                      </summary>
 
-                  <div className="mt-5 space-y-3">
-                    <input
-                      value={manufacturerName}
-                      onChange={(e) => setManufacturerName(e.target.value)}
-                      placeholder="Herstellername"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                    />
+                      <div className="mt-5 space-y-3">
+                        <input
+                          value={manufacturerName}
+                          onChange={(e) => setManufacturerName(e.target.value)}
+                          placeholder="Herstellername"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                        />
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        value={manufacturerWebsite}
-                        onChange={(e) => setManufacturerWebsite(e.target.value)}
-                        placeholder="Webseite"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <input
+                            value={manufacturerWebsite}
+                            onChange={(e) => setManufacturerWebsite(e.target.value)}
+                            placeholder="Webseite"
+                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                          />
 
-                      <input
-                        value={manufacturerPartsUrl}
-                        onChange={(e) => setManufacturerPartsUrl(e.target.value)}
-                        placeholder="Ersatzteil-Link / Shop"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-                    </div>
+                          <input
+                            value={manufacturerPartsUrl}
+                            onChange={(e) => setManufacturerPartsUrl(e.target.value)}
+                            placeholder="Ersatzteil-Link / Shop"
+                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                          />
+                        </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        value={manufacturerPhone}
-                        onChange={(e) => setManufacturerPhone(e.target.value)}
-                        placeholder="Telefon"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <input
+                            value={manufacturerPhone}
+                            onChange={(e) => setManufacturerPhone(e.target.value)}
+                            placeholder="Telefon"
+                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                          />
 
-                      <input
-                        value={manufacturerEmail}
-                        onChange={(e) => setManufacturerEmail(e.target.value)}
-                        placeholder="E-Mail"
-                        type="email"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-                    </div>
+                          <input
+                            value={manufacturerEmail}
+                            onChange={(e) => setManufacturerEmail(e.target.value)}
+                            placeholder="E-Mail"
+                            type="email"
+                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                          />
+                        </div>
 
-                    <input
-                      value={manufacturerContactPerson}
-                      onChange={(e) => setManufacturerContactPerson(e.target.value)}
-                      placeholder="Ansprechpartner"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
+                        <input
+                          value={manufacturerContactPerson}
+                          onChange={(e) => setManufacturerContactPerson(e.target.value)}
+                          placeholder="Ansprechpartner"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                        />
 
-                    <textarea
-                      value={manufacturerAddress}
-                      onChange={(e) => setManufacturerAddress(e.target.value)}
-                      placeholder="Adresse"
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
+                        <textarea
+                          value={manufacturerAddress}
+                          onChange={(e) => setManufacturerAddress(e.target.value)}
+                          placeholder="Adresse"
+                          rows={3}
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                        />
 
-                    <textarea
-                      value={manufacturerNote}
-                      onChange={(e) => setManufacturerNote(e.target.value)}
-                      placeholder="Interne Support-Notiz"
-                      rows={4}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
+                        <textarea
+                          value={manufacturerNote}
+                          onChange={(e) => setManufacturerNote(e.target.value)}
+                          placeholder="Interne Support-Notiz"
+                          rows={3}
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                        />
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <button
-                        onClick={saveManufacturer}
-                        className="rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
-                      >
-                        {editingManufacturer ? "Änderungen speichern" : "Hersteller speichern"}
-                      </button>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <button
+                            onClick={saveManufacturer}
+                            className="rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
+                          >
+                            {editingManufacturer ? "Änderungen speichern" : "Hersteller speichern"}
+                          </button>
 
-                      <button
-                        onClick={resetManufacturerForm}
-                        className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
-                      >
-                        Formular leeren
-                      </button>
-                    </div>
-                  </div>
+                          <button
+                            onClick={resetManufacturerForm}
+                            className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
+                          >
+                            Formular leeren
+                          </button>
+                        </div>
+                      </div>
+                    </details>
+                  )}
+
+                  {isAdmin && (
+                    <details className="rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
+                      <summary className="cursor-pointer text-xl font-black">
+                        {editingDeviceModel ? "Modell bearbeiten" : "Modell anlegen"}
+                      </summary>
+
+                      <div className="mt-5 space-y-3">
+                        <select
+                          value={modelManufacturerId}
+                          onChange={(e) => setModelManufacturerId(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                        >
+                          <option value="">Hersteller wählen</option>
+                          {manufacturers.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        <input
+                          value={modelName}
+                          onChange={(e) => setModelName(e.target.value)}
+                          placeholder="Modellname, z.B. T5, 95T, Excite Run"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                        />
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <input
+                            value={modelCategory}
+                            onChange={(e) => setModelCategory(e.target.value)}
+                            placeholder="Kategorie, z.B. Cardio"
+                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                          />
+
+                          <input
+                            value={modelType}
+                            onChange={(e) => setModelType(e.target.value)}
+                            placeholder="Gerätetyp, z.B. Laufband"
+                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                          />
+                        </div>
+
+                        <textarea
+                          value={modelNote}
+                          onChange={(e) => setModelNote(e.target.value)}
+                          placeholder="Modellnotiz / Ersatzteilhinweise"
+                          rows={3}
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                        />
+
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <button
+                            onClick={saveDeviceModel}
+                            className="rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
+                          >
+                            {editingDeviceModel ? "Modell speichern" : "Modell hinzufügen"}
+                          </button>
+
+                          <button
+                            onClick={resetDeviceModelForm}
+                            className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
+                          >
+                            Formular leeren
+                          </button>
+                        </div>
+                      </div>
+                    </details>
+                  )}
                 </div>
-                )}
 
                 <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Herstellerliste</h3>
+                  <h3 className="text-xl font-black">Katalog-Dropdown</h3>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                      Such- und Lesemodus: Techniker können Herstellerdaten einsehen, aber nicht bearbeiten.
+                      Such- und Lesemodus: Techniker können Hersteller und Modelle einsehen, aber nicht bearbeiten.
                     </p>
                   )}
 
-                  <input
-                    value={manufacturerDirectorySearch}
-                    onChange={(e) => setManufacturerDirectorySearch(e.target.value)}
-                    placeholder="Hersteller suchen: Name, Ansprechpartner, Telefon, E-Mail, Webseite, Ersatzteil-Link"
-                    className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
-                  />
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <input
+                      value={manufacturerDirectorySearch}
+                      onChange={(e) => setManufacturerDirectorySearch(e.target.value)}
+                      placeholder="Hersteller suchen"
+                      className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
+                    />
+
+                    <input
+                      value={deviceModelDirectorySearch}
+                      onChange={(e) => setDeviceModelDirectorySearch(e.target.value)}
+                      placeholder="Modelle suchen"
+                      className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
+                    />
+                  </div>
 
                   <div className="mt-5 space-y-3">
                     {filteredManufacturerDirectory.length === 0 ? (
@@ -8503,76 +8762,128 @@ FE-SERVICE`,
                         Keine Hersteller gefunden.
                       </p>
                     ) : (
-                      filteredManufacturerDirectory.map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-[24px] border border-slate-200 bg-slate-50 p-5"
-                        >
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                            <div>
-                              <h4 className="text-xl font-black text-[#07130d]">
-                                {item.name}
-                              </h4>
+                      filteredManufacturerDirectory.map((item) => {
+                        const modelsForManufacturer = filteredDeviceModelDirectory.filter(
+                          (modelItem) => modelItem.manufacturer_id === item.id,
+                        );
+                        const devicesForManufacturer = devices.filter(
+                          (deviceItem) =>
+                            deviceItem.manufacturer_id === item.id ||
+                            deviceItem.manufacturer === item.name,
+                        );
 
-                              <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-600 md:grid-cols-2">
-                                <p><span className="font-black text-green-700">Ansprechpartner:</span> {item.contact_person || "-"}</p>
-                                <p><span className="font-black text-green-700">Telefon:</span> {item.phone || "-"}</p>
-                                <p><span className="font-black text-green-700">E-Mail:</span> {item.email || "-"}</p>
-                                <p><span className="font-black text-green-700">Webseite:</span> {item.website || "-"}</p>
+                        return (
+                          <details key={item.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                            <summary className="cursor-pointer list-none">
+                              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                  <h4 className="text-xl font-black text-[#07130d]">{item.name}</h4>
+                                  <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                                    {modelsForManufacturer.length} Modell(e) · {devicesForManufacturer.length} Gerät(e)
+                                  </p>
+                                </div>
+
+                                {isAdmin && (
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        startEditManufacturer(item);
+                                      }}
+                                      className="rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
+                                    >
+                                      Bearbeiten
+                                    </button>
+
+                                    <button
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        deleteManufacturer(item);
+                                      }}
+                                      className="rounded-2xl bg-red-100 px-4 py-2 text-sm font-black text-red-700"
+                                    >
+                                      Löschen
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </summary>
+
+                            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                              <div className="rounded-2xl bg-white p-4">
+                                <h5 className="font-black text-green-700">Herstellerdaten</h5>
+                                <div className="mt-3 space-y-2 text-sm font-semibold text-slate-600">
+                                  <p>Ansprechpartner: {item.contact_person || "-"}</p>
+                                  <p>Telefon: {item.phone || "-"}</p>
+                                  <p>E-Mail: {item.email || "-"}</p>
+                                  <p>Webseite: {item.website || "-"}</p>
+                                  <p>Ersatzteile: {item.parts_url || "-"}</p>
+                                </div>
+                                {item.note && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-600">{item.note}</p>}
                               </div>
 
-                              {item.parts_url && (
-                                <p className="mt-3 text-sm font-bold text-blue-700">
-                                  Ersatzteile: {item.parts_url}
-                                </p>
-                              )}
+                              <div className="rounded-2xl bg-white p-4">
+                                <h5 className="font-black text-green-700">Modelle</h5>
+                                <select
+                                  className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
+                                  defaultValue=""
+                                >
+                                  <option value="">Modell-Dropdown öffnen</option>
+                                  {modelsForManufacturer.map((modelItem) => (
+                                    <option key={modelItem.id} value={modelItem.id}>
+                                      {modelItem.name} {modelItem.type ? `· ${modelItem.type}` : ""}
+                                    </option>
+                                  ))}
+                                </select>
 
-                              {item.note && (
-                                <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-semibold text-slate-600">
-                                  {item.note}
-                                </p>
-                              )}
-
-                              <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                                Zugeordnete Geräte:{" "}
-                                {
-                                  devices.filter(
-                                    (deviceItem) =>
-                                      deviceItem.manufacturer_id === item.id ||
-                                      deviceItem.manufacturer === item.name,
-                                  ).length
-                                }
-                              </p>
+                                <div className="mt-3 space-y-2">
+                                  {modelsForManufacturer.length === 0 ? (
+                                    <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+                                      Noch keine Modelle hinterlegt.
+                                    </p>
+                                  ) : (
+                                    modelsForManufacturer.map((modelItem) => (
+                                      <div key={modelItem.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div>
+                                            <p className="font-black text-slate-900">{modelItem.name}</p>
+                                            <p className="text-sm font-semibold text-slate-500">
+                                              {modelItem.category || "Kategorie offen"} · {modelItem.type || "Typ offen"}
+                                            </p>
+                                          </div>
+                                          {isAdmin && (
+                                            <div className="flex gap-2">
+                                              <button
+                                                onClick={() => startEditDeviceModel(modelItem)}
+                                                className="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700"
+                                              >
+                                                Edit
+                                              </button>
+                                              <button
+                                                onClick={() => deleteDeviceModel(modelItem)}
+                                                className="rounded-xl bg-red-100 px-3 py-2 text-xs font-black text-red-700"
+                                              >
+                                                Löschen
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
                             </div>
-
-                            {isAdmin && (
-                              <div className="flex flex-col gap-2">
-                                <button
-                                  onClick={() => startEditManufacturer(item)}
-                                  className="rounded-2xl bg-blue-100 px-5 py-3 text-sm font-black text-blue-700"
-                                >
-                                  Bearbeiten
-                                </button>
-
-                                <button
-                                  onClick={() => deleteManufacturer(item)}
-                                  className="rounded-2xl bg-red-100 px-5 py-3 text-sm font-black text-red-700"
-                                >
-                                  Löschen
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))
+                          </details>
+                        );
+                      })
                     )}
                   </div>
                 </div>
               </div>
             </div>
           )}
-
-{activePage === "Geräte" && selectedDeviceView && (
+          {activePage === "Geräte" && selectedDeviceView && (
             <div className="mb-6 rounded-[24px] bg-white p-4 shadow-sm">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                 <div>
@@ -8945,17 +9256,22 @@ FE-SERVICE`,
                   />
 
                   {isAdmin ? (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                      <label className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                        Hersteller und Modell per Dropdown
+                      </label>
+
                       <select
                         value={deviceManufacturerId}
                         onChange={(e) => {
                           setDeviceManufacturerId(e.target.value);
+                          setDeviceModelId("");
                           const selectedManufacturer = manufacturers.find(
                             (item) => item.id === Number(e.target.value),
                           );
                           setDeviceManufacturer(selectedManufacturer?.name || "");
                         }}
-                        className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
                       >
                         <option value="">Hersteller aus Verwaltung wählen</option>
                         {manufacturers.map((item) => (
@@ -8965,14 +9281,37 @@ FE-SERVICE`,
                         ))}
                       </select>
 
+                      <select
+                        value={deviceModelId}
+                        onChange={(e) => {
+                          setDeviceModelId(e.target.value);
+                          const selectedModel = deviceModels.find(
+                            (item) => item.id === Number(e.target.value),
+                          );
+                          if (selectedModel && !deviceName.trim()) {
+                            setDeviceName(selectedModel.name);
+                          }
+                        }}
+                        disabled={!deviceManufacturerId}
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        <option value="">Modell wählen</option>
+                        {selectedDeviceManufacturerModels.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} {item.type ? `· ${item.type}` : ""}
+                          </option>
+                        ))}
+                      </select>
+
                       <input
                         value={deviceManufacturer}
                         onChange={(e) => {
                           setDeviceManufacturer(e.target.value);
                           setDeviceManufacturerId("");
+                          setDeviceModelId("");
                         }}
                         placeholder="oder Hersteller frei eintragen"
-                        className="rounded-2xl border border-slate-300 px-5 py-3"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
                       />
                     </div>
                   ) : (
