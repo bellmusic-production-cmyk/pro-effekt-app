@@ -104,6 +104,7 @@ type DeviceModel = {
   name: string;
   category: string | null;
   type: string | null;
+  device_type?: string | null;
   note: string | null;
   created_at: string;
 };
@@ -2857,7 +2858,7 @@ export default function Home() {
     setModelManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
     setModelName(item.name || "");
     setModelCategory(item.category || "");
-    setModelType(item.type || "");
+    setModelType(item.type || item.device_type || "Sonstiges");
     setModelNote(item.note || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2873,11 +2874,14 @@ export default function Home() {
       return;
     }
 
+    const cleanedModelType = modelType.trim() || modelCategory.trim() || "Sonstiges";
+
     const payload = {
       manufacturer_id: Number(modelManufacturerId),
       name: modelName.trim(),
       category: modelCategory.trim() || null,
-      type: modelType.trim() || null,
+      type: cleanedModelType,
+      device_type: cleanedModelType,
       note: modelNote.trim() || null,
     };
 
