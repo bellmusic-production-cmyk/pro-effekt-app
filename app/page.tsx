@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.20 · Rollenladen mit Timeout-Fallback
+// FE-Service App v2.1.16 · Legal-Akzeptanz blockiert App-Start nicht
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -493,10 +493,6 @@ export default function Home() {
   const [technicianSignature, setTechnicianSignature] = useState("");
   const [customerSignature, setCustomerSignature] = useState("");
   const [customerApprovalName, setCustomerApprovalName] = useState("");
-  const serviceTechnicianCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const serviceCustomerCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const serviceTechnicianDrawingRef = useRef(false);
-  const serviceCustomerDrawingRef = useRef(false);
 
 
 
@@ -962,35 +958,21 @@ export default function Home() {
     }
 
     try {
-      const timeout = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Legal Acceptance Check Timeout")), 2500);
-      });
-
-      const legalRequest = supabase
+      const { data, error } = await supabase
         .from("user_legal_acceptance")
         .select("id")
         .eq("user_id", userId)
         .maybeSingle();
 
-      const result: any = await Promise.race([legalRequest, timeout]);
-
-      if (result?.error) {
-        console.error("Legal Acceptance konnte nicht geladen werden:", result.error.message);
+      if (error) {
+        console.error("Legal Acceptance konnte nicht geladen werden:", error.message);
         setLegalAccepted(false);
         return;
       }
 
-      if (result?.data) {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(localKey, "yes");
-        }
-        setLegalAccepted(true);
-        return;
-      }
-
-      setLegalAccepted(false);
+      setLegalAccepted(Boolean(data));
     } catch (error) {
-      console.error("Legal Acceptance Check übersprungen:", error);
+      console.error("Legal Acceptance Fehler:", error);
       setLegalAccepted(false);
     }
   }
@@ -1096,6 +1078,7 @@ export default function Home() {
       resetCustomerForm();
 
       if (typeof window !== "undefined") {
+        localStorage.clear();
         sessionStorage.clear();
         window.location.href = "/";
       }
@@ -1107,6 +1090,21 @@ export default function Home() {
 
   async function loadUserProfile(userId: string) {
     setProfileLoading(true);
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      setUserProfile(null);
+      setProfileLoading(false);
+      return;
+    }
+
+    setUserProfile(data as UserProfile);
+    setProfileLoading(false);
 
     const adminPages = [
       "Dashboard",
@@ -1147,79 +1145,26 @@ export default function Home() {
       "Rechnungen",
     ];
 
-    function applyLoadedProfile(profileData: UserProfile) {
-      setUserProfile(profileData);
-      setProfileLoading(false);
+    const allowedPages =
+      data.role === "admin"
+        ? adminPages
+        : data.role === "technician"
+          ? technicianPages
+          : customerPages;
 
-      const allowedPages =
-        profileData.role === "admin"
-          ? adminPages
-          : profileData.role === "technician"
-            ? technicianPages
-            : customerPages;
+    const defaultPage =
+      data.role === "admin"
+        ? "Dashboard"
+        : data.role === "technician"
+          ? "Einsatz"
+          : "Kundenportal";
 
-      const defaultPage =
-        profileData.role === "admin"
-          ? "Dashboard"
-          : profileData.role === "technician"
-            ? "Einsatz"
-            : "Kundenportal";
+    const savedPage =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(`fe-service-active-page-${userId}`)
+        : null;
 
-      const savedPage =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(`fe-service-active-page-${userId}`)
-          : null;
-
-      setActivePage(savedPage && allowedPages.includes(savedPage) ? savedPage : defaultPage);
-    }
-
-    try {
-      const timeout = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Profil-Ladevorgang Timeout")), 4000);
-      });
-
-      const profileRequest = supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-      const result: any = await Promise.race([profileRequest, timeout]);
-
-      if (result?.error) {
-        console.error("Profil konnte nicht geladen werden:", result.error.message);
-      }
-
-      if (result?.data) {
-        applyLoadedProfile(result.data as UserProfile);
-        return;
-      }
-
-      const fallbackProfile: UserProfile = {
-        id: userId,
-        full_name: session?.user?.email || "Admin",
-        role: "admin",
-        company: null,
-        customer_id: null,
-        created_at: new Date().toISOString(),
-      };
-
-      console.warn("Kein Profil gefunden. Fallback-Profil wird verwendet.");
-      applyLoadedProfile(fallbackProfile);
-    } catch (error) {
-      console.error("Profil-Ladevorgang blockiert. Fallback-Profil wird verwendet:", error);
-
-      const fallbackProfile: UserProfile = {
-        id: userId,
-        full_name: session?.user?.email || "Admin",
-        role: "admin",
-        company: null,
-        customer_id: null,
-        created_at: new Date().toISOString(),
-      };
-
-      applyLoadedProfile(fallbackProfile);
-    }
+    setActivePage(savedPage && allowedPages.includes(savedPage) ? savedPage : defaultPage);
   }
 
   async function loadTickets() {
@@ -2434,123 +2379,6 @@ export default function Home() {
     );
   }
 
-  function getServiceCanvasContext(canvas: HTMLCanvasElement | null) {
-    if (!canvas) return null;
-
-    const rect = canvas.getBoundingClientRect();
-    const ratio = window.devicePixelRatio || 1;
-
-    if (canvas.width !== Math.floor(rect.width * ratio)) {
-      canvas.width = Math.floor(rect.width * ratio);
-      canvas.height = Math.floor(rect.height * ratio);
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.scale(ratio, ratio);
-        context.lineWidth = 2.5;
-        context.lineCap = "round";
-        context.strokeStyle = "#0f172a";
-      }
-    }
-
-    return canvas.getContext("2d");
-  }
-
-  function getServiceSignaturePoint(event: any, canvas: HTMLCanvasElement) {
-    const rect = canvas.getBoundingClientRect();
-
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
-  }
-
-  function startServiceSignature(
-    who: "technician" | "customer",
-    event: any,
-  ) {
-    const canvas =
-      who === "technician"
-        ? serviceTechnicianCanvasRef.current
-        : serviceCustomerCanvasRef.current;
-
-    if (!canvas) return;
-
-    const context = getServiceCanvasContext(canvas);
-    if (!context) return;
-
-    canvas.setPointerCapture(event.pointerId);
-
-    const point = getServiceSignaturePoint(event, canvas);
-
-    if (who === "technician") {
-      serviceTechnicianDrawingRef.current = true;
-    } else {
-      serviceCustomerDrawingRef.current = true;
-    }
-
-    context.beginPath();
-    context.moveTo(point.x, point.y);
-  }
-
-  function drawServiceSignature(
-    who: "technician" | "customer",
-    event: any,
-  ) {
-    const isDrawing =
-      who === "technician"
-        ? serviceTechnicianDrawingRef.current
-        : serviceCustomerDrawingRef.current;
-
-    if (!isDrawing) return;
-
-    const canvas =
-      who === "technician"
-        ? serviceTechnicianCanvasRef.current
-        : serviceCustomerCanvasRef.current;
-
-    if (!canvas) return;
-
-    const context = getServiceCanvasContext(canvas);
-    if (!context) return;
-
-    const point = getServiceSignaturePoint(event, canvas);
-    context.lineTo(point.x, point.y);
-    context.stroke();
-  }
-
-  function finishServiceSignature(who: "technician" | "customer") {
-    const canvas =
-      who === "technician"
-        ? serviceTechnicianCanvasRef.current
-        : serviceCustomerCanvasRef.current;
-
-    if (who === "technician") {
-      serviceTechnicianDrawingRef.current = false;
-      setTechnicianSignature(canvas?.toDataURL("image/png") || "");
-    } else {
-      serviceCustomerDrawingRef.current = false;
-      setCustomerSignature(canvas?.toDataURL("image/png") || "");
-    }
-  }
-
-  function clearServiceSignature(who: "technician" | "customer") {
-    const canvas =
-      who === "technician"
-        ? serviceTechnicianCanvasRef.current
-        : serviceCustomerCanvasRef.current;
-
-    if (!canvas) return;
-
-    const context = canvas.getContext("2d");
-    context?.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (who === "technician") {
-      setTechnicianSignature("");
-    } else {
-      setCustomerSignature("");
-    }
-  }
-
   function buildServiceReportHtml(ticket: Ticket) {
     const relatedDevice = devices.find((item) => item.name === ticket.device);
     const relatedCustomer =
@@ -2637,12 +2465,7 @@ export default function Home() {
           <div class="footer">
             <div>
               <div class="line">
-                ${
-                  technicianSignature || ticket.technician_signature
-                    ? `<img src="${technicianSignature || ticket.technician_signature}" style="max-height:46px;max-width:220px;object-fit:contain;display:block;margin-bottom:6px;" />`
-                    : ""
-                }
-                Techniker: ${technicianSignature || ticket.technician_signature ? "signiert" : "Nicht signiert"}
+                Techniker: ${technicianSignature || ticket.technician_signature || "Nicht signiert"}
               </div>
             </div>
 
@@ -2650,12 +2473,7 @@ export default function Home() {
               <div class="line">
                 Kunde: ${customerApprovalName || ticket.customer_approval_name || "-"}
                 <br/>
-                ${
-                  customerSignature || ticket.customer_signature
-                    ? `<img src="${customerSignature || ticket.customer_signature}" style="max-height:46px;max-width:220px;object-fit:contain;display:block;margin-bottom:6px;" />`
-                    : ""
-                }
-                Signatur: ${customerSignature || ticket.customer_signature ? "signiert" : "Nicht signiert"}
+                Signatur: ${customerSignature || ticket.customer_signature || "Nicht signiert"}
               </div>
             </div>
           </div>
@@ -2718,21 +2536,6 @@ export default function Home() {
   }
 
   async function saveServiceReport(ticket: Ticket) {
-    if (!technicianSignature && !ticket.technician_signature) {
-      alert("Bitte zuerst die Techniker-Signatur im Servicebericht erfassen.");
-      return;
-    }
-
-    if (!customerApprovalName.trim() && !ticket.customer_approval_name) {
-      alert("Bitte den Namen des unterschreibenden Kunden eintragen.");
-      return;
-    }
-
-    if (!customerSignature && !ticket.customer_signature) {
-      alert("Bitte zuerst die Kunden-Signatur im Servicebericht erfassen.");
-      return;
-    }
-
     const payload = {
       service_report: serviceReport || null,
       inspection_badge_number: serviceBadgeNumber || null,
@@ -2883,12 +2686,7 @@ export default function Home() {
           <div class="footer">
             <div>
               <div class="line">
-                ${
-                  technicianSignature || ticket.technician_signature
-                    ? `<img src="${technicianSignature || ticket.technician_signature}" style="max-height:46px;max-width:220px;object-fit:contain;display:block;margin-bottom:6px;" />`
-                    : ""
-                }
-                Techniker: ${technicianSignature || ticket.technician_signature ? "signiert" : "Nicht signiert"}
+                Techniker: ${technicianSignature || ticket.technician_signature || "Nicht signiert"}
               </div>
             </div>
 
@@ -2896,12 +2694,7 @@ export default function Home() {
               <div class="line">
                 Kunde: ${customerApprovalName || ticket.customer_approval_name || "-"}
                 <br/>
-                ${
-                  customerSignature || ticket.customer_signature
-                    ? `<img src="${customerSignature || ticket.customer_signature}" style="max-height:46px;max-width:220px;object-fit:contain;display:block;margin-bottom:6px;" />`
-                    : ""
-                }
-                Signatur: ${customerSignature || ticket.customer_signature ? "signiert" : "Nicht signiert"}
+                Signatur: ${customerSignature || ticket.customer_signature || "Nicht signiert"}
               </div>
             </div>
           </div>
@@ -7188,30 +6981,8 @@ FE-SERVICE`,
 
   if (profileLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#07130d] p-6 text-white">
-        <div className="text-center">
-          <h1 className="text-4xl font-black">Rolle wird geladen...</h1>
-          <button
-            type="button"
-            onClick={() => {
-              const fallbackProfile: UserProfile = {
-                id: session?.user?.id || "fallback",
-                full_name: session?.user?.email || "Admin",
-                role: "admin",
-                company: null,
-                customer_id: null,
-                created_at: new Date().toISOString(),
-              };
-
-              setUserProfile(fallbackProfile);
-              setProfileLoading(false);
-              setActivePage("Dashboard");
-            }}
-            className="mt-8 rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
-          >
-            Notfall-Start als Admin
-          </button>
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-[#07130d] text-white">
+        <h1 className="text-4xl font-black">Rolle wird geladen...</h1>
       </main>
     );
   }
@@ -12061,115 +11832,13 @@ FE-SERVICE`,
                         </button>
 
                         <button
-                          onClick={() => printServiceReport(ticket)}
-                          className="min-h-[56px] rounded-3xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700 active:scale-[0.99]"
+                          onClick={() =>
+                            updateServiceStatus(ticket.id, "Abgeschlossen")
+                          }
+                          className="min-h-[56px] rounded-3xl bg-green-600 px-4 py-3 text-sm font-black text-white active:scale-[0.99]"
                         >
-                          Servicebericht Vorschau
+                          Abschließen
                         </button>
-
-                        <div className="sm:col-span-3 mt-6 rounded-3xl border border-green-200 bg-green-50 p-5">
-                          <h4 className="text-xl font-black text-green-800">
-                            Servicebericht abschließen & digital unterschreiben
-                          </h4>
-                          <p className="mt-2 text-sm font-bold text-slate-600">
-                            Techniker und Kunde können direkt am Handy, Tablet oder Notebook unterschreiben. Die Signaturen werden im archivierten Servicebericht gespeichert.
-                          </p>
-
-                          <div className="mt-4 grid gap-3 md:grid-cols-2">
-                            <textarea
-                              value={serviceReport}
-                              onChange={(event) => setServiceReport(event.target.value)}
-                              placeholder="Durchgeführte Arbeiten / Servicebericht"
-                              className="min-h-[140px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
-                            />
-
-                            <input
-                              value={serviceBadgeNumber}
-                              onChange={(event) => setServiceBadgeNumber(event.target.value)}
-                              placeholder="Prüfsiegelnummer / Prüfnummer"
-                              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
-                            />
-
-                            <input
-                              type="date"
-                              value={serviceBadgeExpires}
-                              onChange={(event) => setServiceBadgeExpires(event.target.value)}
-                              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
-                            />
-
-                            <input
-                              value={customerApprovalName}
-                              onChange={(event) => setCustomerApprovalName(event.target.value)}
-                              placeholder="Name des unterschreibenden Kunden"
-                              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
-                            />
-
-                            <textarea
-                              value={serviceInternalNote}
-                              onChange={(event) => setServiceInternalNote(event.target.value)}
-                              placeholder="Interne Notiz, nicht für Kundenbericht"
-                              className="min-h-[90px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
-                            />
-                          </div>
-
-                          <div className="mt-5 grid gap-4 md:grid-cols-2">
-                            <div className="rounded-3xl bg-white p-4">
-                              <p className="text-sm font-black text-slate-700">Techniker-Signatur</p>
-                              <canvas
-                                ref={serviceTechnicianCanvasRef}
-                                onPointerDown={(event) => startServiceSignature("technician", event)}
-                                onPointerMove={(event) => drawServiceSignature("technician", event)}
-                                onPointerUp={() => finishServiceSignature("technician")}
-                                onPointerCancel={() => finishServiceSignature("technician")}
-                                className="mt-3 h-36 w-full touch-none rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => clearServiceSignature("technician")}
-                                className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
-                              >
-                                Techniker-Signatur löschen
-                              </button>
-                            </div>
-
-                            <div className="rounded-3xl bg-white p-4">
-                              <p className="text-sm font-black text-slate-700">Kunden-Signatur</p>
-                              <canvas
-                                ref={serviceCustomerCanvasRef}
-                                onPointerDown={(event) => startServiceSignature("customer", event)}
-                                onPointerMove={(event) => drawServiceSignature("customer", event)}
-                                onPointerUp={() => finishServiceSignature("customer")}
-                                onPointerCancel={() => finishServiceSignature("customer")}
-                                className="mt-3 h-36 w-full touch-none rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => clearServiceSignature("customer")}
-                                className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
-                              >
-                                Kunden-Signatur löschen
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="mt-5 grid gap-3 md:grid-cols-2">
-                            <button
-                              type="button"
-                              onClick={() => printServiceReport(ticket)}
-                              className="rounded-3xl bg-slate-900 px-5 py-4 font-black text-white"
-                            >
-                              Servicebericht ansehen / drucken
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => saveServiceReport(ticket)}
-                              className="rounded-3xl bg-green-600 px-5 py-4 font-black text-white"
-                            >
-                              Unterschrieben abschließen & archivieren
-                            </button>
-                          </div>
-                        </div>
 
                         {/* TECHNIKER DATEI-UPLOAD */}
                         <div className="mt-6 rounded-3xl border border-blue-200 bg-blue-50 p-5">
