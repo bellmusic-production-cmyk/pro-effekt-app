@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.8 · Gerätebereich mit Suchpflicht und begrenzter Ergebnisliste
+// FE-Service App v2.1.9 · Geräte-Navigator mit Hersteller-Kacheln, Modell-Vorschau und begrenzter Suche
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -276,10 +276,13 @@ const deviceStatusOptions = [
   "Außer Betrieb",
 ];
 
-// Gerätebereich: Bei großem Gerätebestand nicht automatisch alle Kunden-Geräte rendern.
-// Die Liste wird erst ab 2 Suchzeichen angezeigt und dann auf 80 Treffer begrenzt.
-const deviceDirectoryMinSearchLength = 2;
-const deviceDirectoryResultLimit = 80;
+// Gerätebereich: Bei großem Gerätebestand wird nicht mehr eine endlose Liste gerendert.
+// Stattdessen startet der Bereich mit einem visuellen Geräte-Navigator.
+const deviceDirectoryMinSearchLength = 1;
+const deviceDirectoryResultLimit = 100;
+const deviceDirectoryPreviewLimit = 20;
+const deviceNavigatorManufacturerLimit = 12;
+const deviceNavigatorModelLimit = 20;
 
 const documentCategories = [
   "Alle",
@@ -6592,13 +6595,69 @@ FE-SERVICE`,
 
   const deviceDirectorySearchNormalized = deviceDirectorySearch.toLowerCase().trim();
   const isDeviceDirectorySearchReady =
-    deviceDirectorySearchNormalized.length >= deviceDirectoryMinSearchLength;
+    deviceDirectorySearchNormalized.length >= deviceDirectoryMinSearchLength ||
+    Boolean(deviceNavigatorManufacturer) ||
+    Boolean(deviceNavigatorModel);
+
+  const getDeviceManufacturerLabel = (deviceItem: Device) =>
+    deviceItem.manufacturer ||
+    getManufacturerNameById(deviceItem.manufacturer_id) ||
+    "Unbekannt";
+
+  const getDeviceModelLabel = (deviceItem: Device) =>
+    deviceItem.model ||
+    getDeviceModelNameById(deviceItem.model_id) ||
+    deviceItem.name ||
+    "Unbekanntes Modell";
+
+  const deviceManufacturerOverview = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    devices.forEach((deviceItem) => {
+      const manufacturerLabel = getDeviceManufacturerLabel(deviceItem);
+      counts.set(manufacturerLabel, (counts.get(manufacturerLabel) || 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .slice(0, deviceNavigatorManufacturerLimit);
+  }, [devices, manufacturers]);
+
+  const deviceModelOverview = useMemo(() => {
+    const counts = new Map<string, { manufacturer: string; model: string; count: number }>();
+
+    devices.forEach((deviceItem) => {
+      const manufacturerLabel = getDeviceManufacturerLabel(deviceItem);
+      const modelLabel = getDeviceModelLabel(deviceItem);
+
+      if (deviceNavigatorManufacturer && manufacturerLabel !== deviceNavigatorManufacturer) {
+        return;
+      }
+
+      const key = `${manufacturerLabel}:::${modelLabel}`;
+      const existing = counts.get(key);
+
+      counts.set(key, {
+        manufacturer: manufacturerLabel,
+        model: modelLabel,
+        count: (existing?.count || 0) + 1,
+      });
+    });
+
+    return Array.from(counts.values())
+      .sort((a, b) => b.count - a.count || a.model.localeCompare(b.model))
+      .slice(0, deviceNavigatorModelLimit);
+  }, [devices, manufacturers, deviceModels, deviceNavigatorManufacturer]);
+
+  const latestDevicePreview = useMemo(() => {
+    return devices.slice(0, deviceDirectoryPreviewLimit);
+  }, [devices]);
 
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearchNormalized;
 
-    // Wichtig bei großem Bestand:
-    // Ohne Suchbegriff wird keine endlose Geräteliste gerendert.
+    // Ohne Suche und ohne Navigator-Auswahl wird nur die Vorschau angezeigt.
     if (!isDeviceDirectorySearchReady) return [];
 
     return devices
@@ -6606,8 +6665,18 @@ FE-SERVICE`,
         const linkedCustomer = deviceItem.customer_id
           ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
           : null;
-        const linkedManufacturer = getManufacturerNameById(deviceItem.manufacturer_id);
-        const linkedModel = getDeviceModelNameById(deviceItem.model_id);
+        const linkedManufacturer = getDeviceManufacturerLabel(deviceItem);
+        const linkedModel = getDeviceModelLabel(deviceItem);
+
+        if (deviceNavigatorManufacturer && linkedManufacturer !== deviceNavigatorManufacturer) {
+          return false;
+        }
+
+        if (deviceNavigatorModel && linkedModel !== deviceNavigatorModel) {
+          return false;
+        }
+
+        if (!search) return true;
 
         return [
           deviceItem.name,
@@ -6630,6 +6699,7 @@ FE-SERVICE`,
       })
       .slice(0, deviceDirectoryResultLimit);
   })();
+
 
   const filteredManufacturerDirectory = (() => {
     const search = manufacturerDirectorySearch.toLowerCase().trim();
@@ -10417,26 +10487,137 @@ FE-SERVICE`,
                 <input
                   value={deviceDirectorySearch}
                   onChange={(e) => setDeviceDirectorySearch(e.target.value)}
-                  placeholder="Geräte suchen: Kunde, Kundennr., Modell, Seriennummer, Hersteller, Standort"
+                  placeholder="Suchen: Kunde, Kundennr., Modell, Seriennummer, Hersteller, Standort"
                   className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
-                <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-600">
-                  {isDeviceDirectorySearchReady
-                    ? `${filteredDeviceDirectory.length} Treffer angezeigt · maximal ${deviceDirectoryResultLimit}. Suche weiter eingrenzen, falls das gewünschte Gerät fehlt.`
-                    : `Mindestens ${deviceDirectoryMinSearchLength} Zeichen eingeben. Die komplette Geräteliste wird wegen großem Bestand nicht automatisch geladen.`}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {deviceNavigatorManufacturer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeviceNavigatorManufacturer("");
+                        setDeviceNavigatorModel("");
+                      }}
+                      className="rounded-full bg-green-100 px-4 py-2 text-sm font-black text-green-700"
+                    >
+                      Hersteller: {deviceNavigatorManufacturer} ×
+                    </button>
+                  )}
+
+                  {deviceNavigatorModel && (
+                    <button
+                      type="button"
+                      onClick={() => setDeviceNavigatorModel("")}
+                      className="rounded-full bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
+                    >
+                      Modell: {deviceNavigatorModel} ×
+                    </button>
+                  )}
+
+                  {(deviceNavigatorManufacturer || deviceNavigatorModel || deviceDirectorySearch) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeviceDirectorySearch("");
+                        setDeviceNavigatorManufacturer("");
+                        setDeviceNavigatorModel("");
+                      }}
+                      className="rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
+                    >
+                      Filter zurücksetzen
+                    </button>
+                  )}
                 </div>
 
+                {!isDeviceDirectorySearchReady && (
+                  <div className="mt-6 space-y-6">
+                    <section className="rounded-[28px] bg-slate-50 p-5">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-black text-slate-900">Geräteübersicht</h3>
+                          <p className="text-sm font-semibold text-slate-500">
+                            Einstieg ohne Suchbegriff: Hersteller, häufige Modelle und letzte Geräte.
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-600">
+                          {devices.length} Kundengeräte
+                        </span>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {deviceManufacturerOverview.map((item) => (
+                          <button
+                            key={item.name}
+                            type="button"
+                            onClick={() => {
+                              setDeviceNavigatorManufacturer(item.name);
+                              setDeviceNavigatorModel("");
+                            }}
+                            className="rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-green-400 hover:bg-green-50"
+                          >
+                            <p className="text-lg font-black text-slate-900">{item.name}</p>
+                            <p className="mt-1 text-sm font-bold text-green-600">{item.count} Kundengeräte</p>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-[28px] bg-slate-50 p-5">
+                      <h3 className="text-lg font-black text-slate-900">Häufige Modelle</h3>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {deviceModelOverview.map((item) => (
+                          <button
+                            key={`${item.manufacturer}-${item.model}`}
+                            type="button"
+                            onClick={() => {
+                              setDeviceNavigatorManufacturer(item.manufacturer);
+                              setDeviceNavigatorModel(item.model);
+                            }}
+                            className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:bg-green-100 hover:text-green-700"
+                          >
+                            {item.model} · {item.count}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-[28px] bg-slate-50 p-5">
+                      <h3 className="text-lg font-black text-slate-900">Zuletzt importierte / bearbeitete Geräte</h3>
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {latestDevicePreview.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setSelectedDeviceView(item)}
+                            className="rounded-3xl bg-white p-4 text-left shadow-sm transition hover:bg-green-50"
+                          >
+                            <p className="font-black text-slate-900">{item.name}</p>
+                            <p className="text-sm font-semibold text-slate-600">
+                              {getCustomerNameById(item.customer_id)}
+                            </p>
+                            <p className="text-xs font-bold text-green-600">
+                              {item.serial_number || "Keine Seriennummer"}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                )}
+
+                {isDeviceDirectorySearchReady && (
+                  <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-600">
+                    {filteredDeviceDirectory.length} Treffer angezeigt · maximal {deviceDirectoryResultLimit}. Suche oder Filter weiter eingrenzen, falls das gewünschte Gerät fehlt.
+                  </div>
+                )}
+
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                  {!isDeviceDirectorySearchReady ? (
-                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
-                      Bitte Suchbegriff eingeben, um Kunden-Geräte zu laden.
-                    </div>
-                  ) : filteredDeviceDirectory.length === 0 ? (
+                  {isDeviceDirectorySearchReady && filteredDeviceDirectory.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
                       Keine Geräte gefunden.
                     </div>
-                  ) : (
+                  ) : isDeviceDirectorySearchReady ? (
                     filteredDeviceDirectory.map((item) => (
                       <div
                         key={item.id}
@@ -10521,7 +10702,7 @@ FE-SERVICE`,
                         </div>
                       </div>
                     ))
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
