@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.10 · Geräteübersicht ohne Runtime-Risiko
+// FE-Service App v2.1.11 · Geräteübersicht ohne zusätzliche Hooks
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6614,7 +6614,7 @@ FE-SERVICE`,
     );
   }
 
-  const deviceManufacturerOverview = useMemo(() => {
+  const deviceManufacturerOverview = (() => {
     const counts = new Map<string, number>();
 
     devices.forEach((deviceItem) => {
@@ -6626,9 +6626,9 @@ FE-SERVICE`,
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
       .slice(0, deviceOverviewManufacturerLimit);
-  }, [devices, manufacturers]);
+  })();
 
-  const deviceModelOverview = useMemo(() => {
+  const deviceModelOverview = (() => {
     const counts = new Map<string, { manufacturer: string; model: string; count: number }>();
 
     devices.forEach((deviceItem) => {
@@ -6647,11 +6647,9 @@ FE-SERVICE`,
     return Array.from(counts.values())
       .sort((a, b) => b.count - a.count || a.model.localeCompare(b.model))
       .slice(0, deviceOverviewModelLimit);
-  }, [devices, manufacturers, deviceModels]);
+  })();
 
-  const latestDevicePreview = useMemo(() => {
-    return devices.slice(0, deviceDirectoryPreviewLimit);
-  }, [devices]);
+  const latestDevicePreview = devices.slice(0, deviceDirectoryPreviewLimit);
 
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearchNormalized;
