@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.15 · Dashboard zeigt erst vollständig geladene Kennzahlen
+// FE-Service App v2.1.16 · Legal-Akzeptanz blockiert App-Start nicht
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1003,30 +1003,32 @@ export default function Home() {
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
     };
 
+    // App-Start darf nicht blockieren, falls Supabase/RLS/Netzwerk bei der
+    // Zustimmung hängt. Deshalb zuerst lokal freischalten und DB-Speicherung
+    // mit Timeout nur zusätzlich versuchen.
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(localKey, "yes");
+    }
+
+    setLegalAccepted(true);
+    setLegalChecking(false);
+
     try {
-      const { error } = await supabase
+      const timeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Legal acceptance timeout")), 3500);
+      });
+
+      const saveAcceptance = supabase
         .from("user_legal_acceptance")
         .upsert(payload, { onConflict: "user_id" });
 
-      if (error) {
-        console.error("Zustimmung konnte nicht in Supabase gespeichert werden:", error.message);
-      }
+      const result = await Promise.race([saveAcceptance, timeout]);
 
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(localKey, "yes");
+      if ("error" in result && result.error) {
+        console.error("Zustimmung konnte nicht in Supabase gespeichert werden:", result.error.message);
       }
-
-      setLegalAccepted(true);
     } catch (error) {
-      console.error("Zustimmung konnte nur lokal gespeichert werden:", error);
-
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(localKey, "yes");
-      }
-
-      setLegalAccepted(true);
-    } finally {
-      setLegalChecking(false);
+      console.error("Zustimmung wurde lokal gespeichert. Supabase-Speicherung wird übersprungen:", error);
     }
   }
 
