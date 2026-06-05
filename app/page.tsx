@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.13 · Gerätekatalog ohne Kunden-/Seriennummern-Daten
+// FE-Service App v2.1.14 · Gerätekatalog TypeScript-Fix ohne DeviceModel.model
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6640,10 +6640,10 @@ FE-SERVICE`,
     const seen = new Set<string>();
 
     return deviceModels
-      .filter((modelItem) => isCleanCatalogName(modelItem.name || modelItem.model))
+      .filter((modelItem) => isCleanCatalogName(modelItem.name))
       .map((modelItem) => ({
         id: modelItem.id,
-        name: modelItem.name || modelItem.model,
+        name: modelItem.name,
         manufacturerName: getCleanManufacturerName(modelItem.manufacturer_id),
       }))
       .filter((item) => {
