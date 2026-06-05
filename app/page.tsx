@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.23 · NOTFALL-RESTORE plus Servicebericht-Signatur
+// FE-Service App v2.1.24 · PDF-Button öffnet Servicebericht-Signatur
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2806,6 +2806,19 @@ export default function Home() {
       `${ticket.ticket_number || "Ticket"} · ${ticket.issue || ""}`,
       "PDF",
     );
+  }
+
+  function openServiceReportSigning(ticket: Ticket) {
+    setSelectedTicketView(ticket);
+    setActivePage("Service-Tickets");
+    setServiceReport(ticket.service_report || "");
+    setServiceBadgeNumber(ticket.inspection_badge_number || "");
+    setServiceBadgeExpires(ticket.inspection_expires || "");
+    setServiceInternalNote(ticket.internal_note || "");
+    setTechnicianSignature(ticket.technician_signature || "");
+    setCustomerSignature(ticket.customer_signature || "");
+    setCustomerApprovalName(ticket.customer_approval_name || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function updateServiceStatus(ticketId: number, newServiceStatus: string) {
@@ -8039,6 +8052,110 @@ FE-SERVICE`,
                       </div>
                     </div>
 
+                    <div className="mt-5 rounded-3xl border border-green-200 bg-green-50 p-5">
+                      <h4 className="text-xl font-black text-green-800">
+                        Servicebericht unterschreiben
+                      </h4>
+                      <p className="mt-2 text-sm font-bold text-slate-600">
+                        Hier unterschreiben Techniker und Kunde direkt am Handy oder Tablet. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
+                      </p>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <textarea
+                          value={serviceReport}
+                          onChange={(event) => setServiceReport(event.target.value)}
+                          placeholder="Durchgeführte Arbeiten / Servicebericht"
+                          className="min-h-[140px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
+                        />
+
+                        <input
+                          value={serviceBadgeNumber}
+                          onChange={(event) => setServiceBadgeNumber(event.target.value)}
+                          placeholder="Prüfsiegelnummer / Prüfnummer"
+                          className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
+                        />
+
+                        <input
+                          type="date"
+                          value={serviceBadgeExpires}
+                          onChange={(event) => setServiceBadgeExpires(event.target.value)}
+                          className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
+                        />
+
+                        <input
+                          value={customerApprovalName}
+                          onChange={(event) => setCustomerApprovalName(event.target.value)}
+                          placeholder="Name des unterschreibenden Kunden"
+                          className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
+                        />
+
+                        <textarea
+                          value={serviceInternalNote}
+                          onChange={(event) => setServiceInternalNote(event.target.value)}
+                          placeholder="Interne Notiz, nicht für Kundenbericht"
+                          className="min-h-[90px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
+                        />
+                      </div>
+
+                      <div className="mt-5 grid gap-4 md:grid-cols-2">
+                        <div className="rounded-3xl bg-white p-4">
+                          <p className="text-sm font-black text-slate-700">Techniker-Signatur</p>
+                          <canvas
+                            ref={serviceTechnicianCanvasRef}
+                            onPointerDown={(event) => startServiceSignature("technician", event)}
+                            onPointerMove={(event) => drawServiceSignature("technician", event)}
+                            onPointerUp={() => finishServiceSignature("technician")}
+                            onPointerCancel={() => finishServiceSignature("technician")}
+                            className="mt-3 h-36 w-full touch-none rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => clearServiceSignature("technician")}
+                            className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
+                          >
+                            Techniker-Signatur löschen
+                          </button>
+                        </div>
+
+                        <div className="rounded-3xl bg-white p-4">
+                          <p className="text-sm font-black text-slate-700">Kunden-Signatur</p>
+                          <canvas
+                            ref={serviceCustomerCanvasRef}
+                            onPointerDown={(event) => startServiceSignature("customer", event)}
+                            onPointerMove={(event) => drawServiceSignature("customer", event)}
+                            onPointerUp={() => finishServiceSignature("customer")}
+                            onPointerCancel={() => finishServiceSignature("customer")}
+                            className="mt-3 h-36 w-full touch-none rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => clearServiceSignature("customer")}
+                            className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
+                          >
+                            Kunden-Signatur löschen
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 md:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => printServiceReport(currentTicket)}
+                          className="rounded-3xl bg-slate-900 px-5 py-4 font-black text-white"
+                        >
+                          Vorschau / PDF
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => saveServiceReport(currentTicket)}
+                          className="rounded-3xl bg-green-600 px-5 py-4 font-black text-white"
+                        >
+                          Unterschrieben abschließen & archivieren
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center justify-between gap-3">
@@ -11940,10 +12057,10 @@ FE-SERVICE`,
                         </button>
 
                         <button
-                          onClick={() => printServiceReport(ticket)}
+                          onClick={() => openServiceReportSigning(ticket)}
                           className="min-h-[56px] rounded-3xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700 active:scale-[0.99]"
                         >
-                          Servicebericht Vorschau
+                          Servicebericht / Signatur
                         </button>
 
                         <div className="sm:col-span-3 mt-6 rounded-3xl border border-green-200 bg-green-50 p-5">
@@ -13052,10 +13169,10 @@ FE-SERVICE`,
                               </button>
 
                               <button
-                                onClick={() => printServiceReport(ticket)}
+                                onClick={() => openServiceReportSigning(ticket)}
                                 className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                               >
-                                PDF
+                                PDF / Signatur
                               </button>
 
                               {isAdmin && (
