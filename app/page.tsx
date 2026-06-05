@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.14 · Gerätekatalog TypeScript-Fix ohne DeviceModel.model
+// FE-Service App v2.1.15 · Dashboard zeigt erst vollständig geladene Kennzahlen
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -401,6 +401,7 @@ export default function Home() {
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [appDataLoaded, setAppDataLoaded] = useState(false);
 
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
@@ -637,29 +638,18 @@ export default function Home() {
     checkSession();
 
     const { data } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
+      async (_event, currentSession) => {
         setSession(currentSession);
         setAuthLoading(false);
 
         if (currentSession) {
-          loadUserProfile(currentSession.user.id);
-          loadTickets();
-          loadDevices();
-          loadCustomers();
-          loadManufacturers();
-          loadDeviceModels();
-          loadDocuments();
-          loadDeviceHistory();
-          loadMaintenancePlans();
-          loadServiceParts();
-          loadPartUsages();
-          loadInvoices();
-          loadNotifications();
-          loadContracts();
-          loadTechnicians();
+          setAppDataLoaded(false);
+          await loadUserProfile(currentSession.user.id);
+          await loadApplicationData();
         } else {
           setUserProfile(null);
           setProfileLoading(false);
+          setAppDataLoaded(false);
         }
       },
     );
@@ -919,24 +909,36 @@ export default function Home() {
     setAuthLoading(false);
 
     if (data.session) {
+      setAppDataLoaded(false);
       await loadUserProfile(data.session.user.id);
-      await loadTickets();
-      await loadDevices();
-      await loadCustomers();
-      await loadManufacturers();
-      await loadDeviceModels();
-      await loadDocuments();
-      await loadDeviceHistory();
-      await loadMaintenancePlans();
-      await loadServiceParts();
-      await loadPartUsages();
-      await loadInvoices();
-      await loadNotifications();
-      await loadContracts();
-      await loadTechnicians();
+      await loadApplicationData();
     } else {
       setProfileLoading(false);
+      setAppDataLoaded(false);
     }
+  }
+
+  async function loadApplicationData() {
+    setAppDataLoaded(false);
+
+    await Promise.all([
+      loadTickets(),
+      loadDevices(),
+      loadCustomers(),
+      loadManufacturers(),
+      loadDeviceModels(),
+      loadDocuments(),
+      loadDeviceHistory(),
+      loadMaintenancePlans(),
+      loadServiceParts(),
+      loadPartUsages(),
+      loadInvoices(),
+      loadNotifications(),
+      loadContracts(),
+      loadTechnicians(),
+    ]);
+
+    setAppDataLoaded(true);
   }
 
   async function checkLegalAcceptance(userId: string) {
@@ -7248,6 +7250,14 @@ FE-SERVICE`,
                   Alle offenen Servicefälle, Einsätze, UVV-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
                 </p>
 
+                <button
+                  type="button"
+                  onClick={loadApplicationData}
+                  className="mt-4 rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
+                >
+                  Dashboard neu laden
+                </button>
+
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <button
                     onClick={() => openPage("Service-Tickets")}
@@ -7291,13 +7301,19 @@ FE-SERVICE`,
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-5">
-                <StatCard label="Offene Tickets" value={openAdminTickets.length} />
-                <StatCard label="Heute Einsätze" value={todaysAdminTickets.length} />
-                <StatCard label="UVV/Wartung überfällig" value={overdueAdminMaintenancePlans.length} />
-                <StatCard label="Abnahmeprotokolle" value={acceptanceProtocolDocuments.length} />
-                <StatCard label="Protokolle bald fällig" value={upcomingAcceptanceProtocols.length} />
-              </div>
+              {!appDataLoaded ? (
+                <div className="rounded-[24px] bg-white p-6 text-sm font-black text-slate-500 shadow-sm">
+                  Dashboard-Daten werden vollständig geladen …
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-5">
+                  <StatCard label="Offene Tickets" value={openAdminTickets.length} />
+                  <StatCard label="Heute Einsätze" value={todaysAdminTickets.length} />
+                  <StatCard label="UVV/Wartung überfällig" value={overdueAdminMaintenancePlans.length} />
+                  <StatCard label="Abnahmeprotokolle" value={acceptanceProtocolDocuments.length} />
+                  <StatCard label="Protokolle bald fällig" value={upcomingAcceptanceProtocols.length} />
+                </div>
+              )}
 
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
