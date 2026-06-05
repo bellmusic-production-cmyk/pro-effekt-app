@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.9 · Geräte-Navigator mit Hersteller-Kacheln, Modell-Vorschau und begrenzter Suche
+// FE-Service App v2.1.9 · Geräte-Navigator mit visueller Vorschau
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -276,8 +276,8 @@ const deviceStatusOptions = [
   "Außer Betrieb",
 ];
 
-// Gerätebereich: Bei großem Gerätebestand wird nicht mehr eine endlose Liste gerendert.
-// Stattdessen startet der Bereich mit einem visuellen Geräte-Navigator.
+// Gerätebereich: Bei großem Gerätebestand nicht automatisch alle Kunden-Geräte rendern.
+// Start mit visueller Orientierung: Hersteller, Modelle, Vorschau. Suche/Filter bleibt begrenzt.
 const deviceDirectoryMinSearchLength = 1;
 const deviceDirectoryResultLimit = 100;
 const deviceDirectoryPreviewLimit = 20;
@@ -585,6 +585,8 @@ export default function Home() {
   const [customerDirectorySearch, setCustomerDirectorySearch] = useState("");
   const [customerTypeFilter, setCustomerTypeFilter] = useState("Alle");
   const [deviceDirectorySearch, setDeviceDirectorySearch] = useState("");
+  const [deviceNavigatorManufacturer, setDeviceNavigatorManufacturer] = useState("");
+  const [deviceNavigatorModel, setDeviceNavigatorModel] = useState("");
   const [manufacturerDirectorySearch, setManufacturerDirectorySearch] = useState("");
   const [deviceModelDirectorySearch, setDeviceModelDirectorySearch] = useState("");
   const [catalogManufacturerId, setCatalogManufacturerId] = useState("");
@@ -6594,10 +6596,6 @@ FE-SERVICE`,
     customerDirectorySearch.trim().length >= 1;
 
   const deviceDirectorySearchNormalized = deviceDirectorySearch.toLowerCase().trim();
-  const isDeviceDirectorySearchReady =
-    deviceDirectorySearchNormalized.length >= deviceDirectoryMinSearchLength ||
-    Boolean(deviceNavigatorManufacturer) ||
-    Boolean(deviceNavigatorModel);
 
   const getDeviceManufacturerLabel = (deviceItem: Device) =>
     deviceItem.manufacturer ||
@@ -6609,6 +6607,11 @@ FE-SERVICE`,
     getDeviceModelNameById(deviceItem.model_id) ||
     deviceItem.name ||
     "Unbekanntes Modell";
+
+  const isDeviceDirectorySearchReady =
+    deviceDirectorySearchNormalized.length >= deviceDirectoryMinSearchLength ||
+    Boolean(deviceNavigatorManufacturer) ||
+    Boolean(deviceNavigatorModel);
 
   const deviceManufacturerOverview = useMemo(() => {
     const counts = new Map<string, number>();
@@ -6657,7 +6660,7 @@ FE-SERVICE`,
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearchNormalized;
 
-    // Ohne Suche und ohne Navigator-Auswahl wird nur die Vorschau angezeigt.
+    // Ohne Suche und ohne Auswahl wird nur die visuelle Vorschau angezeigt.
     if (!isDeviceDirectorySearchReady) return [];
 
     return devices
@@ -6699,7 +6702,6 @@ FE-SERVICE`,
       })
       .slice(0, deviceDirectoryResultLimit);
   })();
-
 
   const filteredManufacturerDirectory = (() => {
     const search = manufacturerDirectorySearch.toLowerCase().trim();
@@ -10613,11 +10615,11 @@ FE-SERVICE`,
                 )}
 
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                  {isDeviceDirectorySearchReady && filteredDeviceDirectory.length === 0 ? (
+                  {!isDeviceDirectorySearchReady ? null : filteredDeviceDirectory.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
                       Keine Geräte gefunden.
                     </div>
-                  ) : isDeviceDirectorySearchReady ? (
+                  ) : (
                     filteredDeviceDirectory.map((item) => (
                       <div
                         key={item.id}
@@ -10702,7 +10704,7 @@ FE-SERVICE`,
                         </div>
                       </div>
                     ))
-                  ) : null}
+                  )}
                 </div>
               </div>
             </div>
