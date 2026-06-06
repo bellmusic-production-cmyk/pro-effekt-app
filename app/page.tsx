@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.31 · Technikerliste sicher aus Profilen laden
+// FE-Service App v2.1.32 · Einsatzfähige Technikerrollen bereinigt
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1415,8 +1415,45 @@ export default function Home() {
         return;
       }
 
-      const loadedProfiles = ((result?.data || []) as UserProfile[]).filter(
-        (profile) => profile.role === "technician" || profile.role === "admin",
+      const assignableProfiles = ((result?.data || []) as UserProfile[]).filter((profile) => {
+        const role = String(profile.role || "").toLowerCase();
+        const name = String(profile.full_name || "").trim().toLowerCase();
+
+        if (role === "technician") return true;
+
+        // Frank Ehlers ist Chef/Admin, aber auch einsatzfähig.
+        // Andere Admins, z. B. Frank Bell, sollen nicht im Techniker-Dropdown erscheinen.
+        if (role === "admin" && name === "frank ehlers") return true;
+
+        return false;
+      });
+
+      const profileByName = new Map<string, UserProfile>();
+
+      assignableProfiles.forEach((profile) => {
+        const nameKey = String(profile.full_name || profile.company || profile.id)
+          .trim()
+          .toLowerCase();
+
+        const existingProfile = profileByName.get(nameKey);
+
+        // Doppelte Personen vermeiden.
+        // Wenn eine Person als technician und admin existiert, wird technician bevorzugt.
+        if (!existingProfile) {
+          profileByName.set(nameKey, profile);
+          return;
+        }
+
+        if (existingProfile.role !== "technician" && profile.role === "technician") {
+          profileByName.set(nameKey, profile);
+        }
+      });
+
+      const loadedProfiles = Array.from(profileByName.values()).sort((a, b) =>
+        String(a.full_name || a.company || "").localeCompare(
+          String(b.full_name || b.company || ""),
+          "de",
+        ),
       );
 
       if (loadedProfiles.length === 0) {
