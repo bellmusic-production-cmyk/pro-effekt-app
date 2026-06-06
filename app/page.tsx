@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.32 · Einsatzfähige Technikerrollen bereinigt
+// FE-Service App v2.1.33 · QR-Scan Geräteübersicht gekürzt
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6453,25 +6453,81 @@ FE-SERVICE`,
     (ticket) => ticket.status === "Wartet auf Teile",
   );
 
-  const filteredQrDevices = devices.filter((item) => {
-    const search = qrSearchTerm.toLowerCase();
-
-    const linkedCustomer = item.customer_id
-      ? customers.find((customerItem) => customerItem.id === item.customer_id)
-      : null;
-
-    const matchesSearch =
-      item.name?.toLowerCase().includes(search) ||
-      item.serial_number?.toLowerCase().includes(search) ||
-      item.location?.toLowerCase().includes(search) ||
-      linkedCustomer?.company?.toLowerCase().includes(search);
-
+  const qrBaseDevices = devices.filter((item) => {
     if (isCustomer && userProfile?.customer_id) {
-      return item.customer_id === userProfile.customer_id && matchesSearch;
+      return item.customer_id === userProfile.customer_id;
     }
 
-    return matchesSearch;
+    return true;
   });
+
+  const qrPreviewDevices = qrBaseDevices.slice(0, 12);
+
+  const filteredQrDevices = (() => {
+    const search = qrSearchTerm.toLowerCase().trim();
+
+    const matchedDevices = qrBaseDevices.filter((item) => {
+      const linkedCustomer = item.customer_id
+        ? customers.find((customerItem) => customerItem.id === item.customer_id)
+        : null;
+
+      if (!search) return true;
+
+      return [
+        item.id,
+        item.name,
+        item.manufacturer,
+        getManufacturerNameById(item.manufacturer_id),
+        item.model,
+        getDeviceModelNameById(item.model_id),
+        item.serial_number,
+        item.location,
+        item.status,
+        linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+        linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
+
+    if (!search) {
+      return matchedDevices.slice(0, 12);
+    }
+
+    return matchedDevices.slice(0, 40);
+  })();
+
+  const qrMatchedDeviceCount = (() => {
+    const search = qrSearchTerm.toLowerCase().trim();
+
+    if (!search) return qrBaseDevices.length;
+
+    return qrBaseDevices.filter((item) => {
+      const linkedCustomer = item.customer_id
+        ? customers.find((customerItem) => customerItem.id === item.customer_id)
+        : null;
+
+      return [
+        item.id,
+        item.name,
+        item.manufacturer,
+        getManufacturerNameById(item.manufacturer_id),
+        item.model,
+        getDeviceModelNameById(item.model_id),
+        item.serial_number,
+        item.location,
+        item.status,
+        linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+        linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    }).length;
+  })();
 
   const invoiceRevenueGross = invoices
     .filter((item) => item.status === "Bezahlt")
@@ -12914,10 +12970,10 @@ FE-SERVICE`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="Geräte" value={filteredQrDevices.length} />
+                <StatCard label={qrSearchTerm.trim() ? "Treffer" : "Geräte gesamt"} value={qrMatchedDeviceCount} />
                 <StatCard
-                  label="Mit Kunde"
-                  value={filteredQrDevices.filter((item) => item.customer_id).length}
+                  label="Vorschau"
+                  value={filteredQrDevices.length}
                 />
                 <StatCard
                   label="Prüfung fällig"
@@ -12940,16 +12996,22 @@ FE-SERVICE`,
                   <div>
                     <h3 className="text-2xl font-black">Gerätesuche</h3>
                     <p className="mt-2 text-slate-600">
-                      Suche nach Kunde, Gerät, Seriennummer, Standort oder Geräte-ID.
+                      Es werden nur wenige Geräte als Vorschau angezeigt. Suche nach Kunde, Gerät, Seriennummer, Standort oder Geräte-ID.
                     </p>
                   </div>
 
                   <input
                     value={qrSearchTerm}
                     onChange={(e) => setQrSearchTerm(e.target.value)}
-                    placeholder="Gerät suchen..."
+                    placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                     className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                   />
+                </div>
+
+                <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-600">
+                  {qrSearchTerm.trim()
+                    ? `${qrMatchedDeviceCount} Treffer gefunden. Maximal 40 werden angezeigt.`
+                    : `${qrMatchedDeviceCount} Geräte vorhanden. Die ersten ${filteredQrDevices.length} werden als Vorschau angezeigt.`}
                 </div>
 
                 <div className="mt-6 grid gap-4 xl:grid-cols-2">
