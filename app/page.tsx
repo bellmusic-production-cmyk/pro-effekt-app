@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.51 · Abnahme Kundensuche mit exakter Phrase
+// FE-Service App v2.1.52 · Abnahme Geräteauswahl neutral ohne Kundenzuordnung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -5566,21 +5566,24 @@ FE-SERVICE`,
 
     if (!selectedDevice) return;
 
-    if (selectedDevice.customer_id) {
-      setAbnahmeCustomerId(String(selectedDevice.customer_id));
-      const linkedCustomer = customers.find((item) => item.id === selectedDevice.customer_id);
-      if (linkedCustomer) {
-        setAbnahmeCustomerNumber(linkedCustomer.customer_number || String(linkedCustomer.id));
-        setAbnahmeCustomerSearch(getCustomerLabel(linkedCustomer));
-        setAbnahmeAddressObject(buildCustomerAddress(linkedCustomer) || selectedDevice.location || "");
-      }
-    }
-
-    setAbnahmeManufacturer(selectedDevice.manufacturer || getManufacturerNameById(selectedDevice.manufacturer_id) || "");
-    setAbnahmeModel(selectedDevice.name || "");
-    setAbnahmeSerial(selectedDevice.serial_number || "");
-    setAbnahmeAddressObject(selectedDevice.location || "");
-    setAbnahmeDefects(selectedDevice.note || "");
+    // Wichtig:
+    // Geräteauswahl im Abnahmeprotokoll ist neutral.
+    // Der vorher ausgewählte Kunde darf NICHT überschrieben werden.
+    // Seriennummer, Standort, Kundenverknüpfung und Gerätenotizen aus Kundengeräten
+    // werden NICHT übernommen, weil sie pro Kunde/Gerät individuell sind.
+    setAbnahmeManufacturer(
+      selectedDevice.manufacturer ||
+        getManufacturerNameById(selectedDevice.manufacturer_id) ||
+        "",
+    );
+    setAbnahmeModel(
+      getDeviceModelNameById(selectedDevice.model_id) ||
+        selectedDevice.model ||
+        selectedDevice.name ||
+        "",
+    );
+    setAbnahmeSerial("");
+    setAbnahmeDefects("");
   }
 
   function getAbnahmeCanvasContext(canvas: HTMLCanvasElement | null) {
@@ -6275,7 +6278,7 @@ FE-SERVICE`,
           file_path: filePath,
           category: "Abnahmeprotokolle",
           file_size: pdfBlob.size,
-          device_id: selectedDevice?.id || null,
+          device_id: null,
           ticket_id: selectedTicket?.id || null,
           customer_id:
             Number(abnahmeCustomerId) ||
@@ -6291,7 +6294,7 @@ FE-SERVICE`,
       }
 
       await createDeviceHistory(
-        selectedDevice?.id || null,
+        null,
         "Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung als PDF archiviert",
         `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
         "PDF",
@@ -6350,7 +6353,7 @@ FE-SERVICE`,
           file_path: filePath,
           category: "Abnahmeprotokolle",
           file_size: pdfBlob.size,
-          device_id: selectedDevice?.id || null,
+          device_id: null,
           ticket_id: selectedTicket?.id || null,
           customer_id:
             Number(abnahmeCustomerId) ||
@@ -6367,7 +6370,7 @@ FE-SERVICE`,
       }
 
       await createDeviceHistory(
-        selectedDevice?.id || null,
+        null,
         "Abnahmeprotokoll Wartung + DGUV / U.V.V Prüfung als PDF archiviert",
         `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
         "PDF",
@@ -7763,54 +7766,83 @@ FE-SERVICE`,
   })();
 
   const abnahmeDevices = (() => {
-    const search = abnahmeDeviceSearch.trim().toLowerCase();
+    const normalizeSearchValue = (value: any) =>
+      String(value ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9äöüß]+/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 
-    const baseDevices =
-      isCustomer && userProfile?.customer_id
-        ? devices.filter((deviceItem) => deviceItem.customer_id === userProfile.customer_id)
-        : devices;
+    const search = normalizeSearchValue(abnahmeDeviceSearch);
+    const searchParts = search.split(/\s+/).filter(Boolean);
 
-    const selectedCustomerId = abnahmeCustomerId ? Number(abnahmeCustomerId) : null;
+    // Wichtig:
+    // Abnahmeprotokolle arbeiten neutral mit Hersteller / Modell / Gerätetyp.
+    // Kundengeräte, Seriennummern und Kundenverknüpfungen bleiben in der Geräteakte erhalten,
+    // werden hier aber bewusst NICHT übernommen und NICHT angezeigt.
+    const neutralDeviceMap = new Map<string, Device>();
 
-    const sortedDevices = [...baseDevices].sort((a, b) => {
-      const aMatchesCustomer = selectedCustomerId ? a.customer_id === selectedCustomerId : false;
-      const bMatchesCustomer = selectedCustomerId ? b.customer_id === selectedCustomerId : false;
+    devices.forEach((deviceItem) => {
+      const manufacturerName =
+        deviceItem.manufacturer ||
+        getManufacturerNameById(deviceItem.manufacturer_id) ||
+        "";
 
-      if (aMatchesCustomer && !bMatchesCustomer) return -1;
-      if (!aMatchesCustomer && bMatchesCustomer) return 1;
+      const modelName =
+        getDeviceModelNameById(deviceItem.model_id) ||
+        deviceItem.model ||
+        "";
 
-      return String(a.name || "").localeCompare(String(b.name || ""));
-    });
+      const deviceName = deviceItem.name || modelName || "Unbekanntes Gerät";
 
-    if (!search) return sortedDevices;
-
-    return sortedDevices.filter((deviceItem) => {
-      const linkedCustomer = deviceItem.customer_id
-        ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
-        : null;
-
-      const searchableText = [
-        deviceItem.name,
-        deviceItem.manufacturer,
-        getManufacturerNameById(deviceItem.manufacturer_id),
-        deviceItem.serial_number,
-        deviceItem.location,
-        deviceItem.status,
-        deviceItem.note,
-        linkedCustomer?.company,
-        linkedCustomer?.contact_person,
-        linkedCustomer?.first_name,
-        linkedCustomer?.last_name,
-        linkedCustomer ? getCustomerDisplayName(linkedCustomer) : "",
-        linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-        linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+      const key = [
+        normalizeSearchValue(manufacturerName),
+        normalizeSearchValue(modelName),
+        normalizeSearchValue(deviceName),
       ]
         .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+        .join("|");
 
-      return searchableText.includes(search);
+      if (!key || neutralDeviceMap.has(key)) return;
+
+      neutralDeviceMap.set(key, {
+        ...deviceItem,
+        name: deviceName,
+        manufacturer: manufacturerName || null,
+        model: modelName || null,
+        serial_number: null,
+        location: null,
+        customer_id: null,
+        note: null,
+      });
     });
+
+    const neutralDevices = Array.from(neutralDeviceMap.values()).sort((a, b) => {
+      const aLabel = `${a.manufacturer || getManufacturerNameById(a.manufacturer_id) || ""} ${a.model || ""} ${a.name || ""}`;
+      const bLabel = `${b.manufacturer || getManufacturerNameById(b.manufacturer_id) || ""} ${b.model || ""} ${b.name || ""}`;
+      return aLabel.localeCompare(bLabel, "de");
+    });
+
+    if (!search || search.length < 2) return neutralDevices.slice(0, 20);
+
+    return neutralDevices
+      .filter((deviceItem) => {
+        const searchableText = [
+          deviceItem.name,
+          deviceItem.model,
+          getDeviceModelNameById(deviceItem.model_id),
+          deviceItem.manufacturer,
+          getManufacturerNameById(deviceItem.manufacturer_id),
+        ]
+          .filter(Boolean)
+          .map(normalizeSearchValue)
+          .join(" ");
+
+        return searchParts.every((part) => searchableText.includes(part));
+      })
+      .slice(0, 30);
   })();
 
 
@@ -12379,16 +12411,19 @@ FE-SERVICE`,
 
                       <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                         <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                          Gerät suchen und auswählen
+                          Gerät / Modell neutral suchen und auswählen
                         </label>
                         <input
                           value={abnahmeDeviceSearch}
                           onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
-                          placeholder="Gerätename, Seriennummer, Hersteller, Standort"
+                          placeholder="Gerätename, Modell oder Hersteller suchen"
                           className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-green-500"
                         />
                         <p className="mt-2 text-xs font-bold text-slate-500">
-                          {devices.length} Geräte geladen · {abnahmeDevices.length} Treffer
+                          {abnahmeDevices.length} neutrale Modell-/Gerätetreffer · ohne Seriennummer und Kundenzuordnung
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-green-700">
+                          Der ausgewählte Kunde bleibt bestehen. Kundengeräte und Seriennummern werden nicht verändert.
                         </p>
 
                         <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
@@ -12416,11 +12451,10 @@ FE-SERVICE`,
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-slate-500">
                                   {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                  {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
+                                  {deviceItem.model || getDeviceModelNameById(deviceItem.model_id) ? ` · ${deviceItem.model || getDeviceModelNameById(deviceItem.model_id)}` : ""}
                                 </p>
                                 <p className="mt-1 text-xs font-bold text-slate-400">
-                                  {deviceItem.location || "Kein Standort"}
-                                  {deviceItem.customer_id ? ` · ${getCustomerNameById(deviceItem.customer_id)}` : " · keinem Kunden zugeordnet"}
+                                  Neutraler Gerätetyp · keine Seriennummer · keine Kundenzuordnung
                                 </p>
                               </button>
                             ))
@@ -12457,7 +12491,7 @@ FE-SERVICE`,
                       <option value="">Gerät manuell auswählen</option>
                       {abnahmeDevices.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {item.name} · {item.serial_number || "ohne Seriennr."}
+                            {item.manufacturer || getManufacturerNameById(item.manufacturer_id) || "Hersteller unbekannt"} · {item.model || getDeviceModelNameById(item.model_id) || item.name}
                           </option>
                         ))}
                     </select>
