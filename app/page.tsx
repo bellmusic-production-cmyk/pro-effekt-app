@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.43 · Ticketliste Alle nach Einstelldatum sortiert
+// FE-Service App v2.1.44 · Mobile Ticketbereiche einklappbar
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -666,6 +666,8 @@ export default function Home() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewName, setPreviewName] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileTicketFormOpen, setMobileTicketFormOpen] = useState(false);
+  const [mobileTicketListOpen, setMobileTicketListOpen] = useState(false);
 
   useEffect(() => {
     checkSession();
@@ -2309,6 +2311,7 @@ export default function Home() {
 
   function startEdit(ticket: Ticket) {
     setActivePage("Service-Tickets");
+    setMobileTicketFormOpen(true);
     setEditingTicket(ticket);
     setCustomer(ticket.customer || "");
     setTicketCustomerSearch(ticket.customer || "");
@@ -3803,6 +3806,7 @@ export default function Home() {
       : null;
 
     setActivePage("Service-Tickets");
+    setMobileTicketFormOpen(true);
     const nextCustomerName = linkedCustomer ? getCustomerLabel(linkedCustomer) : "";
     setCustomer(nextCustomerName);
     setSelectedTicketCustomerId(linkedCustomer ? String(linkedCustomer.id) : "");
@@ -3823,6 +3827,7 @@ export default function Home() {
 
   function createTicketFromCustomer(item: Customer) {
     setActivePage("Service-Tickets");
+    setMobileTicketFormOpen(true);
     const nextCustomerName = getCustomerLabel(item);
     setCustomer(nextCustomerName);
     setSelectedTicketCustomerId(String(item.id));
@@ -3846,6 +3851,7 @@ export default function Home() {
 
   function createInspectionTicket(item: Device) {
     setActivePage("Service-Tickets");
+    setMobileTicketFormOpen(true);
     setDevice(item.name);
     setIssue(`Prüfung / Prüfsiegel für ${item.name}`);
     setDescription(
@@ -8289,7 +8295,7 @@ FE-SERVICE`,
                       : `${sortedOpenAdminTickets.length} offene Ticket(s). Die ersten ${Math.min(sortedOpenAdminTickets.length, 5)} werden nach Priorität und Termin angezeigt.`}
                   </div>
 
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                  <div className={`mt-5 min-w-0 space-y-3 overflow-hidden ${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
                     {openAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine offenen Tickets.
@@ -13576,13 +13582,22 @@ FE-SERVICE`,
                     editingTicket ? "ring-4 ring-green-200" : ""
                   }`}
                 >
-                  <h3 className="text-xl font-black">
+                  <button
+                    type="button"
+                    onClick={() => setMobileTicketFormOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-2xl bg-green-600 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                  >
+                    <span>{editingTicket ? "Ticket bearbeiten" : "Neues Ticket erstellen"}</span>
+                    <span>{mobileTicketFormOpen || editingTicket ? "▲" : "▼"}</span>
+                  </button>
+
+                  <h3 className="hidden text-xl font-black md:block">
                     {editingTicket
                       ? "Ticket bearbeiten"
                       : "Neues Service-Ticket"}
                   </h3>
 
-                  <div className="mt-5 space-y-4">
+                  <div className={`mt-5 space-y-4 ${mobileTicketFormOpen || editingTicket ? "block" : "hidden"} md:block`}>
                     {isCustomer ? (
                       <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
                         <p className="text-sm font-bold text-green-700">
@@ -13994,9 +14009,18 @@ FE-SERVICE`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Ticketliste</h3>
+                  <button
+                    type="button"
+                    onClick={() => setMobileTicketListOpen((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-2xl bg-green-600 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                  >
+                    <span>Ticketliste</span>
+                    <span>{mobileTicketListOpen ? "▲" : "▼"}</span>
+                  </button>
 
-                  <div className="mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4">
+                  <h3 className="hidden text-xl font-black md:block">Ticketliste</h3>
+
+                  <div className={`mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4 ${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
