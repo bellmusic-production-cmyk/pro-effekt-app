@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.36 · Ticketart-Dropdown mit Mehrfachauswahl
+// FE-Service App v2.1.37 · Auftraggeber und manueller Einsatzort im Ticket
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -17,6 +17,12 @@ type Ticket = {
   priority: string;
   status: string;
   customer_id?: number | null;
+  billing_customer_id?: number | null;
+  service_location_name?: string | null;
+  service_address?: string | null;
+  service_contact_name?: string | null;
+  service_contact_phone?: string | null;
+  service_contact_email?: string | null;
   assigned_to?: string | null;
   assigned_at?: string | null;
   service_date?: string | null;
@@ -425,6 +431,11 @@ export default function Home() {
   const [ticketTypeDropdownOpen, setTicketTypeDropdownOpen] = useState(false);
   const [ticketCustomerSearch, setTicketCustomerSearch] = useState("");
   const [ticketDeviceSearch, setTicketDeviceSearch] = useState("");
+  const [serviceLocationName, setServiceLocationName] = useState("");
+  const [serviceAddress, setServiceAddress] = useState("");
+  const [serviceContactName, setServiceContactName] = useState("");
+  const [serviceContactPhone, setServiceContactPhone] = useState("");
+  const [serviceContactEmail, setServiceContactEmail] = useState("");
   const [issue, setIssue] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Mittel");
@@ -804,6 +815,12 @@ export default function Home() {
           ticket.issue,
           ticket.device,
           ticket.description,
+          ticket.billing_customer_id,
+          ticket.service_location_name,
+          ticket.service_address,
+          ticket.service_contact_name,
+          ticket.service_contact_phone,
+          ticket.service_contact_email,
           linkedTicketCustomer?.customer_number,
           linkedTicketCustomer?.supplier_number,
           linkedTicketCustomer?.contact_person,
@@ -2196,6 +2213,11 @@ export default function Home() {
     setTicketTypeDropdownOpen(false);
     setTicketCustomerSearch("");
     setTicketDeviceSearch("");
+    setServiceLocationName("");
+    setServiceAddress("");
+    setServiceContactName("");
+    setServiceContactPhone("");
+    setServiceContactEmail("");
     setIssue("");
     setDescription("");
     setPriority("Mittel");
@@ -2268,6 +2290,11 @@ export default function Home() {
     setDevice(ticket.device || "");
     setTicketDeviceSearch(ticket.device || "");
     setCustomDeviceName("");
+    setServiceLocationName(ticket.service_location_name || "");
+    setServiceAddress(ticket.service_address || "");
+    setServiceContactName(ticket.service_contact_name || "");
+    setServiceContactPhone(ticket.service_contact_phone || "");
+    setServiceContactEmail(ticket.service_contact_email || "");
     const parsedTicketIssue = splitTicketIssue(ticket.issue || "");
     setTicketTypes(parsedTicketIssue.types);
     setTicketTypeDropdownOpen(false);
@@ -2359,10 +2386,42 @@ export default function Home() {
       return;
     }
 
+    const cleanedServiceLocationName = serviceLocationName.trim();
+    const cleanedServiceAddress = serviceAddress.trim();
+    const cleanedServiceContactName = serviceContactName.trim();
+    const cleanedServiceContactPhone = serviceContactPhone.trim();
+    const cleanedServiceContactEmail = serviceContactEmail.trim();
+
+    if (!cleanedServiceLocationName && !cleanedServiceAddress && selectedCustomer) {
+      const useBillingAddress = confirm(
+        "Kein Einsatzort eingetragen. Soll die Adresse des Auftraggebers als Einsatzort übernommen werden?",
+      );
+
+      if (useBillingAddress) {
+        setServiceLocationName(getCustomerLabel(selectedCustomer));
+        setServiceAddress(buildCustomerAddress(selectedCustomer));
+      }
+    }
+
+    const finalServiceLocationName =
+      cleanedServiceLocationName || selectedCustomer
+        ? cleanedServiceLocationName || getCustomerLabel(selectedCustomer as Customer)
+        : "";
+    const finalServiceAddress =
+      cleanedServiceAddress || selectedCustomer
+        ? cleanedServiceAddress || buildCustomerAddress(selectedCustomer as Customer)
+        : "";
+
     const baseTicketPayload = {
       ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
       customer: currentCustomerName,
       customer_id: currentCustomerId,
+      billing_customer_id: currentCustomerId,
+      service_location_name: finalServiceLocationName || null,
+      service_address: finalServiceAddress || null,
+      service_contact_name: cleanedServiceContactName || null,
+      service_contact_phone: cleanedServiceContactPhone || null,
+      service_contact_email: cleanedServiceContactEmail || null,
       device: currentDeviceName,
       issue: `${getTicketTypeLabel()}: ${issue.trim()}`,
       description,
@@ -2441,6 +2500,12 @@ export default function Home() {
       .from("tickets")
       .update({
         customer,
+        billing_customer_id: editingTicket.billing_customer_id || editingTicket.customer_id || null,
+        service_location_name: serviceLocationName.trim() || null,
+        service_address: serviceAddress.trim() || null,
+        service_contact_name: serviceContactName.trim() || null,
+        service_contact_phone: serviceContactPhone.trim() || null,
+        service_contact_email: serviceContactEmail.trim() || null,
         device: currentDeviceName,
         issue: nextIssue,
         description,
@@ -2643,11 +2708,14 @@ export default function Home() {
           <div class="box grid">
             <div><div class="label">Ticket</div><div class="value">${ticket.ticket_number || "-"}</div></div>
             <div><div class="label">Datum</div><div class="value">${new Date().toLocaleDateString("de-DE")}</div></div>
-            <div><div class="label">Kunde</div><div class="value">${relatedCustomer?.company || ticket.customer || "-"}</div></div>
-            <div><div class="label">Ansprechpartner</div><div class="value">${relatedCustomer?.contact_person || "-"}</div></div>
+            <div><div class="label">Auftraggeber</div><div class="value">${relatedCustomer?.company || ticket.customer || "-"}</div></div>
+            <div><div class="label">Kundennummer</div><div class="value">${relatedCustomer?.customer_number || "-"}</div></div>
+            <div><div class="label">Einsatzort</div><div class="value">${ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-"}</div></div>
+            <div><div class="label">Ansprechpartner vor Ort</div><div class="value">${ticket.service_contact_name || relatedCustomer?.contact_person || "-"}</div></div>
+            <div><div class="label">Einsatzadresse</div><div class="value">${ticket.service_address || relatedDevice?.location || "-"}</div></div>
+            <div><div class="label">Telefon vor Ort</div><div class="value">${ticket.service_contact_phone || relatedCustomer?.phone || "-"}</div></div>
             <div><div class="label">Gerät</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
             <div><div class="label">Seriennummer</div><div class="value">${relatedDevice?.serial_number || "-"}</div></div>
-            <div><div class="label">Standort</div><div class="value">${relatedDevice?.location || "-"}</div></div>
             <div><div class="label">Techniker</div><div class="value">${technicianName}</div></div>
           </div>
 
@@ -2819,9 +2887,11 @@ export default function Home() {
 
     sectionTitle("Kunde & Gerät");
     infoBox([
-      ["Kunde", relatedCustomer?.company || ticket.customer || "-", "Ansprechpartner", relatedCustomer?.contact_person || "-"],
+      ["Auftraggeber", relatedCustomer?.company || ticket.customer || "-", "Kundennummer", relatedCustomer?.customer_number || "-"],
+      ["Einsatzort", ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-", "Ansprechpartner vor Ort", ticket.service_contact_name || relatedCustomer?.contact_person || "-"],
+      ["Einsatzadresse", ticket.service_address || relatedDevice?.location || "-", "Telefon vor Ort", ticket.service_contact_phone || relatedCustomer?.phone || "-"],
       ["Gerät", ticket.device || relatedDevice?.name || "-", "Seriennummer", relatedDevice?.serial_number || "-"],
-      ["Standort", relatedDevice?.location || "-", "Techniker", technicianName],
+      ["Standort Gerät", relatedDevice?.location || "-", "Techniker", technicianName],
     ]);
 
     sectionTitle("Auftrag");
@@ -3063,11 +3133,14 @@ export default function Home() {
 
           <h2>Kunde & Gerät</h2>
           <div class="box grid">
-            <div><div class="label">Kunde</div><div class="value">${relatedCustomer?.company || ticket.customer || "-"}</div></div>
-            <div><div class="label">Ansprechpartner</div><div class="value">${relatedCustomer?.contact_person || "-"}</div></div>
+            <div><div class="label">Auftraggeber</div><div class="value">${relatedCustomer?.company || ticket.customer || "-"}</div></div>
+            <div><div class="label">Kundennummer</div><div class="value">${relatedCustomer?.customer_number || "-"}</div></div>
+            <div><div class="label">Einsatzort</div><div class="value">${ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-"}</div></div>
+            <div><div class="label">Ansprechpartner vor Ort</div><div class="value">${ticket.service_contact_name || relatedCustomer?.contact_person || "-"}</div></div>
+            <div><div class="label">Einsatzadresse</div><div class="value">${ticket.service_address || relatedDevice?.location || "-"}</div></div>
+            <div><div class="label">Telefon vor Ort</div><div class="value">${ticket.service_contact_phone || relatedCustomer?.phone || "-"}</div></div>
             <div><div class="label">Gerät</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
             <div><div class="label">Seriennummer</div><div class="value">${relatedDevice?.serial_number || "-"}</div></div>
-            <div><div class="label">Standort</div><div class="value">${relatedDevice?.location || "-"}</div></div>
             <div><div class="label">Techniker</div><div class="value">${technicianName}</div></div>
           </div>
 
@@ -3709,6 +3782,11 @@ export default function Home() {
     setDevice(item.name);
     setTicketDeviceSearch(item.name);
     setCustomDeviceName("");
+    setServiceLocationName(linkedCustomer ? getCustomerLabel(linkedCustomer) : "");
+    setServiceAddress(linkedCustomer ? buildCustomerAddress(linkedCustomer) : item.location || "");
+    setServiceContactName(linkedCustomer?.contact_person || "");
+    setServiceContactPhone(linkedCustomer?.phone || "");
+    setServiceContactEmail(linkedCustomer?.email || "");
     setIssue(`Service für ${item.name}`);
     setDescription(item.note || "");
     setPriority(item.status === "Prüfung erforderlich" ? "Hoch" : "Mittel");
@@ -3722,7 +3800,12 @@ export default function Home() {
     setTicketCustomerSearch(nextCustomerName);
     setDevice("");
     setTicketDeviceSearch("");
-    setIssue(`Service-Anfrage ${item.company || ""}`);
+    setServiceLocationName(getCustomerLabel(item));
+    setServiceAddress(buildCustomerAddress(item));
+    setServiceContactName(item.contact_person || "");
+    setServiceContactPhone(item.phone || "");
+    setServiceContactEmail(item.email || "");
+    setIssue(`Service-Anfrage ${item.company || getCustomerDisplayName(item) || ""}`);
     setDescription(
       `Ansprechpartner: ${item.contact_person || "nicht angegeben"}\nTelefon: ${
         item.phone || "nicht angegeben"
@@ -9275,7 +9358,7 @@ FE-SERVICE`,
                         {!isCustomer && selectedUploadCustomer && (
                           <div className="mt-3 rounded-2xl border border-green-200 bg-white p-3">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
-                              Ausgewählter Kunde
+                              Ausgewählter Auftraggeber
                             </p>
                             <p className="mt-1 font-black text-slate-900">
                               {getCustomerLabel(selectedUploadCustomer)}
@@ -11785,7 +11868,7 @@ FE-SERVICE`,
                     <div className="grid gap-4 xl:grid-cols-2">
                       <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                         <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                          Kunde suchen und auswählen
+                          Auftraggeber / Rechnungsempfänger suchen
                         </label>
                         <input
                           value={abnahmeCustomerSearch}
@@ -13242,7 +13325,7 @@ FE-SERVICE`,
                             setDevice("");
                             setTicketDeviceSearch("");
                           }}
-                          placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
+                          placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                           className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         />
 
@@ -13281,6 +13364,11 @@ FE-SERVICE`,
                                   const nextCustomerName = getCustomerLabel(customerItem);
                                   setCustomer(nextCustomerName);
                                   setTicketCustomerSearch(nextCustomerName);
+                                  if (!serviceLocationName.trim()) setServiceLocationName(nextCustomerName);
+                                  if (!serviceAddress.trim()) setServiceAddress(buildCustomerAddress(customerItem));
+                                  if (!serviceContactName.trim()) setServiceContactName(customerItem.contact_person || "");
+                                  if (!serviceContactPhone.trim()) setServiceContactPhone(customerItem.phone || "");
+                                  if (!serviceContactEmail.trim()) setServiceContactEmail(customerItem.email || "");
                                   setDevice("");
                                   setTicketDeviceSearch("");
                                 }}
@@ -13299,6 +13387,54 @@ FE-SERVICE`,
                         )}
                       </div>
                     )}
+
+                    <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-bold text-slate-700">
+                        Einsatzort / Leistungsadresse <span className="text-slate-400">(manuell)</span>
+                      </p>
+
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <input
+                          value={serviceLocationName}
+                          onChange={(e) => setServiceLocationName(e.target.value)}
+                          placeholder="Standort/Firma, z. B. Hotel Sonnenhof"
+                          className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                        />
+
+                        <input
+                          value={serviceContactName}
+                          onChange={(e) => setServiceContactName(e.target.value)}
+                          placeholder="Ansprechpartner vor Ort"
+                          className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                        />
+
+                        <input
+                          value={serviceContactPhone}
+                          onChange={(e) => setServiceContactPhone(e.target.value)}
+                          placeholder="Telefon vor Ort"
+                          className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                        />
+
+                        <input
+                          value={serviceContactEmail}
+                          onChange={(e) => setServiceContactEmail(e.target.value)}
+                          placeholder="E-Mail vor Ort"
+                          className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                        />
+                      </div>
+
+                      <textarea
+                        value={serviceAddress}
+                        onChange={(e) => setServiceAddress(e.target.value)}
+                        placeholder="Straße, Hausnummer, PLZ, Ort"
+                        rows={3}
+                        className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                      />
+
+                      <p className="mt-3 text-xs font-bold text-slate-500">
+                        Auftraggeber bleibt Rechnungsempfänger. Einsatzort ist die tatsächliche Anfahrtsadresse.
+                      </p>
+                    </div>
 
                     <div className="min-w-0 overflow-visible rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
@@ -13644,7 +13780,7 @@ FE-SERVICE`,
                               <p className="mt-1 break-words text-sm font-semibold text-slate-700">
                                 {(() => {
                                   const linkedCustomer =
-                                    customers.find((item) => item.id === ticket.customer_id) ||
+                                    customers.find((item) => item.id === (ticket.billing_customer_id || ticket.customer_id)) ||
                                     customers.find((item) => getCustomerLabel(item) === ticket.customer) ||
                                     customers.find((item) => item.company === ticket.customer) ||
                                     null;
@@ -13654,6 +13790,27 @@ FE-SERVICE`,
                                     : "Kundennr.: nicht hinterlegt";
                                 })()}
                               </p>
+
+                              {(ticket.service_location_name || ticket.service_address) && (
+                                <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-3">
+                                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                    Einsatzort
+                                  </p>
+                                  <p className="mt-1 break-words text-sm font-black text-slate-800">
+                                    {ticket.service_location_name || "Ohne Standortname"}
+                                  </p>
+                                  {ticket.service_address && (
+                                    <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-slate-600">
+                                      {ticket.service_address}
+                                    </p>
+                                  )}
+                                  {(ticket.service_contact_name || ticket.service_contact_phone) && (
+                                    <p className="mt-1 break-words text-xs font-bold text-slate-500">
+                                      {ticket.service_contact_name || "Ansprechpartner"}{ticket.service_contact_phone ? ` · ${ticket.service_contact_phone}` : ""}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
 
                               <p className="mt-2 break-words text-base font-bold text-slate-800">
                                 {ticket.issue}
