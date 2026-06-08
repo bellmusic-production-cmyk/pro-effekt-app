@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.35 · Ticketarten Mehrfachauswahl und Dienstleistung
+// FE-Service App v2.1.36 · Ticketart-Dropdown mit Mehrfachauswahl
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -422,6 +422,7 @@ export default function Home() {
   const [device, setDevice] = useState("");
   const [customDeviceName, setCustomDeviceName] = useState("");
   const [ticketTypes, setTicketTypes] = useState<string[]>(["Reparatur"]);
+  const [ticketTypeDropdownOpen, setTicketTypeDropdownOpen] = useState(false);
   const [ticketCustomerSearch, setTicketCustomerSearch] = useState("");
   const [ticketDeviceSearch, setTicketDeviceSearch] = useState("");
   const [issue, setIssue] = useState("");
@@ -2192,6 +2193,7 @@ export default function Home() {
     setDevice("");
     setCustomDeviceName("");
     setTicketTypes(["Reparatur"]);
+    setTicketTypeDropdownOpen(false);
     setTicketCustomerSearch("");
     setTicketDeviceSearch("");
     setIssue("");
@@ -2268,6 +2270,7 @@ export default function Home() {
     setCustomDeviceName("");
     const parsedTicketIssue = splitTicketIssue(ticket.issue || "");
     setTicketTypes(parsedTicketIssue.types);
+    setTicketTypeDropdownOpen(false);
     setIssue(parsedTicketIssue.subject);
     setDescription(ticket.description || "");
     setPriority(ticket.priority || "Mittel");
@@ -13297,35 +13300,69 @@ FE-SERVICE`,
                       </div>
                     )}
 
-                    <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="min-w-0 overflow-visible rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
-                        Art des Tickets <span className="text-slate-400">(Mehrfachauswahl möglich)</span>
+                        Art des Tickets <span className="text-slate-400">(Mehrfachauswahl)</span>
                       </p>
 
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        {ticketTypeOptions.map((typeName) => {
-                          const checked = ticketTypes.includes(typeName);
+                      <div className="relative mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setTicketTypeDropdownOpen((prev) => !prev)}
+                          className="flex w-full items-center justify-between rounded-2xl border border-slate-300 bg-white px-5 py-4 text-left text-base font-black text-slate-900"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {getTicketTypeLabel()}
+                          </span>
+                          <span className="ml-3 text-slate-500">
+                            {ticketTypeDropdownOpen ? "▲" : "▼"}
+                          </span>
+                        </button>
 
-                          return (
-                            <button
-                              key={typeName}
-                              type="button"
-                              onClick={() => toggleTicketType(typeName)}
-                              className={`rounded-2xl border px-4 py-3 text-left text-sm font-black transition-all ${
-                                checked
-                                  ? "border-green-500 bg-green-50 text-green-700"
-                                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                              }`}
-                            >
-                              <span className="mr-2">{checked ? "✓" : "＋"}</span>
-                              {typeName}
-                            </button>
-                          );
-                        })}
+                        {ticketTypeDropdownOpen && (
+                          <div className="absolute left-0 right-0 z-30 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            {ticketTypeOptions.map((typeName) => {
+                              const checked = ticketTypes.includes(typeName);
+
+                              return (
+                                <button
+                                  key={typeName}
+                                  type="button"
+                                  onClick={() => toggleTicketType(typeName)}
+                                  className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-black transition-all ${
+                                    checked
+                                      ? "bg-green-50 text-green-700"
+                                      : "text-slate-700 hover:bg-slate-100"
+                                  }`}
+                                >
+                                  <span>{typeName}</span>
+                                  <span>{checked ? "✓" : ""}</span>
+                                </button>
+                              );
+                            })}
+
+                            <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setTicketTypes(["Reparatur"])}
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
+                              >
+                                Zurücksetzen
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setTicketTypeDropdownOpen(false)}
+                                className="rounded-xl bg-green-600 px-3 py-2 text-xs font-black text-white"
+                              >
+                                Fertig
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-600">
-                        Ausgewählt: {getTicketTypeLabel()}
+                      <p className="mt-3 text-xs font-bold text-slate-500">
+                        Mehrere Leistungen sind möglich, z. B. Wartung + Reparatur.
                       </p>
                     </div>
 
