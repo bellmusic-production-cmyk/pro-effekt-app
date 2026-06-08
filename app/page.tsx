@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.41 · Auftraggeber-ID exakt und Einsatzort nur manuell/abweichend
+// FE-Service App v2.1.42 · Ticketliste Alle zeigt alle Tickets
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -872,7 +872,8 @@ export default function Home() {
 
 
 
-  const ticketListPreviewTickets = filteredTickets.slice(0, 5);
+  const ticketListDisplayTickets =
+    statusFilter === "Alle" ? filteredTickets : filteredTickets.slice(0, 5);
 
   const visibleRoleTickets = useMemo(() => {
     return tickets.filter((ticket) => {
@@ -14028,7 +14029,7 @@ FE-SERVICE`,
                         Keine Tickets gefunden.
                       </div>
                     ) : (
-                      ticketListPreviewTickets.map((ticket) => {
+                      ticketListDisplayTickets.map((ticket) => {
                         const billingCustomer =
                           customers.find((item) => item.id === (ticket.billing_customer_id || ticket.customer_id)) ||
                           customers.find((item) => getCustomerLabel(item) === ticket.customer) ||
