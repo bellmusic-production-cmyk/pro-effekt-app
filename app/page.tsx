@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.52 · Abnahme Geräteauswahl neutral ohne Kundenzuordnung
+// FE-Service App v2.1.53 · Abnahme Suche Scroll Reset und stabile Treffer
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -662,6 +662,8 @@ export default function Home() {
   const abnahmeCustomerCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const abnahmeTechnicianDrawingRef = useRef(false);
   const abnahmeCustomerDrawingRef = useRef(false);
+  const abnahmeCustomerResultsRef = useRef<HTMLDivElement | null>(null);
+  const abnahmeDeviceResultsRef = useRef<HTMLDivElement | null>(null);
 
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewName, setPreviewName] = useState("");
@@ -750,6 +752,20 @@ export default function Home() {
     documentCustomerFilter,
     documentDeviceFilter,
   ]);
+
+  useEffect(() => {
+    if (abnahmeCustomerResultsRef.current) {
+      abnahmeCustomerResultsRef.current.scrollTop = 0;
+      abnahmeCustomerResultsRef.current.scrollLeft = 0;
+    }
+  }, [abnahmeCustomerSearch]);
+
+  useEffect(() => {
+    if (abnahmeDeviceResultsRef.current) {
+      abnahmeDeviceResultsRef.current.scrollTop = 0;
+      abnahmeDeviceResultsRef.current.scrollLeft = 0;
+    }
+  }, [abnahmeDeviceSearch]);
 
   useEffect(() => {
     if (devices.length === 0) return;
@@ -8478,7 +8494,7 @@ FE-SERVICE`,
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Offene Tickets</h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                      <p className="mt-1 break-words text-sm font-semibold text-slate-500">
                         Alles, was noch nicht abgeschlossen ist.
                       </p>
                     </div>
@@ -8617,7 +8633,7 @@ FE-SERVICE`,
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-black">Heutige Einsätze</h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                      <p className="mt-1 break-words text-sm font-semibold text-slate-500">
                         Alle Tickets mit Termin heute.
                       </p>
                     </div>
@@ -8728,7 +8744,7 @@ FE-SERVICE`,
                           key={part.id}
                           className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4"
                         >
-                          <p className="font-black text-slate-900">{part.name}</p>
+                          <p className="break-words font-black text-slate-900">{part.name}</p>
                           <p className="mt-1 text-sm font-bold text-yellow-700">
                             Bestand: {part.stock ?? 0} · Minimum: {part.min_stock ?? 0}
                           </p>
@@ -8751,7 +8767,7 @@ FE-SERVICE`,
                           key={doc.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
-                          <p className="font-black text-slate-900">
+                          <p className="break-words font-black text-slate-900">
                             {doc.file_name}
                           </p>
                           <p className="mt-1 text-sm text-slate-500">
@@ -12364,7 +12380,7 @@ FE-SERVICE`,
                           {abnahmeCustomerSearch.trim().length < 2 ? "Bitte mindestens 2 Zeichen oder Kundennummer eingeben." : `${abnahmeCustomers.length} Treffer · nach Relevanz sortiert`}
                         </p>
 
-                        <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                        <div ref={abnahmeCustomerResultsRef} className="mt-3 max-h-80 space-y-2 overflow-y-auto overflow-x-hidden">
                           {abnahmeCustomerSearch.trim().length < 2 ? (
                             <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
                               Bitte mindestens 2 Zeichen eingeben. Suche nach Name, Firma, Ort, Telefon oder Kundennummer.
@@ -12384,7 +12400,7 @@ FE-SERVICE`,
                                   setAbnahmeAddressObject(buildCustomerAddress(customerItem));
                                   setAbnahmeCustomerNumber(customerItem.customer_number || String(customerItem.id));
                                 }}
-                                className={`w-full rounded-2xl border p-4 text-left transition ${
+                                className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
                                   String(customerItem.id) === abnahmeCustomerId
                                     ? "border-green-500 bg-green-50"
                                     : "border-slate-200 bg-white hover:border-green-400"
@@ -12393,13 +12409,13 @@ FE-SERVICE`,
                                 <p className="font-black text-slate-900">
                                   {getCustomerLabel(customerItem)}
                                 </p>
-                                <p className="mt-1 text-sm font-black text-green-700">
+                                <p className="mt-1 break-words text-sm font-black text-green-700">
                                   Kundennr.: {customerItem.customer_number || "nicht hinterlegt"}
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-slate-500">
                                   {buildCustomerAddress(customerItem) || "Keine Adresse hinterlegt"}
                                 </p>
-                                <p className="mt-1 text-xs font-bold text-slate-400">
+                                <p className="mt-1 break-words text-xs font-bold text-slate-400">
                                   {customerItem.email || "Keine E-Mail"}
                                   {customerItem.phone ? ` · ${customerItem.phone}` : ""}
                                 </p>
@@ -12426,7 +12442,7 @@ FE-SERVICE`,
                           Der ausgewählte Kunde bleibt bestehen. Kundengeräte und Seriennummern werden nicht verändert.
                         </p>
 
-                        <div className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+                        <div ref={abnahmeDeviceResultsRef} className="mt-3 max-h-80 space-y-2 overflow-y-auto overflow-x-hidden">
                           {abnahmeDevices.length === 0 ? (
                             <div className="rounded-2xl bg-white p-4 text-sm font-bold text-red-600">
                               Kein Gerät gefunden.
@@ -12440,7 +12456,7 @@ FE-SERVICE`,
                                   fillAbnahmeFromDevice(String(deviceItem.id));
                                   setAbnahmeDeviceSearch(deviceItem.name || "");
                                 }}
-                                className={`w-full rounded-2xl border p-4 text-left transition ${
+                                className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
                                   String(deviceItem.id) === abnahmeDeviceId
                                     ? "border-green-500 bg-green-50"
                                     : "border-slate-200 bg-white hover:border-green-400"
@@ -12453,7 +12469,7 @@ FE-SERVICE`,
                                   {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
                                   {deviceItem.model || getDeviceModelNameById(deviceItem.model_id) ? ` · ${deviceItem.model || getDeviceModelNameById(deviceItem.model_id)}` : ""}
                                 </p>
-                                <p className="mt-1 text-xs font-bold text-slate-400">
+                                <p className="mt-1 break-words text-xs font-bold text-slate-400">
                                   Neutraler Gerätetyp · keine Seriennummer · keine Kundenzuordnung
                                 </p>
                               </button>
