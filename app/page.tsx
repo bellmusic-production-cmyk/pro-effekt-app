@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.44 · Mobile Ticketbereiche einklappbar
+// FE-Service App v2.1.46 · Mobile Ticketliste Inhalt gemeinsam aufklappen
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -8295,7 +8295,7 @@ FE-SERVICE`,
                       : `${sortedOpenAdminTickets.length} offene Ticket(s). Die ersten ${Math.min(sortedOpenAdminTickets.length, 5)} werden nach Priorität und Termin angezeigt.`}
                   </div>
 
-                  <div className={`mt-5 min-w-0 space-y-3 overflow-hidden ${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
+                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {openAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                         Keine offenen Tickets.
@@ -14020,7 +14020,8 @@ FE-SERVICE`,
 
                   <h3 className="hidden text-xl font-black md:block">Ticketliste</h3>
 
-                  <div className={`mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4 ${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
+                  <div className={`${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
+                    <div className="mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4">
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -14062,7 +14063,7 @@ FE-SERVICE`,
                     </div>
                   </div>
 
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                    <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {filteredTickets.length === 0 ? (
                       <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
                         Keine Tickets gefunden.
@@ -14336,6 +14337,7 @@ FE-SERVICE`,
                       );
                       })
                     )}
+                  </div>
                   </div>
                 </div>
               </div>
