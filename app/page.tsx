@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.46 · Mobile Ticketliste Inhalt gemeinsam aufklappen
+// FE-Service App v2.1.47 · Einsatz und Kalender aus Tickets aktualisieren
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1597,6 +1597,8 @@ export default function Home() {
       ),
     );
 
+    await loadTickets();
+
     const assignedName = getTechnicianNameById(assignedTo);
     const relatedDevice = devices.find(
       (item) => item.name === currentTicket?.device,
@@ -2589,6 +2591,8 @@ export default function Home() {
         ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket,
       ),
     );
+
+    await loadTickets();
   }
 
   function getServiceCanvasContext(canvas: HTMLCanvasElement | null) {
@@ -3333,6 +3337,8 @@ export default function Home() {
           : ticket,
       ),
     );
+
+    await loadTickets();
   }
 
   async function deleteTicket(ticketId: number) {
@@ -4037,6 +4043,24 @@ export default function Home() {
     return [...items].sort(
       (a, b) => ticketCreatedAtTime(b) - ticketCreatedAtTime(a),
     );
+  }
+
+  function ticketAppointmentSortValue(ticket: Ticket) {
+    const date = ticket.service_date || "9999-12-31";
+    const time = ticket.service_time || "99:99";
+    return `${date} ${time}`;
+  }
+
+  function sortTicketsByAppointment(items: Ticket[]) {
+    return [...items].sort((a, b) => {
+      const appointmentDiff = ticketAppointmentSortValue(a).localeCompare(
+        ticketAppointmentSortValue(b),
+      );
+
+      if (appointmentDiff !== 0) return appointmentDiff;
+
+      return ticketCreatedAtTime(b) - ticketCreatedAtTime(a);
+    });
   }
 
   function getDeviceNameById(deviceId: number | null) {
@@ -6620,15 +6644,27 @@ FE-SERVICE`,
   const assignedTickets = useMemo(() => {
     if (!userProfile) return [];
 
+    const sourceTickets = tickets.filter(
+      (ticket) => !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+    );
+
     if (userProfile.role === "technician") {
-      return tickets.filter((ticket) => ticket.assigned_to === userProfile.id);
+      return sortTicketsByAppointment(
+        sourceTickets.filter(
+          (ticket) =>
+            ticket.assigned_to === userProfile.id ||
+            !ticket.assigned_to ||
+            ticket.status === "Offen" ||
+            ticket.status === "Zugewiesen",
+        ),
+      );
     }
 
     if (userProfile.role === "admin") {
-      return tickets;
+      return sortTicketsByAppointment(sourceTickets);
     }
 
-    return tickets.filter((ticket) => ticket.assigned_to);
+    return sortTicketsByAppointment(sourceTickets.filter((ticket) => ticket.assigned_to));
   }, [tickets, userProfile]);
 
   const role = userProfile?.role || null;
@@ -6744,22 +6780,24 @@ FE-SERVICE`,
     .sort((a, b) => String(a.next_inspection_date || "").localeCompare(String(b.next_inspection_date || "")))
     .slice(0, 6);
 
-  const calendarTickets = tickets.filter((ticket) => {
-    if (ticket.service_date !== calendarDate) return false;
+  const calendarTickets = sortTicketsByAppointment(
+    visibleRoleTickets.filter((ticket) => {
+      if (ticket.service_date !== calendarDate) return false;
 
-    if (
-      calendarTechnicianFilter !== "Alle" &&
-      ticket.assigned_to !== calendarTechnicianFilter
-    ) {
-      return false;
-    }
+      if (
+        calendarTechnicianFilter !== "Alle" &&
+        ticket.assigned_to !== calendarTechnicianFilter
+      ) {
+        return false;
+      }
 
-    if (isTechnician && ticket.assigned_to !== userProfile?.id) {
-      return false;
-    }
+      if (isTechnician && ticket.assigned_to !== userProfile?.id) {
+        return false;
+      }
 
-    return true;
-  });
+      return true;
+    }),
+  );
 
   const calendarMaintenancePlans = maintenancePlans.filter((plan) => {
     if (plan.next_due !== calendarDate) return false;
@@ -6781,17 +6819,23 @@ FE-SERVICE`,
   const calendarItemsCount =
     calendarTickets.length + calendarMaintenancePlans.length;
 
-  const activeEinsatzTickets = visibleRoleTickets.filter(
-    (ticket) =>
-      !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+  const activeEinsatzTickets = sortTicketsByAppointment(
+    visibleRoleTickets.filter(
+      (ticket) =>
+        !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+    ),
   );
 
-  const technicianTodayTickets = visibleRoleTickets.filter(
-    (ticket) => ticket.service_date === todayDateString,
+  const technicianTodayTickets = sortTicketsByAppointment(
+    visibleRoleTickets.filter((ticket) => ticket.service_date === todayDateString),
   );
 
-  const technicianWaitingParts = visibleRoleTickets.filter(
-    (ticket) => ticket.status === "Wartet auf Teile",
+  const technicianWaitingParts = sortTicketsByAppointment(
+    visibleRoleTickets.filter(
+      (ticket) =>
+        ticket.status === "Wartet auf Teile" ||
+        ticket.status === "Wartet auf Ersatzteil",
+    ),
   );
 
   const qrBaseDevices = devices.filter((item) => {
@@ -8664,7 +8708,7 @@ FE-SERVICE`,
                   Tagesplanung & Tourenübersicht
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Tickets, UVV-Prüfungen und Wartungen werden nach Datum und Techniker zusammengeführt.
+                  Termine werden direkt aus den Tickets gelesen. Änderungen im Ticket aktualisieren Einsatz und Kalender automatisch.
                 </p>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -8733,7 +8777,7 @@ FE-SERVICE`,
                     <div>
                       <h3 className="text-xl font-black">Service-Einsätze</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Tickets mit Servicedatum am gewählten Tag.
+                        Direkt aus den Ticket-Terminen des gewählten Tages.
                       </p>
                     </div>
                     <button
@@ -8750,13 +8794,7 @@ FE-SERVICE`,
                         Keine Service-Einsätze für diesen Tag.
                       </div>
                     ) : (
-                      calendarTickets
-                        .sort((a, b) =>
-                          String(a.service_time || "").localeCompare(
-                            String(b.service_time || ""),
-                          ),
-                        )
-                        .map((ticket) => (
+                      calendarTickets.map((ticket) => (
                           <div
                             key={ticket.id}
                             className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
