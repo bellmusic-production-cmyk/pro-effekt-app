@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.57 · Abnahme Mehrfachauswahl neutrale Geräte
+// FE-Service App v2.1.58 · Kundengeräte manuell ins Abnahmeprotokoll übernehmen
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -3878,6 +3878,44 @@ export default function Home() {
     );
     setPriority("Mittel");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function prepareAbnahmeFromCustomer(item: Customer) {
+    setActivePage("Abnahmeprotokoll");
+    setAbnahmeCustomerId(String(item.id));
+    setAbnahmeCustomerSearch(getCustomerLabel(item));
+    setAbnahmeCustomerNumber(item.customer_number || String(item.id));
+    setAbnahmeAddressObject(buildCustomerAddress(item));
+    setAbnahmeDeviceSearch("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function addCustomerDeviceToAbnahmeProtocol(customerItem: Customer, deviceItem: Device) {
+    prepareAbnahmeFromCustomer(customerItem);
+
+    const deviceId = String(deviceItem.id);
+
+    setAbnahmeSelectedDeviceIds((prev) =>
+      prev.includes(deviceId) ? prev : [...prev, deviceId],
+    );
+
+    setAbnahmeDeviceId(deviceId);
+    setAbnahmeManufacturer(
+      deviceItem.manufacturer ||
+        getManufacturerNameById(deviceItem.manufacturer_id) ||
+        "",
+    );
+    setAbnahmeModel(
+      getDeviceModelNameById(deviceItem.model_id) ||
+        deviceItem.model ||
+        deviceItem.name ||
+        "",
+    );
+
+    // Seriennummern bleiben in der Geräteakte erhalten.
+    // Für das Abnahmeformular wird sie nicht automatisch gefüllt, damit das Protokoll neutral bleibt.
+    setAbnahmeSerial("");
+    setAbnahmeDefects("");
   }
 
   function createInspectionTicket(item: Device) {
@@ -11073,24 +11111,47 @@ FE-SERVICE`,
                                   Noch keine Geräte zugewiesen.
                                 </p>
                               ) : (
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                   {getDevicesForCustomer(item.id)
-                                    .slice(0, 8)
+                                    .slice(0, 6)
                                     .map((deviceItem) => (
-                                      <button
+                                      <div
                                         key={deviceItem.id}
-                                        onClick={() => setSelectedDeviceView(deviceItem)}
-                                        className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-green-100 hover:text-green-700"
-                                        title={deviceItem.serial_number || "Keine Seriennummer"}
+                                        className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-3"
                                       >
-                                        {deviceItem.name}
-                                      </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setSelectedDeviceView(deviceItem)}
+                                          className="block w-full min-w-0 text-left"
+                                          title={deviceItem.serial_number || "Keine Seriennummer"}
+                                        >
+                                          <p className="truncate text-sm font-black text-slate-900">
+                                            {deviceItem.name}
+                                          </p>
+                                          <p className="mt-1 truncate text-xs font-bold text-slate-500">
+                                            {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
+                                            {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
+                                          </p>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => addCustomerDeviceToAbnahmeProtocol(item, deviceItem)}
+                                          className="mt-2 w-full rounded-xl bg-green-100 px-3 py-2 text-xs font-black text-green-700 transition hover:bg-green-600 hover:text-white"
+                                        >
+                                          In Abnahme übernehmen
+                                        </button>
+                                      </div>
                                     ))}
 
-                                  {getDevicesForCustomer(item.id).length > 8 && (
-                                    <span className="rounded-full bg-slate-200 px-3 py-2 text-xs font-black text-slate-600">
-                                      +{getDevicesForCustomer(item.id).length - 8} weitere
-                                    </span>
+                                  {getDevicesForCustomer(item.id).length > 6 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => prepareAbnahmeFromCustomer(item)}
+                                      className="rounded-2xl bg-slate-200 px-3 py-3 text-xs font-black text-slate-700"
+                                    >
+                                      +{getDevicesForCustomer(item.id).length - 6} weitere über Abnahme-Suche
+                                    </button>
                                   )}
                                 </div>
                               )}
@@ -11103,6 +11164,13 @@ FE-SERVICE`,
                               className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                             >
                               Ticket
+                            </button>
+
+                            <button
+                              onClick={() => prepareAbnahmeFromCustomer(item)}
+                              className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
+                            >
+                              Abnahme
                             </button>
 
                             {isAdmin && (
@@ -12633,6 +12701,70 @@ FE-SERVICE`,
                       </div>
                     </div>
                     {/* FE-SERVICE ABNAHME DIREKTSUCHE ENDE */}
+
+                    {abnahmeCustomerId && getDevicesForCustomer(Number(abnahmeCustomerId)).length > 0 && (
+                      <div className="rounded-[24px] border border-green-100 bg-green-50 p-4">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <h4 className="text-lg font-black text-slate-900">
+                              Kundengeräte für dieses Abnahmeprotokoll
+                            </h4>
+                            <p className="mt-1 text-sm font-semibold text-slate-600">
+                              Geräte sind nur als Vorschau sichtbar und werden erst per Klick ins Protokoll übernommen.
+                            </p>
+                          </div>
+
+                          <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-green-700">
+                            {getDevicesForCustomer(Number(abnahmeCustomerId)).length} Gerät(e)
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 md:grid-cols-2">
+                          {getDevicesForCustomer(Number(abnahmeCustomerId))
+                            .slice(0, 8)
+                            .map((deviceItem) => {
+                              const alreadySelected = abnahmeSelectedDeviceIds.includes(String(deviceItem.id));
+
+                              return (
+                                <div
+                                  key={`abnahme-customer-device-${deviceItem.id}`}
+                                  className={`rounded-2xl border p-3 ${
+                                    alreadySelected
+                                      ? "border-green-500 bg-white"
+                                      : "border-slate-200 bg-white/80"
+                                  }`}
+                                >
+                                  <p className="break-words text-sm font-black text-slate-900">
+                                    {deviceItem.name}
+                                  </p>
+                                  <p className="mt-1 break-words text-xs font-bold text-slate-500">
+                                    {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
+                                    {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleAbnahmeDevice(String(deviceItem.id))}
+                                    className={`mt-3 w-full rounded-xl px-3 py-2 text-xs font-black ${
+                                      alreadySelected
+                                        ? "bg-green-600 text-white"
+                                        : "bg-green-100 text-green-700"
+                                    }`}
+                                  >
+                                    {alreadySelected ? "✓ Im Protokoll" : "Ins Protokoll übernehmen"}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                        </div>
+
+                        {getDevicesForCustomer(Number(abnahmeCustomerId)).length > 8 && (
+                          <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-600">
+                            Weitere Kundengeräte findest du über die Geräte-/Modellsuche oben.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
 <select
                       value={abnahmeCustomerId}
