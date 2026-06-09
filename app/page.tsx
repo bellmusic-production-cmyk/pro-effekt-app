@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.61 · Hersteller-/Gerätebibliothek zusammengeführt
+// FE-Service App v2.1.62 · Bibliothek und Ticketsuche verbessert
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -448,6 +448,7 @@ export default function Home() {
   const [ticketCustomerSearch, setTicketCustomerSearch] = useState("");
   const [selectedTicketCustomerId, setSelectedTicketCustomerId] = useState("");
   const [ticketDeviceSearch, setTicketDeviceSearch] = useState("");
+  const [selectedTicketModelIds, setSelectedTicketModelIds] = useState<string[]>([]);
   const [serviceLocationName, setServiceLocationName] = useState("");
   const [serviceAddress, setServiceAddress] = useState("");
   const [serviceContactName, setServiceContactName] = useState("");
@@ -2280,6 +2281,7 @@ export default function Home() {
     setTicketCustomerSearch("");
     setSelectedTicketCustomerId("");
     setTicketDeviceSearch("");
+    setSelectedTicketModelIds([]);
     setServiceLocationName("");
     setServiceAddress("");
     setServiceContactName("");
@@ -2431,7 +2433,16 @@ export default function Home() {
   }
 
   async function createTicket() {
-    const currentDeviceName = customDeviceName.trim() || device || "Noch nicht zugewiesen";
+    const selectedTicketModelLabels = selectedTicketModelIds
+      .map((modelId) => deviceModels.find((modelItem) => String(modelItem.id) === String(modelId)))
+      .filter((modelItem): modelItem is DeviceModel => Boolean(modelItem))
+      .map((modelItem) => getTicketLibraryModelLabel(modelItem));
+
+    const currentDeviceName =
+      selectedTicketModelLabels.length > 0
+        ? selectedTicketModelLabels.join(" | ")
+        : customDeviceName.trim() || device || "Noch nicht zugewiesen";
+
     const relatedDevice = devices.find(
       (item) => item.name === currentDeviceName,
     );
@@ -2482,7 +2493,9 @@ export default function Home() {
       service_contact_email: cleanedServiceContactEmail || null,
       device: currentDeviceName,
       issue: `${getTicketTypeLabel()}: ${issue.trim()}`,
-      description,
+      description: selectedTicketModelLabels.length > 0
+        ? `${description}\n\nAus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        : description,
       priority,
       status: "Offen",
     };
@@ -3880,6 +3893,7 @@ export default function Home() {
     setTicketCustomerSearch(nextCustomerName);
     setDevice("");
     setTicketDeviceSearch("");
+    setSelectedTicketModelIds([]);
     setServiceLocationName("");
     setServiceAddress("");
     setServiceContactName("");
@@ -4510,6 +4524,35 @@ export default function Home() {
 
   function getDeviceModelTypeName(modelItem?: DeviceModel | null) {
     return String(modelItem?.device_type || modelItem?.type || modelItem?.category || "").trim();
+  }
+
+  function getTicketLibraryModelLabel(modelItem?: DeviceModel | null) {
+    if (!modelItem) return "";
+    const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id);
+    const categoryName = getDeviceModelTypeName(modelItem);
+    const modelName = getDeviceModelDisplayName(modelItem);
+
+    return [manufacturerName, categoryName, modelName].filter(Boolean).join(" · ");
+  }
+
+  function toggleTicketLibraryModel(modelId: string) {
+    if (!modelId) return;
+    setSelectedTicketModelIds((prev) =>
+      prev.includes(modelId)
+        ? prev.filter((item) => item !== modelId)
+        : [...prev, modelId],
+    );
+    setDevice("");
+    setCustomDeviceName("");
+  }
+
+  function groupDeviceModelsByType(items: DeviceModel[]) {
+    return items.reduce<Record<string, DeviceModel[]>>((groups, modelItem) => {
+      const typeName = getDeviceModelTypeName(modelItem) || "Kategorie offen";
+      groups[typeName] = groups[typeName] || [];
+      groups[typeName].push(modelItem);
+      return groups;
+    }, {});
   }
 
   function getDeviceModelNameById(modelId?: number | null) {
@@ -7559,7 +7602,7 @@ FE-SERVICE`,
     setDocumentDeviceFilter("Alle");
 
     if (typeof window !== "undefined" && session?.user?.id) {
-      window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, "Dokumente");
+      window.localStorage.setItem(`fe-service-active-page-${session.user.id}`, "Geräte");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -7643,6 +7686,34 @@ FE-SERVICE`,
 
   const selectedTicketDevice =
     availableTicketDevices.find((deviceItem) => deviceItem.name === device) || null;
+
+  const filteredTicketLibraryModels = (() => {
+    const search = ticketDeviceSearch.toLowerCase().trim();
+
+    if (search.length < 1) return [];
+
+    return deviceModels
+      .filter((modelItem) => {
+        const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id);
+        return [
+          manufacturerName,
+          getDeviceModelTypeName(modelItem),
+          getDeviceModelDisplayName(modelItem),
+          modelItem.category,
+          modelItem.note,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .sort((a, b) => getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"))
+      .slice(0, 40);
+  })();
+
+  const selectedTicketLibraryModels = selectedTicketModelIds
+    .map((modelId) => deviceModels.find((modelItem) => String(modelItem.id) === String(modelId)))
+    .filter((modelItem): modelItem is DeviceModel => Boolean(modelItem));
 
   const selectedUploadCustomer = isCustomer
     ? profileCustomer || null
@@ -7837,11 +7908,11 @@ FE-SERVICE`,
   })();
 
   const filteredManufacturerDirectory = (() => {
-    const search = manufacturerDirectorySearch.toLowerCase().trim();
-    if (!search) return manufacturers;
+    const manufacturerSearch = manufacturerDirectorySearch.toLowerCase().trim();
+    const modelSearch = deviceModelDirectorySearch.toLowerCase().trim();
 
-    return manufacturers.filter((manufacturerItem) =>
-      [
+    return manufacturers.filter((manufacturerItem) => {
+      const manufacturerText = [
         manufacturerItem.name,
         manufacturerItem.website,
         manufacturerItem.phone,
@@ -7853,9 +7924,26 @@ FE-SERVICE`,
       ]
         .filter(Boolean)
         .join(" ")
-        .toLowerCase()
-        .includes(search),
-    );
+        .toLowerCase();
+
+      const matchesManufacturer = !manufacturerSearch || manufacturerText.includes(manufacturerSearch);
+      const matchesModel = !modelSearch || deviceModels.some((modelItem) =>
+        modelItem.manufacturer_id === manufacturerItem.id &&
+        [
+          getDeviceModelDisplayName(modelItem),
+          getDeviceModelTypeName(modelItem),
+          modelItem.category,
+          modelItem.source,
+          modelItem.note,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(modelSearch),
+      );
+
+      return matchesManufacturer && matchesModel;
+    });
   })();
 
   const selectedDeviceManufacturerModels = deviceManufacturerId
@@ -7864,8 +7952,9 @@ FE-SERVICE`,
 
   const filteredDeviceModelDirectory = (() => {
     const search = deviceModelDirectorySearch.toLowerCase().trim();
-    const baseModels = modelManufacturerId
-      ? deviceModels.filter((item) => item.manufacturer_id === Number(modelManufacturerId))
+    const activeManufacturerId = catalogManufacturerId || modelManufacturerId;
+    const baseModels = activeManufacturerId
+      ? deviceModels.filter((item) => item.manufacturer_id === Number(activeManufacturerId))
       : deviceModels;
 
     if (!search) return baseModels;
@@ -11537,7 +11626,7 @@ FE-SERVICE`,
                     <input
                       value={deviceModelDirectorySearch}
                       onChange={(e) => setDeviceModelDirectorySearch(e.target.value)}
-                      placeholder="Gerätetyp oder Modell suchen"
+                      placeholder="Kategorie oder Modell suchen, z. B. Laufband, Crosstrainer, Run Forma"
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                     />
                   </div>
@@ -11558,15 +11647,10 @@ FE-SERVICE`,
                         const modelCount = deviceModels.filter(
                           (modelItem) => modelItem.manufacturer_id === item.id,
                         ).length;
-                        const deviceCount = devices.filter(
-                          (deviceItem) =>
-                            deviceItem.manufacturer_id === item.id ||
-                            deviceItem.manufacturer === item.name,
-                        ).length;
 
                         return (
                           <option key={item.id} value={item.id}>
-                            {item.name} · {modelCount} Modell(e) · {deviceCount} Gerät(e)
+                            {item.name} · {modelCount} Modellbezeichnung(en)
                           </option>
                         );
                       })}
@@ -11593,11 +11677,7 @@ FE-SERVICE`,
                           const modelsForManufacturer = filteredDeviceModelDirectory.filter(
                             (modelItem) => modelItem.manufacturer_id === item.id,
                           );
-                          const devicesForManufacturer = devices.filter(
-                            (deviceItem) =>
-                              deviceItem.manufacturer_id === item.id ||
-                              deviceItem.manufacturer === item.name,
-                          );
+                          const modelsByType = groupDeviceModelsByType(modelsForManufacturer);
 
                           return (
                             <div key={item.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
@@ -11605,7 +11685,7 @@ FE-SERVICE`,
                                 <div>
                                   <h4 className="text-2xl font-black text-[#07130d]">{item.name}</h4>
                                   <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                                    {modelsForManufacturer.length} Modell(e) · {devicesForManufacturer.length} Gerät(e)
+                                    {modelsForManufacturer.length} Modellbezeichnung(en) · {Object.keys(modelsByType).length} Kategorie(n)
                                   </p>
                                 </div>
 
@@ -11642,56 +11722,67 @@ FE-SERVICE`,
                                 </div>
 
                                 <div className="rounded-2xl bg-white p-4">
-                                  <h5 className="font-black text-green-700">Geräte / Modelle</h5>
+                                  <h5 className="font-black text-green-700">Kategorien / Modellbezeichnungen</h5>
                                   <select
                                     className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
                                     defaultValue=""
                                   >
-                                    <option value="">Modell-Dropdown öffnen</option>
-                                    {modelsForManufacturer.map((modelItem) => (
-                                      <option key={modelItem.id} value={modelItem.id}>
-                                        {getDeviceModelDisplayName(modelItem)} {getDeviceModelTypeName(modelItem) ? `· ${getDeviceModelTypeName(modelItem)}` : ""}
-                                      </option>
+                                    <option value="">Kategorie oder Modell auswählen</option>
+                                    {Object.entries(modelsByType).map(([typeName, typeModels]) => (
+                                      <optgroup key={typeName} label={`${typeName} (${typeModels.length})`}>
+                                        {typeModels.map((modelItem) => (
+                                          <option key={modelItem.id} value={modelItem.id}>
+                                            {getDeviceModelDisplayName(modelItem)}
+                                          </option>
+                                        ))}
+                                      </optgroup>
                                     ))}
                                   </select>
 
-                                  <div className="mt-3 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                                  <div className="mt-3 max-h-[420px] space-y-3 overflow-y-auto pr-1">
                                     {modelsForManufacturer.length === 0 ? (
                                       <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
-                                        Noch keine Geräte / Modelle hinterlegt.
+                                        Noch keine Kategorien / Modellbezeichnungen hinterlegt.
                                       </p>
                                     ) : (
-                                      modelsForManufacturer.map((modelItem) => (
-                                        <div key={modelItem.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                              <p className="font-black text-slate-900">{getDeviceModelDisplayName(modelItem)}</p>
-                                              <p className="text-sm font-semibold text-slate-500">
-                                                {modelItem.category || "Kategorie offen"} · {getDeviceModelTypeName(modelItem) || "Typ offen"}
-                                              </p>
-                                            </div>
-                                            {isAdmin && (
-                                              <div className="flex gap-2">
-                                                <button
-                                                  onClick={() => startEditDeviceModel(modelItem)}
-                                                  className="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700"
-                                                >
-                                                  Edit
-                                                </button>
-                                                <button
-                                                  onClick={() => deleteDeviceModel(modelItem)}
-                                                  className="rounded-xl bg-red-100 px-3 py-2 text-xs font-black text-red-700"
-                                                >
-                                                  Löschen
-                                                </button>
+                                      Object.entries(modelsByType).map(([typeName, typeModels]) => (
+                                        <div key={typeName} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                          <p className="text-sm font-black uppercase tracking-[0.14em] text-green-700">
+                                            {typeName} · {typeModels.length}
+                                          </p>
+                                          <div className="mt-2 space-y-2">
+                                            {typeModels.map((modelItem) => (
+                                              <div key={modelItem.id} className="flex items-start justify-between gap-3 rounded-xl bg-white p-3">
+                                                <div>
+                                                  <p className="font-black text-slate-900">{getDeviceModelDisplayName(modelItem)}</p>
+                                                  {modelItem.note && (
+                                                    <p className="mt-1 text-xs font-semibold text-slate-500">{modelItem.note}</p>
+                                                  )}
+                                                </div>
+                                                {isAdmin && (
+                                                  <div className="flex gap-2">
+                                                    <button
+                                                      onClick={() => startEditDeviceModel(modelItem)}
+                                                      className="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700"
+                                                    >
+                                                      Edit
+                                                    </button>
+
+                                                    <button
+                                                      onClick={() => deleteDeviceModel(modelItem)}
+                                                      className="rounded-xl bg-red-100 px-3 py-2 text-xs font-black text-red-700"
+                                                    >
+                                                      Löschen
+                                                    </button>
+                                                  </div>
+                                                )}
                                               </div>
-                                            )}
+                                            ))}
                                           </div>
                                         </div>
                                       ))
                                     )}
-                                  </div>
-                                </div>
+                                  </div>                                </div>
                               </div>
                             </div>
                           );
@@ -14455,7 +14546,7 @@ FE-SERVICE`,
                       {device && selectedTicketDevice && (
                         <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3">
                           <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
-                            Ausgewähltes Gerät
+                            Ausgewähltes Kundengerät
                           </p>
                           <p className="mt-1 text-base font-black text-slate-900">
                             {selectedTicketDevice.name}
@@ -14464,6 +14555,26 @@ FE-SERVICE`,
                             {selectedTicketDevice.serial_number ? `SN: ${selectedTicketDevice.serial_number} · ` : ""}
                             {selectedTicketDevice.location || "Kein Standort"}
                           </p>
+                        </div>
+                      )}
+
+                      {selectedTicketLibraryModels.length > 0 && (
+                        <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
+                            Ausgewählte Bibliotheksmodelle
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {selectedTicketLibraryModels.map((modelItem) => (
+                              <button
+                                key={modelItem.id}
+                                type="button"
+                                onClick={() => toggleTicketLibraryModel(String(modelItem.id))}
+                                className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm"
+                              >
+                                {getTicketLibraryModelLabel(modelItem)} ✕
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -14522,6 +14633,41 @@ FE-SERVICE`,
                               </button>
                             );
                           })}
+                          </div>
+                        </div>
+                      )}
+
+                      {ticketDeviceSearch.trim() && filteredTicketLibraryModels.length > 0 && (
+                        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
+                          <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                            Treffer aus Hersteller-/Gerätebibliothek
+                          </p>
+                          <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                            {filteredTicketLibraryModels.map((modelItem) => {
+                              const selected = selectedTicketModelIds.includes(String(modelItem.id));
+                              return (
+                                <button
+                                  key={modelItem.id}
+                                  type="button"
+                                  onClick={() => toggleTicketLibraryModel(String(modelItem.id))}
+                                  className={`w-full rounded-2xl border p-3 text-left transition ${
+                                    selected
+                                      ? "border-green-400 bg-green-50"
+                                      : "border-slate-200 bg-white hover:border-green-300 hover:bg-green-50"
+                                  }`}
+                                >
+                                  <p className="font-black text-slate-900">
+                                    {getDeviceModelDisplayName(modelItem)}
+                                  </p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    {getManufacturerNameById(modelItem.manufacturer_id)} · {getDeviceModelTypeName(modelItem) || "Kategorie offen"}
+                                  </p>
+                                  <p className="mt-1 text-xs font-black text-green-700">
+                                    {selected ? "✓ Ausgewählt" : "+ zum Ticket hinzufügen"}
+                                  </p>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
