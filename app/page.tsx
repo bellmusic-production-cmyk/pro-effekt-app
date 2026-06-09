@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.63 · Kundengeräte aus Bibliothek mit eigener Seriennummer
+// FE-Service App v2.1.64 · Ticket-Geräteauswahl verbessert · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -456,6 +456,7 @@ export default function Home() {
   const [ticketCustomerSearch, setTicketCustomerSearch] = useState("");
   const [selectedTicketCustomerId, setSelectedTicketCustomerId] = useState("");
   const [ticketDeviceSearch, setTicketDeviceSearch] = useState("");
+  const [selectedTicketDeviceIds, setSelectedTicketDeviceIds] = useState<string[]>([]);
   const [selectedTicketModelIds, setSelectedTicketModelIds] = useState<string[]>([]);
   const [serviceLocationName, setServiceLocationName] = useState("");
   const [serviceAddress, setServiceAddress] = useState("");
@@ -2290,6 +2291,7 @@ export default function Home() {
     setTicketCustomerSearch("");
     setSelectedTicketCustomerId("");
     setTicketDeviceSearch("");
+    setSelectedTicketDeviceIds([]);
     setSelectedTicketModelIds([]);
     setServiceLocationName("");
     setServiceAddress("");
@@ -2376,6 +2378,8 @@ export default function Home() {
     );
     setDevice(ticket.device || "");
     setTicketDeviceSearch(ticket.device || "");
+    setSelectedTicketDeviceIds([]);
+    setSelectedTicketModelIds([]);
     setCustomDeviceName("");
     setServiceLocationName(ticket.service_location_name || "");
     setServiceAddress(ticket.service_address || "");
@@ -2443,19 +2447,30 @@ export default function Home() {
   }
 
   async function createTicket() {
+    const selectedCustomerDeviceLabels = selectedTicketDevices.map((deviceItem) =>
+      getCustomerDeviceTicketLabel(deviceItem),
+    );
+
     const selectedTicketModelLabels = selectedTicketModelIds
       .map((modelId) => deviceModels.find((modelItem) => String(modelItem.id) === String(modelId)))
       .filter((modelItem): modelItem is DeviceModel => Boolean(modelItem))
       .map((modelItem) => getTicketLibraryModelLabel(modelItem));
 
+    const allSelectedDeviceLabels = [
+      ...selectedCustomerDeviceLabels,
+      ...selectedTicketModelLabels,
+    ].filter(Boolean);
+
     const currentDeviceName =
-      selectedTicketModelLabels.length > 0
-        ? selectedTicketModelLabels.join(" | ")
+      allSelectedDeviceLabels.length > 0
+        ? allSelectedDeviceLabels.join(" | ")
         : customDeviceName.trim() || device || "Noch nicht zugewiesen";
 
-    const relatedDevice = devices.find(
-      (item) => item.name === currentDeviceName,
-    );
+    const relatedDevice =
+      selectedTicketDevices[0] ||
+      devices.find((item) => item.name === currentDeviceName) ||
+      null;
+
     const customerFromDevice = relatedDevice?.customer_id
       ? customers.find((item) => item.id === relatedDevice.customer_id)
       : null;
@@ -2491,6 +2506,19 @@ export default function Home() {
     const finalServiceLocationName = cleanedServiceLocationName;
     const finalServiceAddress = cleanedServiceAddress;
 
+    const deviceDescriptionParts = [
+      selectedCustomerDeviceLabels.length > 0
+        ? `Kundengeräte zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
+        : "",
+      selectedTicketModelLabels.length > 0
+        ? `Aus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        : "",
+    ].filter(Boolean);
+
+    const finalDescription = deviceDescriptionParts.length > 0
+      ? `${description}\n\n${deviceDescriptionParts.join("\n\n")}`
+      : description;
+
     const baseTicketPayload = {
       ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
       customer: currentCustomerName,
@@ -2503,9 +2531,7 @@ export default function Home() {
       service_contact_email: cleanedServiceContactEmail || null,
       device: currentDeviceName,
       issue: `${getTicketTypeLabel()}: ${issue.trim()}`,
-      description: selectedTicketModelLabels.length > 0
-        ? `${description}\n\nAus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
-        : description,
+      description: finalDescription,
       priority,
       status: "Offen",
     };
@@ -2542,12 +2568,23 @@ export default function Home() {
       return;
     }
 
-    await createDeviceHistory(
-      relatedDevice?.id || null,
-      "Ticket erstellt",
-      `${issue} · Kunde: ${currentCustomerName}`,
-      "Ticket",
-    );
+    for (const selectedDevice of selectedTicketDevices) {
+      await createDeviceHistory(
+        selectedDevice.id,
+        "Ticket erstellt",
+        `${issue} · Kunde: ${currentCustomerName}`,
+        "Ticket",
+      );
+    }
+
+    if (selectedTicketDevices.length === 0) {
+      await createDeviceHistory(
+        relatedDevice?.id || null,
+        "Ticket erstellt",
+        `${issue} · Kunde: ${currentCustomerName}`,
+        "Ticket",
+      );
+    }
 
     const createdTicket = insertResult.data as Ticket | null;
 
@@ -2574,7 +2611,24 @@ export default function Home() {
   async function updateTicket() {
     if (!editingTicket) return;
 
-    const currentDeviceName = customDeviceName.trim() || device || "Noch nicht zugewiesen";
+    const selectedCustomerDeviceLabels = selectedTicketDevices.map((deviceItem) =>
+      getCustomerDeviceTicketLabel(deviceItem),
+    );
+    const selectedTicketModelLabels = selectedTicketModelIds
+      .map((modelId) => deviceModels.find((modelItem) => String(modelItem.id) === String(modelId)))
+      .filter((modelItem): modelItem is DeviceModel => Boolean(modelItem))
+      .map((modelItem) => getTicketLibraryModelLabel(modelItem));
+
+    const allSelectedDeviceLabels = [
+      ...selectedCustomerDeviceLabels,
+      ...selectedTicketModelLabels,
+    ].filter(Boolean);
+
+    const currentDeviceName =
+      allSelectedDeviceLabels.length > 0
+        ? allSelectedDeviceLabels.join(" | ")
+        : customDeviceName.trim() || device || "Noch nicht zugewiesen";
+
     const nextIssue = `${getTicketTypeLabel()}: ${issue.trim()}`;
     const selectedBillingCustomer =
       selectedTicketCustomer ||
@@ -2587,6 +2641,19 @@ export default function Home() {
       : customer;
 
     const nextCustomerId = selectedBillingCustomer?.id || editingTicket.customer_id || null;
+
+    const deviceDescriptionParts = [
+      selectedCustomerDeviceLabels.length > 0
+        ? `Kundengeräte zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
+        : "",
+      selectedTicketModelLabels.length > 0
+        ? `Aus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        : "",
+    ].filter(Boolean);
+
+    const finalDescription = deviceDescriptionParts.length > 0
+      ? `${description}\n\n${deviceDescriptionParts.join("\n\n")}`
+      : description;
 
     const { error } = await supabase
       .from("tickets")
@@ -2601,7 +2668,7 @@ export default function Home() {
         service_contact_email: serviceContactEmail.trim() || null,
         device: currentDeviceName,
         issue: nextIssue,
-        description,
+        description: finalDescription,
         priority,
       })
       .eq("id", editingTicket.id);
@@ -2611,7 +2678,7 @@ export default function Home() {
       return;
     }
 
-    const relatedDevice = devices.find((item) => item.name === currentDeviceName);
+    const relatedDevice = selectedTicketDevices[0] || devices.find((item) => item.name === currentDeviceName) || null;
 
     await createDeviceHistory(
       relatedDevice?.id || null,
@@ -3907,6 +3974,7 @@ export default function Home() {
     setTicketCustomerSearch(nextCustomerName);
     setDevice("");
     setTicketDeviceSearch("");
+    setSelectedTicketDeviceIds([]);
     setSelectedTicketModelIds([]);
     setServiceLocationName("");
     setServiceAddress("");
@@ -4556,6 +4624,37 @@ export default function Home() {
         ? prev.filter((item) => item !== modelId)
         : [...prev, modelId],
     );
+    setDevice("");
+    setCustomDeviceName("");
+  }
+
+  function getCustomerDeviceTicketLabel(deviceItem?: Device | null) {
+    if (!deviceItem) return "";
+
+    const manufacturerName =
+      deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id);
+    const modelName =
+      getDeviceModelNameById(deviceItem.model_id) || deviceItem.model || deviceItem.name;
+
+    return [
+      manufacturerName,
+      modelName,
+      deviceItem.serial_number ? `SN: ${deviceItem.serial_number}` : "",
+      deviceItem.location || "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  function toggleTicketCustomerDevice(deviceId: string) {
+    if (!deviceId) return;
+
+    setSelectedTicketDeviceIds((prev) =>
+      prev.includes(deviceId)
+        ? prev.filter((item) => item !== deviceId)
+        : [...prev, deviceId],
+    );
+
     setDevice("");
     setCustomDeviceName("");
   }
@@ -7760,6 +7859,10 @@ FE-SERVICE`,
 
   const selectedTicketDevice =
     availableTicketDevices.find((deviceItem) => deviceItem.name === device) || null;
+
+  const selectedTicketDevices = selectedTicketDeviceIds
+    .map((deviceId) => availableTicketDevices.find((deviceItem) => String(deviceItem.id) === String(deviceId)))
+    .filter((deviceItem): deviceItem is Device => Boolean(deviceItem));
 
   const filteredTicketLibraryModels = (() => {
     const search = ticketDeviceSearch.toLowerCase().trim();
@@ -14627,7 +14730,10 @@ FE-SERVICE`,
 
                     <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
-                        Gerät suchen und auswählen <span className="text-slate-400">(optional)</span>
+                        Geräte suchen und auswählen <span className="text-slate-400">(optional, Mehrfachauswahl)</span>
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                        Kundengeräte bringen Seriennummer und Standort mit. Bibliotheksmodelle sind nur Modellbezeichnungen ohne Seriennummer.
                       </p>
 
                       <input
@@ -14639,102 +14745,113 @@ FE-SERVICE`,
                         }}
                         placeholder={
                           selectedTicketCustomer
-                            ? "Gerät dieses Kunden suchen: Name, Seriennummer, Standort..."
-                            : "Gerät suchen: Name, Seriennummer, Standort, Kunde..."
+                            ? "Kundengerät oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Standort..."
+                            : "Gerät oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Kunde..."
                         }
                         className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
+                        autoComplete="off"
+                        inputMode="text"
                       />
 
-                      {device && selectedTicketDevice && (
+                      {(selectedTicketDevices.length > 0 || selectedTicketLibraryModels.length > 0) && (
                         <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3">
                           <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
-                            Ausgewähltes Kundengerät
+                            Zum Ticket ausgewählt
                           </p>
-                          <p className="mt-1 text-base font-black text-slate-900">
-                            {selectedTicketDevice.name}
-                          </p>
-                          <p className="mt-1 text-xs font-semibold text-slate-500">
-                            {selectedTicketDevice.serial_number ? `SN: ${selectedTicketDevice.serial_number} · ` : ""}
-                            {selectedTicketDevice.location || "Kein Standort"}
-                          </p>
-                        </div>
-                      )}
 
-                      {selectedTicketLibraryModels.length > 0 && (
-                        <div className="mt-3 rounded-2xl border border-green-200 bg-green-50 p-3">
-                          <p className="text-xs font-black uppercase tracking-[0.16em] text-green-700">
-                            Ausgewählte Bibliotheksmodelle
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {selectedTicketLibraryModels.map((modelItem) => (
-                              <button
-                                key={modelItem.id}
-                                type="button"
-                                onClick={() => toggleTicketLibraryModel(String(modelItem.id))}
-                                className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm"
-                              >
-                                {getTicketLibraryModelLabel(modelItem)} ✕
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {!device && !ticketDeviceSearch.trim() && filteredTicketDevices.length === 0 && (
-                        <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          Für diesen Kunden ist noch kein Gerät zugeordnet. Du kannst unten einen freien Gerätenamen eintragen oder das Ticket ohne Gerät speichern.
-                        </p>
-                      )}
-
-                      {!device && ticketDeviceSearch.trim() && filteredTicketDevices.length === 0 && (
-                        <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          Kein Gerät gefunden. Du kannst unten einen freien Gerätenamen eintragen.
-                        </p>
-                      )}
-
-                      {!device && filteredTicketDevices.length > 0 && (
-                        <div className="mt-3">
-                          {!ticketDeviceSearch.trim() && (
-                            <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                              {selectedTicketCustomer
-                                ? "Geräte dieses Kunden"
-                                : "Geräte-Vorschau"}
-                            </p>
+                          {selectedTicketDevices.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {selectedTicketDevices.map((deviceItem) => (
+                                <button
+                                  key={deviceItem.id}
+                                  type="button"
+                                  onClick={() => toggleTicketCustomerDevice(String(deviceItem.id))}
+                                  className="w-full rounded-xl bg-white px-3 py-2 text-left text-xs font-black text-slate-700 shadow-sm"
+                                >
+                                  {getCustomerDeviceTicketLabel(deviceItem)} ✕
+                                </button>
+                              ))}
+                            </div>
                           )}
+
+                          {selectedTicketLibraryModels.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {selectedTicketLibraryModels.map((modelItem) => (
+                                <button
+                                  key={modelItem.id}
+                                  type="button"
+                                  onClick={() => toggleTicketLibraryModel(String(modelItem.id))}
+                                  className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm"
+                                >
+                                  {getTicketLibraryModelLabel(modelItem)} ✕
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {selectedTicketCustomer && !ticketDeviceSearch.trim() && ticketCustomerDevices.length === 0 && (
+                        <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                          Für diesen Kunden ist noch kein Kundengerät zugeordnet. Du kannst ein Bibliotheksmodell suchen oder unten einen freien Gerätenamen eintragen.
+                        </p>
+                      )}
+
+                      {ticketDeviceSearch.trim() && filteredTicketDevices.length === 0 && filteredTicketLibraryModels.length === 0 && (
+                        <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                          Kein Treffer gefunden. Du kannst unten einen freien Gerätenamen eintragen.
+                        </p>
+                      )}
+
+                      {filteredTicketDevices.length > 0 && (
+                        <div className="mt-3">
+                          <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                            {selectedTicketCustomer
+                              ? "Kundengeräte dieses Kunden"
+                              : "Kundengeräte"}
+                          </p>
                           <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                          {filteredTicketDevices.map((deviceItem) => {
-                            const linkedCustomer = deviceItem.customer_id
-                              ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
-                              : null;
+                            {filteredTicketDevices.map((deviceItem) => {
+                              const linkedCustomer = deviceItem.customer_id
+                                ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
+                                : null;
+                              const selected = selectedTicketDeviceIds.includes(String(deviceItem.id));
 
-                            return (
-                              <button
-                                key={deviceItem.id}
-                                type="button"
-                                onClick={() => {
-                                  setDevice(deviceItem.name);
-                                  setTicketDeviceSearch(deviceItem.name);
-                                  setCustomDeviceName("");
+                              return (
+                                <button
+                                  key={deviceItem.id}
+                                  type="button"
+                                  onClick={() => {
+                                    toggleTicketCustomerDevice(String(deviceItem.id));
+                                    setTicketDeviceSearch("");
 
-                                  if (!customer && linkedCustomer) {
-                                    const nextCustomerName = getCustomerLabel(linkedCustomer);
-                                    setCustomer(nextCustomerName);
-                                    setTicketCustomerSearch(nextCustomerName);
-                                  }
-                                }}
-                                className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-green-300 hover:bg-green-50"
-                              >
-                                <p className="font-black text-slate-900">
-                                  {deviceItem.name}
-                                </p>
-                                <p className="mt-1 text-xs font-semibold text-slate-500">
-                                  {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
-                                  {deviceItem.location || "Kein Standort"}
-                                  {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
-                                </p>
-                              </button>
-                            );
-                          })}
+                                    if (!customer && linkedCustomer) {
+                                      const nextCustomerName = getCustomerLabel(linkedCustomer);
+                                      setCustomer(nextCustomerName);
+                                      setTicketCustomerSearch(nextCustomerName);
+                                      setSelectedTicketCustomerId(String(linkedCustomer.id));
+                                    }
+                                  }}
+                                  className={`w-full rounded-2xl border p-3 text-left transition ${
+                                    selected
+                                      ? "border-green-400 bg-green-50"
+                                      : "border-slate-200 bg-white hover:border-green-300 hover:bg-green-50"
+                                  }`}
+                                >
+                                  <p className="font-black text-slate-900">
+                                    {deviceItem.name}
+                                  </p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
+                                    {deviceItem.location || "Kein Standort"}
+                                    {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
+                                  </p>
+                                  <p className="mt-1 text-xs font-black text-green-700">
+                                    {selected ? "✓ Ausgewählt" : "+ Kundengerät zum Ticket hinzufügen"}
+                                  </p>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -14765,7 +14882,7 @@ FE-SERVICE`,
                                     {getManufacturerNameById(modelItem.manufacturer_id)} · {getDeviceModelTypeName(modelItem) || "Kategorie offen"}
                                   </p>
                                   <p className="mt-1 text-xs font-black text-green-700">
-                                    {selected ? "✓ Ausgewählt" : "+ zum Ticket hinzufügen"}
+                                    {selected ? "✓ Ausgewählt" : "+ Bibliotheksmodell zum Ticket hinzufügen"}
                                   </p>
                                 </button>
                               );
@@ -14775,7 +14892,7 @@ FE-SERVICE`,
                       )}
 
                       <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        oder neues Gerät / freien Gerätenamen eintragen (optional)
+                        oder freien Gerätenamen eintragen (optional)
                       </div>
 
                       <input
@@ -14783,10 +14900,14 @@ FE-SERVICE`,
                         onChange={(e) => {
                           setCustomDeviceName(e.target.value);
                           setDevice("");
+                          setSelectedTicketDeviceIds([]);
+                          setSelectedTicketModelIds([]);
                           setTicketDeviceSearch("");
                         }}
                         placeholder="Optional: z. B. unbekanntes Laufband, Seriennummer, Standort"
                         className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                        autoComplete="off"
+                        inputMode="text"
                       />
                     </div>
 
