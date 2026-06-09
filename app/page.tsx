@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.66 · Abnahmeprotokoll Bibliothekssuche · keine Sprachsteuerung
+// FE-Service App v2.1.67 · Abnahmeprotokoll Bibliothekssuche Crash-Fix · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4822,6 +4822,35 @@ export default function Home() {
     return getDeviceModelDisplayName(deviceModels.find((item) => item.id === modelId));
   }
 
+
+  function getAbnahmeLibraryDeviceById(deviceId: string) {
+    const numericId = Number(deviceId);
+    if (!Number.isFinite(numericId) || numericId >= 0) return null;
+
+    const modelItem = deviceModels.find((item) => item.id === Math.abs(numericId));
+    if (!modelItem) return null;
+
+    const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id) || "";
+    const categoryName = getDeviceModelTypeName(modelItem) || "Kategorie offen";
+    const modelName = getDeviceModelDisplayName(modelItem);
+
+    return {
+      id: -Math.abs(modelItem.id),
+      name: [manufacturerName, categoryName, modelName].filter(Boolean).join(" / "),
+      manufacturer_id: modelItem.manufacturer_id || null,
+      model_id: modelItem.id,
+      model: modelName || null,
+      manufacturer: manufacturerName || null,
+      serial_number: null,
+      location: null,
+      status: categoryName || null,
+      next_check: null,
+      note: null,
+      customer_id: null,
+      created_at: modelItem.created_at || new Date().toISOString(),
+    } as Device;
+  }
+
   function resetManufacturerForm() {
     setEditingManufacturer(null);
     setManufacturerName("");
@@ -5966,7 +5995,7 @@ FE-SERVICE`,
   const selectedAbnahmeDevices = abnahmeSelectedDeviceIds
     .map((deviceId) =>
       devices.find((item) => String(item.id) === String(deviceId)) ||
-      abnahmeDevices.find((item) => String(item.id) === String(deviceId)),
+      getAbnahmeLibraryDeviceById(deviceId),
     )
     .filter((item): item is Device => Boolean(item));
 
@@ -5975,7 +6004,7 @@ FE-SERVICE`,
 
     const selectedDevice =
       devices.find((item) => String(item.id) === String(deviceId)) ||
-      abnahmeDevices.find((item) => String(item.id) === String(deviceId));
+      getAbnahmeLibraryDeviceById(deviceId);
     if (!selectedDevice) return;
 
     setAbnahmeSelectedDeviceIds((prev) => {
@@ -6002,7 +6031,7 @@ FE-SERVICE`,
       if (firstDeviceId) {
         const firstDevice =
           devices.find((item) => String(item.id) === String(firstDeviceId)) ||
-          abnahmeDevices.find((item) => String(item.id) === String(firstDeviceId));
+          getAbnahmeLibraryDeviceById(firstDeviceId);
         if (firstDevice) {
           setAbnahmeManufacturer(
             firstDevice.manufacturer ||
