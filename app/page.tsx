@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.67 · Abnahmeprotokoll Bibliothekssuche Crash-Fix · keine Sprachsteuerung
+// FE-Service App v2.1.69 · Einsatzplanung / Dispo-Zentrale · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7482,6 +7482,59 @@ FE-SERVICE`,
     ),
   );
 
+  const activePlanningTickets = visibleRoleTickets.filter(
+    (ticket) => !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+  );
+
+  const unplannedDispatchTickets = sortTicketsByAppointment(
+    activePlanningTickets.filter((ticket) => !ticket.assigned_to || !ticket.service_date),
+  );
+
+  const plannedDispatchTickets = sortTicketsByAppointment(
+    activePlanningTickets.filter((ticket) => ticket.service_date === calendarDate),
+  );
+
+  const overdueDispatchTickets = sortTicketsByAppointment(
+    activePlanningTickets.filter((ticket) => {
+      if (!ticket.service_date) return false;
+      return ticket.service_date < todayDateString;
+    }),
+  );
+
+  const dispatchTechnicianGroups = technicians.map((technician) => {
+    const technicianTickets = plannedDispatchTickets.filter(
+      (ticket) => ticket.assigned_to === technician.id,
+    );
+
+    return {
+      technician,
+      tickets: technicianTickets,
+      activeCount: technicianTickets.filter(
+        (ticket) => !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+      ).length,
+    };
+  });
+
+  const unassignedDispatchDayTickets = plannedDispatchTickets.filter((ticket) => !ticket.assigned_to);
+
+  async function quickPlanTicket(ticket: Ticket, technicianId: string) {
+    if (!technicianId) {
+      alert("Bitte Techniker auswählen.");
+      return;
+    }
+
+    if (!calendarDate) {
+      alert("Bitte zuerst ein Planungsdatum auswählen.");
+      return;
+    }
+
+    const time = window.prompt("Uhrzeit für den Einsatz", ticket.service_time || "09:00");
+
+    if (time === null) return;
+
+    await updateTicketAssignment(ticket.id, technicianId, calendarDate, time.trim() || null);
+  }
+
   const qrBaseDevices = devices.filter((item) => {
     if (isCustomer && userProfile?.customer_id) {
       return item.customer_id === userProfile.customer_id;
@@ -14105,6 +14158,247 @@ FE-SERVICE`,
           )}
 
           {activePage === "Einsatz" && (
+            isAdmin ? (
+            <div className="space-y-6 pb-24">
+              <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
+                  Einsatzplanung
+                </p>
+                <h3 className="mt-2 text-3xl font-black md:text-4xl">
+                  Dispo-Zentrale für Tickets & Techniker
+                </h3>
+                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                  Hier planst du vorhandene Kunden- und Admin-Tickets. Es wird kein neues Ticket erzeugt: Datum, Uhrzeit und Techniker werden direkt am bestehenden Ticket gespeichert.
+                </p>
+
+                <div className="mt-6 grid gap-3 md:grid-cols-4">
+                  <input
+                    value={calendarDate}
+                    onChange={(e) => setCalendarDate(e.target.value)}
+                    type="date"
+                    className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-black text-slate-900"
+                  />
+                  <div className="rounded-2xl bg-white/10 px-5 py-4">
+                    <p className="text-xs font-bold text-slate-300">Ungeplant</p>
+                    <p className="text-2xl font-black text-green-400">{unplannedDispatchTickets.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 px-5 py-4">
+                    <p className="text-xs font-bold text-slate-300">Geplant am Tag</p>
+                    <p className="text-2xl font-black text-green-400">{plannedDispatchTickets.length}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 px-5 py-4">
+                    <p className="text-xs font-bold text-slate-300">Überfällig</p>
+                    <p className="text-2xl font-black text-red-300">{overdueDispatchTickets.length}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-4">
+                <StatCard label="Offene Tickets" value={activePlanningTickets.length} />
+                <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
+                <StatCard label="Heute / Auswahl" value={plannedDispatchTickets.length} />
+                <StatCard label="Techniker" value={technicians.length} />
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+                <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">Ungeplante Tickets</h3>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        Tickets ohne Techniker oder ohne Datum. Diese Liste ist dein Arbeitsvorrat für die Disposition.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-black text-yellow-800">
+                      {unplannedDispatchTickets.length}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 max-h-[720px] space-y-3 overflow-auto pr-1">
+                    {unplannedDispatchTickets.length === 0 ? (
+                      <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                        Alle offenen Tickets sind disponiert.
+                      </div>
+                    ) : (
+                      unplannedDispatchTickets.map((ticket) => {
+                        const meta = getTicketDashboardMeta(ticket);
+
+                        return (
+                          <div key={ticket.id} className={`rounded-3xl border border-slate-200 bg-slate-50 p-4 ${priorityBorderClass(ticket.priority)}`}>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">
+                                {ticket.ticket_number}
+                              </span>
+                              <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
+                                {ticket.status}
+                              </span>
+                              <span className={`rounded-full px-3 py-1 text-xs font-black ${priorityClass(ticket.priority)}`}>
+                                {ticket.priority}
+                              </span>
+                            </div>
+                            <h4 className="mt-3 break-words text-lg font-black text-slate-900">
+                              {meta.serviceLocation || ticket.customer || "Kunde offen"}
+                            </h4>
+                            <p className="mt-1 break-words text-sm font-semibold text-slate-600">
+                              {ticketSubjectText(ticket)}
+                            </p>
+                            <p className="mt-1 break-words text-xs font-bold text-slate-500">
+                              {ticket.device || "Gerät offen"}
+                            </p>
+
+                            <div className="mt-4 grid gap-2">
+                              {technicians.length === 0 ? (
+                                <div className="rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-700">
+                                  Keine Techniker geladen.
+                                </div>
+                              ) : (
+                                technicians.map((technician) => (
+                                  <button
+                                    key={technician.id}
+                                    type="button"
+                                    onClick={() => quickPlanTicket(ticket, technician.id)}
+                                    className="rounded-2xl bg-white px-4 py-3 text-left text-sm font-black text-slate-800 shadow-sm hover:bg-green-50"
+                                  >
+                                    + {technician.full_name || technician.company || "Techniker"} · {calendarDate}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTicketView(ticket)}
+                              className="mt-3 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
+                            >
+                              Ticket-Akte öffnen
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="text-xl font-black text-slate-900">Tagesplanung</h3>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">
+                          Geplante Tickets für das ausgewählte Datum. Kalender zeigt diese Planung nur an.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openPage("Kalender")}
+                        className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-black text-white"
+                      >
+                        Kalender anzeigen
+                      </button>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                      {dispatchTechnicianGroups.map((group) => (
+                        <div key={group.technician.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <h4 className="font-black text-slate-900">
+                                {group.technician.full_name || group.technician.company || "Techniker"}
+                              </h4>
+                              <p className="text-xs font-bold text-slate-500">
+                                {group.activeCount} Einsatz(e) am {calendarDate}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+                              {group.tickets.length}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 space-y-2">
+                            {group.tickets.length === 0 ? (
+                              <div className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-400">
+                                Keine Einsätze geplant.
+                              </div>
+                            ) : (
+                              group.tickets.map((ticket) => {
+                                const meta = getTicketDashboardMeta(ticket);
+                                return (
+                                  <div key={ticket.id} className="rounded-2xl bg-white p-3 shadow-sm">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-black text-green-700">
+                                          {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number}
+                                        </p>
+                                        <p className="mt-1 break-words font-black text-slate-900">
+                                          {meta.serviceLocation || ticket.customer}
+                                        </p>
+                                        <p className="mt-1 break-words text-xs font-semibold text-slate-500">
+                                          {ticketSubjectText(ticket)}
+                                        </p>
+                                      </div>
+                                      <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
+                                        {ticket.status}
+                                      </span>
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">
+                                        Akte
+                                      </button>
+                                      <button type="button" onClick={() => updateServiceStatus(ticket.id, "Gestartet")} className="rounded-xl bg-yellow-100 px-3 py-2 text-xs font-black text-yellow-800">
+                                        Starten
+                                      </button>
+                                      <button type="button" onClick={() => openServiceReportSigning(ticket)} className="rounded-xl bg-blue-100 px-3 py-2 text-xs font-black text-blue-700">
+                                        Bericht
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {unassignedDispatchDayTickets.length > 0 && (
+                        <div className="rounded-3xl border border-orange-200 bg-orange-50 p-4">
+                          <h4 className="font-black text-orange-900">Am Tag ohne Techniker</h4>
+                          <div className="mt-3 space-y-2">
+                            {unassignedDispatchDayTickets.map((ticket) => (
+                              <button key={ticket.id} type="button" onClick={() => setSelectedTicketView(ticket)} className="w-full rounded-2xl bg-white p-3 text-left text-sm font-black text-slate-800">
+                                {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number} · {ticket.customer}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
+                    <h3 className="text-xl font-black text-slate-900">Überfällige geplante Tickets</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      Geplante Tickets mit Datum vor heute und nicht abgeschlossen.
+                    </p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {overdueDispatchTickets.length === 0 ? (
+                        <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
+                          Keine überfälligen Einsätze.
+                        </div>
+                      ) : (
+                        overdueDispatchTickets.slice(0, 8).map((ticket) => (
+                          <button key={ticket.id} type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-2xl border border-red-100 bg-red-50 p-4 text-left">
+                            <p className="text-xs font-black text-red-700">{ticket.service_date} · {ticket.service_time || "ohne Uhrzeit"}</p>
+                            <p className="mt-1 font-black text-slate-900">{ticket.ticket_number} · {ticket.customer}</p>
+                            <p className="mt-1 text-sm font-semibold text-slate-600">{ticket.status}</p>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            ) : (
             <div className="space-y-5 pb-24">
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
@@ -14336,6 +14630,8 @@ FE-SERVICE`,
                 </div>
               )}
             </div>
+
+            )
           )}
 
           
