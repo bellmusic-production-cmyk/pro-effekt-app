@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.62 · Bibliothek und Ticketsuche verbessert
+// FE-Service App v2.1.63 · Kundengeräte aus Bibliothek mit eigener Seriennummer
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -119,6 +119,14 @@ type DeviceModel = {
   created_at: string;
 };
 
+
+type CustomerLibraryDeviceDraft = {
+  key: string;
+  modelId: string;
+  serial: string;
+  location: string;
+  note: string;
+};
 
 type DocumentItem = {
   id: number;
@@ -580,6 +588,7 @@ export default function Home() {
   const [customerContact2Email, setCustomerContact2Email] = useState("");
   const [customerContact2Phone, setCustomerContact2Phone] = useState("");
   const [assignedDeviceIds, setAssignedDeviceIds] = useState<string[]>([]);
+  const [customerAssignedLibraryModels, setCustomerAssignedLibraryModels] = useState<CustomerLibraryDeviceDraft[]>([]);
   const [customerDeviceAssignSearch, setCustomerDeviceAssignSearch] = useState("");
 
   const [partName, setPartName] = useState("");
@@ -2336,6 +2345,7 @@ export default function Home() {
     setCustomerContact2Email("");
     setCustomerContact2Phone("");
     setAssignedDeviceIds([]);
+    setCustomerAssignedLibraryModels([]);
     setCustomerDeviceAssignSearch("");
   }
 
@@ -3751,6 +3761,8 @@ export default function Home() {
         .in("id", assignedDeviceIds.map(Number));
     }
 
+    await createCustomerDevicesFromLibrary(data.id);
+
     resetCustomerForm();
     await loadCustomers();
     await loadDevices();
@@ -3814,6 +3826,8 @@ export default function Home() {
         .update({ customer_id: editingCustomer.id })
         .in("id", assignedDeviceIds.map(Number));
     }
+
+    await createCustomerDevicesFromLibrary(editingCustomer.id);
 
     resetCustomerForm();
     await loadCustomers();
@@ -4544,6 +4558,66 @@ export default function Home() {
     );
     setDevice("");
     setCustomDeviceName("");
+  }
+
+  function addCustomerLibraryModel(modelItem: DeviceModel) {
+    setCustomerAssignedLibraryModels((prev) => [
+      ...prev,
+      {
+        key: `${modelItem.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        modelId: String(modelItem.id),
+        serial: "",
+        location: "",
+        note: "",
+      },
+    ]);
+    setCustomerDeviceAssignSearch("");
+  }
+
+  function updateCustomerLibraryDraft(key: string, patch: Partial<CustomerLibraryDeviceDraft>) {
+    setCustomerAssignedLibraryModels((prev) =>
+      prev.map((item) => (item.key === key ? { ...item, ...patch } : item)),
+    );
+  }
+
+  function removeCustomerLibraryDraft(key: string) {
+    setCustomerAssignedLibraryModels((prev) => prev.filter((item) => item.key !== key));
+  }
+
+  async function createCustomerDevicesFromLibrary(customerId: number) {
+    if (customerAssignedLibraryModels.length === 0) return;
+
+    const rows = customerAssignedLibraryModels
+      .map((draft) => {
+        const modelItem = deviceModels.find((item) => String(item.id) === String(draft.modelId));
+        if (!modelItem) return null;
+
+        const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id);
+        const modelName = getDeviceModelDisplayName(modelItem);
+        const categoryName = getDeviceModelTypeName(modelItem);
+
+        return {
+          customer_id: customerId,
+          name: [manufacturerName, categoryName, modelName].filter(Boolean).join(" / "),
+          manufacturer_id: modelItem.manufacturer_id || null,
+          manufacturer: manufacturerName || null,
+          model_id: modelItem.id,
+          model: modelName || null,
+          serial_number: draft.serial.trim() || null,
+          location: draft.location.trim() || null,
+          status: "Aktiv",
+          note: draft.note.trim() || null,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => Boolean(row));
+
+    if (rows.length === 0) return;
+
+    const { error } = await supabase.from("devices").insert(rows);
+
+    if (error) {
+      alert("Kundengeräte konnten nicht vollständig angelegt werden.");
+    }
   }
 
   function groupDeviceModelsByType(items: DeviceModel[]) {
@@ -8262,26 +8336,17 @@ FE-SERVICE`,
 
     if (!search || search.length < 2) return [];
 
-    return devices
-      .filter((deviceItem) => !assignedDeviceIds.includes(String(deviceItem.id)))
-      .filter((deviceItem) => {
-        const linkedCustomer = deviceItem.customer_id
-          ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
-          : null;
+    return deviceModels
+      .filter((modelItem) => {
+        const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id);
 
         const searchText = [
-          deviceItem.name,
-          deviceItem.model,
-          getDeviceModelNameById(deviceItem.model_id),
-          deviceItem.manufacturer,
-          getManufacturerNameById(deviceItem.manufacturer_id),
-          deviceItem.serial_number,
-          deviceItem.location,
-          deviceItem.status,
-          deviceItem.note,
-          linkedCustomer ? getCustomerDisplayName(linkedCustomer) : "",
-          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+          manufacturerName,
+          getDeviceModelTypeName(modelItem),
+          getDeviceModelDisplayName(modelItem),
+          modelItem.category,
+          modelItem.source,
+          modelItem.note,
         ]
           .filter(Boolean)
           .join(" ")
@@ -8289,6 +8354,7 @@ FE-SERVICE`,
 
         return searchText.includes(search);
       })
+      .sort((a, b) => getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"))
       .slice(0, 25);
   })();
 
@@ -11060,32 +11126,35 @@ FE-SERVICE`,
                           Geräte diesem Kunden zuweisen
                         </h4>
                         <p className="mt-1 text-sm font-semibold text-slate-500">
-                          Geräte gezielt suchen und hinzufügen. Es werden maximal 25 Treffer angezeigt – geeignet für große Gerätebestände.
+                          Suche in der Hersteller-/Gerätebibliothek. Beim Zuordnen zum Kunden wird daraus ein eigenes Kundengerät mit eigener Seriennummer.
                         </p>
                       </div>
 
                       <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-black text-green-700">
-                        {assignedDeviceIds.length} ausgewählt
+                        {assignedDeviceIds.length + customerAssignedLibraryModels.length} ausgewählt
                       </span>
                     </div>
 
                     <input
                       value={customerDeviceAssignSearch}
                       onChange={(event) => setCustomerDeviceAssignSearch(event.target.value)}
-                      placeholder="Gerät suchen: Name, Seriennummer, Hersteller, Standort oder Kunde"
+                      placeholder="Bibliothek suchen: Hersteller, Kategorie, Modellbezeichnung"
                       className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-green-500"
                     />
 
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-black text-slate-700">
-                          Ausgewählte Geräte
+                          Ausgewählte Kundengeräte
                         </p>
 
-                        {assignedDeviceIds.length > 0 && (
+                        {(assignedDeviceIds.length > 0 || customerAssignedLibraryModels.length > 0) && (
                           <button
                             type="button"
-                            onClick={() => setAssignedDeviceIds([])}
+                            onClick={() => {
+                              setAssignedDeviceIds([]);
+                              setCustomerAssignedLibraryModels([]);
+                            }}
                             className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-red-100 hover:text-red-700"
                           >
                             Auswahl leeren
@@ -11093,35 +11162,88 @@ FE-SERVICE`,
                         )}
                       </div>
 
-                      {assignedCustomerDevices.length === 0 ? (
+                      {assignedCustomerDevices.length === 0 && customerAssignedLibraryModels.length === 0 ? (
                         <p className="mt-3 text-sm font-semibold text-slate-400">
                           Noch keine Geräte ausgewählt.
                         </p>
                       ) : (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 space-y-3">
                           {assignedCustomerDevices.map((deviceItem) => (
-                            <span
+                            <div
                               key={deviceItem.id}
-                              className="inline-flex max-w-full items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-sm font-black text-green-800"
+                              className="rounded-2xl border border-green-100 bg-green-50 p-3"
                             >
-                              <span className="truncate">
-                                {deviceItem.name}
-                                {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setAssignedDeviceIds((prev) =>
-                                    prev.filter((id) => id !== String(deviceItem.id)),
-                                  )
-                                }
-                                className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-xs font-black text-green-900 transition hover:bg-red-100 hover:text-red-700"
-                              >
-                                ×
-                              </button>
-                            </span>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="break-words text-sm font-black text-green-900">
+                                    {deviceItem.name}
+                                  </p>
+                                  <p className="mt-1 text-xs font-bold text-green-700">
+                                    Bestehendes Kundengerät{deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setAssignedDeviceIds((prev) =>
+                                      prev.filter((id) => id !== String(deviceItem.id)),
+                                    )
+                                  }
+                                  className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-green-900 transition hover:bg-red-100 hover:text-red-700"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
                           ))}
+
+                          {customerAssignedLibraryModels.map((draft, index) => {
+                            const modelItem = deviceModels.find((item) => String(item.id) === String(draft.modelId));
+                            if (!modelItem) return null;
+
+                            return (
+                              <div key={draft.key} className="rounded-2xl border border-green-100 bg-green-50 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-black uppercase tracking-[0.16em] text-green-600">
+                                      Neues Kundengerät {index + 1}
+                                    </p>
+                                    <p className="mt-1 break-words font-black text-green-950">
+                                      {getTicketLibraryModelLabel(modelItem)}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCustomerLibraryDraft(draft.key)}
+                                    className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-green-900 transition hover:bg-red-100 hover:text-red-700"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+
+                                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                  <input
+                                    value={draft.serial}
+                                    onChange={(event) => updateCustomerLibraryDraft(draft.key, { serial: event.target.value })}
+                                    placeholder="Seriennummer nur für diesen Kunden"
+                                    className="rounded-2xl border border-green-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-green-500"
+                                  />
+                                  <input
+                                    value={draft.location}
+                                    onChange={(event) => updateCustomerLibraryDraft(draft.key, { location: event.target.value })}
+                                    placeholder="Standort optional"
+                                    className="rounded-2xl border border-green-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-green-500"
+                                  />
+                                  <input
+                                    value={draft.note}
+                                    onChange={(event) => updateCustomerLibraryDraft(draft.key, { note: event.target.value })}
+                                    placeholder="Notiz optional"
+                                    className="rounded-2xl border border-green-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-green-500"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -11129,58 +11251,38 @@ FE-SERVICE`,
                     <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
                       {customerDeviceAssignSearch.trim().length < 2 ? (
                         <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Mindestens 2 Zeichen eingeben, um Geräte zu suchen.
+                          Mindestens 2 Zeichen eingeben, z. B. Gym80, Laufband, Chest Press oder Run Forma.
                         </div>
                       ) : customerDeviceAssignResults.length === 0 ? (
                         <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Kein passendes Gerät gefunden.
+                          Kein passendes Modell in der Bibliothek gefunden.
                         </div>
                       ) : (
-                        customerDeviceAssignResults.map((deviceItem) => {
-                          const assignedOtherCustomerName =
-                            deviceItem.customer_id &&
-                            deviceItem.customer_id !== editingCustomerIdForDeviceAssignment
-                              ? getCustomerNameById(deviceItem.customer_id)
-                              : "";
-
-                          return (
-                            <button
-                              key={deviceItem.id}
-                              type="button"
-                              onClick={() => {
-                                const deviceId = String(deviceItem.id);
-                                setAssignedDeviceIds((prev) =>
-                                  Array.from(new Set([...prev, deviceId])),
-                                );
-                                setCustomerDeviceAssignSearch("");
-                              }}
-                              className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-green-400 hover:bg-green-50"
-                            >
-                              <p className="break-words font-black text-slate-900">
-                                {deviceItem.name}
-                              </p>
-
-                              <p className="mt-1 break-words text-sm font-bold text-slate-500">
-                                {deviceItem.manufacturer ||
-                                  getManufacturerNameById(deviceItem.manufacturer_id) ||
-                                  "Hersteller unbekannt"}
-                                {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
-                              </p>
-
-                              <p className="mt-1 break-words text-xs font-semibold text-slate-400">
-                                {deviceItem.location || "Kein Standort"}
-                              </p>
-
-                              {assignedOtherCustomerName && (
-                                <p className="mt-2 rounded-xl bg-yellow-100 px-3 py-2 text-xs font-black text-yellow-800">
-                                  Aktuell zugeordnet: {assignedOtherCustomerName}
-                                </p>
-                              )}
-                            </button>
-                          );
-                        })
+                        customerDeviceAssignResults.map((modelItem) => (
+                          <button
+                            key={modelItem.id}
+                            type="button"
+                            onClick={() => addCustomerLibraryModel(modelItem)}
+                            className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-green-400 hover:bg-green-50"
+                          >
+                            <p className="break-words font-black text-slate-900">
+                              {getDeviceModelDisplayName(modelItem)}
+                            </p>
+                            <p className="mt-1 break-words text-sm font-bold text-slate-500">
+                              {getManufacturerNameById(modelItem.manufacturer_id) || "Hersteller unbekannt"}
+                              {getDeviceModelTypeName(modelItem) ? ` · ${getDeviceModelTypeName(modelItem)}` : ""}
+                            </p>
+                            <p className="mt-2 text-xs font-black text-green-700">
+                              + diesem Kunden als eigenes Gerät zuordnen
+                            </p>
+                          </button>
+                        ))
                       )}
                     </div>
+
+                    <p className="mt-4 rounded-2xl bg-white p-3 text-xs font-bold text-slate-500">
+                      Wichtig: Die Seriennummer wird nur beim Kundengerät gespeichert. Die Modellbibliothek bleibt neutral und seriennummernfrei.
+                    </p>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
