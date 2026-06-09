@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.64 · Ticket-Geräteauswahl verbessert · keine Sprachsteuerung
+// FE-Service App v2.1.65 · Ticket-Akte mit Abnahme-Übergabe · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1935,6 +1935,54 @@ export default function Home() {
       devices.find((item) => String(item.serial_number || "") === ticket.device) ||
       null
     );
+  }
+
+
+  function getDevicesForTicketSelection(ticket: Ticket) {
+    const ticketText = [ticket.device, ticket.description]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (!ticketText.trim()) return [];
+
+    const directDevice = getDeviceForTicket(ticket);
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const possibleDevices = relatedCustomer?.id
+      ? devices.filter((deviceItem) => deviceItem.customer_id === relatedCustomer.id)
+      : devices;
+
+    const matchedDevices = possibleDevices.filter((deviceItem) => {
+      const manufacturerName =
+        deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id);
+      const modelName =
+        getDeviceModelNameById(deviceItem.model_id) || deviceItem.model || deviceItem.name;
+
+      const searchParts = [
+        deviceItem.name,
+        manufacturerName,
+        modelName,
+        deviceItem.serial_number,
+        deviceItem.location,
+      ]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase().trim())
+        .filter((value) => value.length >= 2);
+
+      return searchParts.some((value) => ticketText.includes(value));
+    });
+
+    const uniqueMap = new Map<number, Device>();
+
+    if (directDevice) {
+      uniqueMap.set(directDevice.id, directDevice);
+    }
+
+    matchedDevices.forEach((deviceItem) => {
+      uniqueMap.set(deviceItem.id, deviceItem);
+    });
+
+    return Array.from(uniqueMap.values());
   }
 
   function uniqueDocuments(items: DocumentItem[]) {
@@ -3999,6 +4047,47 @@ export default function Home() {
     setAbnahmeAddressObject(buildCustomerAddress(item));
     setAbnahmeDeviceSearch("");
     setAbnahmeCustomerDevicesOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+
+  function prepareAbnahmeFromTicket(ticket: Ticket) {
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const ticketDevices = getDevicesForTicketSelection(ticket);
+
+    setActivePage("Abnahmeprotokoll");
+    setAbnahmeTicketId(String(ticket.id));
+    setAbnahmeOrderNumber(ticket.ticket_number || "");
+    setAbnahmeCustomerId(relatedCustomer ? String(relatedCustomer.id) : "");
+    setAbnahmeCustomerSearch(relatedCustomer ? getCustomerLabel(relatedCustomer) : ticket.customer || "");
+    setAbnahmeCustomerNumber(
+      relatedCustomer?.customer_number ||
+        (relatedCustomer ? String(relatedCustomer.id) : ""),
+    );
+    setAbnahmeAddressObject(
+      ticket.service_address ||
+        (relatedCustomer ? buildCustomerAddress(relatedCustomer) : ""),
+    );
+    setAbnahmeDate(new Date().toISOString().split("T")[0]);
+    setAbnahmeCustomerDevicesOpen(true);
+
+    const nextDeviceIds = ticketDevices.map((deviceItem) => String(deviceItem.id));
+    setAbnahmeSelectedDeviceIds(nextDeviceIds);
+    setAbnahmeDeviceRows(ticketDevices.map((deviceItem) => buildAbnahmeDeviceRow(deviceItem)));
+
+    const firstDevice = ticketDevices[0] || null;
+    setAbnahmeDeviceId(firstDevice ? String(firstDevice.id) : "");
+    setAbnahmeManufacturer(
+      firstDevice?.manufacturer || getManufacturerNameById(firstDevice?.manufacturer_id) || "",
+    );
+    setAbnahmeModel(
+      firstDevice
+        ? getDeviceModelNameById(firstDevice.model_id) || firstDevice.model || firstDevice.name || ""
+        : ticket.device || "",
+    );
+    setAbnahmeSerial(firstDevice?.serial_number || "");
+    setAbnahmeDefects(firstDevice?.note || "");
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -9648,6 +9737,7 @@ FE-SERVICE`,
                 const currentTicket = tickets.find((item) => item.id === selectedTicketView.id) || selectedTicketView;
                 const ticketCustomer = getCustomerForTicket(currentTicket);
                 const ticketDevice = getDeviceForTicket(currentTicket);
+                const ticketLinkedDevices = getDevicesForTicketSelection(currentTicket);
                 const contextDocuments = getDocumentsForTicketContext(currentTicket);
                 const documentSearch = ticketAkteDocumentSearch.trim().toLowerCase();
                 const attachableDocuments = documentSearch.length < 2
@@ -9703,6 +9793,12 @@ FE-SERVICE`,
                           Ticket bearbeiten
                         </button>
                         <button
+                          onClick={() => prepareAbnahmeFromTicket(currentTicket)}
+                          className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white"
+                        >
+                          Abnahme aus Ticket
+                        </button>
+                        <button
                           onClick={() => setSelectedTicketView(null)}
                           className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700"
                         >
@@ -9729,19 +9825,37 @@ FE-SERVICE`,
                       </div>
 
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Gerät</p>
-                        <h4 className="mt-2 text-lg font-black text-slate-900">
-                          {ticketDevice?.name || currentTicket.device || "Noch nicht zugewiesen"}
-                        </h4>
-                        <p className="mt-2 text-sm font-semibold text-slate-600">
-                          {ticketDevice?.manufacturer || getManufacturerNameById(ticketDevice?.manufacturer_id) || "Hersteller offen"}
-                        </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-600">
-                          {ticketDevice?.serial_number ? `SN: ${ticketDevice.serial_number}` : "Seriennummer offen"}
-                        </p>
-                        <p className="mt-2 text-xs font-bold text-slate-500">
-                          {ticketDevice?.location || "Standort offen"}
-                        </p>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Geräte im Ticket</p>
+                        {ticketLinkedDevices.length > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            {ticketLinkedDevices.map((deviceItem) => (
+                              <div key={deviceItem.id} className="rounded-2xl bg-white p-3 shadow-sm">
+                                <p className="text-sm font-black text-slate-900">
+                                  {getCustomerDeviceTicketLabel(deviceItem)}
+                                </p>
+                                <p className="mt-1 text-xs font-bold text-slate-500">
+                                  {deviceItem.status || "Status offen"}
+                                  {deviceItem.next_check ? ` · nächste Prüfung: ${deviceItem.next_check}` : ""}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            <h4 className="mt-2 text-lg font-black text-slate-900">
+                              {ticketDevice?.name || currentTicket.device || "Noch nicht zugewiesen"}
+                            </h4>
+                            <p className="mt-2 text-sm font-semibold text-slate-600">
+                              {ticketDevice?.manufacturer || getManufacturerNameById(ticketDevice?.manufacturer_id) || "Hersteller offen"}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-600">
+                              {ticketDevice?.serial_number ? `SN: ${ticketDevice.serial_number}` : "Seriennummer offen"}
+                            </p>
+                            <p className="mt-2 text-xs font-bold text-slate-500">
+                              {ticketDevice?.location || "Standort offen"}
+                            </p>
+                          </>
+                        )}
                       </div>
 
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
