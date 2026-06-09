@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.69 · Einsatzplanung / Dispo-Zentrale · keine Sprachsteuerung
+// FE-Service App v2.1.73 · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1255,15 +1255,12 @@ export default function Home() {
   }
 
   async function loadUserProfile(userId: string) {
-    // Rollenrechte dürfen niemals pauschal auf Admin fallen.
-    // Die sichtbare Rolle kommt aus public.profiles.
-    // Bei kurzem Tab-Wechsel behalten wir den bereits geladenen Rollenstand,
-    // statt bei einem Timeout auf Kunde/Admin umzuschalten.
+    // Fast Role Cache:
+    // Beim Tab-Wechsel darf die App nicht wieder 5-10 Sekunden auf
+    // "Rolle wird geladen" fallen. Wenn ein gültiger Rollen-Cache für exakt
+    // diesen User vorhanden ist, wird er sofort angezeigt. Supabase prüft die
+    // Rolle danach nur im Hintergrund und korrigiert sie, falls sie sich geändert hat.
     const cacheKey = `fe-service-user-profile-${userId}`;
-
-    if (!userProfile || userProfile.id !== userId) {
-      setProfileLoading(true);
-    }
 
     const safeCustomerFallback: UserProfile = {
       id: userId,
@@ -1306,9 +1303,21 @@ export default function Home() {
       }
     }
 
+    const cachedProfile = readCachedProfile();
+    const hasProfileForSameUser = userProfile?.id === userId;
+
+    if (cachedProfile) {
+      setUserProfile(cachedProfile);
+      setProfileLoading(false);
+    } else if (hasProfileForSameUser) {
+      setProfileLoading(false);
+    } else {
+      setProfileLoading(true);
+    }
+
     try {
       const timeout = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Profil-Ladevorgang Timeout")), 8000);
+        setTimeout(() => reject(new Error("Profil-Ladevorgang Timeout")), 3500);
       });
 
       const profileRequest = supabase
@@ -1322,8 +1331,10 @@ export default function Home() {
       if (result?.error) {
         console.error("Profil konnte nicht geladen werden:", result.error.message);
 
-        const cachedProfile = readCachedProfile();
-        setUserProfile(cachedProfile || userProfile || safeCustomerFallback);
+        if (!cachedProfile && !hasProfileForSameUser) {
+          setUserProfile(safeCustomerFallback);
+        }
+
         setProfileLoading(false);
         return;
       }
@@ -1331,8 +1342,10 @@ export default function Home() {
       const loadedProfile = result?.data as UserProfile | null;
 
       if (!loadedProfile || !["admin", "technician", "customer"].includes(String(loadedProfile.role))) {
-        const cachedProfile = readCachedProfile();
-        setUserProfile(cachedProfile || userProfile || safeCustomerFallback);
+        if (!cachedProfile && !hasProfileForSameUser) {
+          setUserProfile(safeCustomerFallback);
+        }
+
         setProfileLoading(false);
         return;
       }
@@ -1341,10 +1354,12 @@ export default function Home() {
       cacheProfile(loadedProfile);
       setProfileLoading(false);
     } catch (error) {
-      console.error("Profil-Ladevorgang übersprungen:", error);
+      console.error("Profil-Ladevorgang im Hintergrund übersprungen:", error);
 
-      const cachedProfile = readCachedProfile();
-      setUserProfile(cachedProfile || userProfile || safeCustomerFallback);
+      if (!cachedProfile && !hasProfileForSameUser) {
+        setUserProfile(safeCustomerFallback);
+      }
+
       setProfileLoading(false);
     }
   }
