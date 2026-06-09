@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.60 · Abnahme Gerätedaten je Gerät bearbeitbar
+// FE-Service App v2.1.61 · Hersteller-/Gerätebibliothek zusammengeführt
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -109,10 +109,12 @@ type Manufacturer = {
 type DeviceModel = {
   id: number;
   manufacturer_id: number | null;
-  name: string;
+  name: string | null;
+  model?: string | null;
   category: string | null;
   type: string | null;
   device_type?: string | null;
+  source?: string | null;
   note: string | null;
   created_at: string;
 };
@@ -247,7 +249,6 @@ const navItems = [
   "Service-Tickets",
   "Kunden",
   "Geräte",
-  "Hersteller",
   "QR-Scan",
   "Abnahmeprotokoll",
   "Ersatzteile",
@@ -1366,8 +1367,8 @@ export default function Home() {
       .order("name", { ascending: true });
 
     if (error) {
-      console.error("Modelle konnten nicht geladen werden:", error.message);
-      alert("Modelle konnten nicht geladen werden: " + error.message);
+      console.error("Geräte / Modelle konnten nicht geladen werden:", error.message);
+      alert("Geräte / Modelle konnten nicht geladen werden: " + error.message);
       setDeviceModels([]);
       return;
     }
@@ -3484,16 +3485,16 @@ export default function Home() {
   function startEditDeviceModel(item: DeviceModel) {
     setEditingDeviceModel(item);
     setModelManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
-    setModelName(item.name || "");
+    setModelName(getDeviceModelDisplayName(item));
     setModelCategory(item.category || "");
-    setModelType(item.type || item.device_type || "Sonstiges");
+    setModelType(getDeviceModelTypeName(item) || "Sonstiges");
     setModelNote(item.note || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function saveDeviceModel() {
     if (!isAdmin) {
-      alert("Nur Admins können Modelle verwalten.");
+      alert("Nur Admins können Geräte / Modelle verwalten.");
       return;
     }
 
@@ -3507,9 +3508,11 @@ export default function Home() {
     const payload = {
       manufacturer_id: Number(modelManufacturerId),
       name: modelName.trim(),
+      model: modelName.trim(),
       category: modelCategory.trim() || null,
       type: cleanedModelType,
       device_type: cleanedModelType,
+      source: "FE-Service App",
       note: modelNote.trim() || null,
     };
 
@@ -3529,7 +3532,7 @@ export default function Home() {
 
   async function deleteDeviceModel(item: DeviceModel) {
     if (!isAdmin) {
-      alert("Nur Admins können Modelle löschen.");
+      alert("Nur Admins können Geräte / Modelle löschen.");
       return;
     }
 
@@ -3574,7 +3577,7 @@ export default function Home() {
       {
         name: deviceName,
         model_id: selectedModel?.id || null,
-        model: selectedModel?.name || null,
+        model: getDeviceModelDisplayName(selectedModel) || null,
         manufacturer: selectedManufacturer?.name || deviceManufacturer || null,
         manufacturer_id: selectedManufacturer?.id || null,
         serial_number: deviceSerial,
@@ -3619,7 +3622,7 @@ export default function Home() {
       .update({
         name: deviceName,
         model_id: selectedModel?.id || null,
-        model: selectedModel?.name || null,
+        model: getDeviceModelDisplayName(selectedModel) || null,
         manufacturer: selectedManufacturer?.name || deviceManufacturer || null,
         manufacturer_id: selectedManufacturer?.id || null,
         serial_number: deviceSerial,
@@ -4501,9 +4504,17 @@ export default function Home() {
     return manufacturers.find((item) => item.id === manufacturerId)?.name || "";
   }
 
+  function getDeviceModelDisplayName(modelItem?: DeviceModel | null) {
+    return String(modelItem?.model || modelItem?.name || "").trim();
+  }
+
+  function getDeviceModelTypeName(modelItem?: DeviceModel | null) {
+    return String(modelItem?.device_type || modelItem?.type || modelItem?.category || "").trim();
+  }
+
   function getDeviceModelNameById(modelId?: number | null) {
     if (!modelId) return "";
-    return deviceModels.find((item) => item.id === modelId)?.name || "";
+    return getDeviceModelDisplayName(deviceModels.find((item) => item.id === modelId));
   }
 
   function resetManufacturerForm() {
@@ -4519,7 +4530,8 @@ export default function Home() {
   }
 
   function startEditManufacturer(item: Manufacturer) {
-    setActivePage("Hersteller");
+    setActivePage("Geräte");
+    setSelectedDeviceView(null);
     setEditingManufacturer(item);
     setManufacturerName(item.name || "");
     setManufacturerWebsite(item.website || "");
@@ -5945,7 +5957,7 @@ FE-SERVICE`,
             <td>${item.df ? "X" : ""}</td>
             <td>${index + 1}</td>
             <td>${protocolDeviceRows.length > 1 ? "siehe Geräteliste" : protocolDeviceRows[0]?.manufacturer || ""}</td>
-            <td>${protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} Geräte / Modelle` : protocolDeviceRows[0]?.model || ""}</td>
+            <td>${protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} Geräte / Geräte / Modelle` : protocolDeviceRows[0]?.model || ""}</td>
             <td>${protocolDeviceRows.length > 1 ? "" : protocolDeviceRows[0]?.serial || ""}</td>
             <td>${item.comment || (index === 0 ? abnahmeDefects : "")}</td>
             <td>${abnahmeDeviceResult}</td>
@@ -6137,7 +6149,7 @@ FE-SERVICE`,
 
             ${
               protocolDevices.length > 1
-                ? `<div class="row">Geprüfte Geräte / Modelle <span class="line" style="min-width:520px;">${protocolDeviceText}</span></div>`
+                ? `<div class="row">Geprüfte Geräte / Geräte / Modelle <span class="line" style="min-width:520px;">${protocolDeviceText}</span></div>`
                 : ""
             }
 
@@ -7440,7 +7452,7 @@ FE-SERVICE`,
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Hersteller", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
+      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
       : ["Kundenportal", "Service-Tickets", "Geräte", "Dokumente", "Rechnungen"];
 
   const navGroups = [
@@ -7457,7 +7469,7 @@ FE-SERVICE`,
     {
       title: "Stammdaten",
       icon: "🏢",
-      items: ["Kunden", "Geräte", "Hersteller"],
+      items: ["Kunden", "Geräte"],
     },
     {
       title: "Dokumente",
@@ -7493,8 +7505,7 @@ FE-SERVICE`,
       Kalender: "Kalender",
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
-      Geräte: "Geräte",
-      Hersteller: "Hersteller",
+      Geräte: "Hersteller-/Gerätebibliothek",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Abnahmeprotokoll",
       Ersatzteile: "Teile",
@@ -7730,7 +7741,7 @@ FE-SERVICE`,
 
   function getCleanModelName(modelId?: number | null) {
     if (!modelId) return "";
-    return deviceModels.find((item) => item.id === modelId)?.name || "";
+    return getDeviceModelDisplayName(deviceModels.find((item) => item.id === modelId));
   }
 
   function isCleanCatalogName(value?: string | null) {
@@ -7766,10 +7777,11 @@ FE-SERVICE`,
     const seen = new Set<string>();
 
     return deviceModels
-      .filter((modelItem) => isCleanCatalogName(modelItem.name))
+      .filter((modelItem) => isCleanCatalogName(getDeviceModelDisplayName(modelItem)))
       .map((modelItem) => ({
         id: modelItem.id,
-        name: modelItem.name,
+        name: getDeviceModelDisplayName(modelItem),
+        deviceType: getDeviceModelTypeName(modelItem),
         manufacturerName: getCleanManufacturerName(modelItem.manufacturer_id),
       }))
       .filter((item) => {
@@ -7862,9 +7874,10 @@ FE-SERVICE`,
       const linkedManufacturer = getManufacturerNameById(modelItem.manufacturer_id);
       return [
         linkedManufacturer,
-        modelItem.name,
+        getDeviceModelDisplayName(modelItem),
+        getDeviceModelTypeName(modelItem),
         modelItem.category,
-        modelItem.type,
+        modelItem.source,
         modelItem.note,
       ]
         .filter(Boolean)
@@ -8402,9 +8415,9 @@ FE-SERVICE`,
                         }`}
                       >
                         {navItemLabel(item)}
-                        {item === "Hersteller" && (
+                        {item === "Geräte" && (
                           <span className="mt-1 block text-[11px] font-bold text-slate-400">
-                            Hersteller · Modelle · Gerätekatalog
+                            Hersteller · Gerätetyp · Modell
                           </span>
                         )}
                       </button>
@@ -11326,18 +11339,17 @@ FE-SERVICE`,
             </div>
           )}
 
-                    {activePage === "Hersteller" && (isAdmin || isTechnician) && (
+                    {activePage === "Geräte" && !selectedDeviceView && (isAdmin || isTechnician) && (
             <div className="space-y-6">
               <div className="rounded-[32px] bg-[#07130d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-green-400">
                   {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                  Hersteller, Geräte & Modelle
+                  Hersteller-/Gerätebibliothek
                 </h3>
                 <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
-                  Die Katalogdaten sind platzsparend in Dropdowns und aufklappbaren Bereichen organisiert.
-                  Erst Hersteller wählen, dann Modelle und Geräte bearbeiten.
+                  Ein zentraler Bereich für Herstellerkontakte, Gerätetypen und Modellbezeichnungen. Keine Kunden und keine Seriennummern in der Bibliothek.
                 </p>
               </div>
 
@@ -11435,7 +11447,7 @@ FE-SERVICE`,
                   {isAdmin && (
                     <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
                       <summary className="cursor-pointer text-xl font-black">
-                        {editingDeviceModel ? "Modell bearbeiten" : "Modell anlegen"}
+                        {editingDeviceModel ? "Gerät / Modell bearbeiten" : "Gerät / Modell anlegen"}
                       </summary>
 
                       <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -11455,7 +11467,7 @@ FE-SERVICE`,
                         <input
                           value={modelName}
                           onChange={(e) => setModelName(e.target.value)}
-                          placeholder="Modellname, z.B. T5, 95T, Excite Run"
+                          placeholder="Modellbezeichnung, z. B. Run Forma, 95T, RowErg"
                           className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                         />
 
@@ -11463,14 +11475,14 @@ FE-SERVICE`,
                           <input
                             value={modelCategory}
                             onChange={(e) => setModelCategory(e.target.value)}
-                            placeholder="Kategorie, z.B. Cardio"
+                            placeholder="Kategorie, z. B. Cardio, Kraft, Functional"
                             className="rounded-2xl border border-slate-300 px-5 py-4"
                           />
 
                           <input
                             value={modelType}
                             onChange={(e) => setModelType(e.target.value)}
-                            placeholder="Gerätetyp, z.B. Laufband"
+                            placeholder="Gerätetyp, z. B. Laufband, Crosstrainer, Beinpresse"
                             className="rounded-2xl border border-slate-300 px-5 py-4"
                           />
                         </div>
@@ -11488,7 +11500,7 @@ FE-SERVICE`,
                             onClick={saveDeviceModel}
                             className="rounded-2xl bg-green-600 px-6 py-4 font-black text-white"
                           >
-                            {editingDeviceModel ? "Modell speichern" : "Modell hinzufügen"}
+                            {editingDeviceModel ? "Modell speichern" : "Gerät / Modell hinzufügen"}
                           </button>
 
                           <button
@@ -11504,10 +11516,10 @@ FE-SERVICE`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Katalog-Dropdown</h3>
+                  <h3 className="text-xl font-black">Bibliothek</h3>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                      Such- und Lesemodus: Techniker können Hersteller und Modelle einsehen, aber nicht bearbeiten.
+                      Such- und Lesemodus: Techniker können Hersteller und Geräte / Modelle einsehen, aber nicht bearbeiten.
                     </p>
                   )}
 
@@ -11525,14 +11537,14 @@ FE-SERVICE`,
                     <input
                       value={deviceModelDirectorySearch}
                       onChange={(e) => setDeviceModelDirectorySearch(e.target.value)}
-                      placeholder="Modelle suchen"
+                      placeholder="Gerätetyp oder Modell suchen"
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                     />
                   </div>
 
                   <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                     <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                      Hersteller-Katalog öffnen
+                      Hersteller auswählen
                     </label>
                     <select
                       value={catalogManufacturerId}
@@ -11572,7 +11584,7 @@ FE-SERVICE`,
                       </p>
                     ) : !catalogManufacturerId ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
-                        Bitte oben einen Hersteller auswählen, um Modelle und Daten anzuzeigen.
+                        Bitte oben einen Hersteller auswählen, um Geräte / Modelle und Daten anzuzeigen.
                       </p>
                     ) : (
                       filteredManufacturerDirectory
@@ -11630,7 +11642,7 @@ FE-SERVICE`,
                                 </div>
 
                                 <div className="rounded-2xl bg-white p-4">
-                                  <h5 className="font-black text-green-700">Modelle</h5>
+                                  <h5 className="font-black text-green-700">Geräte / Modelle</h5>
                                   <select
                                     className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
                                     defaultValue=""
@@ -11638,7 +11650,7 @@ FE-SERVICE`,
                                     <option value="">Modell-Dropdown öffnen</option>
                                     {modelsForManufacturer.map((modelItem) => (
                                       <option key={modelItem.id} value={modelItem.id}>
-                                        {modelItem.name} {modelItem.type ? `· ${modelItem.type}` : ""}
+                                        {getDeviceModelDisplayName(modelItem)} {getDeviceModelTypeName(modelItem) ? `· ${getDeviceModelTypeName(modelItem)}` : ""}
                                       </option>
                                     ))}
                                   </select>
@@ -11646,16 +11658,16 @@ FE-SERVICE`,
                                   <div className="mt-3 max-h-[420px] space-y-2 overflow-y-auto pr-1">
                                     {modelsForManufacturer.length === 0 ? (
                                       <p className="rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-500">
-                                        Noch keine Modelle hinterlegt.
+                                        Noch keine Geräte / Modelle hinterlegt.
                                       </p>
                                     ) : (
                                       modelsForManufacturer.map((modelItem) => (
                                         <div key={modelItem.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                                           <div className="flex items-start justify-between gap-3">
                                             <div>
-                                              <p className="font-black text-slate-900">{modelItem.name}</p>
+                                              <p className="font-black text-slate-900">{getDeviceModelDisplayName(modelItem)}</p>
                                               <p className="text-sm font-semibold text-slate-500">
-                                                {modelItem.category || "Kategorie offen"} · {modelItem.type || "Typ offen"}
+                                                {modelItem.category || "Kategorie offen"} · {getDeviceModelTypeName(modelItem) || "Typ offen"}
                                               </p>
                                             </div>
                                             {isAdmin && (
@@ -12041,7 +12053,7 @@ FE-SERVICE`,
               </div>
             </div>
           )}
-          {activePage === "Geräte" && !selectedDeviceView && (
+          {activePage === "KundengeräteAlt" && !selectedDeviceView && (
             <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
               {isAdmin && (
               <div
@@ -12095,7 +12107,7 @@ FE-SERVICE`,
                             (item) => item.id === Number(e.target.value),
                           );
                           if (selectedModel && !deviceName.trim()) {
-                            setDeviceName(selectedModel.name);
+                            setDeviceName(getDeviceModelDisplayName(selectedModel));
                           }
                         }}
                         disabled={!deviceManufacturerId}
@@ -12104,7 +12116,7 @@ FE-SERVICE`,
                         <option value="">Modell wählen</option>
                         {selectedDeviceManufacturerModels.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {item.name} {item.type ? `· ${item.type}` : ""}
+                            {getDeviceModelDisplayName(item)} {getDeviceModelTypeName(item) ? `· ${getDeviceModelTypeName(item)}` : ""}
                           </option>
                         ))}
                       </select>
@@ -12808,7 +12820,7 @@ FE-SERVICE`,
                         {selectedAbnahmeDevices.length > 0 && (
                           <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4">
                             <p className="text-xs font-black uppercase tracking-[0.14em] text-green-700">
-                              Ausgewählte Geräte / Modelle ({selectedAbnahmeDevices.length})
+                              Ausgewählte Geräte / Geräte / Modelle ({selectedAbnahmeDevices.length})
                             </p>
                             <div className="mt-3 flex flex-wrap gap-2">
                               {selectedAbnahmeDevices.map((item) => (
