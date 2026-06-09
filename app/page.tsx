@@ -2447,6 +2447,11 @@ export default function Home() {
   }
 
   function startEdit(ticket: Ticket) {
+    if (isCustomer) {
+      alert("Kunden können Tickets nach dem Absenden nicht bearbeiten. Bitte bei Änderungen eine Nachricht/Dokumentation ergänzen oder ein neues Ticket erstellen.");
+      return;
+    }
+
     setActivePage("Service-Tickets");
     setMobileTicketFormOpen(true);
     setEditingTicket(ticket);
@@ -2775,6 +2780,11 @@ export default function Home() {
   }
 
   async function updateTicketStatus(ticketId: number, newStatus: string) {
+    if (isCustomer) {
+      alert("Kunden können den Ticketstatus nicht ändern.");
+      return;
+    }
+
     const { error } = await supabase
       .from("tickets")
       .update({ status: newStatus })
@@ -3483,6 +3493,11 @@ export default function Home() {
   }
 
   function openServiceReportSigning(ticket: Ticket) {
+    if (isCustomer) {
+      alert("PDF / Signatur, Servicebericht, UVV und Abnahme sind nur für Techniker und Admin vorgesehen.");
+      return;
+    }
+
     const currentTicket = tickets.find((item) => item.id === ticket.id) || ticket;
 
     setServiceSigningTicket(currentTicket);
@@ -4075,6 +4090,11 @@ export default function Home() {
   }
 
   function prepareAbnahmeFromCustomer(item: Customer) {
+    if (isCustomer) {
+      alert("Abnahmeprotokolle / UVV dürfen nur Techniker und Admin erstellen.");
+      return;
+    }
+
     setActivePage("Abnahmeprotokoll");
     setAbnahmeCustomerId(String(item.id));
     setAbnahmeCustomerSearch(getCustomerLabel(item));
@@ -4087,6 +4107,11 @@ export default function Home() {
 
 
   function prepareAbnahmeFromTicket(ticket: Ticket) {
+    if (isCustomer) {
+      alert("Abnahmeprotokolle / UVV dürfen nur Techniker und Admin erstellen.");
+      return;
+    }
+
     const relatedCustomer = getCustomerForTicket(ticket);
     const ticketDevices = getDevicesForTicketSelection(ticket);
 
@@ -4198,6 +4223,45 @@ export default function Home() {
     if (statusValue === "Wartet auf Kundenfreigabe") return "🟠";
     if (statusValue === "Dringend") return "🔴";
     return "🟢";
+  }
+
+  function isOwnCustomerTicket(ticket: Ticket) {
+    if (!userProfile?.customer_id) return false;
+    return ticket.customer_id === userProfile.customer_id;
+  }
+
+  function canCustomerCancelTicket(ticket: Ticket) {
+    return isCustomer && isOwnCustomerTicket(ticket) && ticket.status === "Offen";
+  }
+
+  async function cancelOwnCustomerTicket(ticket: Ticket) {
+    if (!canCustomerCancelTicket(ticket)) {
+      alert("Dieses Ticket kann nicht storniert werden. Nur eigene offene Tickets können storniert werden.");
+      return;
+    }
+
+    if (!confirm("Dieses offene Ticket wirklich stornieren?")) return;
+
+    const { error } = await supabase
+      .from("tickets")
+      .update({ status: "Storniert" })
+      .eq("id", ticket.id)
+      .eq("customer_id", userProfile?.customer_id || -1)
+      .eq("status", "Offen");
+
+    if (error) {
+      alert(`Ticket konnte nicht storniert werden: ${error.message}`);
+      return;
+    }
+
+    setTickets((prev) =>
+      prev.map((item) =>
+        item.id === ticket.id ? { ...item, status: "Storniert" } : item,
+      ),
+    );
+
+    await loadTickets();
+    alert("Ticket wurde storniert.");
   }
 
   function ticketServiceTypeText(ticket: Ticket) {
@@ -9104,7 +9168,7 @@ FE-SERVICE`,
           )}
 
           
-          {serviceSigningTicket && (() => {
+          {serviceSigningTicket && !isCustomer && (() => {
             const currentTicket =
               tickets.find((item) => item.id === serviceSigningTicket.id) ||
               serviceSigningTicket;
@@ -11925,14 +11989,16 @@ FE-SERVICE`,
                               Ticket
                             </button>
 
-                            <button
-                              onClick={() => prepareAbnahmeFromCustomer(item)}
-                              className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
-                            >
-                              Abnahme
-                            </button>
+                            {!isCustomer && (
+                              <button
+                                onClick={() => prepareAbnahmeFromCustomer(item)}
+                                className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
+                              >
+                                Abnahme
+                              </button>
+                            )}
 
-                            {isAdmin && (
+                            {canCreateOrEditMasterData && (
                               <>
                                 <button
                                   onClick={() => startEditCustomer(item)}
@@ -11941,12 +12007,14 @@ FE-SERVICE`,
                                   Bearbeiten
                                 </button>
 
-                                <button
-                                  onClick={() => deleteCustomer(item.id)}
-                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
-                                >
-                                  Löschen
-                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => deleteCustomer(item.id)}
+                                    className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
+                                  >
+                                    Löschen
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -12604,24 +12672,37 @@ FE-SERVICE`,
                             </div>
 
                             <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
-                              <select
-                                value={ticket.status}
-                                onChange={(e) =>
-                                  updateTicketStatus(ticket.id, e.target.value)
-                                }
-                                className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm"
-                              >
-                                {statusOptions.map((item) => (
-                                  <option key={item}>{item}</option>
-                                ))}
-                              </select>
+                              {!isCustomer && (
+                                <select
+                                  value={ticket.status}
+                                  onChange={(e) =>
+                                    updateTicketStatus(ticket.id, e.target.value)
+                                  }
+                                  className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm"
+                                >
+                                  {statusOptions.map((item) => (
+                                    <option key={item}>{item}</option>
+                                  ))}
+                                </select>
+                              )}
 
-                              <button
-                                onClick={() => startEdit(ticket)}
-                                className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
-                              >
-                                Bearbeiten
-                              </button>
+                              {!isCustomer && (
+                                <button
+                                  onClick={() => startEdit(ticket)}
+                                  className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
+                                >
+                                  Bearbeiten
+                                </button>
+                              )}
+
+                              {canCustomerCancelTicket(ticket) && (
+                                <button
+                                  onClick={() => cancelOwnCustomerTicket(ticket)}
+                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
+                                >
+                                  Stornieren
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -15839,22 +15920,24 @@ FE-SERVICE`,
                                 )}
                               </div>
 
-                              <div className="mt-4 flex min-w-0 flex-wrap gap-2">
-                                <select
-                                  value={ticket.status}
-                                  onChange={(e) =>
-                                    updateTicketStatus(
-                                      ticket.id,
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-bold"
-                                >
-                                  {statusOptions.map((item) => (
-                                    <option key={item}>{item}</option>
-                                  ))}
-                                </select>
-                              </div>
+                              {!isCustomer && (
+                                <div className="mt-4 flex min-w-0 flex-wrap gap-2">
+                                  <select
+                                    value={ticket.status}
+                                    onChange={(e) =>
+                                      updateTicketStatus(
+                                        ticket.id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-bold"
+                                  >
+                                    {statusOptions.map((item) => (
+                                      <option key={item}>{item}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
                             </div>
 
                             <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
@@ -15865,19 +15948,32 @@ FE-SERVICE`,
                                 Akte
                               </button>
 
-                              <button
-                                onClick={() => startEdit(ticket)}
-                                className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
-                              >
-                                Bearbeiten
-                              </button>
+                              {!isCustomer && (
+                                <button
+                                  onClick={() => startEdit(ticket)}
+                                  className="w-full rounded-2xl bg-green-100 px-3 py-3 text-center text-xs font-bold text-green-700 md:text-sm"
+                                >
+                                  Bearbeiten
+                                </button>
+                              )}
 
-                              <button
-                                onClick={() => openServiceReportSigning(ticket)}
-                                className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
-                              >
-                                PDF / Signatur
-                              </button>
+                              {!isCustomer && (
+                                <button
+                                  onClick={() => openServiceReportSigning(ticket)}
+                                  className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
+                                >
+                                  PDF / Signatur
+                                </button>
+                              )}
+
+                              {canCustomerCancelTicket(ticket) && (
+                                <button
+                                  onClick={() => cancelOwnCustomerTicket(ticket)}
+                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
+                                >
+                                  Stornieren
+                                </button>
+                              )}
 
                               {isAdmin && (
                                 <button
