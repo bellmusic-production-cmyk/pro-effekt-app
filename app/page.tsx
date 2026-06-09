@@ -1,7 +1,7 @@
 
 "use client";
 
-// FE-Service App v2.1.65 · Ticket-Akte mit Abnahme-Übergabe · keine Sprachsteuerung
+// FE-Service App v2.1.66 · Abnahmeprotokoll Bibliothekssuche · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -5896,6 +5896,16 @@ FE-SERVICE`,
   }
 
 
+  function getAbnahmeDeviceCategoryLabel(item?: Device | null) {
+    if (!item) return "";
+
+    const linkedModel = item.model_id
+      ? deviceModels.find((modelItem) => modelItem.id === item.model_id)
+      : null;
+
+    return getDeviceModelTypeName(linkedModel) || item.status || "";
+  }
+
   function getAbnahmeNeutralDeviceLabel(item?: Device | null) {
     if (!item) return "Unbekanntes Gerät";
 
@@ -5904,6 +5914,8 @@ FE-SERVICE`,
       getManufacturerNameById(item.manufacturer_id) ||
       "";
 
+    const categoryName = getAbnahmeDeviceCategoryLabel(item);
+
     const modelName =
       getDeviceModelNameById(item.model_id) ||
       item.model ||
@@ -5911,7 +5923,7 @@ FE-SERVICE`,
 
     const deviceName = item.name || modelName || "Unbekanntes Gerät";
 
-    return [manufacturerName, modelName || deviceName]
+    return [manufacturerName, categoryName, modelName || deviceName]
       .filter(Boolean)
       .join(" · ");
   }
@@ -5952,13 +5964,18 @@ FE-SERVICE`,
   }
 
   const selectedAbnahmeDevices = abnahmeSelectedDeviceIds
-    .map((deviceId) => devices.find((item) => String(item.id) === String(deviceId)))
+    .map((deviceId) =>
+      devices.find((item) => String(item.id) === String(deviceId)) ||
+      abnahmeDevices.find((item) => String(item.id) === String(deviceId)),
+    )
     .filter((item): item is Device => Boolean(item));
 
   function toggleAbnahmeDevice(deviceId: string) {
     if (!deviceId) return;
 
-    const selectedDevice = devices.find((item) => String(item.id) === String(deviceId));
+    const selectedDevice =
+      devices.find((item) => String(item.id) === String(deviceId)) ||
+      abnahmeDevices.find((item) => String(item.id) === String(deviceId));
     if (!selectedDevice) return;
 
     setAbnahmeSelectedDeviceIds((prev) => {
@@ -5983,7 +6000,9 @@ FE-SERVICE`,
       });
 
       if (firstDeviceId) {
-        const firstDevice = devices.find((item) => String(item.id) === String(firstDeviceId));
+        const firstDevice =
+          devices.find((item) => String(item.id) === String(firstDeviceId)) ||
+          abnahmeDevices.find((item) => String(item.id) === String(firstDeviceId));
         if (firstDevice) {
           setAbnahmeManufacturer(
             firstDevice.manufacturer ||
@@ -8448,11 +8467,45 @@ FE-SERVICE`,
     const searchParts = search.split(/\s+/).filter(Boolean);
 
     // Wichtig:
-    // Abnahmeprotokolle arbeiten neutral mit Hersteller / Modell / Gerätetyp.
-    // Kundengeräte, Seriennummern und Kundenverknüpfungen bleiben in der Geräteakte erhalten,
-    // werden hier aber bewusst NICHT übernommen und NICHT angezeigt.
+    // Abnahmeprotokolle suchen zuerst in der neutralen Gerätebibliothek
+    // Hersteller -> Kategorie -> Modell. Seriennummern und Kundenzuordnungen
+    // bleiben ausschließlich an Kundengeräten und werden hier NICHT übernommen.
     const neutralDeviceMap = new Map<string, Device>();
 
+    deviceModels.forEach((modelItem) => {
+      const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id) || "";
+      const modelName = getDeviceModelDisplayName(modelItem);
+      const categoryName = getDeviceModelTypeName(modelItem) || "Kategorie offen";
+
+      const key = [
+        normalizeSearchValue(manufacturerName),
+        normalizeSearchValue(categoryName),
+        normalizeSearchValue(modelName),
+      ]
+        .filter(Boolean)
+        .join("|");
+
+      if (!key || neutralDeviceMap.has(key)) return;
+
+      neutralDeviceMap.set(key, {
+        id: -Math.abs(modelItem.id),
+        name: [manufacturerName, categoryName, modelName].filter(Boolean).join(" / "),
+        manufacturer_id: modelItem.manufacturer_id || null,
+        model_id: modelItem.id,
+        model: modelName || null,
+        manufacturer: manufacturerName || null,
+        serial_number: null,
+        location: null,
+        status: categoryName || null,
+        next_check: null,
+        note: null,
+        customer_id: null,
+        created_at: modelItem.created_at || new Date().toISOString(),
+      });
+    });
+
+    // Fallback: bereits vorhandene Kundengeräte neutralisieren, falls ein Modell
+    // noch nicht in der Bibliothek angelegt wurde. Seriennummern bleiben draußen.
     devices.forEach((deviceItem) => {
       const manufacturerName =
         deviceItem.manufacturer ||
@@ -8464,12 +8517,16 @@ FE-SERVICE`,
         deviceItem.model ||
         "";
 
+      const categoryName = deviceItem.model_id
+        ? getDeviceModelTypeName(deviceModels.find((modelItem) => modelItem.id === deviceItem.model_id))
+        : "";
+
       const deviceName = deviceItem.name || modelName || "Unbekanntes Gerät";
 
       const key = [
         normalizeSearchValue(manufacturerName),
-        normalizeSearchValue(modelName),
-        normalizeSearchValue(deviceName),
+        normalizeSearchValue(categoryName),
+        normalizeSearchValue(modelName || deviceName),
       ]
         .filter(Boolean)
         .join("|");
@@ -8478,40 +8535,72 @@ FE-SERVICE`,
 
       neutralDeviceMap.set(key, {
         ...deviceItem,
-        name: deviceName,
+        name: [manufacturerName, categoryName, modelName || deviceName].filter(Boolean).join(" / ") || deviceName,
         manufacturer: manufacturerName || null,
-        model: modelName || null,
+        model: modelName || deviceName || null,
         serial_number: null,
         location: null,
         customer_id: null,
+        status: categoryName || deviceItem.status || null,
         note: null,
       });
     });
 
     const neutralDevices = Array.from(neutralDeviceMap.values()).sort((a, b) => {
-      const aLabel = `${a.manufacturer || getManufacturerNameById(a.manufacturer_id) || ""} ${a.model || ""} ${a.name || ""}`;
-      const bLabel = `${b.manufacturer || getManufacturerNameById(b.manufacturer_id) || ""} ${b.model || ""} ${b.name || ""}`;
+      const aLabel = `${a.manufacturer || getManufacturerNameById(a.manufacturer_id) || ""} ${getAbnahmeDeviceCategoryLabel(a)} ${a.model || ""} ${a.name || ""}`;
+      const bLabel = `${b.manufacturer || getManufacturerNameById(b.manufacturer_id) || ""} ${getAbnahmeDeviceCategoryLabel(b)} ${b.model || ""} ${b.name || ""}`;
       return aLabel.localeCompare(bLabel, "de");
     });
 
     if (!search || search.length < 2) return neutralDevices.slice(0, 20);
 
     return neutralDevices
-      .filter((deviceItem) => {
+      .map((deviceItem) => {
+        const categoryName = getAbnahmeDeviceCategoryLabel(deviceItem);
+        const manufacturerName = deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id);
+        const modelName = deviceItem.model || getDeviceModelNameById(deviceItem.model_id);
+
         const searchableText = [
+          manufacturerName,
+          categoryName,
+          modelName,
           deviceItem.name,
-          deviceItem.model,
-          getDeviceModelNameById(deviceItem.model_id),
-          deviceItem.manufacturer,
-          getManufacturerNameById(deviceItem.manufacturer_id),
         ]
           .filter(Boolean)
           .map(normalizeSearchValue)
           .join(" ");
 
-        return searchParts.every((part) => searchableText.includes(part));
+        const matches = searchParts.every((part) => searchableText.includes(part));
+        if (!matches) return null;
+
+        let score = 0;
+        const normalizedManufacturer = normalizeSearchValue(manufacturerName);
+        const normalizedCategory = normalizeSearchValue(categoryName);
+        const normalizedModel = normalizeSearchValue(modelName);
+
+        if (normalizedManufacturer === search) score += 1000;
+        else if (normalizedManufacturer.startsWith(search)) score += 800;
+        else if (normalizedManufacturer.includes(search)) score += 600;
+
+        if (normalizedCategory === search) score += 700;
+        else if (normalizedCategory.startsWith(search)) score += 520;
+        else if (normalizedCategory.includes(search)) score += 360;
+
+        if (normalizedModel === search) score += 900;
+        else if (normalizedModel.startsWith(search)) score += 650;
+        else if (normalizedModel.includes(search)) score += 450;
+
+        score += searchParts.reduce((sum, part) => searchableText.includes(part) ? sum + 50 : sum, 0);
+
+        return { deviceItem, score };
       })
-      .slice(0, 30);
+      .filter((item): item is { deviceItem: Device; score: number } => Boolean(item))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return String(a.deviceItem.name || "").localeCompare(String(b.deviceItem.name || ""), "de");
+      })
+      .map((item) => item.deviceItem)
+      .slice(0, 50);
   })();
 
 
@@ -13179,11 +13268,11 @@ FE-SERVICE`,
                         <input
                           value={abnahmeDeviceSearch}
                           onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
-                          placeholder="Gerätename, Modell oder Hersteller suchen"
+                          placeholder="Hersteller, Kategorie oder Modell suchen (z. B. Gym80, Laufband, Sygnum)"
                           className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-green-500"
                         />
                         <p className="mt-2 text-xs font-bold text-slate-500">
-                          {abnahmeDevices.length} neutrale Modell-/Gerätetreffer · ohne Seriennummer und Kundenzuordnung
+                          {abnahmeDevices.length} Treffer aus Hersteller-/Gerätebibliothek · ohne Seriennummer und Kundenzuordnung
                         </p>
 
                         <div
@@ -13214,10 +13303,11 @@ FE-SERVICE`,
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-slate-500">
                                   {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
+                                  {getAbnahmeDeviceCategoryLabel(deviceItem) ? ` · ${getAbnahmeDeviceCategoryLabel(deviceItem)}` : ""}
                                   {deviceItem.model || getDeviceModelNameById(deviceItem.model_id) ? ` · ${deviceItem.model || getDeviceModelNameById(deviceItem.model_id)}` : ""}
                                 </p>
                                 <p className="mt-1 break-words text-xs font-bold text-slate-400">
-                                  Neutraler Gerätetyp · keine Seriennummer · keine Kundenzuordnung
+                                  Bibliotheksmodell · keine Seriennummer · keine Kundenzuordnung
                                 </p>
                                 <p className="mt-2 text-xs font-black text-green-700">
                                   {abnahmeSelectedDeviceIds.includes(String(deviceItem.id)) ? "✓ Ausgewählt" : "+ Zum Protokoll hinzufügen"}
