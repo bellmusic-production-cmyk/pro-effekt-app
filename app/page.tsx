@@ -1145,12 +1145,11 @@ export default function Home() {
   async function forceSecureLogout(reason: string, userId?: string | null) {
     console.warn("Sicherheits-Logout:", reason);
 
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error("Supabase Logout fehlgeschlagen:", error);
-    }
-
+    // WICHTIG:
+    // Der Sicherheits-Logout darf niemals auf Supabase warten, bevor die UI entsperrt wird.
+    // Wenn Auth/Netzwerk/RLS hängt, blieb die App sonst auf "Rolle wird geladen..." stehen.
+    // Deshalb wird zuerst lokal alles gesperrt und gelöscht. Supabase signOut läuft danach
+    // mit Timeout nur noch als zusätzliche Bereinigung.
     setSession(null);
     setTickets([]);
     setDevices([]);
@@ -1168,6 +1167,7 @@ export default function Home() {
     setTechnicians([]);
     setUserProfile(null);
     setProfileLoading(false);
+    setAuthLoading(false);
     setAppDataLoaded(false);
     setLegalAccepted(false);
     setSelectedDeviceView(null);
@@ -1195,7 +1195,20 @@ export default function Home() {
 
       keysToRemove.forEach((key) => window.localStorage.removeItem(key));
       window.sessionStorage.clear();
-      window.location.href = "/";
+    }
+
+    try {
+      const signOutTimeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Supabase signOut timeout")), 1500);
+      });
+
+      await Promise.race([supabase.auth.signOut(), signOutTimeout]);
+    } catch (error) {
+      console.error("Supabase Logout wurde lokal erzwungen:", error);
+    }
+
+    if (typeof window !== "undefined") {
+      window.location.replace("/");
     }
   }
 
