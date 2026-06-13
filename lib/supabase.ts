@@ -6,16 +6,9 @@ const supabaseUrl =
 
 const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-  "HIER_DEINEN_KOMPLETTEN_SUPABASE_ANON_KEY_EINFÜGEN";
+  "sb_publishable_uNZLVzyNW4ncE6xTVCA9HQ_0WyZE4Us";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-  "https://uouxjtnsggzayzkbtgpv.supabase.co";
-
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-  "HIER_DEINEN_KOMPLETTEN_SUPABASE_ANON_KEY_EINFÜGEN";
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
