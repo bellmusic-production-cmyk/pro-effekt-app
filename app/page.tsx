@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v2.2.01 · Company Branding Foundation · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v2.4.00 · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -165,6 +165,9 @@ type MaintenancePlan = {
   assigned_to?: string | null;
   status?: string | null;
   note?: string | null;
+  reminder_enabled?: boolean | null;
+  reminder_days_before?: number | null;
+  last_reminder_sent_at?: string | null;
   completed_at?: string | null;
   created_at: string;
 };
@@ -565,6 +568,8 @@ export default function Home() {
   const [maintenanceAssignedTo, setMaintenanceAssignedTo] = useState("");
   const [maintenanceStatus, setMaintenanceStatus] = useState("Geplant");
   const [maintenanceNote, setMaintenanceNote] = useState("");
+  const [maintenanceReminderEnabled, setMaintenanceReminderEnabled] = useState(true);
+  const [maintenanceReminderDaysBefore, setMaintenanceReminderDaysBefore] = useState("14");
 
   const [abnahmeCustomerId, setAbnahmeCustomerId] = useState("");
   const [abnahmeDeviceId, setAbnahmeDeviceId] = useState("");
@@ -5232,6 +5237,62 @@ export default function Home() {
     };
   }
 
+  function getMaintenanceReminderStatus(plan: MaintenancePlan) {
+    const reminderEnabled = plan.reminder_enabled !== false;
+    const reminderDays = Math.max(1, Number(plan.reminder_days_before || 14));
+
+    if (!reminderEnabled) {
+      return {
+        label: "Erinnerung aus",
+        className: "bg-slate-200 text-slate-600",
+        detail: "Für diese Wartung ist keine automatische Erinnerung aktiv.",
+      };
+    }
+
+    if (!plan.next_due) {
+      return {
+        label: `Erinnerung ${reminderDays} Tage vorher`,
+        className: "bg-slate-100 text-slate-600",
+        detail: "Kein Wartungstermin hinterlegt.",
+      };
+    }
+
+    const today = new Date();
+    const dueDate = new Date(plan.next_due);
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.ceil(
+      (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    const sentInfo = plan.last_reminder_sent_at
+      ? ` · letzte Erinnerung: ${new Date(plan.last_reminder_sent_at).toLocaleDateString("de-DE")}`
+      : "";
+
+    if (diffDays < 0) {
+      return {
+        label: "Erinnerung fällig",
+        className: "bg-red-100 text-red-700",
+        detail: `Wartung ist überfällig${sentInfo}`,
+      };
+    }
+
+    if (diffDays <= reminderDays) {
+      return {
+        label: "Erinnerung fällig",
+        className: "bg-orange-100 text-orange-700",
+        detail: `${diffDays} Tage bis Termin · Schwelle: ${reminderDays} Tage${sentInfo}`,
+      };
+    }
+
+    return {
+      label: `Erinnerung ${reminderDays} Tage vorher`,
+      className: "bg-emerald-100 text-emerald-700",
+      detail: `${diffDays} Tage bis Termin${sentInfo}`,
+    };
+  }
+
   function getMaintenancePlanForDevice(deviceId: number) {
     return maintenancePlans.find((plan) => plan.device_id === deviceId) || null;
   }
@@ -5583,6 +5644,8 @@ export default function Home() {
     setMaintenanceAssignedTo("");
     setMaintenanceStatus("Geplant");
     setMaintenanceNote("");
+    setMaintenanceReminderEnabled(true);
+    setMaintenanceReminderDaysBefore("14");
   }
 
   async function saveMaintenancePlan() {
@@ -5623,6 +5686,9 @@ export default function Home() {
       assigned_to: maintenanceAssignedTo || null,
       status: maintenanceStatus,
       note: maintenanceNote.trim() || null,
+      reminder_enabled: maintenanceReminderEnabled,
+      reminder_days_before: Math.max(1, Number(maintenanceReminderDaysBefore) || 14),
+      last_reminder_sent_at: null,
       completed_at: maintenanceStatus === "Abgeschlossen" ? new Date().toISOString() : null,
     };
 
@@ -5702,6 +5768,9 @@ export default function Home() {
       assigned_to: isTechnician ? userProfile?.id || null : null,
       status: "Geplant",
       note: null,
+      reminder_enabled: true,
+      reminder_days_before: 14,
+      last_reminder_sent_at: null,
     };
 
     const result = existingPlan
@@ -5725,6 +5794,43 @@ export default function Home() {
 
     await loadMaintenancePlans();
     alert("Wartungsplan gespeichert.");
+  }
+
+  async function markMaintenanceReminderSent(plan: MaintenancePlan) {
+    if (!isAdmin && !isTechnician) {
+      alert("Nur Admins und Techniker können Erinnerungen markieren.");
+      return;
+    }
+
+    const reminderType = `${Math.max(1, Number(plan.reminder_days_before || 14))}_days_before`;
+    const sentAt = new Date().toISOString();
+
+    const logResult = await supabase.from("reminder_log").upsert(
+      {
+        maintenance_plan_id: plan.id,
+        reminder_type: reminderType,
+        sent_at: sentAt,
+      },
+      { onConflict: "maintenance_plan_id,reminder_type" },
+    );
+
+    if (logResult.error) {
+      alert(`Erinnerung konnte nicht protokolliert werden: ${logResult.error.message}`);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("maintenance_plans")
+      .update({ last_reminder_sent_at: sentAt })
+      .eq("id", plan.id);
+
+    if (error) {
+      alert(`Wartungsplan konnte nicht aktualisiert werden: ${error.message}`);
+      return;
+    }
+
+    await loadMaintenancePlans();
+    alert("Erinnerung wurde als gesendet markiert.");
   }
 
   async function deleteMaintenancePlan(planId: number) {
@@ -7875,6 +7981,11 @@ PRO-EFFEKT`,
     );
 
     return diffDays <= 30;
+  });
+
+  const dueMaintenanceReminderPlans = maintenancePlans.filter((plan) => {
+    const reminderInfo = getMaintenanceReminderStatus(plan);
+    return reminderInfo.label === "Erinnerung fällig";
   });
 
   const assignedMaintenancePlans = useMemo(() => {
@@ -14862,7 +14973,7 @@ PRO-EFFEKT`,
                 PRO-EFFEKT · Betriebsbereit
               </div>
 
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-5">
                 <StatCard label="Sicherheitsprüfung/Wartungen gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
@@ -14875,6 +14986,10 @@ PRO-EFFEKT`,
                 <StatCard
                   label="Fällig in 30 Tagen"
                   value={dueMaintenancePlans.length}
+                />
+                <StatCard
+                  label="Erinnerung fällig"
+                  value={dueMaintenanceReminderPlans.length}
                 />
               </div>
 
@@ -14975,6 +15090,27 @@ PRO-EFFEKT`,
                     </select>
                   </div>
 
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <label className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white px-5 py-4 font-black text-slate-800">
+                      <input
+                        type="checkbox"
+                        checked={maintenanceReminderEnabled}
+                        onChange={(e) => setMaintenanceReminderEnabled(e.target.checked)}
+                        className="h-5 w-5"
+                      />
+                      Wartungserinnerung aktiv
+                    </label>
+
+                    <input
+                      value={maintenanceReminderDaysBefore}
+                      onChange={(e) => setMaintenanceReminderDaysBefore(e.target.value)}
+                      type="number"
+                      min="1"
+                      placeholder="Tage vorher erinnern"
+                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                    />
+                  </div>
+
                   <textarea
                     value={maintenanceNote}
                     onChange={(e) => setMaintenanceNote(e.target.value)}
@@ -15017,6 +15153,7 @@ PRO-EFFEKT`,
                     assignedMaintenancePlans.map((plan) => {
                       const deviceItem = devices.find((device) => device.id === plan.device_id);
                       const status = getMaintenanceStatus(plan.next_due);
+                      const reminderInfo = getMaintenanceReminderStatus(plan);
 
                       return (
                         <div
@@ -15040,6 +15177,9 @@ PRO-EFFEKT`,
                               <p className="mt-1 text-sm text-slate-600">
                                 Techniker: {getMaintenanceAssignedName(plan.assigned_to)} · Intervall: {plan.interval_days || "-"} Tage
                               </p>
+                              <p className="mt-2 inline-flex rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700">
+                                {reminderInfo.detail}
+                              </p>
                               {plan.note && (
                                 <p className="mt-3 rounded-2xl bg-white p-3 text-sm text-slate-600">
                                   {plan.note}
@@ -15056,6 +15196,10 @@ PRO-EFFEKT`,
                                 Status: {plan.status || "Geplant"}
                               </span>
 
+                              <span className={`rounded-full px-4 py-2 text-center text-sm font-bold ${reminderInfo.className}`}>
+                                {reminderInfo.label}
+                              </span>
+
                               {(isAdmin || isTechnician) && (
                                 <select
                                   value={plan.status || "Geplant"}
@@ -15067,6 +15211,15 @@ PRO-EFFEKT`,
                                   <option>Wartet auf Ersatzteile</option>
                                   <option>Abgeschlossen</option>
                                 </select>
+                              )}
+
+                              {(isAdmin || isTechnician) && (
+                                <button
+                                  onClick={() => markMaintenanceReminderSent(plan)}
+                                  className="w-full rounded-2xl bg-emerald-100 px-3 py-3 text-center text-xs font-bold text-emerald-700 md:text-sm"
+                                >
+                                  Erinnerung als gesendet markieren
+                                </button>
                               )}
 
                               {(isAdmin || isTechnician) && (
