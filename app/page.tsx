@@ -251,6 +251,47 @@ const fallbackDevices = [
   "Matrix Kraftstation",
 ];
 
+const PRO_EFFEKT_LOGO_PATH = "/pro-effekt-logo.png";
+
+const DEMO_COMPANY_NAME = "Pro-Effekt Demo GmbH";
+const DEMO_COMPANY_SUBTITLE = "Demo-Serviceplattform";
+const DEMO_COMPANY_ADDRESS = "Musterstraße 12, 12345 Musterstadt";
+const DEMO_COMPANY_PHONE = "Tel. 01234 567890";
+const DEMO_COMPANY_FAX = "Fax 01234 567899";
+const DEMO_COMPANY_EMAIL = "demo@pro-effekt.example";
+const DEMO_COMPANY_WEB = "www.pro-effekt-demo.example";
+const DEMO_COMPANY_NOTE = "Demo-Dokument · keine realen Firmen- oder Kontaktdaten";
+const DEMO_COMPANY_LINE_HTML = `${DEMO_COMPANY_ADDRESS}<br/>${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}<br/>E-Mail: ${DEMO_COMPANY_EMAIL}, URL: ${DEMO_COMPANY_WEB}<br/>${DEMO_COMPANY_NOTE}`;
+const DEMO_COMPANY_LINE_TEXT = `${DEMO_COMPANY_ADDRESS}   ${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}   E-Mail: ${DEMO_COMPANY_EMAIL}   URL: ${DEMO_COMPANY_WEB}   ${DEMO_COMPANY_NOTE}`;
+
+let proEffektLogoDataUrlCache: string | null = null;
+
+async function getProEffektLogoDataUrl() {
+  if (typeof window === "undefined") return null;
+  if (proEffektLogoDataUrlCache) return proEffektLogoDataUrlCache;
+
+  try {
+    const response = await fetch(PRO_EFFEKT_LOGO_PATH, { cache: "force-cache" });
+
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+    proEffektLogoDataUrlCache = dataUrl;
+    return dataUrl;
+  } catch (error) {
+    console.error("Pro-Effekt Logo konnte nicht für PDF geladen werden:", error);
+    return null;
+  }
+}
+
 const navItems = [
   "Dashboard",
   "Einsatz",
@@ -1768,9 +1809,9 @@ export default function Home() {
 
         if (role === "technician") return true;
 
-        // Frank Ehlers ist Chef/Admin, aber auch einsatzfähig.
-        // Andere Admins, z. B. Frank Bell, sollen nicht im Techniker-Dropdown erscheinen.
-        if (role === "admin" && name === "frank ehlers") return true;
+        // Optionaler Demo-Admin kann zusätzlich als Techniker im Dropdown erscheinen.
+        // Andere Admins sollen nicht automatisch im Techniker-Dropdown erscheinen.
+        if (role === "admin" && name === "max mustermann") return true;
 
         return false;
       });
@@ -3140,7 +3181,7 @@ export default function Home() {
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">Pro-Effekt Software Service · Automatisch archivierter Servicebericht</p>
+          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatisch archivierter Servicebericht</p>
 
           <h2>Kunde & Gerät</h2>
           <div class="box grid">
@@ -3221,6 +3262,8 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          <p class="muted" style="margin-top:28px;">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE}<br/>${DEMO_COMPANY_LINE_HTML}</p>
         </body>
       </html>
     `;
@@ -3240,6 +3283,7 @@ export default function Home() {
     const margin = 14;
     const contentWidth = pageWidth - margin * 2;
     let y = 14;
+    const logoDataUrl = await getProEffektLogoDataUrl();
 
     function clean(value: any) {
       return String(value ?? "")
@@ -3308,20 +3352,30 @@ export default function Home() {
       y += height + 4;
     }
 
+    const headerTextX = logoDataUrl ? margin + 38 : margin;
+
+    if (logoDataUrl) {
+      try {
+        pdf.addImage(logoDataUrl, "PNG", margin, y - 4, 30, 22);
+      } catch {
+        // Logo konnte nicht eingebettet werden.
+      }
+    }
+
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(20);
-    pdf.setTextColor(22, 163, 74);
-    pdf.text("PRO-EFFEKT", margin, y);
-    pdf.setFontSize(9);
+    pdf.setTextColor(56, 189, 248);
+    pdf.text("PRO-EFFEKT", headerTextX, y);
+    pdf.setFontSize(8.5);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("Pro-Effekt Software Service · Servicebericht / Prüfbericht", margin, y + 6);
+    pdf.text(`${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Servicebericht / Prüfbericht`, headerTextX, y + 6);
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
     pdf.setTextColor(15, 23, 42);
     pdf.text(`Ticket: ${ticket.ticket_number || "-"}`, pageWidth - margin, y, { align: "right" });
     pdf.text(`Datum: ${new Date().toLocaleDateString("de-DE")}`, pageWidth - margin, y + 5, { align: "right" });
-    y += 17;
+    y += 22;
 
     sectionTitle("Kunde & Gerät");
     infoBox([
@@ -3394,7 +3448,7 @@ export default function Home() {
     const footerY = pageHeight - 9;
     pdf.setFontSize(7);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("Pro-Effekt e.K. · Pro-Effekt Software Service", margin, footerY);
+    pdf.text(`${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · ${DEMO_COMPANY_PHONE} · ${DEMO_COMPANY_EMAIL}`, margin, footerY);
     pdf.text(`Erstellt: ${new Date().toLocaleString("de-DE")}`, pageWidth - margin, footerY, { align: "right" });
 
     return pdf.output("blob") as Blob;
@@ -5676,7 +5730,7 @@ export default function Home() {
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">Pro-Effekt Software Service · Automatischer Prüfbericht</p>
+          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatischer Prüfbericht</p>
 
           <h2>Prüfbericht</h2>
           <div class="box grid">
@@ -5704,6 +5758,8 @@ export default function Home() {
             <div class="line">Prüfer / Techniker</div>
             <div class="line">Kunde / Unterschrift</div>
           </div>
+
+          <p class="muted" style="margin-top:28px;">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE}<br/>${DEMO_COMPANY_LINE_HTML}</p>
 
           <script>window.print();</script>
         </body>
@@ -6869,19 +6925,17 @@ PRO-EFFEKT`,
 
             <div class="company">
               <div>
-                <div class="footer-service-logo">Pro-Effekt e.K.</div>
-                <div class="footer-service-sub">Pro-Effekt Software Service</div>
+                <img src="/pro-effekt-logo.png" class="company-logo" onerror="this.style.display='none'" />
+                <div class="footer-service-logo">${DEMO_COMPANY_NAME}</div>
+                <div class="footer-service-sub">${DEMO_COMPANY_SUBTITLE}</div>
               </div>
 
               <div class="footer-details">
-                Lockenbach 1, 51491 Overath&nbsp;&nbsp;&nbsp; Lager: Mathildenstr. 5, 53797 Lohmar<br/>
-                Tel. 02206-9389333, Fax 02206-9389339<br/>
-                E-Mail: info@pro-effekt.de, URL: www.pro-effekt.de<br/>
-                Inhaber-Geschäftsführer: Frank Ehlers&nbsp;&nbsp; Ust_iD: DE2335605663&nbsp;&nbsp; HRA 37460 Amtsgericht Köln
+                ${DEMO_COMPANY_LINE_HTML}
               </div>
 
               <div class="footer-partner">
-                IN STYLE<br/>FITNESS
+                DEMO<br/>PDF
               </div>
             </div>
 
@@ -6946,6 +7000,7 @@ PRO-EFFEKT`,
     const pageHeight = pdf.internal.pageSize.getHeight();
 
     let y = 9;
+    const logoDataUrl = await getProEffektLogoDataUrl();
 
     function clean(value: any) {
       return String(value ?? "")
@@ -6985,6 +7040,14 @@ PRO-EFFEKT`,
       pdf.text(label, x + 5, boxY);
     }
 
+    if (logoDataUrl) {
+      try {
+        pdf.addImage(logoDataUrl, "PNG", 10, y - 5, 28, 18);
+      } catch {
+        // Logo konnte nicht eingebettet werden.
+      }
+    }
+
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.text(
@@ -6994,7 +7057,11 @@ PRO-EFFEKT`,
       { align: "center" },
     );
 
-    y += 6;
+    pdf.setFontSize(5.4);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE}`, pageWidth / 2, y + 4.2, { align: "center" });
+
+    y += 8;
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(6.8);
     pdf.text(`Datum der Prüfung: ${abnahmeDate || "-"}`, 10, y);
@@ -7144,23 +7211,31 @@ PRO-EFFEKT`,
     pdf.setDrawColor(190);
     pdf.line(10, footerY - 4, pageWidth - 10, footerY - 4);
 
+    if (logoDataUrl) {
+      try {
+        pdf.addImage(logoDataUrl, "PNG", 12, footerY - 3.2, 18, 10);
+      } catch {
+        // Logo konnte nicht eingebettet werden.
+      }
+    }
+
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(7.4);
-    pdf.text("Pro-Effekt e.K.", 12, footerY);
+    pdf.setFontSize(7.0);
+    pdf.text(DEMO_COMPANY_NAME, 34, footerY);
     pdf.setFontSize(4.4);
-    pdf.text("Pro-Effekt Software Service", 12, footerY + 3.4);
+    pdf.text(DEMO_COMPANY_SUBTITLE, 34, footerY + 3.4);
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(5.0);
-    pdf.text("Lockenbach 1, 51491 Overath   Lager: Mathildenstr. 5, 53797 Lohmar", 58, footerY);
-    pdf.text("Tel. 02206-9389333, Fax 02206-9389339", 58, footerY + 3.8);
-    pdf.text("E-Mail: info@pro-effekt.de, URL: www.pro-effekt.de", 58, footerY + 7.6);
-    pdf.text("Inhaber-Geschäftsführer: Frank Ehlers   Ust_iD: DE2335605663   HRA 37460 Amtsgericht Köln", 58, footerY + 11.4);
+    pdf.text(DEMO_COMPANY_ADDRESS, 96, footerY);
+    pdf.text(`${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}`, 96, footerY + 3.8);
+    pdf.text(`E-Mail: ${DEMO_COMPANY_EMAIL}, URL: ${DEMO_COMPANY_WEB}`, 96, footerY + 7.6);
+    pdf.text(DEMO_COMPANY_NOTE, 96, footerY + 11.4);
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(5.8);
-    pdf.text("IN STYLE", 246, footerY + 3.8);
-    pdf.text("FITNESS", 246, footerY + 7.6);
+    pdf.text("DEMO", 250, footerY + 3.8);
+    pdf.text("PDF", 250, footerY + 7.6);
     pdf.setFont("helvetica", "normal");
 
     pdf.setDrawColor(120);
@@ -8137,7 +8212,7 @@ PRO-EFFEKT`,
           </button>
 
           <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
-            Pro-Effekt e.K. · Pro-Effekt Software Service · Digitale Service-,
+            {DEMO_COMPANY_NAME} · {DEMO_COMPANY_SUBTITLE} · Digitale Service-,
             Wartungs- und Dokumentationsplattform. Hinweis: Diese technische
             Einwilligung ersetzt keine individuelle Rechtsberatung.
           </p>
