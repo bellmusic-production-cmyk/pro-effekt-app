@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// Pro-Effekt App v2.1.82 · Final Rebranding · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// Pro-Effekt App v2.1.90 · Final Rebranding · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -9244,9 +9244,145 @@ PRO-EFFEKT`,
   }
 
   return (
-    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
+    <main className="pro-effekt-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
+        <style>{`
+          .pro-effekt-premium-ui {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-variant-numeric: tabular-nums;
+          }
+
+          .pro-effekt-premium-ui * {
+            box-sizing: border-box;
+          }
+
+          .pro-effekt-premium-ui h1,
+          .pro-effekt-premium-ui h2,
+          .pro-effekt-premium-ui h3,
+          .pro-effekt-premium-ui .fe-login-brand {
+            letter-spacing: -0.035em;
+            line-height: 1.08;
+          }
+
+          .pro-effekt-premium-ui p,
+          .pro-effekt-premium-ui label,
+          .pro-effekt-premium-ui span,
+          .pro-effekt-premium-ui button,
+          .pro-effekt-premium-ui summary,
+          .pro-effekt-premium-ui input,
+          .pro-effekt-premium-ui select,
+          .pro-effekt-premium-ui textarea {
+            -webkit-font-smoothing: antialiased;
+          }
+
+          .pro-effekt-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+          .pro-effekt-premium-ui select {
+            min-height: 50px !important;
+            line-height: 1.35 !important;
+            padding-top: 0.82rem !important;
+            padding-bottom: 0.82rem !important;
+            font-size: 15px !important;
+            font-weight: 650 !important;
+            letter-spacing: -0.012em;
+            overflow: visible;
+          }
+
+          .pro-effekt-premium-ui textarea {
+            min-height: 118px !important;
+            line-height: 1.55 !important;
+            padding-top: 0.95rem !important;
+            padding-bottom: 0.95rem !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            letter-spacing: -0.01em;
+          }
+
+          .pro-effekt-premium-ui select {
+            padding-right: 2.75rem !important;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            appearance: auto;
+          }
+
+          .pro-effekt-premium-ui option {
+            color: #0f172a;
+            background: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+          }
+
+          .pro-effekt-premium-ui button,
+          .pro-effekt-premium-ui summary {
+            line-height: 1.2;
+            letter-spacing: -0.012em;
+          }
+
+          .pro-effekt-premium-ui aside button,
+          .pro-effekt-premium-ui aside summary {
+            min-height: 52px;
+          }
+
+          .pro-effekt-premium-ui aside nav button,
+          .pro-effekt-premium-ui aside nav summary {
+            font-size: 14px;
+          }
+
+          .pro-effekt-premium-ui aside nav span {
+            line-height: 1.25;
+          }
+
+          .pro-effekt-premium-ui table {
+            font-size: 14px;
+            line-height: 1.45;
+          }
+
+          .pro-effekt-premium-ui th,
+          .pro-effekt-premium-ui td {
+            vertical-align: middle;
+          }
+
+          .pro-effekt-premium-ui .premium-readability,
+          .pro-effekt-premium-ui .premium-readability * {
+            overflow-wrap: anywhere;
+          }
+
+          @media (min-width: 1024px) {
+            .pro-effekt-premium-ui {
+              letter-spacing: -0.006em;
+            }
+
+            .pro-effekt-premium-ui main,
+            .pro-effekt-premium-ui section {
+              scroll-behavior: smooth;
+            }
+
+            .pro-effekt-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+            .pro-effekt-premium-ui select {
+              min-height: 52px !important;
+              font-size: 15px !important;
+            }
+
+            .pro-effekt-premium-ui textarea {
+              font-size: 15px !important;
+            }
+          }
+
+          @media (max-width: 767px) {
+            .pro-effekt-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+            .pro-effekt-premium-ui select {
+              min-height: 48px !important;
+              font-size: 14px !important;
+            }
+
+            .pro-effekt-premium-ui textarea {
+              font-size: 14px !important;
+            }
+          }
+        `}</style>
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
-        <aside className="hidden min-h-screen w-72 shrink-0 border-r border-white/10 bg-[#07111d] p-6 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
+        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-[#07111d] p-7 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
           <div className="flex flex-col items-center">
             <h1 className="whitespace-nowrap text-center text-xl font-black tracking-[0.18em] text-sky-500">
               PRO-EFFEKT
@@ -9255,15 +9391,15 @@ PRO-EFFEKT`,
             <img
               src="/pro-effekt-logo.png"
               alt="Pro-Effekt Logo"
-              className="mt-4 h-auto w-[72px] max-w-[72px] object-contain"
+              className="mt-4 h-auto w-[58px] max-w-[58px] object-contain opacity-95"
             />
 
-            <p className="mt-8 break-all text-center text-sm text-slate-400">
+            <p className="mt-7 max-w-full break-words text-center text-[13px] font-medium leading-5 text-slate-400">
               {session.user.email}
             </p>
           </div>
 
-          <nav className="mt-8 space-y-3">
+          <nav className="mt-7 space-y-2.5">
             {navGroups.map((group) => {
               const groupIsOpen = group.items.includes(activePage);
 
@@ -9273,7 +9409,7 @@ PRO-EFFEKT`,
                   <button
                     key={group.title}
                     onClick={() => openPage(item)}
-                    className={`flex w-full items-center gap-3 rounded-3xl border px-4 py-4 text-left text-sm font-black transition-all ${
+                    className={`flex w-full items-center gap-3 rounded-3xl border px-4 py-3.5 text-left text-[14px] font-extrabold leading-tight transition-all ${
                       activePage === item
                         ? "border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-950/30"
                         : "border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/5"
@@ -9291,7 +9427,7 @@ PRO-EFFEKT`,
                   open={groupIsOpen}
                   className="group rounded-3xl border border-white/10 bg-white/[0.03]"
                 >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-3xl px-4 py-3 text-sm font-black text-slate-200 transition hover:bg-white/5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-3xl px-4 py-3.5 text-[14px] font-extrabold leading-tight text-slate-200 transition hover:bg-white/5">
                     <span className="flex items-center gap-3">
                       {group.icon ? <span>{group.icon}</span> : null}
                       <span>{group.title}</span>
@@ -9304,7 +9440,7 @@ PRO-EFFEKT`,
                       <button
                         key={item}
                         onClick={() => openPage(item)}
-                        className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition-all ${
+                        className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                           activePage === item
                             ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
                             : "text-slate-300 hover:bg-white/5"
@@ -9332,15 +9468,15 @@ PRO-EFFEKT`,
           </button>
         </aside>
 
-        <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-10">
-          <div className="mb-6 hidden rounded-[24px] bg-white p-4 shadow-sm lg:block">
+        <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
+          <div className="mb-6 hidden rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-sm shadow-slate-200/70 lg:block">
             <p className="fe-login-brand text-center text-2xl font-black uppercase tracking-[0.35em] text-[var(--pe-blue)]">
               PRO-EFFEKT
             </p>
-            <h2 className="mt-2 text-xl font-black leading-tight lg:text-4xl">
+            <h2 className="mt-2 text-xl font-black leading-[1.05] tracking-[-0.04em] text-slate-950 lg:text-4xl">
               {portalTitle}
             </h2>
-            <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-500">
+            <p className="mt-3 max-w-4xl text-[15px] font-semibold leading-6 text-slate-500">
               {portalSubtitle}
             </p>
           </div>
@@ -9416,7 +9552,7 @@ PRO-EFFEKT`,
                             key={item}
                             type="button"
                             onClick={() => openPage(item)}
-                            className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-bold transition-all ${
+                            className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                               activePage === item
                                 ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
                                 : "text-slate-300 hover:bg-white/5"
@@ -9767,7 +9903,7 @@ PRO-EFFEKT`,
 
                                   <div className="rounded-2xl bg-slate-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                      ðŸ”§ Gerät
+                                       Gerät
                                     </p>
                                     <p className="mt-1 break-words text-sm font-black text-slate-900">
                                       {ticket.device || "Noch nicht zugewiesen"}
@@ -11453,7 +11589,7 @@ PRO-EFFEKT`,
                                 <div className="min-w-0 flex-1">
                                   <div className="flex min-w-0 items-center gap-3">
                                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-lg">
-                                      ðŸ“„
+                                      
                                     </span>
                                     <div className="min-w-0">
                                       <p className="truncate text-base font-black text-[#07111d]">
@@ -16062,7 +16198,7 @@ PRO-EFFEKT`,
 
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                    ðŸ”§ Gerät
+                                     Gerät
                                   </p>
                                   <p className="mt-1 break-words text-sm font-black text-slate-900">
                                     {ticket.device || "Noch nicht zugewiesen"}
