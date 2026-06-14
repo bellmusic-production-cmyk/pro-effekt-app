@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// Pro-Effekt App v2.1.91 · Final Rebranding · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v2.2.01 · Company Branding Foundation · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -245,6 +245,23 @@ type UserProfile = {
   created_at: string;
 };
 
+
+type CompanyData = {
+  id: number;
+  name: string;
+  slug: string;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  website?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  pdf_footer?: string | null;
+  is_active?: boolean | null;
+  created_at?: string | null;
+};
+
 const fallbackDevices = [
   "Life Fitness Laufband T5",
   "Technogym Crosstrainer",
@@ -483,6 +500,7 @@ export default function Home() {
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [appDataLoaded, setAppDataLoaded] = useState(false);
 
@@ -756,6 +774,7 @@ export default function Home() {
           }
         } else {
           setUserProfile(null);
+          setCompanyData(null);
           setProfileLoading(false);
           setAppDataLoaded(false);
         }
@@ -785,6 +804,15 @@ export default function Home() {
       checkLegalAcceptance(session.user.id);
     } else {
       setLegalAccepted(false);
+    }
+  }, [session?.user?.id]);
+
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadCompany();
+    } else {
+      setCompanyData(null);
     }
   }, [session?.user?.id]);
 
@@ -1174,10 +1202,58 @@ export default function Home() {
     }
   }
 
+  async function loadCompany() {
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      setCompanyData(null);
+      return null;
+    }
+
+    try {
+      const { data: member, error: memberError } = await supabase
+        .from("company_members")
+        .select("company_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (memberError) {
+        console.error("Company Member konnte nicht geladen werden:", memberError.message);
+        setCompanyData(null);
+        return null;
+      }
+
+      if (!member?.company_id) {
+        setCompanyData(null);
+        return null;
+      }
+
+      const { data: company, error: companyError } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("id", member.company_id)
+        .maybeSingle();
+
+      if (companyError) {
+        console.error("Company konnte nicht geladen werden:", companyError.message);
+        setCompanyData(null);
+        return null;
+      }
+
+      setCompanyData((company || null) as CompanyData | null);
+      return (company || null) as CompanyData | null;
+    } catch (error) {
+      console.error("Company-Ladevorgang fehlgeschlagen:", error);
+      setCompanyData(null);
+      return null;
+    }
+  }
+
   async function loadApplicationData() {
     setAppDataLoaded(false);
 
     await Promise.all([
+      loadCompany(),
       loadTickets(),
       loadDevices(),
       loadCustomers(),
@@ -1221,6 +1297,7 @@ export default function Home() {
     setContracts([]);
     setTechnicians([]);
     setUserProfile(null);
+    setCompanyData(null);
     setProfileLoading(false);
     setAuthLoading(false);
     setAppDataLoaded(false);
@@ -1397,6 +1474,7 @@ export default function Home() {
       setContracts([]);
       setTechnicians([]);
       setUserProfile(null);
+    setCompanyData(null);
       setProfileLoading(false);
       setAppDataLoaded(false);
       setLegalAccepted(false);
