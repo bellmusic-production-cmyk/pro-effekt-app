@@ -1,16 +1,17 @@
-Schritt 7 – Portal-Header + FE-Service Grün
+﻿Schritt 7 â€“ Portal-Header + PRO-EFFEKT GrÃ¼n
 
-Geändert:
-- Einheitlicher Portal-Header für Admin, Techniker und Kunde
+GeÃ¤ndert:
+- Einheitlicher Portal-Header fÃ¼r Admin, Techniker und Kunde
 - Oben steht jetzt klar: Admin Portal / Techniker Portal / Kunden Portal
 - Keine doppelte Rollenanzeige mehr im Mobile-Header
-- Mobile Navigation bleibt oben sticky und öffnet direkt den gewählten Bereich
-- FE-Service Grün zentral in app/globals.css definiert
-- Tailwind-Grünwerte auf FE-Service-Grün ausgerichtet
-- Rollenlogik/Auth nicht verändert
+- Mobile Navigation bleibt oben sticky und Ã¶ffnet direkt den gewÃ¤hlten Bereich
+- PRO-EFFEKT GrÃ¼n zentral in app/globals.css definiert
+- Tailwind-GrÃ¼nwerte auf PRO-EFFEKT-GrÃ¼n ausgerichtet
+- Rollenlogik/Auth nicht verÃ¤ndert
 
 Nach dem Entpacken:
 npm install
 npm run dev
 
-Für Vercel danach neu deployen.
+FÃ¼r Vercel danach neu deployen.
+

@@ -1,9 +1,9 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  /* FE-Service Markenfarben */
+  /* PRO-EFFEKT Markenfarben */
   --fe-green: #00a651;
   --fe-green-dark: #008f45;
   --fe-green-soft: #e7fff1;
@@ -35,7 +35,7 @@ body {
   color: var(--fe-black);
 }
 
-/* Erzwingt das FE-Service-Grün auch für vorhandene Tailwind-green-Klassen. */
+/* Erzwingt das PRO-EFFEKT-GrÃ¼n auch fÃ¼r vorhandene Tailwind-green-Klassen. */
 .text-green-400,
 .text-green-500,
 .text-green-600,
@@ -70,8 +70,9 @@ body {
 }
 
 
-/* Schritt 9: harte Vereinheitlichung aller FE-Service-Grünflächen */
+/* Schritt 9: harte Vereinheitlichung aller PRO-EFFEKT-GrÃ¼nflÃ¤chen */
 .text-emerald-700, .text-emerald-600, .text-lime-600 { color: var(--fe-green) !important; }
 .bg-emerald-100, .bg-lime-100 { background-color: var(--fe-green-soft) !important; }
 .bg-emerald-600, .bg-lime-600 { background-color: var(--fe-green-dark) !important; }
 .border-emerald-200, .border-lime-200 { border-color: color-mix(in srgb, var(--fe-green) 30%, transparent) !important; }
+

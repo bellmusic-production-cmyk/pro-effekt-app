@@ -1,8 +1,8 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $pagePath = Join-Path (Get-Location) "app\page.tsx"
 if (!(Test-Path $pagePath)) {
-  throw "app\page.tsx nicht gefunden. Bitte dieses Script im Projektordner ausführen."
+  throw "app\page.tsx nicht gefunden. Bitte dieses Script im Projektordner ausfÃ¼hren."
 }
 
 $backupPath = "app\page.backup-vor-teile-modul.tsx"
@@ -10,10 +10,10 @@ Copy-Item $pagePath $backupPath -Force
 
 $code = Get-Content $pagePath -Raw
 
-# Menü: Ersatzteile eindeutig als Teile anzeigen
+# MenÃ¼: Ersatzteile eindeutig als Teile anzeigen
 $code = $code.Replace('"Ersatzteile",', '"Teile",')
 
-# Typen einfügen
+# Typen einfÃ¼gen
 if ($code -notmatch 'type SparePart') {
   $typeBlock = @'
 
@@ -32,7 +32,7 @@ type SparePart = {
   $code = $code.Replace('type UserProfile = {', $typeBlock + 'type UserProfile = {')
 }
 
-# State einfügen
+# State einfÃ¼gen
 if ($code -notmatch 'spareParts') {
   $stateBlock = @'
 
@@ -48,13 +48,13 @@ if ($code -notmatch 'spareParts') {
   $code = $code.Replace('  const [previewName, setPreviewName] = useState("");', '  const [previewName, setPreviewName] = useState("");' + $stateBlock)
 }
 
-# Ladeaufrufe einfügen
+# Ladeaufrufe einfÃ¼gen
 if ($code -notmatch 'loadSpareParts\(\)') {
   $code = $code.Replace('          loadMaintenancePlans();', "          loadMaintenancePlans();`r`n          loadSpareParts();")
   $code = $code.Replace('      await loadMaintenancePlans();', "      await loadMaintenancePlans();`r`n      await loadSpareParts();")
 }
 
-# Funktionen einfügen
+# Funktionen einfÃ¼gen
 if ($code -notmatch 'async function loadSpareParts') {
   $functionsBlock = @'
 
@@ -114,12 +114,12 @@ if ($code -notmatch 'async function loadSpareParts') {
 
     const quantity = Number(input.replace(",", "."));
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      alert("Bitte eine gültige Menge eingeben.");
+      alert("Bitte eine gÃ¼ltige Menge eingeben.");
       return;
     }
 
     const nextStock = Number(part.stock || 0) - quantity;
-    if (nextStock < 0 && !confirm("Der Bestand würde negativ werden. Trotzdem buchen?")) {
+    if (nextStock < 0 && !confirm("Der Bestand wÃ¼rde negativ werden. Trotzdem buchen?")) {
       return;
     }
 
@@ -146,12 +146,12 @@ if ($code -notmatch 'async function loadSpareParts') {
   }
 
   async function deleteSparePart(partId: number) {
-    if (!confirm("Ersatzteil wirklich löschen?")) return;
+    if (!confirm("Ersatzteil wirklich lÃ¶schen?")) return;
 
     const { error } = await supabase.from("spare_parts").delete().eq("id", partId);
 
     if (error) {
-      alert(`Ersatzteil konnte nicht gelöscht werden: ${error.message}`);
+      alert(`Ersatzteil konnte nicht gelÃ¶scht werden: ${error.message}`);
       return;
     }
 
@@ -175,11 +175,11 @@ $newBlock = @'
             <div className="space-y-6">
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-green-600">
-                  VERSION SCHRITT 14 AKTIV · ECHTES TEILE-MODUL
+                  VERSION SCHRITT 14 AKTIV Â· ECHTES TEILE-MODUL
                 </p>
                 <h3 className="mt-2 text-3xl font-black">Teile & Ersatzteillager</h3>
                 <p className="mt-2 text-slate-600">
-                  Teile anlegen, Bestand führen, Mindestbestand überwachen und Verbrauch buchen.
+                  Teile anlegen, Bestand fÃ¼hren, Mindestbestand Ã¼berwachen und Verbrauch buchen.
                 </p>
               </div>
 
@@ -228,7 +228,7 @@ $newBlock = @'
                     <textarea
                       value={partNote}
                       onChange={(e) => setPartNote(e.target.value)}
-                      placeholder="Hinweis, Lagerort, kompatible Geräte ..."
+                      placeholder="Hinweis, Lagerort, kompatible GerÃ¤te ..."
                       rows={4}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
@@ -248,7 +248,7 @@ $newBlock = @'
                     <div>
                       <h4 className="text-2xl font-black">Lagerbestand</h4>
                       <p className="mt-2 text-slate-600">
-                        {spareParts.length} Teile im Lager · Warnung bei Mindestbestand.
+                        {spareParts.length} Teile im Lager Â· Warnung bei Mindestbestand.
                       </p>
                     </div>
                     <button
@@ -280,7 +280,7 @@ $newBlock = @'
                                 </p>
                                 <h5 className="mt-1 text-xl font-black">{part.name}</h5>
                                 <p className="mt-2 text-sm text-slate-600">
-                                  Bestand: <strong>{part.stock}</strong> {part.unit || "Stk"} · Mindestbestand: {part.min_stock} {part.unit || "Stk"}
+                                  Bestand: <strong>{part.stock}</strong> {part.unit || "Stk"} Â· Mindestbestand: {part.min_stock} {part.unit || "Stk"}
                                 </p>
                                 {part.note && <p className="mt-2 text-sm text-slate-500">{part.note}</p>}
                                 {isLow && (
@@ -301,7 +301,7 @@ $newBlock = @'
                                   onClick={() => deleteSparePart(part.id)}
                                   className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                                 >
-                                  Löschen
+                                  LÃ¶schen
                                 </button>
                               </div>
                             </div>
@@ -320,3 +320,4 @@ $code = $code.Substring(0, $start) + $newBlock + $code.Substring($end)
 
 Set-Content -Path $pagePath -Value $code -Encoding UTF8
 Write-Host "OK: Teile-Modul wurde in app/page.tsx eingebaut. Backup: $backupPath" -ForegroundColor Green
+

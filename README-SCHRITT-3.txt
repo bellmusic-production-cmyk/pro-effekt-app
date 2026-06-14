@@ -1,16 +1,17 @@
-FE-SERVICE Schritt 3
+﻿PRO-EFFEKT Schritt 3
 
 Gemacht:
-- Geräte-Detailansicht wird jetzt nur noch im Bereich „Geräte“ angezeigt.
-- Wenn ein Gerät geöffnet ist, wird nicht gleichzeitig „Neues Gerät“ / Geräteliste angezeigt.
-- Techniker-Navigation mobil aufgeräumt: „Techniker“ wird als „Einsatz“ angezeigt.
-- Seitenüberschrift zeigt beim Techniker-Bereich „Einsatz“ statt doppelt Techniker.
-- Techniker-Einsatz bekommt klare Schnellaktionen: Ticket, Geräte, Fotos/Dokumente, Abschluss.
+- GerÃ¤te-Detailansicht wird jetzt nur noch im Bereich â€žGerÃ¤teâ€œ angezeigt.
+- Wenn ein GerÃ¤t geÃ¶ffnet ist, wird nicht gleichzeitig â€žNeues GerÃ¤tâ€œ / GerÃ¤teliste angezeigt.
+- Techniker-Navigation mobil aufgerÃ¤umt: â€žTechnikerâ€œ wird als â€žEinsatzâ€œ angezeigt.
+- SeitenÃ¼berschrift zeigt beim Techniker-Bereich â€žEinsatzâ€œ statt doppelt Techniker.
+- Techniker-Einsatz bekommt klare Schnellaktionen: Ticket, GerÃ¤te, Fotos/Dokumente, Abschluss.
 
 Wichtig:
-- Keine Änderung an Login, Rollen oder Supabase-Verbindung.
-- Supabase SQL aus Schritt 2 bleibt gültig.
+- Keine Ã„nderung an Login, Rollen oder Supabase-Verbindung.
+- Supabase SQL aus Schritt 2 bleibt gÃ¼ltig.
 
 Start in VS Code:
 npm install
 npm run dev
+

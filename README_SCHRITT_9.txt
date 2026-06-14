@@ -1,12 +1,12 @@
-SCHRITT 9 - WICHTIG
+﻿SCHRITT 9 - WICHTIG
 
-Diese Version entfernt den doppelten Techniker-Menüpunkt.
+Diese Version entfernt den doppelten Techniker-MenÃ¼punkt.
 
-Was geändert wurde:
-- Menüpunkt heißt jetzt Einsatz statt Techniker
-- Portal oben heißt Techniker Portal / Admin Portal / Kundenportal
-- Inhalt heißt Einsatzübersicht
-- FE-Service Grün zentral in app/globals.css gesetzt
+Was geÃ¤ndert wurde:
+- MenÃ¼punkt heiÃŸt jetzt Einsatz statt Techniker
+- Portal oben heiÃŸt Techniker Portal / Admin Portal / Kundenportal
+- Inhalt heiÃŸt EinsatzÃ¼bersicht
+- PRO-EFFEKT GrÃ¼n zentral in app/globals.css gesetzt
 
 Einbau:
 1. ZIP entpacken
@@ -18,3 +18,4 @@ Einbau:
 Wenn du auf Vercel testest:
 - danach neu deployen
 - Browser Cache hart neu laden
+

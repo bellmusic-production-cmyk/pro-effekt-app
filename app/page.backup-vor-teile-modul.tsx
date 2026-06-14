@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -110,9 +110,9 @@ const fallbackDevices = [
 const navItems = [
   "Dashboard",
   "Kunden",
-  "Geräte",
+  "GerÃ¤te",
   "Service-Tickets",
-  "Prüfungen",
+  "PrÃ¼fungen",
   "Wartungsplanung",
   "Dokumente",
   "Einsatz",
@@ -130,14 +130,14 @@ const filterPriorityOptions = ["Alle", "Niedrig", "Mittel", "Hoch"];
 
 const deviceStatusOptions = [
   "Aktiv",
-  "Wartung bald fällig",
-  "Prüfung erforderlich",
-  "Außer Betrieb",
+  "Wartung bald fÃ¤llig",
+  "PrÃ¼fung erforderlich",
+  "AuÃŸer Betrieb",
 ];
 
 const documentCategories = [
   "Alle",
-  "Prüfprotokolle",
+  "PrÃ¼fprotokolle",
   "Serviceberichte",
   "Rechnungen",
   "Fotos",
@@ -193,7 +193,7 @@ export default function Home() {
   const [partCategory, setPartCategory] = useState("");
   const [partStock, setPartStock] = useState("0");
   const [partMinStock, setPartMinStock] = useState("1");
-  const [partUnit, setPartUnit] = useState("Stück");
+  const [partUnit, setPartUnit] = useState("StÃ¼ck");
   const [partLocation, setPartLocation] = useState("");
   const [partNote, setPartNote] = useState("");
   const [selectedPartId, setSelectedPartId] = useState("");
@@ -207,7 +207,7 @@ export default function Home() {
   const [priorityFilter, setPriorityFilter] = useState("Alle");
 
   const [uploading, setUploading] = useState(false);
-  const [uploadCategory, setUploadCategory] = useState("Prüfprotokolle");
+  const [uploadCategory, setUploadCategory] = useState("PrÃ¼fprotokolle");
   const [activeDocumentCategory, setActiveDocumentCategory] = useState("Alle");
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [selectedDeviceView, setSelectedDeviceView] = useState<Device | null>(null);
@@ -257,7 +257,7 @@ export default function Home() {
     );
 
     if (foundDevice) {
-      setActivePage("Geräte");
+      setActivePage("GerÃ¤te");
       setSelectedDeviceView(foundDevice);
     }
   }, [devices]);
@@ -317,15 +317,15 @@ export default function Home() {
 
   const inspectionStats = useMemo(() => {
     const ok = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Gültig"
+      (item) => getInspectionStatus(item.next_check).label === "GÃ¼ltig"
     ).length;
 
     const soon = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Bald fällig"
+      (item) => getInspectionStatus(item.next_check).label === "Bald fÃ¤llig"
     ).length;
 
     const overdue = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Überfällig"
+      (item) => getInspectionStatus(item.next_check).label === "ÃœberfÃ¤llig"
     ).length;
 
     const missing = devices.filter(
@@ -459,7 +459,7 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert("Geräte konnten nicht geladen werden.");
+      alert("GerÃ¤te konnten nicht geladen werden.");
       return;
     }
 
@@ -587,7 +587,7 @@ export default function Home() {
     const safeFileName = file.name.replaceAll(" ", "-");
 
     const safeCategory =
-      uploadCategory === "Prüfprotokolle"
+      uploadCategory === "PrÃ¼fprotokolle"
         ? "Pruefprotokolle"
         : uploadCategory;
 
@@ -645,7 +645,7 @@ export default function Home() {
     const safeFileName = file.name.replaceAll(" ", "-");
 
     const safeCategory =
-      uploadCategory === "Prüfprotokolle"
+      uploadCategory === "PrÃ¼fprotokolle"
         ? "Pruefprotokolle"
         : uploadCategory;
 
@@ -680,14 +680,14 @@ export default function Home() {
 
     await createDeviceHistory(
       deviceId,
-      "Dokument direkt am Gerät hochgeladen",
+      "Dokument direkt am GerÃ¤t hochgeladen",
       `${uploadCategory}: ${file.name}`,
       "Dokument"
     );
 
     event.target.value = "";
     await loadDocuments();
-    alert("Dokument erfolgreich beim Gerät hochgeladen.");
+    alert("Dokument erfolgreich beim GerÃ¤t hochgeladen.");
   }
 
   async function openDocument(item: DocumentItem) {
@@ -696,7 +696,7 @@ export default function Home() {
       .createSignedUrl(item.file_path, 300);
 
     if (error || !data?.signedUrl) {
-      alert("Datei konnte nicht geöffnet werden.");
+      alert("Datei konnte nicht geÃ¶ffnet werden.");
       return;
     }
 
@@ -723,14 +723,14 @@ export default function Home() {
   }
 
   async function deleteDocument(item: DocumentItem) {
-    if (!confirm("Datei wirklich löschen?")) return;
+    if (!confirm("Datei wirklich lÃ¶schen?")) return;
 
     const storageResult = await supabase.storage
       .from("documents")
       .remove([item.file_path]);
 
     if (storageResult.error) {
-      alert("Datei konnte im Storage nicht gelöscht werden.");
+      alert("Datei konnte im Storage nicht gelÃ¶scht werden.");
       return;
     }
 
@@ -740,13 +740,13 @@ export default function Home() {
       .eq("id", item.id);
 
     if (tableResult.error) {
-      alert("Datei konnte aus der Tabelle nicht gelöscht werden.");
+      alert("Datei konnte aus der Tabelle nicht gelÃ¶scht werden.");
       return;
     }
 
     await createDeviceHistory(
       item.device_id,
-      "Dokument gelöscht",
+      "Dokument gelÃ¶scht",
       `${item.category}: ${item.file_name}`,
       "Dokument"
     );
@@ -791,7 +791,7 @@ export default function Home() {
     setPartCategory("");
     setPartStock("0");
     setPartMinStock("1");
-    setPartUnit("Stück");
+    setPartUnit("StÃ¼ck");
     setPartLocation("");
     setPartNote("");
   }
@@ -809,7 +809,7 @@ export default function Home() {
   }
 
   function startEditDevice(item: Device) {
-    setActivePage("Geräte");
+    setActivePage("GerÃ¤te");
     setEditingDevice(item);
     setDeviceName(item.name || "");
     setDeviceSerial(item.serial_number || "");
@@ -853,7 +853,7 @@ export default function Home() {
         null;
 
     if (!currentDeviceName || !issue || !description) {
-      alert("Bitte Gerät, Betreff und Beschreibung ausfüllen.");
+      alert("Bitte GerÃ¤t, Betreff und Beschreibung ausfÃ¼llen.");
       return;
     }
 
@@ -884,7 +884,7 @@ export default function Home() {
     if (insertResult.error) {
       console.error("Ticket konnte nicht gespeichert werden:", insertResult.error);
       alert(
-        `Ticket konnte nicht gespeichert werden.\n\nSupabase meldet: ${insertResult.error.message}\n\nWenn hier row-level security / RLS steht: Bitte die Datei supabase-ticket-fix.sql im Supabase SQL Editor ausführen.`
+        `Ticket konnte nicht gespeichert werden.\n\nSupabase meldet: ${insertResult.error.message}\n\nWenn hier row-level security / RLS steht: Bitte die Datei supabase-ticket-fix.sql im Supabase SQL Editor ausfÃ¼hren.`
       );
       return;
     }
@@ -892,7 +892,7 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Ticket erstellt",
-      `${issue} · Kunde: ${currentCustomerName}`,
+      `${issue} Â· Kunde: ${currentCustomerName}`,
       "Ticket"
     );
 
@@ -925,7 +925,7 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Ticket bearbeitet",
-      `${issue} · Priorität: ${priority}`,
+      `${issue} Â· PrioritÃ¤t: ${priority}`,
       "Ticket"
     );
 
@@ -940,7 +940,7 @@ export default function Home() {
       .eq("id", ticketId);
 
     if (error) {
-      alert("Status konnte nicht geändert werden.");
+      alert("Status konnte nicht geÃ¤ndert werden.");
       return;
     }
 
@@ -951,7 +951,7 @@ export default function Home() {
 
     await createDeviceHistory(
       relatedDevice?.id || null,
-      "Ticketstatus geändert",
+      "Ticketstatus geÃ¤ndert",
       `${changedTicket?.ticket_number || "Ticket"}: ${newStatus}`,
       "Ticket"
     );
@@ -964,12 +964,12 @@ export default function Home() {
   }
 
   async function deleteTicket(ticketId: number) {
-    if (!confirm("Ticket wirklich löschen?")) return;
+    if (!confirm("Ticket wirklich lÃ¶schen?")) return;
 
     const { error } = await supabase.from("tickets").delete().eq("id", ticketId);
 
     if (error) {
-      alert("Löschen fehlgeschlagen.");
+      alert("LÃ¶schen fehlgeschlagen.");
       return;
     }
 
@@ -978,7 +978,7 @@ export default function Home() {
 
   async function createDevice() {
     if (!deviceName) {
-      alert("Bitte Gerätename eingeben.");
+      alert("Bitte GerÃ¤tename eingeben.");
       return;
     }
 
@@ -994,7 +994,7 @@ export default function Home() {
     ]);
 
     if (error) {
-      alert("Gerät konnte nicht gespeichert werden.");
+      alert("GerÃ¤t konnte nicht gespeichert werden.");
       return;
     }
 
@@ -1006,7 +1006,7 @@ export default function Home() {
     if (!editingDevice) return;
 
     if (!deviceName) {
-      alert("Bitte Gerätename eingeben.");
+      alert("Bitte GerÃ¤tename eingeben.");
       return;
     }
 
@@ -1023,15 +1023,15 @@ export default function Home() {
       .eq("id", editingDevice.id);
 
     if (error) {
-      alert("Gerät konnte nicht bearbeitet werden.");
+      alert("GerÃ¤t konnte nicht bearbeitet werden.");
       return;
     }
 
     await createDeviceHistory(
       editingDevice.id,
-      "Gerät aktualisiert",
-      `Status: ${deviceStatus} · Nächste Prüfung: ${deviceNextCheck || "nicht geplant"}`,
-      "Gerät"
+      "GerÃ¤t aktualisiert",
+      `Status: ${deviceStatus} Â· NÃ¤chste PrÃ¼fung: ${deviceNextCheck || "nicht geplant"}`,
+      "GerÃ¤t"
     );
 
     resetDeviceForm();
@@ -1039,12 +1039,12 @@ export default function Home() {
   }
 
   async function deleteDevice(deviceId: number) {
-    if (!confirm("Gerät wirklich löschen?")) return;
+    if (!confirm("GerÃ¤t wirklich lÃ¶schen?")) return;
 
     const { error } = await supabase.from("devices").delete().eq("id", deviceId);
 
     if (error) {
-      alert("Gerät konnte nicht gelöscht werden.");
+      alert("GerÃ¤t konnte nicht gelÃ¶scht werden.");
       return;
     }
 
@@ -1130,7 +1130,7 @@ export default function Home() {
   }
 
   async function deleteCustomer(customerId: number) {
-    if (!confirm("Kunde wirklich löschen?")) return;
+    if (!confirm("Kunde wirklich lÃ¶schen?")) return;
 
     await supabase.from("devices").update({ customer_id: null }).eq("customer_id", customerId);
     await supabase.from("tickets").update({ customer_id: null }).eq("customer_id", customerId);
@@ -1142,7 +1142,7 @@ export default function Home() {
       .eq("id", customerId);
 
     if (error) {
-      alert("Kunde konnte nicht gelöscht werden. Prüfe, ob noch verknüpfte Daten existieren.");
+      alert("Kunde konnte nicht gelÃ¶scht werden. PrÃ¼fe, ob noch verknÃ¼pfte Daten existieren.");
       return;
     }
 
@@ -1161,9 +1161,9 @@ export default function Home() {
     setCustomer(linkedCustomer?.company || "");
     setDevice(item.name);
     setCustomDeviceName("");
-    setIssue(`Service für ${item.name}`);
+    setIssue(`Service fÃ¼r ${item.name}`);
     setDescription(item.note || "");
-    setPriority(item.status === "Prüfung erforderlich" ? "Hoch" : "Mittel");
+    setPriority(item.status === "PrÃ¼fung erforderlich" ? "Hoch" : "Mittel");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1183,11 +1183,11 @@ export default function Home() {
   function createInspectionTicket(item: Device) {
     setActivePage("Service-Tickets");
     setDevice(item.name);
-    setIssue(`Prüfung / Prüfsiegel für ${item.name}`);
+    setIssue(`PrÃ¼fung / PrÃ¼fsiegel fÃ¼r ${item.name}`);
     setDescription(
-      `Bitte Prüfung für ${item.name} einplanen. Seriennummer: ${
+      `Bitte PrÃ¼fung fÃ¼r ${item.name} einplanen. Seriennummer: ${
         item.serial_number || "nicht angegeben"
-      }. Standort: ${item.location || "nicht angegeben"}. Nächste Prüfung: ${
+      }. Standort: ${item.location || "nicht angegeben"}. NÃ¤chste PrÃ¼fung: ${
         item.next_check || "kein Datum hinterlegt"
       }.`
     );
@@ -1209,10 +1209,10 @@ export default function Home() {
 
   function deviceStatusClass(statusValue: string | null) {
     if (statusValue === "Aktiv") return "bg-green-100 text-green-700";
-    if (statusValue === "Wartung bald fällig") {
+    if (statusValue === "Wartung bald fÃ¤llig") {
       return "bg-yellow-100 text-yellow-700";
     }
-    if (statusValue === "Außer Betrieb") return "bg-slate-200 text-slate-700";
+    if (statusValue === "AuÃŸer Betrieb") return "bg-slate-200 text-slate-700";
     return "bg-red-100 text-red-700";
   }
 
@@ -1220,7 +1220,7 @@ export default function Home() {
     if (!nextCheck) {
       return {
         label: "Kein Datum",
-        daysText: "Keine Prüfung geplant",
+        daysText: "Keine PrÃ¼fung geplant",
         className: "bg-slate-200 text-slate-700",
       };
     }
@@ -1236,23 +1236,23 @@ export default function Home() {
 
     if (diffDays < 0) {
       return {
-        label: "Überfällig",
-        daysText: `${Math.abs(diffDays)} Tage überfällig`,
+        label: "ÃœberfÃ¤llig",
+        daysText: `${Math.abs(diffDays)} Tage Ã¼berfÃ¤llig`,
         className: "bg-red-100 text-red-700",
       };
     }
 
     if (diffDays <= 30) {
       return {
-        label: "Bald fällig",
+        label: "Bald fÃ¤llig",
         daysText: `${diffDays} Tage bis Ablauf`,
         className: "bg-yellow-100 text-yellow-700",
       };
     }
 
     return {
-      label: "Gültig",
-      daysText: `${diffDays} Tage gültig`,
+      label: "GÃ¼ltig",
+      daysText: `${diffDays} Tage gÃ¼ltig`,
       className: "bg-green-100 text-green-700",
     };
   }
@@ -1263,7 +1263,7 @@ export default function Home() {
   }
 
   function fileSizeText(size: number | null) {
-    if (!size) return "Größe unbekannt";
+    if (!size) return "GrÃ¶ÃŸe unbekannt";
     return `${Math.round(size / 1024)} KB`;
   }
 
@@ -1278,16 +1278,16 @@ export default function Home() {
   }
 
   function getDeviceNameById(deviceId: number | null) {
-    if (!deviceId) return "Kein Gerät zugeordnet";
+    if (!deviceId) return "Kein GerÃ¤t zugeordnet";
 
     const foundDevice = devices.find((item) => item.id === deviceId);
 
-    return foundDevice?.name || "Gerät nicht gefunden";
+    return foundDevice?.name || "GerÃ¤t nicht gefunden";
   }
 
   function getDeviceDirectUrl(item: Device) {
     if (typeof window === "undefined") {
-      return `FE-SERVICE Gerät ${item.id}`;
+      return `PRO-EFFEKT GerÃ¤t ${item.id}`;
     }
 
     const url = new URL(window.location.href);
@@ -1304,7 +1304,7 @@ export default function Home() {
 
   async function copyDeviceLink(item: Device) {
     await navigator.clipboard.writeText(getDeviceDirectUrl(item));
-    alert("Geräte-Link wurde kopiert.");
+    alert("GerÃ¤te-Link wurde kopiert.");
   }
 
   function getMaintenanceStatus(nextDue: string | null) {
@@ -1327,7 +1327,7 @@ export default function Home() {
 
     if (diffDays < 0) {
       return {
-        label: `${Math.abs(diffDays)} Tage überfällig`,
+        label: `${Math.abs(diffDays)} Tage Ã¼berfÃ¤llig`,
         className: "bg-red-100 text-red-700",
       };
     }
@@ -1357,7 +1357,7 @@ export default function Home() {
     const intervalDays = Number(intervalInput);
 
     if (!Number.isFinite(intervalDays) || intervalDays <= 0) {
-      alert("Bitte eine gültige Tageszahl eingeben.");
+      alert("Bitte eine gÃ¼ltige Tageszahl eingeben.");
       return;
     }
 
@@ -1388,7 +1388,7 @@ export default function Home() {
     await createDeviceHistory(
       item.id,
       existingPlan ? "Wartungsplan aktualisiert" : "Wartungsplan erstellt",
-      `Intervall: ${intervalDays} Tage · Nächste Wartung: ${payload.next_due}`,
+      `Intervall: ${intervalDays} Tage Â· NÃ¤chste Wartung: ${payload.next_due}`,
       "Wartung"
     );
 
@@ -1397,7 +1397,7 @@ export default function Home() {
   }
 
   async function deleteMaintenancePlan(planId: number) {
-    if (!confirm("Wartungsplan wirklich löschen?")) return;
+    if (!confirm("Wartungsplan wirklich lÃ¶schen?")) return;
 
     const { error } = await supabase
       .from("maintenance_plans")
@@ -1405,7 +1405,7 @@ export default function Home() {
       .eq("id", planId);
 
     if (error) {
-      alert("Wartungsplan konnte nicht gelöscht werden.");
+      alert("Wartungsplan konnte nicht gelÃ¶scht werden.");
       return;
     }
 
@@ -1421,7 +1421,7 @@ export default function Home() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>FE-SERVICE Prüfbericht</title>
+          <title>PRO-EFFEKT PrÃ¼fbericht</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { color: #15803d; margin-bottom: 4px; }
@@ -1434,24 +1434,24 @@ export default function Home() {
           </style>
         </head>
         <body>
-          <h1>FE-SERVICE</h1>
-          <p class="muted">Fitness Equipment Service · Automatischer Prüfbericht</p>
+          <h1>PRO-EFFEKT</h1>
+          <p class="muted">Fitness Equipment Service Â· Automatischer PrÃ¼fbericht</p>
 
-          <h2>Prüfbericht</h2>
+          <h2>PrÃ¼fbericht</h2>
           <div class="box grid">
-            <div><strong>Gerät</strong><br />${item.name}</div>
+            <div><strong>GerÃ¤t</strong><br />${item.name}</div>
             <div><strong>Seriennummer</strong><br />${item.serial_number || "Nicht angegeben"}</div>
             <div><strong>Standort</strong><br />${item.location || "Nicht angegeben"}</div>
             <div><strong>Status</strong><br />${item.status || "Aktiv"}</div>
-            <div><strong>Nächste Prüfung</strong><br />${item.next_check || "Nicht geplant"}</div>
-            <div><strong>Prüfstatus</strong><br />${inspection.label}</div>
+            <div><strong>NÃ¤chste PrÃ¼fung</strong><br />${item.next_check || "Nicht geplant"}</div>
+            <div><strong>PrÃ¼fstatus</strong><br />${inspection.label}</div>
           </div>
 
           <h2>Wartungsplanung</h2>
           <div class="box">
             <p><strong>Wartungsplan:</strong> ${plan?.title || "Kein Wartungsplan hinterlegt"}</p>
             <p><strong>Intervall:</strong> ${plan?.interval_days || "-"} Tage</p>
-            <p><strong>Nächste Wartung:</strong> ${plan?.next_due || "Nicht geplant"}</p>
+            <p><strong>NÃ¤chste Wartung:</strong> ${plan?.next_due || "Nicht geplant"}</p>
           </div>
 
           <h2>Hinweise</h2>
@@ -1460,7 +1460,7 @@ export default function Home() {
           </div>
 
           <div class="footer">
-            <div class="line">Prüfer / Techniker</div>
+            <div class="line">PrÃ¼fer / Techniker</div>
             <div class="line">Kunde / Unterschrift</div>
           </div>
 
@@ -1481,8 +1481,8 @@ export default function Home() {
 
     createDeviceHistory(
       item.id,
-      "PDF-Prüfbericht erstellt",
-      `Prüfbericht für ${item.name}`,
+      "PDF-PrÃ¼fbericht erstellt",
+      `PrÃ¼fbericht fÃ¼r ${item.name}`,
       "PDF"
     );
   }
@@ -1494,18 +1494,18 @@ export default function Home() {
     );
 
     const recipient = relatedCustomer?.email || "";
-    const subject = encodeURIComponent(`Prüfbericht ${item.name}`);
+    const subject = encodeURIComponent(`PrÃ¼fbericht ${item.name}`);
     const body = encodeURIComponent(
       `Hallo,
 
-anbei bzw. im FE-SERVICE Portal finden Sie den Prüfbericht für folgendes Gerät:
+anbei bzw. im PRO-EFFEKT Portal finden Sie den PrÃ¼fbericht fÃ¼r folgendes GerÃ¤t:
 
-Gerät: ${item.name}
+GerÃ¤t: ${item.name}
 Seriennummer: ${item.serial_number || "nicht angegeben"}
 Standort: ${item.location || "nicht angegeben"}
 
-Viele Grüße
-FE-SERVICE`
+Viele GrÃ¼ÃŸe
+PRO-EFFEKT`
     );
 
     window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
@@ -1538,7 +1538,7 @@ FE-SERVICE`
     setPartCategory(part.category || "");
     setPartStock(String(part.stock ?? 0));
     setPartMinStock(String(part.min_stock ?? 1));
-    setPartUnit(part.unit || "Stück");
+    setPartUnit(part.unit || "StÃ¼ck");
     setPartLocation(part.location || "");
     setPartNote(part.note || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1546,7 +1546,7 @@ FE-SERVICE`
 
   async function saveServicePart() {
     if (!isAdmin) {
-      alert("Nur Admins können Ersatzteile anlegen oder bearbeiten.");
+      alert("Nur Admins kÃ¶nnen Ersatzteile anlegen oder bearbeiten.");
       return;
     }
 
@@ -1561,7 +1561,7 @@ FE-SERVICE`
       category: partCategory.trim() || null,
       stock: Number(partStock) || 0,
       min_stock: Number(partMinStock) || 0,
-      unit: partUnit.trim() || "Stück",
+      unit: partUnit.trim() || "StÃ¼ck",
       location: partLocation.trim() || null,
       note: partNote.trim() || null,
     };
@@ -1581,16 +1581,16 @@ FE-SERVICE`
 
   async function deleteServicePart(partId: number) {
     if (!isAdmin) {
-      alert("Nur Admins können Ersatzteile löschen.");
+      alert("Nur Admins kÃ¶nnen Ersatzteile lÃ¶schen.");
       return;
     }
 
-    if (!confirm("Ersatzteil wirklich löschen?")) return;
+    if (!confirm("Ersatzteil wirklich lÃ¶schen?")) return;
 
     const { error } = await supabase.from("service_parts").delete().eq("id", partId);
 
     if (error) {
-      alert(`Ersatzteil konnte nicht gelöscht werden: ${error.message}`);
+      alert(`Ersatzteil konnte nicht gelÃ¶scht werden: ${error.message}`);
       return;
     }
 
@@ -1602,19 +1602,19 @@ FE-SERVICE`
     const quantity = Number(partUsageQuantity);
 
     if (!part) {
-      alert("Bitte Ersatzteil auswählen.");
+      alert("Bitte Ersatzteil auswÃ¤hlen.");
       return;
     }
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      alert("Bitte gültige Menge eingeben.");
+      alert("Bitte gÃ¼ltige Menge eingeben.");
       return;
     }
 
     const currentStock = Number(part.stock || 0);
 
     if (quantity > currentStock) {
-      const proceed = confirm("Die Menge ist größer als der aktuelle Bestand. Trotzdem buchen?");
+      const proceed = confirm("Die Menge ist grÃ¶ÃŸer als der aktuelle Bestand. Trotzdem buchen?");
       if (!proceed) return;
     }
 
@@ -1649,7 +1649,7 @@ FE-SERVICE`
     await createDeviceHistory(
       partUsageDeviceId ? Number(partUsageDeviceId) : null,
       "Ersatzteil verbraucht",
-      `${quantity} ${part.unit || "Stück"} · ${part.name}${partUsageNote ? ` · ${partUsageNote}` : ""}`,
+      `${quantity} ${part.unit || "StÃ¼ck"} Â· ${part.name}${partUsageNote ? ` Â· ${partUsageNote}` : ""}`,
       "Ersatzteil"
     );
 
@@ -1693,29 +1693,29 @@ FE-SERVICE`
       : "Kundenportal";
 
   const portalSubtitle = isAdmin
-    ? "Vollzugriff auf Kunden, Geräte, Tickets, Dokumente und Verwaltung."
+    ? "Vollzugriff auf Kunden, GerÃ¤te, Tickets, Dokumente und Verwaltung."
     : isTechnician
-      ? "Einsatzbereich für Tickets, Geräte, Prüfungen, Fotos und Serviceberichte."
-      : "Eigene Geräte, Tickets und Dokumente im Überblick.";
+      ? "Einsatzbereich fÃ¼r Tickets, GerÃ¤te, PrÃ¼fungen, Fotos und Serviceberichte."
+      : "Eigene GerÃ¤te, Tickets und Dokumente im Ãœberblick.";
 
   const primaryActionLabel = isAdmin
-    ? "Verwaltung öffnen"
+    ? "Verwaltung Ã¶ffnen"
     : isTechnician
-      ? "Einsatz öffnen"
-      : "Portal öffnen";
+      ? "Einsatz Ã¶ffnen"
+      : "Portal Ã¶ffnen";
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Service-Tickets", "Geräte", "Dokumente", "Ersatzteile"]
+      ? ["Einsatz", "Service-Tickets", "GerÃ¤te", "Dokumente", "Ersatzteile"]
       : ["Kundenportal", "Service-Tickets", "Dokumente"];
 
   function navItemLabel(item: string) {
     const labels: Record<string, string> = {
       Dashboard: "Start",
       Kunden: "Kunden",
-      Geräte: "Geräte",
+      GerÃ¤te: "GerÃ¤te",
       "Service-Tickets": "Tickets",
-      Prüfungen: "Prüfungen",
+      PrÃ¼fungen: "PrÃ¼fungen",
       Wartungsplanung: "Wartung",
       Dokumente: "Dokumente",
       Einsatz: "Einsatz",
@@ -1755,7 +1755,7 @@ FE-SERVICE`
   if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#07130d] text-white">
-        <h1 className="text-4xl font-black">Lädt...</h1>
+        <h1 className="text-4xl font-black">LÃ¤dt...</h1>
       </main>
     );
   }
@@ -1766,11 +1766,11 @@ FE-SERVICE`
         <section className="hidden bg-[#07130d] p-12 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="flex flex-col items-center">
             <h1 className="whitespace-nowrap text-center text-2xl font-black tracking-[0.18em] text-green-500">
-              FE-SERVICE
+              PRO-EFFEKT
             </h1>
 
             <img
-              src="/fe-service-logo.png"
+              src="/PRO-EFFEKT-logo.png"
               alt="Fitness Equipment Service"
               className="mt-5 w-64 object-contain"
             />
@@ -1791,11 +1791,11 @@ FE-SERVICE`
           <div className="w-full max-w-xl rounded-[36px] bg-white p-10 shadow-2xl">
             <div className="mb-8 text-center">
               <h1 className="whitespace-nowrap text-center text-2xl font-black tracking-[0.18em] text-green-600">
-                FE-SERVICE
+                PRO-EFFEKT
               </h1>
 
               <img
-                src="/fe-service-logo.png"
+                src="/PRO-EFFEKT-logo.png"
                 alt="Fitness Equipment Service"
                 className="mx-auto mt-5 w-56 object-contain"
               />
@@ -1867,11 +1867,11 @@ FE-SERVICE`
         <aside className="hidden w-72 bg-[#07130d] p-6 text-white lg:flex lg:flex-col">
           <div className="flex flex-col items-center">
             <h1 className="whitespace-nowrap text-center text-2xl font-black tracking-[0.18em] text-green-500">
-              FE-SERVICE
+              PRO-EFFEKT
             </h1>
 
             <img
-              src="/fe-service-logo.png"
+              src="/PRO-EFFEKT-logo.png"
               alt="Fitness Equipment Service"
               className="mt-4 w-56 object-contain"
             />
@@ -1907,7 +1907,7 @@ FE-SERVICE`
 
         <section className="w-full min-w-0 flex-1 overflow-x-hidden p-5 lg:p-10">
           <div className="mb-6 hidden rounded-[32px] bg-white p-6 shadow-sm lg:block">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-green-600">FE-SERVICE</p>
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-green-600">PRO-EFFEKT</p>
             <h2 className="mt-2 text-3xl font-black leading-tight lg:text-4xl">{portalTitle}</h2>
             <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-500">{portalSubtitle}</p>
           </div>
@@ -1915,7 +1915,7 @@ FE-SERVICE`
           <div className="sticky top-0 z-30 -mx-5 mb-5 border-b border-[var(--fe-green)]/20 bg-[var(--fe-black)] px-4 py-3 shadow-lg lg:hidden">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fe-green)]">FE-SERVICE</p>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--fe-green)]">PRO-EFFEKT</p>
                 <h2 className="mt-1 text-2xl font-black leading-tight text-white">{portalTitle}</h2>
                 <p className="mt-1 max-w-[260px] truncate text-xs font-semibold text-slate-300">{session.user.email}</p>
               </div>
@@ -1957,7 +1957,7 @@ FE-SERVICE`
                     onClick={closePreview}
                     className="rounded-2xl bg-red-100 px-5 py-3 font-bold text-red-700"
                   >
-                    Schließen
+                    SchlieÃŸen
                   </button>
                 </div>
 
@@ -1974,7 +1974,7 @@ FE-SERVICE`
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Kunden" value={customers.length} />
-                <StatCard label="Geräte" value={devices.length} />
+                <StatCard label="GerÃ¤te" value={devices.length} />
                 <StatCard label="Tickets" value={tickets.length} />
                 <StatCard label="Dokumente" value={documents.length} />
               </div>
@@ -1982,7 +1982,7 @@ FE-SERVICE`
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="rounded-3xl bg-red-50 p-6 shadow-sm">
                   <p className="text-sm font-bold text-red-700">
-                    Überfällige Prüfungen
+                    ÃœberfÃ¤llige PrÃ¼fungen
                   </p>
                   <p className="mt-2 text-4xl font-black text-red-700">
                     {inspectionStats.overdue}
@@ -2050,7 +2050,7 @@ FE-SERVICE`
                     <h3 className="text-2xl font-black">Dokumente</h3>
 
                     <p className="mt-2 text-slate-600">
-                      Kategorie und Gerät wählen, Datei hochladen und automatisch zuordnen.
+                      Kategorie und GerÃ¤t wÃ¤hlen, Datei hochladen und automatisch zuordnen.
                     </p>
                   </div>
 
@@ -2072,7 +2072,7 @@ FE-SERVICE`
                       onChange={(e) => setSelectedDeviceId(e.target.value)}
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Kein Gerät</option>
+                      <option value="">Kein GerÃ¤t</option>
 
                       {devices.map((item) => (
                         <option key={item.id} value={item.id}>
@@ -2082,7 +2082,7 @@ FE-SERVICE`
                     </select>
 
                     <label className="cursor-pointer rounded-2xl bg-green-600 px-6 py-4 font-bold text-white hover:bg-green-700">
-                      {uploading ? "Upload läuft..." : "Dokument hochladen"}
+                      {uploading ? "Upload lÃ¤uft..." : "Dokument hochladen"}
 
                       <input
                         type="file"
@@ -2116,11 +2116,11 @@ FE-SERVICE`
                             <p className="font-bold">{item.file_name}</p>
 
                             <p className="text-sm text-slate-500">
-                              {item.category} · {fileSizeText(item.file_size)}
+                              {item.category} Â· {fileSizeText(item.file_size)}
                             </p>
 
                             <p className="mt-1 text-sm font-bold text-green-700">
-                              Gerät: {getDeviceNameById(item.device_id)}
+                              GerÃ¤t: {getDeviceNameById(item.device_id)}
                             </p>
                           </div>
 
@@ -2129,14 +2129,14 @@ FE-SERVICE`
                               onClick={() => openDocument(item)}
                               className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
                             >
-                              Öffnen
+                              Ã–ffnen
                             </button>
 
                             <button
                               onClick={() => deleteDocument(item)}
                               className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                             >
-                              Löschen
+                              LÃ¶schen
                             </button>
                           </div>
                         </div>
@@ -2198,11 +2198,11 @@ FE-SERVICE`
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="mb-3 text-sm font-bold text-slate-700">
-                      Geräte diesem Kunden zuweisen
+                      GerÃ¤te diesem Kunden zuweisen
                     </p>
 
                     {devices.length === 0 ? (
-                      <p className="text-sm text-slate-500">Noch keine Geräte vorhanden.</p>
+                      <p className="text-sm text-slate-500">Noch keine GerÃ¤te vorhanden.</p>
                     ) : (
                       <div className="space-y-2">
                         {devices.map((deviceItem) => (
@@ -2256,7 +2256,7 @@ FE-SERVICE`
                       onClick={createCustomer}
                       className="w-full rounded-2xl bg-green-600 py-4 font-bold text-white"
                     >
-                      Kunde hinzufügen
+                      Kunde hinzufÃ¼gen
                     </button>
                   )}
                 </div>
@@ -2318,7 +2318,7 @@ FE-SERVICE`
                               onClick={() => deleteCustomer(item.id)}
                               className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                             >
-                              Löschen
+                              LÃ¶schen
                             </button>
                           </div>
                         </div>
@@ -2330,12 +2330,12 @@ FE-SERVICE`
             </div>
           )}
 
-{activePage === "Geräte" && selectedDeviceView && (
+{activePage === "GerÃ¤te" && selectedDeviceView && (
   <div className="mb-6 rounded-[32px] bg-white p-6 shadow-sm">
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
       <div>
         <p className="text-sm font-bold text-green-600">
-          Geräte-Detailansicht
+          GerÃ¤te-Detailansicht
         </p>
 
         <h3 className="mt-2 text-4xl font-black">
@@ -2365,7 +2365,7 @@ FE-SERVICE`
 
           <div className="rounded-2xl bg-slate-100 p-4">
             <p className="text-xs text-slate-500">
-              Nächste Prüfung
+              NÃ¤chste PrÃ¼fung
             </p>
 
             <p className="mt-1 font-bold">
@@ -2409,7 +2409,7 @@ FE-SERVICE`
           onClick={() => generateInspectionPdf(selectedDeviceView)}
           className="rounded-2xl bg-blue-600 px-4 py-4 font-bold text-white"
         >
-          PDF-Prüfbericht
+          PDF-PrÃ¼fbericht
         </button>
 
         <button
@@ -2444,7 +2444,7 @@ FE-SERVICE`
           </select>
 
           <label className="block cursor-pointer rounded-2xl bg-green-600 px-4 py-4 text-center font-bold text-white hover:bg-green-700">
-            {uploading ? "Upload läuft..." : "Datei auswählen"}
+            {uploading ? "Upload lÃ¤uft..." : "Datei auswÃ¤hlen"}
 
             <input
               type="file"
@@ -2459,24 +2459,24 @@ FE-SERVICE`
 
         <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-center">
           <p className="mb-3 text-sm font-bold text-green-700">
-            QR-Code für dieses Gerät
+            QR-Code fÃ¼r dieses GerÃ¤t
           </p>
 
           <img
             src={getDeviceQrCodeUrl(selectedDeviceView)}
-            alt={`QR-Code für ${selectedDeviceView.name}`}
+            alt={`QR-Code fÃ¼r ${selectedDeviceView.name}`}
             className="mx-auto h-44 w-44 rounded-2xl bg-white p-3"
           />
 
           <p className="mt-3 text-xs text-slate-600">
-            Scannen öffnet direkt diese Geräteansicht.
+            Scannen Ã¶ffnet direkt diese GerÃ¤teansicht.
           </p>
 
           <button
             onClick={() => copyDeviceLink(selectedDeviceView)}
             className="mt-3 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold text-green-700"
           >
-            Geräte-Link kopieren
+            GerÃ¤te-Link kopieren
           </button>
         </div>
 
@@ -2489,7 +2489,7 @@ FE-SERVICE`
           }}
           className="rounded-2xl border border-slate-300 bg-white px-4 py-4 font-bold"
         >
-          Schließen
+          SchlieÃŸen
         </button>
       </div>
     </div>
@@ -2505,7 +2505,7 @@ FE-SERVICE`
                 {getMaintenancePlanForDevice(selectedDeviceView.id)?.title}
               </p>
               <p className="mt-1 text-sm text-slate-600">
-                Intervall: {getMaintenancePlanForDevice(selectedDeviceView.id)?.interval_days} Tage · Nächste Wartung: {getMaintenancePlanForDevice(selectedDeviceView.id)?.next_due || "Nicht geplant"}
+                Intervall: {getMaintenancePlanForDevice(selectedDeviceView.id)?.interval_days} Tage Â· NÃ¤chste Wartung: {getMaintenancePlanForDevice(selectedDeviceView.id)?.next_due || "Nicht geplant"}
               </p>
             </div>
 
@@ -2565,7 +2565,7 @@ FE-SERVICE`
                   onClick={() => openDocument(doc)}
                   className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-bold text-blue-700"
                 >
-                  Öffnen
+                  Ã–ffnen
                 </button>
               </div>
             ))
@@ -2575,7 +2575,7 @@ FE-SERVICE`
 
     <div className="mt-10">
       <h4 className="text-2xl font-black">
-        Tickets zu diesem Gerät
+        Tickets zu diesem GerÃ¤t
       </h4>
 
       <div className="mt-4 space-y-3">
@@ -2583,7 +2583,7 @@ FE-SERVICE`
           (ticket) => ticket.device === selectedDeviceView.name
         ).length === 0 ? (
           <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-            Keine Tickets für dieses Gerät vorhanden.
+            Keine Tickets fÃ¼r dieses GerÃ¤t vorhanden.
           </div>
         ) : (
           tickets
@@ -2639,7 +2639,7 @@ FE-SERVICE`
       </div>
     </div>
     <div className="mt-10">
-      <h4 className="text-2xl font-black">Gerätehistorie</h4>
+      <h4 className="text-2xl font-black">GerÃ¤tehistorie</h4>
 
       <div className="mt-4 space-y-3">
         {deviceHistory.filter(
@@ -2682,7 +2682,7 @@ FE-SERVICE`
     </div>
   </div>
 )}
-          {activePage === "Geräte" && !selectedDeviceView && (
+          {activePage === "GerÃ¤te" && !selectedDeviceView && (
             <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
               <div
                 className={`rounded-[32px] bg-white p-6 shadow-sm ${
@@ -2690,14 +2690,14 @@ FE-SERVICE`
                 }`}
               >
                 <h3 className="text-2xl font-black">
-                  {editingDevice ? "Gerät bearbeiten" : "Neues Gerät"}
+                  {editingDevice ? "GerÃ¤t bearbeiten" : "Neues GerÃ¤t"}
                 </h3>
 
                 <div className="mt-5 space-y-4">
                   <input
                     value={deviceName}
                     onChange={(e) => setDeviceName(e.target.value)}
-                    placeholder="Gerätename"
+                    placeholder="GerÃ¤tename"
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
 
@@ -2746,7 +2746,7 @@ FE-SERVICE`
                         onClick={updateDevice}
                         className="rounded-2xl bg-green-600 py-4 font-bold text-white"
                       >
-                        Gerät speichern
+                        GerÃ¤t speichern
                       </button>
 
                       <button
@@ -2761,19 +2761,19 @@ FE-SERVICE`
                       onClick={createDevice}
                       className="w-full rounded-2xl bg-green-600 py-4 font-bold text-white"
                     >
-                      Gerät hinzufügen
+                      GerÃ¤t hinzufÃ¼gen
                     </button>
                   )}
                 </div>
               </div>
 
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
-                <h3 className="text-2xl font-black">Geräteliste</h3>
+                <h3 className="text-2xl font-black">GerÃ¤teliste</h3>
 
                 <div className="mt-5 space-y-3">
                   {devices.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
-                      Noch keine Geräte vorhanden.
+                      Noch keine GerÃ¤te vorhanden.
                     </div>
                   ) : (
                     devices.map((item) => (
@@ -2796,7 +2796,7 @@ FE-SERVICE`
                             </p>
 
                             <p className="text-sm text-slate-600">
-                              Nächste Prüfung: {item.next_check || "Nicht geplant"}
+                              NÃ¤chste PrÃ¼fung: {item.next_check || "Nicht geplant"}
                             </p>
 
                             <p className="mt-2 text-sm text-slate-500">
@@ -2837,7 +2837,7 @@ FE-SERVICE`
                               onClick={() => deleteDevice(item.id)}
                               className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                             >
-                              Löschen
+                              LÃ¶schen
                             </button>
                           </div>
                         </div>
@@ -2854,13 +2854,13 @@ FE-SERVICE`
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <h3 className="text-2xl font-black">Wartungsplanung</h3>
                 <p className="mt-2 text-slate-600">
-                  Plane automatische Wartungen pro Gerät und sieh sofort, was fällig ist.
+                  Plane automatische Wartungen pro GerÃ¤t und sieh sofort, was fÃ¤llig ist.
                 </p>
 
                 <div className="mt-6 space-y-4">
                   {devices.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Noch keine Geräte vorhanden.
+                      Noch keine GerÃ¤te vorhanden.
                     </div>
                   ) : (
                     devices.map((item) => {
@@ -2882,7 +2882,7 @@ FE-SERVICE`
                               </h4>
                               <p className="mt-2 text-sm text-slate-600">
                                 {plan
-                                  ? `Intervall: ${plan.interval_days} Tage · Nächste Wartung: ${plan.next_due}`
+                                  ? `Intervall: ${plan.interval_days} Tage Â· NÃ¤chste Wartung: ${plan.next_due}`
                                   : "Kein Wartungsplan vorhanden"}
                               </p>
                             </div>
@@ -2898,7 +2898,7 @@ FE-SERVICE`
                                 onClick={() => createMaintenancePlanForDevice(item)}
                                 className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-bold text-white"
                               >
-                                {plan ? "Plan ändern" : "Plan erstellen"}
+                                {plan ? "Plan Ã¤ndern" : "Plan erstellen"}
                               </button>
 
                               {plan && (
@@ -2906,7 +2906,7 @@ FE-SERVICE`
                                   onClick={() => deleteMaintenancePlan(plan.id)}
                                   className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                                 >
-                                  Löschen
+                                  LÃ¶schen
                                 </button>
                               )}
                             </div>
@@ -2923,9 +2923,9 @@ FE-SERVICE`
           {activePage === "Einsatz" && (
             <div className="space-y-4 pb-24">
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
-                <h3 className="text-3xl font-black">Einsatzübersicht</h3>
+                <h3 className="text-3xl font-black">EinsatzÃ¼bersicht</h3>
                 <p className="mt-2 text-slate-600">
-                  Klare Einsatzansicht: Gerät öffnen, Ticket starten, Dokumente hochladen und Prüfung dokumentieren.
+                  Klare Einsatzansicht: GerÃ¤t Ã¶ffnen, Ticket starten, Dokumente hochladen und PrÃ¼fung dokumentieren.
                 </p>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-4">
@@ -2938,11 +2938,11 @@ FE-SERVICE`
                   </button>
 
                   <button
-                    onClick={() => setActivePage("Geräte")}
+                    onClick={() => setActivePage("GerÃ¤te")}
                     className="rounded-2xl bg-slate-900 px-4 py-4 text-left font-black text-white"
                   >
-                    Geräte
-                    <span className="mt-1 block text-xs font-bold opacity-80">Details & QR öffnen</span>
+                    GerÃ¤te
+                    <span className="mt-1 block text-xs font-bold opacity-80">Details & QR Ã¶ffnen</span>
                   </button>
 
                   <button
@@ -2982,7 +2982,7 @@ FE-SERVICE`
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className={`rounded-full px-4 py-2 text-sm font-bold ${inspection.className}`}>
-                        Prüfung: {inspection.label}
+                        PrÃ¼fung: {inspection.label}
                       </span>
                       <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
                         Wartung: {plan?.next_due || "nicht geplant"}
@@ -2992,7 +2992,7 @@ FE-SERVICE`
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
                       <button
                         onClick={() => {
-                          setActivePage("Geräte");
+                          setActivePage("GerÃ¤te");
                           setSelectedDeviceView(item);
                         }}
                         className="rounded-2xl bg-slate-900 px-5 py-4 text-lg font-bold text-white"
@@ -3013,22 +3013,22 @@ FE-SERVICE`
             </div>
           )}
 
-          {activePage === "Prüfungen" && (
+          {activePage === "PrÃ¼fungen" && (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="Gültig" value={inspectionStats.ok} />
-                <StatCard label="Bald fällig" value={inspectionStats.soon} />
-                <StatCard label="Überfällig" value={inspectionStats.overdue} />
+                <StatCard label="GÃ¼ltig" value={inspectionStats.ok} />
+                <StatCard label="Bald fÃ¤llig" value={inspectionStats.soon} />
+                <StatCard label="ÃœberfÃ¤llig" value={inspectionStats.overdue} />
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
-                <h3 className="text-2xl font-black">Prüfungen & Prüfsiegel</h3>
+                <h3 className="text-2xl font-black">PrÃ¼fungen & PrÃ¼fsiegel</h3>
 
                 <div className="mt-6 space-y-4">
                   {devices.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
-                      Noch keine Geräte vorhanden.
+                      Noch keine GerÃ¤te vorhanden.
                     </div>
                   ) : (
                     devices.map((item) => {
@@ -3057,7 +3057,7 @@ FE-SERVICE`
                             <div className="grid gap-3 sm:grid-cols-3 xl:w-[540px]">
                               <div className="rounded-2xl bg-white p-4">
                                 <p className="text-xs text-slate-500">
-                                  Nächste Prüfung
+                                  NÃ¤chste PrÃ¼fung
                                 </p>
                                 <p className="font-bold">
                                   {item.next_check || "Nicht geplant"}
@@ -3086,10 +3086,10 @@ FE-SERVICE`
                                 onClick={() => startEditDevice(item)}
                                 className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
                               >
-                                Prüfung bearbeiten
+                                PrÃ¼fung bearbeiten
                               </button>
 
-                              {inspection.label !== "Gültig" && (
+                              {inspection.label !== "GÃ¼ltig" && (
                                 <button
                                   onClick={() => createInspectionTicket(item)}
                                   className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-bold text-white"
@@ -3154,7 +3154,7 @@ FE-SERVICE`
                         onChange={(e) => setCustomer(e.target.value)}
                         className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-bold"
                       >
-                        <option value="">Kunde auswählen</option>
+                        <option value="">Kunde auswÃ¤hlen</option>
                         {customerNames.map((item) => (
                           <option key={item}>{item}</option>
                         ))}
@@ -3170,7 +3170,7 @@ FE-SERVICE`
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
-                        Gerät
+                        GerÃ¤t
                       </p>
 
                       {availableTicketDevices.length > 0 && (
@@ -3186,7 +3186,7 @@ FE-SERVICE`
                       )}
 
                       <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        oder neues Gerät eintragen
+                        oder neues GerÃ¤t eintragen
                       </div>
 
                       <input
@@ -3228,7 +3228,7 @@ FE-SERVICE`
                           onClick={updateTicket}
                           className="rounded-2xl bg-green-600 py-4 font-bold text-white"
                         >
-                          Änderungen speichern
+                          Ã„nderungen speichern
                         </button>
 
                         <button
@@ -3320,7 +3320,7 @@ FE-SERVICE`
                               </p>
 
                               <p className="text-sm text-slate-600">
-                                Gerät: {ticket.device}
+                                GerÃ¤t: {ticket.device}
                               </p>
 
                               <p className="mt-2 text-sm text-slate-500">
@@ -3373,7 +3373,7 @@ FE-SERVICE`
                                 onClick={() => deleteTicket(ticket.id)}
                                 className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700"
                               >
-                                Löschen
+                                LÃ¶schen
                               </button>
                             </div>
                           </div>
@@ -3392,14 +3392,14 @@ FE-SERVICE`
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <h3 className="text-2xl font-black">Rollen & Rechte</h3>
                 <p className="mt-2 text-slate-600">
-                  Vorbereitung für Mehrbenutzer-Betrieb mit Admin, Techniker und Kunde.
+                  Vorbereitung fÃ¼r Mehrbenutzer-Betrieb mit Admin, Techniker und Kunde.
                 </p>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
                   {[
-                    { role: "Admin", text: "Voller Zugriff auf Kunden, Geräte, Tickets und Dokumente." },
-                    { role: "Einsatz", text: "Mobile Einsatzansicht, Uploads, Prüfungen und Tickets." },
-                    { role: "Kunde", text: "Späteres Kundenportal mit eigenen Dokumenten und Tickets." },
+                    { role: "Admin", text: "Voller Zugriff auf Kunden, GerÃ¤te, Tickets und Dokumente." },
+                    { role: "Einsatz", text: "Mobile Einsatzansicht, Uploads, PrÃ¼fungen und Tickets." },
+                    { role: "Kunde", text: "SpÃ¤teres Kundenportal mit eigenen Dokumenten und Tickets." },
                   ].map((item) => (
                     <div key={item.role} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                       <h4 className="text-xl font-black">{item.role}</h4>
@@ -3409,7 +3409,7 @@ FE-SERVICE`
                 </div>
 
                 <div className="mt-6 rounded-2xl bg-green-50 p-4 text-sm font-bold text-green-700">
-                  Aktueller Benutzer: {session.user.email} · Rolle: {role}
+                  Aktueller Benutzer: {session.user.email} Â· Rolle: {role}
                 </div>
               </div>
             </div>
@@ -3425,13 +3425,13 @@ FE-SERVICE`
                   {profileCustomer?.company || userProfile?.company || "Mein Servicebereich"}
                 </h3>
                 <p className="mt-3 text-base leading-relaxed text-slate-700">
-                  Hier findest du deine Geräte, deine offenen Tickets und kannst direkt eine neue Service-Anfrage erstellen.
+                  Hier findest du deine GerÃ¤te, deine offenen Tickets und kannst direkt eine neue Service-Anfrage erstellen.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
                 <StatCard
-                  label="Meine Geräte"
+                  label="Meine GerÃ¤te"
                   value={devices.filter((item) => item.customer_id === userProfile?.customer_id).length}
                 />
                 <StatCard
@@ -3448,7 +3448,7 @@ FE-SERVICE`
                 <div className="rounded-[32px] bg-white p-6 shadow-sm">
                   <h3 className="text-2xl font-black">Neues Ticket erstellen</h3>
                   <p className="mt-2 text-base text-slate-700">
-                    Wähle eines deiner Geräte aus oder trage ein neues Gerät frei ein.
+                    WÃ¤hle eines deiner GerÃ¤te aus oder trage ein neues GerÃ¤t frei ein.
                   </p>
 
                   <div className="mt-5 space-y-4">
@@ -3460,7 +3460,7 @@ FE-SERVICE`
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-bold text-slate-700">Gerät</p>
+                      <p className="text-sm font-bold text-slate-700">GerÃ¤t</p>
                       {availableTicketDevices.length > 0 && (
                         <select
                           value={device}
@@ -3474,13 +3474,13 @@ FE-SERVICE`
                       )}
 
                       <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        oder neues Gerät eintragen
+                        oder neues GerÃ¤t eintragen
                       </div>
 
                       <input
                         value={customDeviceName}
                         onChange={(e) => setCustomDeviceName(e.target.value)}
-                        placeholder="Gerätename, Seriennummer oder Standort"
+                        placeholder="GerÃ¤tename, Seriennummer oder Standort"
                         className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                       />
                     </div>
@@ -3495,7 +3495,7 @@ FE-SERVICE`
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Bitte beschreibe das Problem möglichst genau. Fotos kannst du unter Dokumente hochladen."
+                      placeholder="Bitte beschreibe das Problem mÃ¶glichst genau. Fotos kannst du unter Dokumente hochladen."
                       rows={6}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base leading-relaxed"
                     />
@@ -3511,11 +3511,11 @@ FE-SERVICE`
 
                 <div className="space-y-6">
                   <div className="rounded-[32px] bg-white p-6 shadow-sm">
-                    <h3 className="text-2xl font-black">Meine Geräte</h3>
+                    <h3 className="text-2xl font-black">Meine GerÃ¤te</h3>
                     <div className="mt-4 space-y-3">
                       {devices.filter((item) => item.customer_id === userProfile?.customer_id).length === 0 ? (
                         <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
-                          Noch keine Geräte zugeordnet. Du kannst oben trotzdem ein Gerät frei eintragen.
+                          Noch keine GerÃ¤te zugeordnet. Du kannst oben trotzdem ein GerÃ¤t frei eintragen.
                         </div>
                       ) : (
                         devices
@@ -3524,10 +3524,10 @@ FE-SERVICE`
                             <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                               <p className="text-lg font-black">{item.name}</p>
                               <p className="mt-1 text-base text-slate-700">
-                                {item.serial_number || "Keine Seriennummer"} · {item.location || "Kein Standort"}
+                                {item.serial_number || "Keine Seriennummer"} Â· {item.location || "Kein Standort"}
                               </p>
                               <p className="mt-2 text-sm font-bold text-green-700">
-                                Nächste Prüfung: {item.next_check || "Nicht geplant"}
+                                NÃ¤chste PrÃ¼fung: {item.next_check || "Nicht geplant"}
                               </p>
                             </div>
                           ))
@@ -3549,7 +3549,7 @@ FE-SERVICE`
                               {ticket.ticket_number}
                             </p>
                             <h4 className="mt-2 text-lg font-black">{ticket.issue}</h4>
-                            <p className="mt-2 text-base text-slate-700">Gerät: {ticket.device}</p>
+                            <p className="mt-2 text-base text-slate-700">GerÃ¤t: {ticket.device}</p>
                             <span className={`mt-3 inline-block rounded-full px-4 py-2 text-sm font-black ${statusClass(ticket.status)}`}>
                               {ticket.status}
                             </span>
@@ -3568,19 +3568,19 @@ FE-SERVICE`
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <h3 className="text-2xl font-black">Offline-Modus</h3>
                 <p className="mt-2 text-slate-600">
-                  Einsatzdaten können lokal im Browser zwischengespeichert werden.
+                  Einsatzdaten kÃ¶nnen lokal im Browser zwischengespeichert werden.
                 </p>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
-                  <StatCard label="Geräte im Cache möglich" value={devices.length} />
-                  <StatCard label="Tickets im Cache möglich" value={tickets.length} />
-                  <StatCard label="Dokumente im Cache möglich" value={documents.length} />
+                  <StatCard label="GerÃ¤te im Cache mÃ¶glich" value={devices.length} />
+                  <StatCard label="Tickets im Cache mÃ¶glich" value={tickets.length} />
+                  <StatCard label="Dokumente im Cache mÃ¶glich" value={documents.length} />
                 </div>
 
                 <div className="mt-6 flex flex-col gap-3 md:flex-row">
                   <button
                     onClick={() => {
-                      localStorage.setItem("fe_service_offline_cache", JSON.stringify({ devices, tickets, documents, saved_at: new Date().toISOString() }));
+                      localStorage.setItem("pro_effekt_offline_cache", JSON.stringify({ devices, tickets, documents, saved_at: new Date().toISOString() }));
                       alert("Offline-Cache gespeichert.");
                     }}
                     className="rounded-2xl bg-green-600 px-6 py-4 font-bold text-white"
@@ -3588,10 +3588,10 @@ FE-SERVICE`
                     Offline-Cache speichern
                   </button>
                   <button
-                    onClick={() => alert(localStorage.getItem("fe_service_offline_cache") ? "Offline-Cache vorhanden." : "Noch kein Offline-Cache vorhanden.")}
+                    onClick={() => alert(localStorage.getItem("pro_effekt_offline_cache") ? "Offline-Cache vorhanden." : "Noch kein Offline-Cache vorhanden.")}
                     className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-bold"
                   >
-                    Cache prüfen
+                    Cache prÃ¼fen
                   </button>
                 </div>
               </div>
@@ -3601,7 +3601,7 @@ FE-SERVICE`
           {(activePage === "Ersatzteile" || activePage === "Teile") && (
             <div className="space-y-6">
               <div className="rounded-[24px] border-2 border-green-500 bg-green-50 p-4 text-sm font-black text-green-800">
-                VERSION SCHRITT 13 AKTIV · TEILE-MODUL MIT FUNKTION GELADEN
+                VERSION SCHRITT 13 AKTIV Â· TEILE-MODUL MIT FUNKTION GELADEN
               </div>
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Ersatzteile aktiv" value={serviceParts.length} />
@@ -3657,15 +3657,15 @@ FE-SERVICE`
                 <div className={`rounded-[32px] bg-white p-6 shadow-sm ${isAdmin ? "" : "xl:col-span-2"}`}>
                   <h3 className="text-2xl font-black">Verbrauch buchen</h3>
                   <p className="mt-2 text-slate-600">
-                    Techniker und Admin können Teile einem Gerät, Ticket oder Einsatzhinweis zuordnen.
+                    Techniker und Admin kÃ¶nnen Teile einem GerÃ¤t, Ticket oder Einsatzhinweis zuordnen.
                   </p>
 
                   <div className="mt-5 space-y-4">
                     <select value={selectedPartId} onChange={(e) => setSelectedPartId(e.target.value)} className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold">
-                      <option value="">Ersatzteil auswählen</option>
+                      <option value="">Ersatzteil auswÃ¤hlen</option>
                       {serviceParts.map((part) => (
                         <option key={part.id} value={part.id}>
-                          {part.name} · Bestand: {part.stock ?? 0} {part.unit || "Stück"}
+                          {part.name} Â· Bestand: {part.stock ?? 0} {part.unit || "StÃ¼ck"}
                         </option>
                       ))}
                     </select>
@@ -3673,7 +3673,7 @@ FE-SERVICE`
                     <div className="grid gap-3 md:grid-cols-3">
                       <input value={partUsageQuantity} onChange={(e) => setPartUsageQuantity(e.target.value)} type="number" min="1" placeholder="Menge" className="rounded-2xl border border-slate-300 px-5 py-4" />
                       <select value={partUsageDeviceId} onChange={(e) => setPartUsageDeviceId(e.target.value)} className="rounded-2xl border border-slate-300 px-5 py-4">
-                        <option value="">Kein Gerät</option>
+                        <option value="">Kein GerÃ¤t</option>
                         {devices.map((item) => (
                           <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
@@ -3681,7 +3681,7 @@ FE-SERVICE`
                       <select value={partUsageTicketId} onChange={(e) => setPartUsageTicketId(e.target.value)} className="rounded-2xl border border-slate-300 px-5 py-4">
                         <option value="">Kein Ticket</option>
                         {tickets.map((ticket) => (
-                          <option key={ticket.id} value={ticket.id}>{ticket.ticket_number} · {ticket.issue}</option>
+                          <option key={ticket.id} value={ticket.id}>{ticket.ticket_number} Â· {ticket.issue}</option>
                         ))}
                       </select>
                     </div>
@@ -3700,7 +3700,7 @@ FE-SERVICE`
                 <div className="mt-5 space-y-3">
                   {serviceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Noch keine Ersatzteile angelegt. Admins können oben erste Teile erfassen.
+                      Noch keine Ersatzteile angelegt. Admins kÃ¶nnen oben erste Teile erfassen.
                     </div>
                   ) : (
                     serviceParts.map((part) => {
@@ -3712,7 +3712,7 @@ FE-SERVICE`
                               <p className="text-xs font-bold text-green-600">{part.sku || part.category || "Ersatzteil"}</p>
                               <h4 className="mt-1 text-xl font-black">{part.name}</h4>
                               <p className="mt-2 text-sm text-slate-600">
-                                Lagerort: {part.location || "nicht angegeben"} · Mindestbestand: {part.min_stock ?? 0} {part.unit || "Stück"}
+                                Lagerort: {part.location || "nicht angegeben"} Â· Mindestbestand: {part.min_stock ?? 0} {part.unit || "StÃ¼ck"}
                               </p>
                               {part.note && <p className="mt-2 text-sm text-slate-500">{part.note}</p>}
                             </div>
@@ -3726,7 +3726,7 @@ FE-SERVICE`
                               {isAdmin && (
                                 <>
                                   <button onClick={() => startEditPart(part)} className="rounded-2xl bg-green-100 px-4 py-3 text-sm font-bold text-green-700">Bearbeiten</button>
-                                  <button onClick={() => deleteServicePart(part.id)} className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700">Löschen</button>
+                                  <button onClick={() => deleteServicePart(part.id)} className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-700">LÃ¶schen</button>
                                 </>
                               )}
                             </div>
@@ -3750,7 +3750,7 @@ FE-SERVICE`
                           <div>
                             <p className="font-black">{getPartNameById(usage.part_id)}</p>
                             <p className="mt-1 text-sm text-slate-600">
-                              Menge: {usage.quantity} · Gerät: {getDeviceNameById(usage.device_id)}
+                              Menge: {usage.quantity} Â· GerÃ¤t: {getDeviceNameById(usage.device_id)}
                             </p>
                             {usage.note && <p className="mt-1 text-sm text-slate-500">{usage.note}</p>}
                           </div>
@@ -3774,7 +3774,7 @@ FE-SERVICE`
 
                 <div className="mt-6 space-y-4">
                   {tickets.filter((ticket) => ticket.status === "Erledigt").length === 0 ? (
-                    <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">Noch keine erledigten Tickets für Rechnungen vorhanden.</div>
+                    <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">Noch keine erledigten Tickets fÃ¼r Rechnungen vorhanden.</div>
                   ) : (
                     tickets.filter((ticket) => ticket.status === "Erledigt").map((ticket) => (
                       <div key={ticket.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
@@ -3782,10 +3782,10 @@ FE-SERVICE`
                           <div>
                             <p className="text-xs font-bold text-green-600">{ticket.ticket_number}</p>
                             <h4 className="text-xl font-black">{ticket.issue}</h4>
-                            <p className="mt-2 text-sm text-slate-600">{ticket.customer} · {ticket.device}</p>
+                            <p className="mt-2 text-sm text-slate-600">{ticket.customer} Â· {ticket.device}</p>
                           </div>
                           <button
-                            onClick={() => alert(`Rechnung vorbereitet für ${ticket.ticket_number}`)}
+                            onClick={() => alert(`Rechnung vorbereitet fÃ¼r ${ticket.ticket_number}`)}
                             className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-bold text-white"
                           >
                             Rechnung vorbereiten
@@ -3804,24 +3804,24 @@ FE-SERVICE`
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <h3 className="text-2xl font-black">KI-Fehleranalyse</h3>
                 <p className="mt-2 text-slate-600">
-                  Lokale Voranalyse aus Tickettexten, Gerätestatus und Historie. Eine echte KI-API kann später angeschlossen werden.
+                  Lokale Voranalyse aus Tickettexten, GerÃ¤testatus und Historie. Eine echte KI-API kann spÃ¤ter angeschlossen werden.
                 </p>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
                   <StatCard label="Offene Tickets" value={tickets.filter((ticket) => ticket.status !== "Erledigt").length} />
-                  <StatCard label="Überfällige Prüfungen" value={inspectionStats.overdue} />
-                  <StatCard label="Geräte außer Betrieb" value={devices.filter((item) => item.status === "Außer Betrieb").length} />
+                  <StatCard label="ÃœberfÃ¤llige PrÃ¼fungen" value={inspectionStats.overdue} />
+                  <StatCard label="GerÃ¤te auÃŸer Betrieb" value={devices.filter((item) => item.status === "AuÃŸer Betrieb").length} />
                 </div>
 
                 <div className="mt-6 space-y-3">
                   {devices.map((item) => {
                     const deviceTickets = tickets.filter((ticket) => ticket.device === item.name && ticket.status !== "Erledigt");
-                    const recommendation = item.status === "Außer Betrieb"
-                      ? "Sofort prüfen und Ersatzteilbedarf klären."
+                    const recommendation = item.status === "AuÃŸer Betrieb"
+                      ? "Sofort prÃ¼fen und Ersatzteilbedarf klÃ¤ren."
                       : deviceTickets.length > 2
-                        ? "Wiederkehrender Fehler möglich. Historie prüfen."
-                        : getInspectionStatus(item.next_check).label === "Überfällig"
-                          ? "Prüfung überfällig. Termin priorisieren."
+                        ? "Wiederkehrender Fehler mÃ¶glich. Historie prÃ¼fen."
+                        : getInspectionStatus(item.next_check).label === "ÃœberfÃ¤llig"
+                          ? "PrÃ¼fung Ã¼berfÃ¤llig. Termin priorisieren."
                           : "Kein akuter Hinweis.";
 
                     return (
