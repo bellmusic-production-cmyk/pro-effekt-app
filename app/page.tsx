@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v2.4.00 · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v2.5.10 · Premium Kundenbereich · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -8899,6 +8899,37 @@ PRO-EFFEKT`,
   const customerDirectorySearchIsActive =
     customerDirectorySearch.trim().length >= 1;
 
+  function getCustomerStats(customerId: number) {
+    const customerDevices = devices.filter((deviceItem) => deviceItem.customer_id === customerId);
+
+    const customerTickets = tickets.filter(
+      (ticketItem) =>
+        ticketItem.customer_id === customerId ||
+        ticketItem.billing_customer_id === customerId,
+    );
+
+    const customerContracts = contracts.filter(
+      (contractItem) => contractItem.customer_id === customerId,
+    );
+
+    const customerDocuments = documents.filter(
+      (documentItem) => documentItem.customer_id === customerId,
+    );
+
+    const openTickets = customerTickets.filter((ticketItem) => {
+      const status = String(ticketItem.status || "").toLowerCase();
+      return !["abgeschlossen", "erledigt", "storniert"].includes(status);
+    });
+
+    return {
+      devices: customerDevices.length,
+      tickets: customerTickets.length,
+      openTickets: openTickets.length,
+      contracts: customerContracts.length,
+      documents: customerDocuments.length,
+    };
+  }
+
   const deviceDirectorySearchNormalized = deviceDirectorySearch.toLowerCase().trim();
   const isDeviceDirectorySearchReady =
     deviceDirectorySearchNormalized.length >= deviceDirectoryMinSearchLength;
@@ -12811,7 +12842,10 @@ PRO-EFFEKT`,
                       )}
                     </div>
                   ) : (
-                    filteredCustomerDirectory.map((item) => (
+                    filteredCustomerDirectory.map((item) => {
+                      const stats = getCustomerStats(item.id);
+
+                      return (
                       <div
                         key={item.id}
                         className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -12837,6 +12871,28 @@ PRO-EFFEKT`,
                             <p className="mt-2 break-words text-sm text-slate-500">
                               {buildCustomerAddress(item) || "Keine Adresse vorhanden."}
                             </p>
+
+                            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                              <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                                <p className="text-2xl font-black text-slate-900">{stats.devices}</p>
+                                <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Geräte</p>
+                              </div>
+
+                              <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                                <p className="text-2xl font-black text-slate-900">{stats.openTickets}</p>
+                                <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Offene Tickets</p>
+                              </div>
+
+                              <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                                <p className="text-2xl font-black text-slate-900">{stats.contracts}</p>
+                                <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Verträge</p>
+                              </div>
+
+                              <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                                <p className="text-2xl font-black text-slate-900">{stats.documents}</p>
+                                <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Dokumente</p>
+                              </div>
+                            </div>
 
                             <div className="mt-4 rounded-2xl border border-sky-100 bg-white p-4">
                               <div className="flex items-center justify-between gap-3">
@@ -12940,7 +12996,8 @@ PRO-EFFEKT`,
                           </div>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
