@@ -1452,7 +1452,9 @@ export default function Home() {
       setUserProfile(cachedProfile);
     }
 
-    setProfileLoading(true);
+    // Nur beim ersten Laden ohne Cache den Rollen-Ladebildschirm zeigen.
+    // Bei Fokus/Intervall-Prüfungen bleibt die aktuelle Ansicht stabil und springt nicht zurück.
+    setProfileLoading(!cachedProfile);
 
     try {
       const timeout = new Promise<never>((_, reject) => {
@@ -1468,6 +1470,14 @@ export default function Home() {
       const result: any = await Promise.race([profileRequest, timeout]);
 
       if (result?.error) {
+        // Wenn bereits ein gültiger Rollen-Cache vorhanden ist, darf ein kurzer Supabase-/RLS-Fehler
+        // die Oberfläche nicht wild zwischen Login, Zustimmung und Dashboard springen lassen.
+        if (cachedProfile) {
+          console.error("Profilprüfung konnte nicht aktualisiert werden, Cache bleibt aktiv:", result.error.message);
+          setProfileLoading(false);
+          return true;
+        }
+
         removeCachedProfile();
         await forceSecureLogout(`Profil konnte nicht geladen werden: ${result.error.message}`, userId);
         return false;
@@ -1489,6 +1499,13 @@ export default function Home() {
       setProfileLoading(false);
       return true;
     } catch (error) {
+      // Bei vorhandenem Cache nicht auf einen Lade-/Netzwerk-Timeout mit UI-Sprung reagieren.
+      if (cachedProfile) {
+        console.error("Profilprüfung Timeout/Fehler, Cache bleibt aktiv:", error);
+        setProfileLoading(false);
+        return true;
+      }
+
       removeCachedProfile();
       await forceSecureLogout("Profilprüfung fehlgeschlagen. Zugriff wurde aus Sicherheitsgründen beendet.", userId);
       return false;
@@ -7987,7 +8004,7 @@ PRO-EFFEKT`,
   const profileCustomer = userProfile?.customer_id
     ? customers.find((item) => item.id === userProfile.customer_id)
     : null;
-  if (session && !legalAccepted) {
+  if (session && userProfile && !profileLoading && !legalAccepted) {
     return (
       <main className="min-h-screen bg-[#07111d] px-5 py-8 text-white">
         <div className="mx-auto max-w-5xl rounded-[36px] border border-sky-500/20 bg-[#0b1726] p-6 shadow-2xl shadow-black/40 md:p-8">
