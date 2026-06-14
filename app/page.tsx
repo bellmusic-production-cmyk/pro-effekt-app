@@ -401,6 +401,7 @@ export default function Home() {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalLoading, setLegalLoading] = useState(true);
   const [legalChecking, setLegalChecking] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -731,6 +732,7 @@ export default function Home() {
       checkLegalAcceptance(session.user.id);
     } else {
       setLegalAccepted(false);
+      setLegalLoading(false);
     }
   }, [session?.user?.id]);
 
@@ -1214,8 +1216,11 @@ export default function Home() {
   }
 
   async function checkLegalAcceptance(userId: string) {
+    setLegalLoading(true);
+
     if (!userId) {
       setLegalAccepted(false);
+      setLegalLoading(false);
       return;
     }
 
@@ -1225,6 +1230,7 @@ export default function Home() {
       const localValue = window.localStorage.getItem(localKey);
       if (localValue === "yes") {
         setLegalAccepted(true);
+        setLegalLoading(false);
         return;
       }
     }
@@ -1246,6 +1252,8 @@ export default function Home() {
     } catch (error) {
       console.error("Legal Acceptance Fehler:", error);
       setLegalAccepted(false);
+    } finally {
+      setLegalLoading(false);
     }
   }
 
@@ -7974,123 +7982,7 @@ PRO-EFFEKT`,
   const profileCustomer = userProfile?.customer_id
     ? customers.find((item) => item.id === userProfile.customer_id)
     : null;
-  if (session && !legalAccepted) {
-    return (
-      <main className="min-h-screen bg-[#07111d] px-5 py-8 text-white">
-        <div className="mx-auto max-w-5xl rounded-[36px] border border-sky-500/20 bg-[#0b1726] p-6 shadow-2xl shadow-black/40 md:p-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            <img
-              src="/pro-effekt-logo.png"
-              alt="Pro-Effekt"
-              className="h-auto w-full max-w-[220px] object-contain"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
 
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.28em] text-sky-400">
-                PRO-EFFEKT
-              </p>
-              <h1 className="mt-2 text-3xl font-black md:text-5xl">
-                Zustimmung erforderlich
-              </h1>
-              <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-300 md:text-base">
-                Vor Nutzung der Plattform müssen Datenschutz, Nutzungsbedingungen
-                sowie digitale Dokumentation und Signaturen akzeptiert werden.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
-            <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
-              <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
-              <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Die Pro-Effekt Plattform verarbeitet Kundendaten, Kontaktdaten,
-                Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
-                zur Durchführung von Service-, Wartungs- und Prüfleistungen.
-              </p>
-            </section>
-
-            <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
-              <h2 className="text-xl font-black text-sky-400">
-                Nutzungsbedingungen
-              </h2>
-              <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Die Plattform darf nur für berechtigte interne und kundenbezogene
-                Serviceprozesse genutzt werden. Manipulationen, unberechtigter
-                Zugriff oder missbräuchliche Nutzung sind untersagt.
-              </p>
-            </section>
-
-            <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
-              <h2 className="text-xl font-black text-sky-400">
-                Digitale Dokumentation
-              </h2>
-              <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Digitale Prüfprotokolle, PDF-Dokumente und elektronische
-                Signaturen werden zur Nachweisführung gespeichert und archiviert.
-              </p>
-            </section>
-          </div>
-
-          <div className="mt-8 space-y-4 rounded-[30px] border border-sky-500/20 bg-[#0f1e2e] p-5">
-            <label className="flex items-start gap-4 rounded-2xl bg-[#0b1726] p-4">
-              <input
-                type="checkbox"
-                checked={acceptPrivacy}
-                onChange={(event) => setAcceptPrivacy(event.target.checked)}
-                className="mt-1 h-6 w-6 accent-sky-500"
-              />
-              <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
-                Ich akzeptiere die Datenschutzerklärung und stimme der Verarbeitung
-                personenbezogener Daten im Rahmen der Pro-Effekt Plattform zu.
-              </span>
-            </label>
-
-            <label className="flex items-start gap-4 rounded-2xl bg-[#0b1726] p-4">
-              <input
-                type="checkbox"
-                checked={acceptTerms}
-                onChange={(event) => setAcceptTerms(event.target.checked)}
-                className="mt-1 h-6 w-6 accent-sky-500"
-              />
-              <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
-                Ich akzeptiere die Nutzungsbedingungen der Pro-Effekt Plattform.
-              </span>
-            </label>
-
-            <label className="flex items-start gap-4 rounded-2xl bg-[#0b1726] p-4">
-              <input
-                type="checkbox"
-                checked={acceptDigitalDocumentation}
-                onChange={(event) => setAcceptDigitalDocumentation(event.target.checked)}
-                className="mt-1 h-6 w-6 accent-sky-500"
-              />
-              <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
-                Ich stimme der digitalen Speicherung von Signaturen,
-                Prüfprotokollen, Serviceberichten und Dokumentationen zu.
-              </span>
-            </label>
-          </div>
-
-          <button
-            onClick={acceptLegalAgreement}
-            disabled={legalChecking}
-            className="mt-8 w-full rounded-[28px] bg-sky-500 px-8 py-5 text-xl font-black text-black shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.99] disabled:opacity-60"
-          >
-            {legalChecking ? "Wird gespeichert..." : "Akzeptieren & Plattform starten"}
-          </button>
-
-          <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
-            Pro-Effekt e.K. · Pro-Effekt Software Service · Digitale Service-,
-            Wartungs- und Dokumentationsplattform. Hinweis: Diese technische
-            Einwilligung ersetzt keine individuelle Rechtsberatung.
-          </p>
-        </div>
-      </main>
-    );
-  }
 
   const portalTitle = isAdmin
     ? "Admin-Zentrale"
@@ -8114,10 +8006,6 @@ PRO-EFFEKT`,
     : isTechnician
       ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
-
-  if (session && legalAccepted && userProfile && !visibleNavItems.includes(activePage)) {
-    window.setTimeout(() => setActivePage(visibleNavItems[0] || "Kundenportal"), 0);
-  }
 
   const navGroups = [
     {
@@ -9109,6 +8997,137 @@ PRO-EFFEKT`,
           >
             Logout
           </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (legalLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#07111d] p-6 text-white">
+        <div className="text-center">
+          <h1 className="text-4xl font-black">Plattform wird vorbereitet...</h1>
+          <p className="mt-4 text-sm font-semibold text-slate-300">
+            Sitzung, Rolle und Zustimmung werden geprüft.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!legalAccepted) {
+    return (
+      <main className="min-h-screen bg-[#07111d] px-5 py-8 text-white">
+        <div className="mx-auto max-w-5xl rounded-[36px] border border-sky-500/20 bg-[#0b1726] p-6 shadow-2xl shadow-black/40 md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <img
+              src="/pro-effekt-logo.png"
+              alt="Pro-Effekt"
+              className="h-auto w-full max-w-[220px] object-contain"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
+            />
+
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.28em] text-sky-400">
+                PRO-EFFEKT
+              </p>
+              <h1 className="mt-2 text-3xl font-black md:text-5xl">
+                Zustimmung erforderlich
+              </h1>
+              <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-300 md:text-base">
+                Vor Nutzung der Plattform müssen Datenschutz, Nutzungsbedingungen
+                sowie digitale Dokumentation und Signaturen akzeptiert werden.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
+              <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
+              <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
+                Die Pro-Effekt Plattform verarbeitet Kundendaten, Kontaktdaten,
+                Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
+                zur Durchführung von Service-, Wartungs- und Prüfleistungen.
+              </p>
+            </section>
+
+            <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
+              <h2 className="text-xl font-black text-sky-400">
+                Nutzungsbedingungen
+              </h2>
+              <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
+                Die Plattform darf nur für berechtigte interne und kundenbezogene
+                Serviceprozesse genutzt werden. Manipulationen, unberechtigter
+                Zugriff oder missbräuchliche Nutzung sind untersagt.
+              </p>
+            </section>
+
+            <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
+              <h2 className="text-xl font-black text-sky-400">
+                Digitale Dokumentation
+              </h2>
+              <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
+                Digitale Prüfprotokolle, PDF-Dokumente und elektronische
+                Signaturen werden zur Nachweisführung gespeichert und archiviert.
+              </p>
+            </section>
+          </div>
+
+          <div className="mt-8 space-y-4 rounded-[30px] border border-sky-500/20 bg-[#0f1e2e] p-5">
+            <label className="flex items-start gap-4 rounded-2xl bg-[#0b1726] p-4">
+              <input
+                type="checkbox"
+                checked={acceptPrivacy}
+                onChange={(event) => setAcceptPrivacy(event.target.checked)}
+                className="mt-1 h-6 w-6 accent-sky-500"
+              />
+              <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
+                Ich akzeptiere die Datenschutzerklärung und stimme der Verarbeitung
+                personenbezogener Daten im Rahmen der Pro-Effekt Plattform zu.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-4 rounded-2xl bg-[#0b1726] p-4">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(event) => setAcceptTerms(event.target.checked)}
+                className="mt-1 h-6 w-6 accent-sky-500"
+              />
+              <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
+                Ich akzeptiere die Nutzungsbedingungen der Pro-Effekt Plattform.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-4 rounded-2xl bg-[#0b1726] p-4">
+              <input
+                type="checkbox"
+                checked={acceptDigitalDocumentation}
+                onChange={(event) => setAcceptDigitalDocumentation(event.target.checked)}
+                className="mt-1 h-6 w-6 accent-sky-500"
+              />
+              <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
+                Ich stimme der digitalen Speicherung von Signaturen,
+                Prüfprotokollen, Serviceberichten und Dokumentationen zu.
+              </span>
+            </label>
+          </div>
+
+          <button
+            onClick={acceptLegalAgreement}
+            disabled={legalChecking}
+            className="mt-8 w-full rounded-[28px] bg-sky-500 px-8 py-5 text-xl font-black text-black shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.99] disabled:opacity-60"
+          >
+            {legalChecking ? "Wird gespeichert..." : "Akzeptieren & Plattform starten"}
+          </button>
+
+          <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
+            Pro-Effekt e.K. · Pro-Effekt Software Service · Digitale Service-,
+            Wartungs- und Dokumentationsplattform. Hinweis: Diese technische
+            Einwilligung ersetzt keine individuelle Rechtsberatung.
+          </p>
         </div>
       </main>
     );
