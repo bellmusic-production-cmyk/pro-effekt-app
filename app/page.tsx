@@ -324,6 +324,7 @@ const navItems = [
   "Verträge",
   "Benachrichtigungen",
   "Auswertungen",
+  "Einstellungen",
 ];
 
 const statusOptions = [
@@ -501,6 +502,17 @@ export default function Home() {
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [companyNameInput, setCompanyNameInput] = useState("");
+  const [companyLogoUrlInput, setCompanyLogoUrlInput] = useState("");
+  const [companyPrimaryColorInput, setCompanyPrimaryColorInput] = useState("#3B82F6");
+  const [companySecondaryColorInput, setCompanySecondaryColorInput] = useState("#0B1020");
+  const [companyEmailInput, setCompanyEmailInput] = useState("");
+  const [companyPhoneInput, setCompanyPhoneInput] = useState("");
+  const [companyWebsiteInput, setCompanyWebsiteInput] = useState("");
+  const [companyAddressInput, setCompanyAddressInput] = useState("");
+  const [companyPdfFooterInput, setCompanyPdfFooterInput] = useState("");
+  const [companyBrandingSaving, setCompanyBrandingSaving] = useState(false);
+  const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [appDataLoaded, setAppDataLoaded] = useState(false);
 
@@ -806,6 +818,28 @@ export default function Home() {
       setLegalAccepted(false);
     }
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadCompany(session.user.id);
+    } else {
+      setCompanyData(null);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!companyData) return;
+
+    setCompanyNameInput(companyData.name || "");
+    setCompanyLogoUrlInput(companyData.logo_url || "");
+    setCompanyPrimaryColorInput(companyData.primary_color || "#3B82F6");
+    setCompanySecondaryColorInput(companyData.secondary_color || "#0B1020");
+    setCompanyEmailInput(companyData.email || "");
+    setCompanyPhoneInput(companyData.phone || "");
+    setCompanyWebsiteInput(companyData.website || "");
+    setCompanyAddressInput(companyData.address || "");
+    setCompanyPdfFooterInput(companyData.pdf_footer || "");
+  }, [companyData]);
 
 
   useEffect(() => {
@@ -1202,8 +1236,8 @@ export default function Home() {
     }
   }
 
-  async function loadCompany() {
-    const userId = session?.user?.id;
+  async function loadCompany(userIdOverride?: string) {
+    const userId = userIdOverride || session?.user?.id;
 
     if (!userId) {
       setCompanyData(null);
@@ -1249,11 +1283,128 @@ export default function Home() {
     }
   }
 
+  async function saveCompanyBranding() {
+    if (!isAdmin) {
+      alert("Nur Admins können Firmeneinstellungen bearbeiten.");
+      return;
+    }
+
+    if (!companyData?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden.");
+      return;
+    }
+
+    if (!companyNameInput.trim()) {
+      alert("Bitte einen Firmennamen eingeben.");
+      return;
+    }
+
+    setCompanyBrandingSaving(true);
+
+    const payload = {
+      name: companyNameInput.trim(),
+      logo_url: companyLogoUrlInput.trim() || null,
+      primary_color: companyPrimaryColorInput.trim() || "#3B82F6",
+      secondary_color: companySecondaryColorInput.trim() || "#0B1020",
+      email: companyEmailInput.trim() || null,
+      phone: companyPhoneInput.trim() || null,
+      website: companyWebsiteInput.trim() || null,
+      address: companyAddressInput.trim() || null,
+      pdf_footer: companyPdfFooterInput.trim() || null,
+    };
+
+    const { data, error } = await supabase
+      .from("companies")
+      .update(payload)
+      .eq("id", companyData.id)
+      .select("*")
+      .maybeSingle();
+
+    setCompanyBrandingSaving(false);
+
+    if (error) {
+      alert(`Firmeneinstellungen konnten nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    setCompanyData((data || { ...companyData, ...payload }) as CompanyData);
+    alert("Firmeneinstellungen gespeichert.");
+  }
+
+  async function uploadCompanyLogo(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!isAdmin) {
+      alert("Nur Admins können das Firmenlogo ändern.");
+      event.target.value = "";
+      return;
+    }
+
+    if (!companyData?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden.");
+      event.target.value = "";
+      return;
+    }
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Bitte PNG, JPG, WEBP oder SVG als Logo verwenden.");
+      event.target.value = "";
+      return;
+    }
+
+    setCompanyLogoUploading(true);
+
+    const safeName = file.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `company-${companyData.id}/logo-${Date.now()}-${safeName}`;
+
+    const uploadResult = await supabase.storage
+      .from("company-assets")
+      .upload(filePath, file, { upsert: true, contentType: file.type });
+
+    if (uploadResult.error) {
+      setCompanyLogoUploading(false);
+      alert(`Logo konnte nicht hochgeladen werden: ${uploadResult.error.message}`);
+      event.target.value = "";
+      return;
+    }
+
+    const publicUrlResult = supabase.storage
+      .from("company-assets")
+      .getPublicUrl(filePath);
+
+    const logoUrl = publicUrlResult.data.publicUrl;
+
+    const { data, error } = await supabase
+      .from("companies")
+      .update({ logo_url: logoUrl })
+      .eq("id", companyData.id)
+      .select("*")
+      .maybeSingle();
+
+    setCompanyLogoUploading(false);
+    event.target.value = "";
+
+    if (error) {
+      alert(`Logo wurde hochgeladen, aber nicht gespeichert: ${error.message}`);
+      setCompanyLogoUrlInput(logoUrl);
+      return;
+    }
+
+    setCompanyData((data || { ...companyData, logo_url: logoUrl }) as CompanyData);
+    setCompanyLogoUrlInput(logoUrl);
+    alert("Firmenlogo gespeichert.");
+  }
+
   async function loadApplicationData() {
     setAppDataLoaded(false);
 
     await Promise.all([
-      loadCompany(),
+      loadCompany(session?.user?.id),
       loadTickets(),
       loadDevices(),
       loadCustomers(),
@@ -4876,11 +5027,14 @@ export default function Home() {
   }
 
   function ProEffektLogo({ dark = false }: { dark?: boolean }) {
+    const logoSrc = companyData?.logo_url || "/pro-effekt-logo.png";
+    const brandName = companyData?.name || "TechFlow";
+
     return (
       <div className="flex w-full flex-col items-center justify-center text-center">
         <img
-          src="/pro-effekt-logo.png"
-          alt="Pro-Effekt Logo"
+          src={logoSrc}
+          alt={`${brandName} Logo`}
           className="h-auto w-full max-w-[120px] object-contain mx-auto drop-shadow-md"
           onError={(event) => {
             event.currentTarget.style.display = "none";
@@ -4892,7 +5046,7 @@ export default function Home() {
             dark ? "text-[var(--pe-blue)]" : "text-sky-500"
           }`}
         >
-          PRO-EFFEKT
+          {brandName}
         </p>
 
         <p
@@ -4900,7 +5054,7 @@ export default function Home() {
             dark ? "text-sky-400" : "text-sky-500"
           }`}
         >
-          Serviceplattform
+          Service Management Platform
         </p>
       </div>
     );
@@ -8360,7 +8514,7 @@ PRO-EFFEKT`,
     {
       title: "Management",
       icon: "",
-      items: ["Auswertungen"],
+      items: ["Auswertungen", "Einstellungen"],
     },
   ]
     .map((group) => ({
@@ -8385,6 +8539,7 @@ PRO-EFFEKT`,
       Verträge: "Verträge",
       Benachrichtigungen: "Kommunikation",
       Auswertungen: "Auswertung",
+      Einstellungen: "Einstellungen",
       Kundenportal: "Portal",
     };
 
@@ -11752,6 +11907,162 @@ PRO-EFFEKT`,
                         })}
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {activePage === "Einstellungen" && isAdmin && (
+            <div className="space-y-6">
+              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
+                TechFlow White-Label · Firmeneinstellungen
+              </div>
+
+              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
+                  Mandanten-Branding
+                </p>
+                <h3 className="mt-2 text-4xl font-black">
+                  Firmendesign verwalten
+                </h3>
+                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                  Logo, Firmenfarbe und Kontaktdaten werden später für Dashboard, Login, PDF-Dokumente und Kundenportal verwendet.
+                </p>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+                <div className="rounded-[32px] bg-white p-6 shadow-sm">
+                  <h3 className="text-xl font-black text-slate-900">Aktuelle Vorschau</h3>
+                  <div className="mt-5 rounded-[28px] border border-slate-200 bg-slate-50 p-6 text-center">
+                    {companyLogoUrlInput ? (
+                      <img
+                        src={companyLogoUrlInput}
+                        alt="Firmenlogo Vorschau"
+                        className="mx-auto h-auto max-h-32 max-w-[220px] object-contain"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-sky-100 text-2xl font-black text-sky-700">
+                        TF
+                      </div>
+                    )}
+                    <h4 className="mt-5 text-2xl font-black text-slate-900">
+                      {companyNameInput || "TechFlow"}
+                    </h4>
+                    <p className="mt-2 text-sm font-bold text-slate-500">
+                      {companyAddressInput || "Adresse noch nicht hinterlegt"}
+                    </p>
+                    <div className="mt-5 flex justify-center gap-3">
+                      <span
+                        className="h-8 w-8 rounded-full border border-slate-200"
+                        style={{ backgroundColor: companyPrimaryColorInput || "#3B82F6" }}
+                      />
+                      <span
+                        className="h-8 w-8 rounded-full border border-slate-200"
+                        style={{ backgroundColor: companySecondaryColorInput || "#0B1020" }}
+                      />
+                    </div>
+                  </div>
+
+                  <label className="mt-5 block rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50 p-5 text-center text-sm font-black text-sky-700 hover:bg-sky-100">
+                    {companyLogoUploading ? "Logo wird hochgeladen..." : "Firmenlogo hochladen"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={uploadCompanyLogo}
+                      disabled={companyLogoUploading}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="rounded-[32px] bg-white p-6 shadow-sm">
+                  <h3 className="text-xl font-black text-slate-900">Firmendaten</h3>
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <input
+                      value={companyNameInput}
+                      onChange={(e) => setCompanyNameInput(e.target.value)}
+                      placeholder="Firmenname"
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400 md:col-span-2"
+                    />
+                    <input
+                      value={companyEmailInput}
+                      onChange={(e) => setCompanyEmailInput(e.target.value)}
+                      placeholder="E-Mail"
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400"
+                    />
+                    <input
+                      value={companyPhoneInput}
+                      onChange={(e) => setCompanyPhoneInput(e.target.value)}
+                      placeholder="Telefon"
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400"
+                    />
+                    <input
+                      value={companyWebsiteInput}
+                      onChange={(e) => setCompanyWebsiteInput(e.target.value)}
+                      placeholder="Website"
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400 md:col-span-2"
+                    />
+                    <textarea
+                      value={companyAddressInput}
+                      onChange={(e) => setCompanyAddressInput(e.target.value)}
+                      placeholder="Adresse"
+                      rows={3}
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400 md:col-span-2"
+                    />
+                    <input
+                      value={companyLogoUrlInput}
+                      onChange={(e) => setCompanyLogoUrlInput(e.target.value)}
+                      placeholder="Logo URL"
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400 md:col-span-2"
+                    />
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500">Primärfarbe</p>
+                      <input
+                        type="color"
+                        value={companyPrimaryColorInput || "#3B82F6"}
+                        onChange={(e) => setCompanyPrimaryColorInput(e.target.value)}
+                        className="h-12 w-full rounded-2xl border border-slate-300 bg-white p-1"
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500">Sekundärfarbe</p>
+                      <input
+                        type="color"
+                        value={companySecondaryColorInput || "#0B1020"}
+                        onChange={(e) => setCompanySecondaryColorInput(e.target.value)}
+                        className="h-12 w-full rounded-2xl border border-slate-300 bg-white p-1"
+                      />
+                    </div>
+                    <textarea
+                      value={companyPdfFooterInput}
+                      onChange={(e) => setCompanyPdfFooterInput(e.target.value)}
+                      placeholder="PDF-Fußzeile / Hinweistext"
+                      rows={3}
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400 md:col-span-2"
+                    />
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={saveCompanyBranding}
+                      disabled={companyBrandingSaving}
+                      className="rounded-2xl bg-sky-600 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-sky-700 disabled:opacity-60"
+                    >
+                      {companyBrandingSaving ? "Speichert..." : "Firmeneinstellungen speichern"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => companyData && setCompanyData({ ...companyData })}
+                      className="rounded-2xl bg-slate-100 px-6 py-3 text-sm font-black text-slate-700"
+                    >
+                      Vorschau aktualisieren
+                    </button>
                   </div>
                 </div>
               </div>
