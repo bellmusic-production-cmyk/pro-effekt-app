@@ -10095,7 +10095,7 @@ PRO-EFFEKT`,
                       recentServiceReports.map((doc) => (
                         <div
                           key={doc.id}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-5 md:p-6"
                         >
                           <p className="break-words font-black text-slate-900">
                             {doc.file_name}
@@ -11885,10 +11885,10 @@ PRO-EFFEKT`,
           )}
 
           {activePage === "Kunden" && (
-            <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
+            <div className={`grid gap-8 ${isAdmin ? "2xl:grid-cols-[minmax(680px,0.95fr)_minmax(820px,1.2fr)]" : "xl:grid-cols-1"}`}>
               {isAdmin && (
               <div
-                className={`rounded-[24px] bg-white p-4 shadow-sm ${
+                className={`min-w-0 overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm md:p-8 ${
                   editingCustomer ? "ring-4 ring-sky-200" : ""
                 }`}
               >
@@ -12247,26 +12247,37 @@ PRO-EFFEKT`,
               </div>
               )}
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="break-words text-xl font-black">Kundenstamm</h3>
+              <div className="min-w-0 overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm md:p-8">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-500">CRM</p>
+                    <h3 className="break-words text-2xl font-black tracking-tight text-slate-950 md:text-3xl">Kundenstamm</h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500 md:text-base">
+                      Kunden schnell finden, prüfen und zugeordneten Geräten sauber zuordnen.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-sky-50 px-4 py-2 text-sm font-black text-sky-600">
+                    {customers.length} Kunden geladen
+                  </span>
+                </div>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                     Such- und Lesemodus: Techniker können Kundendaten ansehen, aber nicht bearbeiten.
                   </p>
                 )}
 
-                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                <div className="mt-6 grid min-w-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_240px]">
                   <input
                     value={customerDirectorySearch}
                     onChange={(e) => setCustomerDirectorySearch(e.target.value)}
                     placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
-                    className="block w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    className="block min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                   />
 
                   <select
                     value={customerTypeFilter}
                     onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    className="block w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-black text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 md:max-w-xs"
+                    className="block min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-black text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                   >
                     <option value="Alle">Alle Kundentypen</option>
                     <option value="B2B">Nur B2B</option>
@@ -12274,7 +12285,7 @@ PRO-EFFEKT`,
                   </select>
                 </div>
 
-                <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-bold text-sky-700">
+                <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-bold leading-6 text-sky-700 md:text-base">
                   {customerDirectorySearchIsActive
                     ? `${filteredCustomerDirectory.length} Treffer werden angezeigt. Bitte Suche verfeinern, falls der Kunde nicht dabei ist.`
                     : `Bitte mindestens 1 Zeichen eingeben. Insgesamt sind ${customers.length} Kunden geladen und per Suche abrufbar.`}
@@ -12282,17 +12293,17 @@ PRO-EFFEKT`,
 
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {filteredCustomerDirectory.length === 0 ? (
-                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">
+                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-600 md:p-8">
                       {customerDirectorySearchIsActive ? (
                         <p className="font-bold">
                           Keine passenden Kunden gefunden. Bitte Suchbegriff prüfen oder neuen Kunden anlegen.
                         </p>
                       ) : (
                         <div>
-                          <p className="text-lg font-black text-slate-800">
+                          <p className="text-xl font-black text-slate-800">
                             Kundenliste bereit
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-slate-500">
+                          <p className="mt-2 max-w-3xl text-base font-semibold leading-7 text-slate-500">
                             Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Übersichtsgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
                             Nutze oben Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
                           </p>
