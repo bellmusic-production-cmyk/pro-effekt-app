@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// Pro-Effekt App v2.1.81 Â· Secure Auth Â· Fast Role Cache Â· keine Sprachsteuerung
+// Pro-Effekt App v2.1.82 · Final Rebranding · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -257,13 +257,13 @@ const navItems = [
   "Kalender",
   "Service-Tickets",
   "Kunden",
-  "GerÃ¤te",
+  "Geräte",
   "QR-Scan",
   "Abnahmeprotokoll",
   "Ersatzteile",
   "Dokumente",
   "Rechnungen",
-  "VertrÃ¤ge",
+  "Verträge",
   "Benachrichtigungen",
   "Auswertungen",
 ];
@@ -294,7 +294,7 @@ const ticketTypeOptions = [
   "Reparatur & Wartung",
   "Reparatur",
   "Wartung",
-  "SicherheitsprÃ¼fung",
+  "Sicherheitsprüfung",
   "Installation",
   "Beratung",
   "Dienstleistung",
@@ -303,13 +303,13 @@ const ticketTypeOptions = [
 
 const deviceStatusOptions = [
   "Aktiv",
-  "Wartung bald fÃ¤llig",
-  "PrÃ¼fung erforderlich",
-  "AuÃŸer Betrieb",
+  "Wartung bald fällig",
+  "Prüfung erforderlich",
+  "Außer Betrieb",
 ];
 
-// GerÃ¤tebereich: KundengerÃ¤te bleiben mit Seriennummer/Kunde verknÃ¼pft.
-// Der sichtbare GerÃ¤tekatalog zeigt jedes Modell nur 1x und niemals Kunden-/Seriennummern-Daten.
+// Gerätebereich: Kundengeräte bleiben mit Seriennummer/Kunde verknüpft.
+// Der sichtbare Gerätekatalog zeigt jedes Modell nur 1x und niemals Kunden-/Seriennummern-Daten.
 const deviceDirectoryMinSearchLength = 1;
 const deviceDirectoryResultLimit = 100;
 const deviceDirectoryPreviewLimit = 20;
@@ -320,18 +320,18 @@ const documentCategories = [
   "Alle",
   "Abnahmeprotokolle",
   "Serviceberichte",
-  "PrÃ¼fberichte",
-  "SicherheitsprÃ¼fungen",
+  "Prüfberichte",
+  "Sicherheitsprüfungen",
   "Wartungsprotokolle",
   "Rechnungen",
   "Angebote",
   "Lieferscheine",
   "Bestellungen",
-  "VertrÃ¤ge",
+  "Verträge",
   "Bedienungsanleitungen",
   "Ersatzteillisten",
-  "DatenblÃ¤tter",
-  "SchaltplÃ¤ne",
+  "Datenblätter",
+  "Schaltpläne",
   "Herstellerinformationen",
   "Garantieunterlagen",
   "Fotos",
@@ -350,8 +350,8 @@ const customerVisibleDocumentCategories = [
   "Alle",
   "Serviceberichte",
   "Abnahmeprotokolle",
-  "PrÃ¼fberichte",
-  "SicherheitsprÃ¼fungen",
+  "Prüfberichte",
+  "Sicherheitsprüfungen",
   "Wartungsprotokolle",
   "Rechnungen",
   "Angebote",
@@ -363,18 +363,18 @@ const customerVisibleDocumentCategories = [
 ];
 
 const abnahmeProtocolQuestions = [
-  "SichtprÃ¼fung",
-  "Allgemeiner Betrieb des GerÃ¤tes",
-  "Rahmen / SchweiÃŸnÃ¤hte geprÃ¼ft",
+  "Sichtprüfung",
+  "Allgemeiner Betrieb des Gerätes",
+  "Rahmen / Schweißnähte geprüft",
   "Schmierung der beweglichen Teile",
-  "Mechanische PrÃ¼fung / Standfestigkeit geprÃ¼ft",
-  "Schraubverbindungen geprÃ¼ft",
+  "Mechanische Prüfung / Standfestigkeit geprüft",
+  "Schraubverbindungen geprüft",
   "Polster / Verkleidung / Sattel / Lenker",
-  "FunktionsprÃ¼fung allgemein / Schutzeinrichtung",
-  "Seile / Zugseile geprÃ¼ft",
-  "Einstellungen / Lager geprÃ¼ft",
-  "Laufgurt geprÃ¼ft / eingestellt",
-  "SicherheitsprÃ¼fung / FunktionsprÃ¼fung",
+  "Funktionsprüfung allgemein / Schutzeinrichtung",
+  "Seile / Zugseile geprüft",
+  "Einstellungen / Lager geprüft",
+  "Laufgurt geprüft / eingestellt",
+  "Sicherheitsprüfung / Funktionsprüfung",
 ];
 
 type AbnahmeProtocolCheck = {
@@ -599,7 +599,7 @@ export default function Home() {
   const [partCategory, setPartCategory] = useState("");
   const [partStock, setPartStock] = useState("0");
   const [partMinStock, setPartMinStock] = useState("1");
-  const [partUnit, setPartUnit] = useState("StÃ¼ck");
+  const [partUnit, setPartUnit] = useState("Stück");
   const [partLocation, setPartLocation] = useState("");
   const [partNote, setPartNote] = useState("");
   const [selectedPartId, setSelectedPartId] = useState("");
@@ -621,7 +621,7 @@ export default function Home() {
   );
   const [calendarTechnicianFilter, setCalendarTechnicianFilter] = useState("Alle");
 
-  const [notificationType, setNotificationType] = useState("EinsatzbestÃ¤tigung");
+  const [notificationType, setNotificationType] = useState("Einsatzbestätigung");
   const [notificationRecipient, setNotificationRecipient] = useState("");
   const [notificationSubject, setNotificationSubject] = useState("");
   const [notificationMessage, setNotificationMessage] = useState("");
@@ -779,9 +779,9 @@ export default function Home() {
 
 
   // WICHTIG: Kein automatischer Rollen-Fallback mehr.
-  // FrÃ¼her wurde nach einem Timeout pauschal Admin gesetzt; danach wurde aus SicherheitsgrÃ¼nden
+  // Früher wurde nach einem Timeout pauschal Admin gesetzt; danach wurde aus Sicherheitsgründen
   // teils Customer gesetzt. Beim Tab-Wechsel konnte dadurch die sichtbare Rolle springen.
-  // Die Rolle kommt ausschlieÃŸlich aus public.profiles oder aus dem letzten lokalen Rollen-Cache
+  // Die Rolle kommt ausschließlich aus public.profiles oder aus dem letzten lokalen Rollen-Cache
   // des exakt gleichen Users.
 
 
@@ -831,7 +831,7 @@ export default function Home() {
     );
 
     if (foundDevice) {
-      setActivePage("GerÃ¤te");
+      setActivePage("Geräte");
       setSelectedDeviceView(foundDevice);
     }
   }, [devices]);
@@ -1061,8 +1061,8 @@ export default function Home() {
         nextDate.setHours(0, 0, 0, 0);
         const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-        if (documentQuickFilter === "Bald fÃ¤llig") return diffDays >= 0 && diffDays <= 30;
-        if (documentQuickFilter === "ÃœberfÃ¤llig") return nextDate.getTime() < today.getTime();
+        if (documentQuickFilter === "Bald fällig") return diffDays >= 0 && diffDays <= 30;
+        if (documentQuickFilter === "Überfällig") return nextDate.getTime() < today.getTime();
 
         return true;
       })();
@@ -1083,15 +1083,15 @@ export default function Home() {
 
   const inspectionStats = useMemo(() => {
     const ok = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "GÃ¼ltig",
+      (item) => getInspectionStatus(item.next_check).label === "Gültig",
     ).length;
 
     const soon = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Bald fÃ¤llig",
+      (item) => getInspectionStatus(item.next_check).label === "Bald fällig",
     ).length;
 
     const overdue = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "ÃœberfÃ¤llig",
+      (item) => getInspectionStatus(item.next_check).label === "Überfällig",
     ).length;
 
     const missing = devices.filter(
@@ -1148,9 +1148,9 @@ export default function Home() {
 
     // WICHTIG:
     // Der Sicherheits-Logout darf niemals auf Supabase warten, bevor die UI entsperrt wird.
-    // Wenn Auth/Netzwerk/RLS hÃ¤ngt, blieb die App sonst auf "Rolle wird geladen..." stehen.
-    // Deshalb wird zuerst lokal alles gesperrt und gelÃ¶scht. Supabase signOut lÃ¤uft danach
-    // mit Timeout nur noch als zusÃ¤tzliche Bereinigung.
+    // Wenn Auth/Netzwerk/RLS hängt, blieb die App sonst auf "Rolle wird geladen..." stehen.
+    // Deshalb wird zuerst lokal alles gesperrt und gelöscht. Supabase signOut läuft danach
+    // mit Timeout nur noch als zusätzliche Bereinigung.
     setSession(null);
     setTickets([]);
     setDevices([]);
@@ -1276,8 +1276,8 @@ export default function Home() {
     };
 
     // App-Start darf nicht blockieren, falls Supabase/RLS/Netzwerk bei der
-    // Zustimmung hÃ¤ngt. Deshalb zuerst lokal freischalten und DB-Speicherung
-    // mit Timeout nur zusÃ¤tzlich versuchen.
+    // Zustimmung hängt. Deshalb zuerst lokal freischalten und DB-Speicherung
+    // mit Timeout nur zusätzlich versuchen.
     if (typeof window !== "undefined") {
       window.localStorage.setItem(localKey, "yes");
     }
@@ -1300,7 +1300,7 @@ export default function Home() {
         console.error("Zustimmung konnte nicht in Supabase gespeichert werden:", result.error.message);
       }
     } catch (error) {
-      console.error("Zustimmung wurde lokal gespeichert. Supabase-Speicherung wird Ã¼bersprungen:", error);
+      console.error("Zustimmung wurde lokal gespeichert. Supabase-Speicherung wird übersprungen:", error);
     }
   }
 
@@ -1429,7 +1429,7 @@ export default function Home() {
       try {
         window.localStorage.removeItem(cacheKey);
       } catch {
-        // Cache-LÃ¶schung darf nicht blockieren
+        // Cache-Löschung darf nicht blockieren
       }
     }
 
@@ -1477,7 +1477,7 @@ export default function Home() {
       return true;
     } catch (error) {
       removeCachedProfile();
-      await forceSecureLogout("ProfilprÃ¼fung fehlgeschlagen. Zugriff wurde aus SicherheitsgrÃ¼nden beendet.", userId);
+      await forceSecureLogout("Profilprüfung fehlgeschlagen. Zugriff wurde aus Sicherheitsgründen beendet.", userId);
       return false;
     }
   }
@@ -1504,7 +1504,7 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      alert("GerÃ¤te konnten nicht geladen werden.");
+      alert("Geräte konnten nicht geladen werden.");
       return;
     }
 
@@ -1541,7 +1541,7 @@ export default function Home() {
       from += pageSize;
 
       if (from > 50000) {
-        console.warn("Kunden-Ladevorgang wurde zur Sicherheit bei 50.000 DatensÃ¤tzen gestoppt.");
+        console.warn("Kunden-Ladevorgang wurde zur Sicherheit bei 50.000 Datensätzen gestoppt.");
         break;
       }
     }
@@ -1573,8 +1573,8 @@ export default function Home() {
       .order("name", { ascending: true });
 
     if (error) {
-      console.error("GerÃ¤te / Modelle konnten nicht geladen werden:", error.message);
-      alert("GerÃ¤te / Modelle konnten nicht geladen werden: " + error.message);
+      console.error("Geräte / Modelle konnten nicht geladen werden:", error.message);
+      alert("Geräte / Modelle konnten nicht geladen werden: " + error.message);
       setDeviceModels([]);
       return;
     }
@@ -1697,7 +1697,7 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("VertrÃ¤ge konnten nicht geladen werden:", error.message);
+      console.error("Verträge konnten nicht geladen werden:", error.message);
       setContracts([]);
       return;
     }
@@ -1708,7 +1708,7 @@ export default function Home() {
   async function loadTechnicians() {
     // Sicherer Restore:
     // Techniker werden wieder aus public.profiles geladen.
-    // Falls Supabase/RLS hÃ¤ngt oder einen Fehler liefert, blockiert die App nicht.
+    // Falls Supabase/RLS hängt oder einen Fehler liefert, blockiert die App nicht.
     const fallbackTechnicians: UserProfile[] = [];
 
     try {
@@ -1738,7 +1738,7 @@ export default function Home() {
 
         if (role === "technician") return true;
 
-        // Frank Ehlers ist Chef/Admin, aber auch einsatzfÃ¤hig.
+        // Frank Ehlers ist Chef/Admin, aber auch einsatzfähig.
         // Andere Admins, z. B. Frank Bell, sollen nicht im Techniker-Dropdown erscheinen.
         if (role === "admin" && name === "frank ehlers") return true;
 
@@ -1780,7 +1780,7 @@ export default function Home() {
 
       setTechnicians(loadedProfiles);
     } catch (error) {
-      console.error("Techniker-Ladevorgang Ã¼bersprungen:", error);
+      console.error("Techniker-Ladevorgang übersprungen:", error);
       setTechnicians(fallbackTechnicians);
     }
   }
@@ -1798,7 +1798,7 @@ export default function Home() {
     serviceTime?: string | null,
   ) {
     if (!canPlanDispatch) {
-      alert("Nur Admins kÃ¶nnen Tickets disponieren und Techniker zuweisen.");
+      alert("Nur Admins können Tickets disponieren und Techniker zuweisen.");
       return;
     }
 
@@ -1843,7 +1843,7 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       assignedTo ? "Ticket zugewiesen" : "Ticket-Zuweisung entfernt",
-      `${currentTicket?.ticket_number || "Ticket"} Â· ${assignedName}${serviceDate ? ` Â· Termin: ${serviceDate}${serviceTime ? ` ${serviceTime}` : ""}` : ""}`,
+      `${currentTicket?.ticket_number || "Ticket"} · ${assignedName}${serviceDate ? ` · Termin: ${serviceDate}${serviceTime ? ` ${serviceTime}` : ""}` : ""}`,
       "Einsatz",
     );
   }
@@ -1885,7 +1885,7 @@ export default function Home() {
     }
 
     if (isCustomer && selectedUploadDevice && selectedUploadDevice.customer_id !== userProfile?.customer_id) {
-      alert("Dieses GerÃ¤t gehÃ¶rt nicht zu deinem Kundenkonto.");
+      alert("Dieses Gerät gehört nicht zu deinem Kundenkonto.");
       event.target.value = "";
       return;
     }
@@ -1905,19 +1905,19 @@ export default function Home() {
     const finalNextInspectionDate = calculateNextInspectionDateFromUpload();
 
     if (isAcceptanceProtocolUpload && !uploadCustomerId) {
-      alert("Bitte fÃ¼r das Abnahmeprotokoll zuerst einen Kunden auswÃ¤hlen.");
+      alert("Bitte für das Abnahmeprotokoll zuerst einen Kunden auswählen.");
       event.target.value = "";
       return;
     }
 
     if (isAcceptanceProtocolUpload && !uploadInspectionDate) {
-      alert("Bitte das PrÃ¼fdatum des Abnahmeprotokolls eingeben.");
+      alert("Bitte das Prüfdatum des Abnahmeprotokolls eingeben.");
       event.target.value = "";
       return;
     }
 
     if (isAcceptanceProtocolUpload && !finalNextInspectionDate) {
-      alert("Bitte nÃ¤chste PrÃ¼fung oder ein gÃ¼ltiges PrÃ¼fintervall eingeben.");
+      alert("Bitte nächste Prüfung oder ein gültiges Prüfintervall eingeben.");
       event.target.value = "";
       return;
     }
@@ -1979,23 +1979,23 @@ export default function Home() {
       const existingPlan = maintenancePlans.find(
         (plan) =>
           plan.device_id === Number(selectedDeviceId) &&
-          String(plan.maintenance_type || "").toLowerCase().includes("prÃ¼fung"),
+          String(plan.maintenance_type || "").toLowerCase().includes("prüfung"),
       );
 
       const maintenancePayload = {
         device_id: Number(selectedDeviceId),
         customer_id: uploadCustomerId ? Number(uploadCustomerId) : selectedUploadDevice?.customer_id || null,
-        title: `NÃ¤chste PrÃ¼fung aus Abnahmeprotokoll Â· ${selectedUploadDevice?.name || file.name}`,
-        maintenance_type: "PrÃ¼fung / Abnahmeprotokoll",
+        title: `Nächste Prüfung aus Abnahmeprotokoll · ${selectedUploadDevice?.name || file.name}`,
+        maintenance_type: "Prüfung / Abnahmeprotokoll",
         interval_days: Number(uploadInspectionIntervalMonths || 12) * 30,
         next_due: finalNextInspectionDate,
         assigned_to: null,
         status: "Geplant",
         note: [
           `Automatisch aus hochgeladenem Abnahmeprotokoll erzeugt: ${file.name}`,
-          uploadInspectionBadgeNumber ? `PrÃ¼fsiegel: ${uploadInspectionBadgeNumber}` : "",
+          uploadInspectionBadgeNumber ? `Prüfsiegel: ${uploadInspectionBadgeNumber}` : "",
           uploadInspectionNote ? `Bemerkung: ${uploadInspectionNote}` : "",
-        ].filter(Boolean).join(" Â· "),
+        ].filter(Boolean).join(" · "),
       };
 
       if (existingPlan) {
@@ -2008,10 +2008,10 @@ export default function Home() {
     await createDeviceHistory(
       selectedDeviceId ? Number(selectedDeviceId) : null,
       isAcceptanceProtocolUpload
-        ? "Abnahmeprotokoll hochgeladen und PrÃ¼ffrist gesetzt"
+        ? "Abnahmeprotokoll hochgeladen und Prüffrist gesetzt"
         : "Dokument hochgeladen und zugeordnet",
-      `${uploadCategory}: ${file.name} Â· Kunde: ${uploadCustomerId ? getCustomerNameById(Number(uploadCustomerId)) : "Nicht zugeordnet"}${
-        isAcceptanceProtocolUpload ? ` Â· nÃ¤chste PrÃ¼fung: ${finalNextInspectionDate}` : ""
+      `${uploadCategory}: ${file.name} · Kunde: ${uploadCustomerId ? getCustomerNameById(Number(uploadCustomerId)) : "Nicht zugeordnet"}${
+        isAcceptanceProtocolUpload ? ` · nächste Prüfung: ${finalNextInspectionDate}` : ""
       }`,
       "Dokument",
     );
@@ -2030,7 +2030,7 @@ export default function Home() {
 
     alert(
       isAcceptanceProtocolUpload
-        ? "Abnahmeprotokoll wurde hochgeladen, dem Kunden zugeordnet und die nÃ¤chste PrÃ¼fung wurde gesetzt."
+        ? "Abnahmeprotokoll wurde hochgeladen, dem Kunden zugeordnet und die nächste Prüfung wurde gesetzt."
         : "Dokument erfolgreich hochgeladen und dem Kunden zugeordnet.",
     );
   }
@@ -2082,14 +2082,14 @@ export default function Home() {
 
     await createDeviceHistory(
       deviceId,
-      "Dokument direkt am GerÃ¤t hochgeladen",
+      "Dokument direkt am Gerät hochgeladen",
       `${uploadCategory}: ${file.name}`,
       "Dokument",
     );
 
     event.target.value = "";
     await loadDocuments();
-    alert("Dokument erfolgreich beim GerÃ¤t hochgeladen.");
+    alert("Dokument erfolgreich beim Gerät hochgeladen.");
   }
 
   function getDocumentsForTicket(ticket: Ticket) {
@@ -2260,7 +2260,7 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Einsatzdokument hochgeladen",
-      `${ticket.ticket_number}: ${uploadCategory} Â· ${file.name}`,
+      `${ticket.ticket_number}: ${uploadCategory} · ${file.name}`,
       "Dokument",
     );
 
@@ -2309,7 +2309,7 @@ export default function Home() {
     await createDeviceHistory(
       deviceId,
       "Dokument bei Ticketerstellung hochgeladen",
-      `${ticket.ticket_number || "Ticket"}: ${safeCategory} Â· ${file.name}`,
+      `${ticket.ticket_number || "Ticket"}: ${safeCategory} · ${file.name}`,
       "Dokument",
     );
   }
@@ -2366,13 +2366,13 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Dokument in Ticket-Akte hochgeladen",
-      `${ticket.ticket_number || "Ticket"}: ${safeCategory} Â· ${file.name}`,
+      `${ticket.ticket_number || "Ticket"}: ${safeCategory} · ${file.name}`,
       "Dokument",
     );
 
     event.target.value = "";
     await loadDocuments();
-    alert("Dokument wurde dem Ticket, Kunden und GerÃ¤t zugeordnet.");
+    alert("Dokument wurde dem Ticket, Kunden und Gerät zugeordnet.");
   }
 
   async function assignDocumentToTicketContext(documentItem: DocumentItem, ticket: Ticket) {
@@ -2406,7 +2406,7 @@ export default function Home() {
       .createSignedUrl(item.file_path, 300);
 
     if (error || !data?.signedUrl) {
-      alert("Datei konnte nicht geÃ¶ffnet werden.");
+      alert("Datei konnte nicht geöffnet werden.");
       return;
     }
 
@@ -2438,14 +2438,14 @@ export default function Home() {
       return;
     }
 
-    if (!confirm("Datei wirklich lÃ¶schen?")) return;
+    if (!confirm("Datei wirklich löschen?")) return;
 
     const storageResult = await supabase.storage
       .from("documents")
       .remove([item.file_path]);
 
     if (storageResult.error) {
-      alert("Datei konnte im Storage nicht gelÃ¶scht werden.");
+      alert("Datei konnte im Storage nicht gelöscht werden.");
       return;
     }
 
@@ -2455,13 +2455,13 @@ export default function Home() {
       .eq("id", item.id);
 
     if (tableResult.error) {
-      alert("Datei konnte aus der Tabelle nicht gelÃ¶scht werden.");
+      alert("Datei konnte aus der Tabelle nicht gelöscht werden.");
       return;
     }
 
     await createDeviceHistory(
       item.device_id,
-      "Dokument gelÃ¶scht",
+      "Dokument gelöscht",
       `${item.category}: ${item.file_name}`,
       "Dokument",
     );
@@ -2594,14 +2594,14 @@ export default function Home() {
     setPartCategory("");
     setPartStock("0");
     setPartMinStock("1");
-    setPartUnit("StÃ¼ck");
+    setPartUnit("Stück");
     setPartLocation("");
     setPartNote("");
   }
 
   function startEdit(ticket: Ticket) {
     if (isCustomer) {
-      alert("Kunden kÃ¶nnen Tickets nach dem Absenden nicht bearbeiten. Bitte bei Ã„nderungen eine Nachricht/Dokumentation ergÃ¤nzen oder ein neues Ticket erstellen.");
+      alert("Kunden können Tickets nach dem Absenden nicht bearbeiten. Bitte bei Änderungen eine Nachricht/Dokumentation ergänzen oder ein neues Ticket erstellen.");
       return;
     }
 
@@ -2637,7 +2637,7 @@ export default function Home() {
   }
 
   function startEditDevice(item: Device) {
-    setActivePage("GerÃ¤te");
+    setActivePage("Geräte");
     setEditingDevice(item);
     setDeviceName(item.name || "");
     setDeviceManufacturer(item.manufacturer || "");
@@ -2734,7 +2734,7 @@ export default function Home() {
       : selectedCustomer?.id || null;
 
     if (!issue || !description) {
-      alert("Bitte Art des Tickets, Betreff und Beschreibung ausfÃ¼llen. Ein GerÃ¤t kann spÃ¤ter zugewiesen werden.");
+      alert("Bitte Art des Tickets, Betreff und Beschreibung ausfüllen. Ein Gerät kann später zugewiesen werden.");
       return;
     }
 
@@ -2749,10 +2749,10 @@ export default function Home() {
 
     const deviceDescriptionParts = [
       selectedCustomerDeviceLabels.length > 0
-        ? `KundengerÃ¤te zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
+        ? `Kundengeräte zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
         : "",
       selectedTicketModelLabels.length > 0
-        ? `Aus GerÃ¤tebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        ? `Aus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
         : "",
     ].filter(Boolean);
 
@@ -2804,7 +2804,7 @@ export default function Home() {
         insertResult.error,
       );
       alert(
-        `Ticket konnte nicht gespeichert werden.\n\nSupabase meldet: ${insertResult.error.message}\n\nWenn hier row-level security / RLS steht: Bitte die Datei supabase-ticket-fix.sql im Supabase SQL Editor ausfÃ¼hren.`,
+        `Ticket konnte nicht gespeichert werden.\n\nSupabase meldet: ${insertResult.error.message}\n\nWenn hier row-level security / RLS steht: Bitte die Datei supabase-ticket-fix.sql im Supabase SQL Editor ausführen.`,
       );
       return;
     }
@@ -2813,7 +2813,7 @@ export default function Home() {
       await createDeviceHistory(
         selectedDevice.id,
         "Ticket erstellt",
-        `${issue} Â· Kunde: ${currentCustomerName}`,
+        `${issue} · Kunde: ${currentCustomerName}`,
         "Ticket",
       );
     }
@@ -2822,7 +2822,7 @@ export default function Home() {
       await createDeviceHistory(
         relatedDevice?.id || null,
         "Ticket erstellt",
-        `${issue} Â· Kunde: ${currentCustomerName}`,
+        `${issue} · Kunde: ${currentCustomerName}`,
         "Ticket",
       );
     }
@@ -2885,10 +2885,10 @@ export default function Home() {
 
     const deviceDescriptionParts = [
       selectedCustomerDeviceLabels.length > 0
-        ? `KundengerÃ¤te zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
+        ? `Kundengeräte zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
         : "",
       selectedTicketModelLabels.length > 0
-        ? `Aus GerÃ¤tebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        ? `Aus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
         : "",
     ].filter(Boolean);
 
@@ -2924,7 +2924,7 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Ticket bearbeitet",
-      `${issue} Â· PrioritÃ¤t: ${priority}`,
+      `${issue} · Priorität: ${priority}`,
       "Ticket",
     );
 
@@ -2934,7 +2934,7 @@ export default function Home() {
 
   async function updateTicketStatus(ticketId: number, newStatus: string) {
     if (isCustomer) {
-      alert("Kunden kÃ¶nnen den Ticketstatus nicht Ã¤ndern.");
+      alert("Kunden können den Ticketstatus nicht ändern.");
       return;
     }
 
@@ -2944,7 +2944,7 @@ export default function Home() {
       .eq("id", ticketId);
 
     if (error) {
-      alert("Status konnte nicht geÃ¤ndert werden.");
+      alert("Status konnte nicht geändert werden.");
       return;
     }
 
@@ -2955,7 +2955,7 @@ export default function Home() {
 
     await createDeviceHistory(
       relatedDevice?.id || null,
-      "Ticketstatus geÃ¤ndert",
+      "Ticketstatus geändert",
       `${changedTicket?.ticket_number || "Ticket"}: ${newStatus}`,
       "Ticket",
     );
@@ -3110,9 +3110,9 @@ export default function Home() {
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">Pro-Effekt Software Service Â· Automatisch archivierter Servicebericht</p>
+          <p class="muted">Pro-Effekt Software Service · Automatisch archivierter Servicebericht</p>
 
-          <h2>Kunde & GerÃ¤t</h2>
+          <h2>Kunde & Gerät</h2>
           <div class="box grid">
             <div><div class="label">Ticket</div><div class="value">${ticket.ticket_number || "-"}</div></div>
             <div><div class="label">Datum</div><div class="value">${new Date().toLocaleDateString("de-DE")}</div></div>
@@ -3122,7 +3122,7 @@ export default function Home() {
             <div><div class="label">Ansprechpartner vor Ort</div><div class="value">${ticket.service_contact_name || relatedCustomer?.contact_person || "-"}</div></div>
             <div><div class="label">Einsatzadresse</div><div class="value">${ticket.service_address || relatedDevice?.location || "-"}</div></div>
             <div><div class="label">Telefon vor Ort</div><div class="value">${ticket.service_contact_phone || relatedCustomer?.phone || "-"}</div></div>
-            <div><div class="label">GerÃ¤t</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
+            <div><div class="label">Gerät</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
             <div><div class="label">Seriennummer</div><div class="value">${relatedDevice?.serial_number || "-"}</div></div>
             <div><div class="label">Techniker</div><div class="value">${technicianName}</div></div>
           </div>
@@ -3135,19 +3135,19 @@ export default function Home() {
             <div class="report">${ticket.description || "-"}</div>
           </div>
 
-          <h2>DurchgefÃ¼hrte Arbeiten</h2>
+          <h2>Durchgeführte Arbeiten</h2>
           <div class="box report">
             ${serviceReport || ticket.service_report || "Keine Arbeiten dokumentiert."}
           </div>
 
-          <h2>PrÃ¼fsiegel / SicherheitsprÃ¼fung-PrÃ¼fung</h2>
+          <h2>Prüfsiegel / Sicherheitsprüfung-Prüfung</h2>
           <div class="box">
-            SicherheitsprÃ¼fung- und SicherheitsprÃ¼fungen helfen, technische MÃ¤ngel frÃ¼hzeitig zu erkennen,
-            Unfallrisiken zu reduzieren und den sicheren Betrieb der FitnessgerÃ¤te nachvollziehbar zu dokumentieren.
+            Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
+            Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
           </div>
           <div class="box grid">
-            <div><div class="label">PrÃ¼fsiegelnummer</div><div class="value">${serviceBadgeNumber || ticket.inspection_badge_number || "-"}</div></div>
-            <div><div class="label">GÃ¼ltig bis</div><div class="value">${serviceBadgeExpires || ticket.inspection_expires || "-"}</div></div>
+            <div><div class="label">Prüfsiegelnummer</div><div class="value">${serviceBadgeNumber || ticket.inspection_badge_number || "-"}</div></div>
+            <div><div class="label">Gültig bis</div><div class="value">${serviceBadgeExpires || ticket.inspection_expires || "-"}</div></div>
             <div><div class="label">Status</div><div class="value">Abgeschlossen</div></div>
             <div><div class="label">Abgeschlossen am</div><div class="value">${new Date().toLocaleString("de-DE")}</div></div>
           </div>
@@ -3156,7 +3156,7 @@ export default function Home() {
           <div class="box">
             ${
               ticketDocuments.length === 0
-                ? "Keine zusÃ¤tzlichen Nachweise hinterlegt."
+                ? "Keine zusätzlichen Nachweise hinterlegt."
                 : ticketDocuments
                     .map(
                       (doc) =>
@@ -3284,7 +3284,7 @@ export default function Home() {
     pdf.text("PRO-EFFEKT", margin, y);
     pdf.setFontSize(9);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("Pro-Effekt Software Service Â· Servicebericht / PrÃ¼fbericht", margin, y + 6);
+    pdf.text("Pro-Effekt Software Service · Servicebericht / Prüfbericht", margin, y + 6);
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
@@ -3293,41 +3293,41 @@ export default function Home() {
     pdf.text(`Datum: ${new Date().toLocaleDateString("de-DE")}`, pageWidth - margin, y + 5, { align: "right" });
     y += 17;
 
-    sectionTitle("Kunde & GerÃ¤t");
+    sectionTitle("Kunde & Gerät");
     infoBox([
       ["Auftraggeber", relatedCustomer?.company || ticket.customer || "-", "Kundennummer", relatedCustomer?.customer_number || "-"],
       ["Einsatzort", ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-", "Ansprechpartner vor Ort", ticket.service_contact_name || relatedCustomer?.contact_person || "-"],
       ["Einsatzadresse", ticket.service_address || relatedDevice?.location || "-", "Telefon vor Ort", ticket.service_contact_phone || relatedCustomer?.phone || "-"],
-      ["GerÃ¤t", ticket.device || relatedDevice?.name || "-", "Seriennummer", relatedDevice?.serial_number || "-"],
-      ["Standort GerÃ¤t", relatedDevice?.location || "-", "Techniker", technicianName],
+      ["Gerät", ticket.device || relatedDevice?.name || "-", "Seriennummer", relatedDevice?.serial_number || "-"],
+      ["Standort Gerät", relatedDevice?.location || "-", "Techniker", technicianName],
     ]);
 
     sectionTitle("Auftrag");
     textBox(`${ticket.issue || "-"}\n\n${ticket.description || "-"}`, 32);
 
-    sectionTitle("DurchgefÃ¼hrte Arbeiten");
+    sectionTitle("Durchgeführte Arbeiten");
     textBox(serviceReport || ticket.service_report || "Keine Arbeiten dokumentiert.", 38);
 
-    sectionTitle("PrÃ¼fsiegel / SicherheitsprÃ¼fung-PrÃ¼fung");
+    sectionTitle("Prüfsiegel / Sicherheitsprüfung-Prüfung");
     textBox(
-      "SicherheitsprÃ¼fung- und SicherheitsprÃ¼fungen helfen, technische MÃ¤ngel frÃ¼hzeitig zu erkennen, Unfallrisiken zu reduzieren und den sicheren Betrieb der FitnessgerÃ¤te nachvollziehbar zu dokumentieren.",
+      "Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen, Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.",
       20,
     );
     infoBox([
-      ["PrÃ¼fsiegelnummer", serviceBadgeNumber || ticket.inspection_badge_number || "-", "GÃ¼ltig bis", serviceBadgeExpires || ticket.inspection_expires || "-"],
+      ["Prüfsiegelnummer", serviceBadgeNumber || ticket.inspection_badge_number || "-", "Gültig bis", serviceBadgeExpires || ticket.inspection_expires || "-"],
       ["Status", "Abgeschlossen", "Abgeschlossen am", new Date().toLocaleString("de-DE")],
     ]);
 
     sectionTitle("Nachweise / Dokumente");
     textBox(
       ticketDocuments.length === 0
-        ? "Keine zusÃ¤tzlichen Nachweise hinterlegt."
+        ? "Keine zusätzlichen Nachweise hinterlegt."
         : ticketDocuments.map((doc) => `${doc.category}: ${doc.file_name}`).join("\n"),
       18,
     );
 
-    sectionTitle("KundenbestÃ¤tigung");
-    textBox("Der Kunde bestÃ¤tigt die DurchfÃ¼hrung der oben dokumentierten Arbeiten.", 16);
+    sectionTitle("Kundenbestätigung");
+    textBox("Der Kunde bestätigt die Durchführung der oben dokumentierten Arbeiten.", 16);
 
     ensureSpace(38);
     const signatureY = y + 12;
@@ -3364,7 +3364,7 @@ export default function Home() {
     const footerY = pageHeight - 9;
     pdf.setFontSize(7);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("Pro-Effekt e.K. Â· Pro-Effekt Software Service", margin, footerY);
+    pdf.text("Pro-Effekt e.K. · Pro-Effekt Software Service", margin, footerY);
     pdf.text(`Erstellt: ${new Date().toLocaleString("de-DE")}`, pageWidth - margin, footerY, { align: "right" });
 
     return pdf.output("blob") as Blob;
@@ -3413,7 +3413,7 @@ export default function Home() {
     await createDeviceHistory(
       relatedDevice?.id || null,
       "Servicebericht automatisch als PDF archiviert",
-      `${ticket.ticket_number || "Ticket"} Â· ${fileName}`,
+      `${ticket.ticket_number || "Ticket"} · ${fileName}`,
       "PDF",
     );
 
@@ -3465,7 +3465,7 @@ export default function Home() {
     await createDeviceHistory(
       null,
       "Servicebericht abgeschlossen",
-      `${ticket.ticket_number || "Ticket"} Â· PrÃ¼fsiegel: ${serviceBadgeNumber || "keins"}`,
+      `${ticket.ticket_number || "Ticket"} · Prüfsiegel: ${serviceBadgeNumber || "keins"}`,
       "Service",
     );
 
@@ -3491,7 +3491,7 @@ export default function Home() {
     if (archivedDocument) {
       alert("Servicebericht gespeichert, unterschrieben und als PDF archiviert.");
     } else {
-      alert("Servicebericht gespeichert. Automatische PDF-Archivierung bitte prÃ¼fen.");
+      alert("Servicebericht gespeichert. Automatische PDF-Archivierung bitte prüfen.");
     }
   }
 
@@ -3529,7 +3529,7 @@ export default function Home() {
           <div class="top">
             <div>
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-              <p class="muted">Pro-Effekt Software Service Â· Servicebericht / PrÃ¼fbericht</p>
+              <p class="muted">Pro-Effekt Software Service · Servicebericht / Prüfbericht</p>
             </div>
             <div>
               <div class="label">Ticket</div>
@@ -3539,7 +3539,7 @@ export default function Home() {
             </div>
           </div>
 
-          <h2>Kunde & GerÃ¤t</h2>
+          <h2>Kunde & Gerät</h2>
           <div class="box grid">
             <div><div class="label">Auftraggeber</div><div class="value">${relatedCustomer?.company || ticket.customer || "-"}</div></div>
             <div><div class="label">Kundennummer</div><div class="value">${relatedCustomer?.customer_number || "-"}</div></div>
@@ -3547,7 +3547,7 @@ export default function Home() {
             <div><div class="label">Ansprechpartner vor Ort</div><div class="value">${ticket.service_contact_name || relatedCustomer?.contact_person || "-"}</div></div>
             <div><div class="label">Einsatzadresse</div><div class="value">${ticket.service_address || relatedDevice?.location || "-"}</div></div>
             <div><div class="label">Telefon vor Ort</div><div class="value">${ticket.service_contact_phone || relatedCustomer?.phone || "-"}</div></div>
-            <div><div class="label">GerÃ¤t</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
+            <div><div class="label">Gerät</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
             <div><div class="label">Seriennummer</div><div class="value">${relatedDevice?.serial_number || "-"}</div></div>
             <div><div class="label">Techniker</div><div class="value">${technicianName}</div></div>
           </div>
@@ -3560,19 +3560,19 @@ export default function Home() {
             <div class="report">${ticket.description || "-"}</div>
           </div>
 
-          <h2>DurchgefÃ¼hrte Arbeiten</h2>
+          <h2>Durchgeführte Arbeiten</h2>
           <div class="box report">
             ${ticket.service_report || serviceReport || "Keine Arbeiten dokumentiert."}
           </div>
 
-          <h2>PrÃ¼fsiegel / SicherheitsprÃ¼fung-PrÃ¼fung</h2>
+          <h2>Prüfsiegel / Sicherheitsprüfung-Prüfung</h2>
           <div class="box">
-            SicherheitsprÃ¼fung- und SicherheitsprÃ¼fungen helfen, technische MÃ¤ngel frÃ¼hzeitig zu erkennen,
-            Unfallrisiken zu reduzieren und den sicheren Betrieb der FitnessgerÃ¤te nachvollziehbar zu dokumentieren.
+            Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
+            Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
           </div>
           <div class="box grid">
-            <div><div class="label">PrÃ¼fsiegelnummer</div><div class="value">${ticket.inspection_badge_number || serviceBadgeNumber || "-"}</div></div>
-            <div><div class="label">GÃ¼ltig bis</div><div class="value">${ticket.inspection_expires || serviceBadgeExpires || "-"}</div></div>
+            <div><div class="label">Prüfsiegelnummer</div><div class="value">${ticket.inspection_badge_number || serviceBadgeNumber || "-"}</div></div>
+            <div><div class="label">Gültig bis</div><div class="value">${ticket.inspection_expires || serviceBadgeExpires || "-"}</div></div>
             <div><div class="label">Status</div><div class="value">${ticket.status || "-"}</div></div>
             <div><div class="label">Abgeschlossen am</div><div class="value">${ticket.completed_at ? new Date(ticket.completed_at).toLocaleString("de-DE") : "-"}</div></div>
           </div>
@@ -3591,9 +3591,9 @@ export default function Home() {
             }
           </div>
 
-          <h2>KundenbestÃ¤tigung</h2>
+          <h2>Kundenbestätigung</h2>
           <div class="box">
-            Der Kunde bestÃ¤tigt die DurchfÃ¼hrung der oben dokumentierten Arbeiten.
+            Der Kunde bestätigt die Durchführung der oben dokumentierten Arbeiten.
           </div>
 
           <div class="footer">
@@ -3640,14 +3640,14 @@ export default function Home() {
     createDeviceHistory(
       relatedDevice?.id || null,
       "PDF-Servicebericht erstellt",
-      `${ticket.ticket_number || "Ticket"} Â· ${ticket.issue || ""}`,
+      `${ticket.ticket_number || "Ticket"} · ${ticket.issue || ""}`,
       "PDF",
     );
   }
 
   function openServiceReportSigning(ticket: Ticket) {
     if (isCustomer) {
-      alert("PDF / Signatur, Servicebericht, SicherheitsprÃ¼fung und Abnahme sind nur fÃ¼r Techniker und Admin vorgesehen.");
+      alert("PDF / Signatur, Servicebericht, Sicherheitsprüfung und Abnahme sind nur für Techniker und Admin vorgesehen.");
       return;
     }
 
@@ -3704,7 +3704,7 @@ export default function Home() {
 
     await createDeviceHistory(
       relatedDevice?.id || null,
-      "Einsatzstatus geÃ¤ndert",
+      "Einsatzstatus geändert",
       `${changedTicket?.ticket_number || "Ticket"}: ${newServiceStatus}`,
       "Einsatz",
     );
@@ -3722,11 +3722,11 @@ export default function Home() {
 
   async function deleteTicket(ticketId: number) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Tickets lÃ¶schen. Techniker dÃ¼rfen Tickets bearbeiten, aber nicht lÃ¶schen.");
+      alert("Nur Admins können Tickets löschen. Techniker dürfen Tickets bearbeiten, aber nicht löschen.");
       return;
     }
 
-    if (!confirm("Ticket wirklich lÃ¶schen?")) return;
+    if (!confirm("Ticket wirklich löschen?")) return;
 
     const { error } = await supabase
       .from("tickets")
@@ -3734,7 +3734,7 @@ export default function Home() {
       .eq("id", ticketId);
 
     if (error) {
-      alert("LÃ¶schen fehlgeschlagen.");
+      alert("Löschen fehlgeschlagen.");
       return;
     }
 
@@ -3743,7 +3743,7 @@ export default function Home() {
 
   async function saveManufacturer() {
     if (!canCreateOrEditMasterData) {
-      alert("Nur Admins und Techniker kÃ¶nnen Hersteller anlegen oder bearbeiten.");
+      alert("Nur Admins und Techniker können Hersteller anlegen oder bearbeiten.");
       return;
     }
 
@@ -3782,7 +3782,7 @@ export default function Home() {
 
   async function deleteManufacturer(item: Manufacturer) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Hersteller lÃ¶schen.");
+      alert("Nur Admins können Hersteller löschen.");
       return;
     }
 
@@ -3794,12 +3794,12 @@ export default function Home() {
 
     if (usedByDevices.length > 0) {
       alert(
-        `Dieser Hersteller ist noch ${usedByDevices.length} GerÃ¤t(en) zugeordnet und kann nicht gelÃ¶scht werden.`,
+        `Dieser Hersteller ist noch ${usedByDevices.length} Gerät(en) zugeordnet und kann nicht gelöscht werden.`,
       );
       return;
     }
 
-    if (!confirm(`Hersteller "${item.name}" wirklich lÃ¶schen?`)) return;
+    if (!confirm(`Hersteller "${item.name}" wirklich löschen?`)) return;
 
     const { error } = await supabase
       .from("manufacturers")
@@ -3807,7 +3807,7 @@ export default function Home() {
       .eq("id", item.id);
 
     if (error) {
-      alert(`Hersteller konnte nicht gelÃ¶scht werden: ${error.message}`);
+      alert(`Hersteller konnte nicht gelöscht werden: ${error.message}`);
       return;
     }
 
@@ -3835,12 +3835,12 @@ export default function Home() {
 
   async function saveDeviceModel() {
     if (!canCreateOrEditMasterData) {
-      alert("Nur Admins und Techniker kÃ¶nnen GerÃ¤te / Modelle anlegen oder bearbeiten.");
+      alert("Nur Admins und Techniker können Geräte / Modelle anlegen oder bearbeiten.");
       return;
     }
 
     if (!modelManufacturerId || !modelName.trim()) {
-      alert("Bitte Hersteller und Modellname auswÃ¤hlen.");
+      alert("Bitte Hersteller und Modellname auswählen.");
       return;
     }
 
@@ -3873,23 +3873,23 @@ export default function Home() {
 
   async function deleteDeviceModel(item: DeviceModel) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen GerÃ¤te / Modelle lÃ¶schen.");
+      alert("Nur Admins können Geräte / Modelle löschen.");
       return;
     }
 
     const usedByDevices = devices.filter((deviceItem) => deviceItem.model_id === item.id);
 
     if (usedByDevices.length > 0) {
-      alert(`Dieses Modell ist noch ${usedByDevices.length} GerÃ¤t(en) zugeordnet und kann nicht gelÃ¶scht werden.`);
+      alert(`Dieses Modell ist noch ${usedByDevices.length} Gerät(en) zugeordnet und kann nicht gelöscht werden.`);
       return;
     }
 
-    if (!confirm(`Modell "${item.name}" wirklich lÃ¶schen?`)) return;
+    if (!confirm(`Modell "${item.name}" wirklich löschen?`)) return;
 
     const { error } = await supabase.from("device_models").delete().eq("id", item.id);
 
     if (error) {
-      alert(`Modell konnte nicht gelÃ¶scht werden: ${error.message}`);
+      alert(`Modell konnte nicht gelöscht werden: ${error.message}`);
       return;
     }
 
@@ -3898,12 +3898,12 @@ export default function Home() {
 
   async function createDevice() {
     if (!canCreateOrEditMasterData) {
-      alert("Nur Admins und Techniker kÃ¶nnen GerÃ¤te anlegen.");
+      alert("Nur Admins und Techniker können Geräte anlegen.");
       return;
     }
 
     if (!deviceName) {
-      alert("Bitte GerÃ¤tename eingeben.");
+      alert("Bitte Gerätename eingeben.");
       return;
     }
 
@@ -3930,7 +3930,7 @@ export default function Home() {
     ]);
 
     if (error) {
-      alert("GerÃ¤t konnte nicht gespeichert werden.");
+      alert("Gerät konnte nicht gespeichert werden.");
       return;
     }
 
@@ -3940,14 +3940,14 @@ export default function Home() {
 
   async function updateDevice() {
     if (!canCreateOrEditMasterData) {
-      alert("Nur Admins und Techniker kÃ¶nnen GerÃ¤te bearbeiten.");
+      alert("Nur Admins und Techniker können Geräte bearbeiten.");
       return;
     }
 
     if (!editingDevice) return;
 
     if (!deviceName) {
-      alert("Bitte GerÃ¤tename eingeben.");
+      alert("Bitte Gerätename eingeben.");
       return;
     }
 
@@ -3975,15 +3975,15 @@ export default function Home() {
       .eq("id", editingDevice.id);
 
     if (error) {
-      alert("GerÃ¤t konnte nicht bearbeitet werden.");
+      alert("Gerät konnte nicht bearbeitet werden.");
       return;
     }
 
     await createDeviceHistory(
       editingDevice.id,
-      "GerÃ¤t aktualisiert",
-      `Status: ${deviceStatus} Â· NÃ¤chste PrÃ¼fung: ${deviceNextCheck || "nicht geplant"}`,
-      "GerÃ¤t",
+      "Gerät aktualisiert",
+      `Status: ${deviceStatus} · Nächste Prüfung: ${deviceNextCheck || "nicht geplant"}`,
+      "Gerät",
     );
 
     resetDeviceForm();
@@ -3992,11 +3992,11 @@ export default function Home() {
 
   async function deleteDevice(deviceId: number) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen GerÃ¤te lÃ¶schen.");
+      alert("Nur Admins können Geräte löschen.");
       return;
     }
 
-    if (!confirm("GerÃ¤t wirklich lÃ¶schen?")) return;
+    if (!confirm("Gerät wirklich löschen?")) return;
 
     const { error } = await supabase
       .from("devices")
@@ -4004,7 +4004,7 @@ export default function Home() {
       .eq("id", deviceId);
 
     if (error) {
-      alert("GerÃ¤t konnte nicht gelÃ¶scht werden.");
+      alert("Gerät konnte nicht gelöscht werden.");
       return;
     }
 
@@ -4013,7 +4013,7 @@ export default function Home() {
 
   async function createCustomer() {
     if (!canCreateOrEditMasterData) {
-      alert("Nur Admins und Techniker kÃ¶nnen Kunden anlegen.");
+      alert("Nur Admins und Techniker können Kunden anlegen.");
       return;
     }
 
@@ -4088,7 +4088,7 @@ export default function Home() {
 
   async function updateCustomer() {
     if (!canCreateOrEditMasterData) {
-      alert("Nur Admins und Techniker kÃ¶nnen Kunden bearbeiten.");
+      alert("Nur Admins und Techniker können Kunden bearbeiten.");
       return;
     }
 
@@ -4154,11 +4154,11 @@ export default function Home() {
 
   async function deleteCustomer(customerId: number) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Kunden lÃ¶schen.");
+      alert("Nur Admins können Kunden löschen.");
       return;
     }
 
-    if (!confirm("Kunde wirklich lÃ¶schen?")) return;
+    if (!confirm("Kunde wirklich löschen?")) return;
 
     await supabase
       .from("devices")
@@ -4180,7 +4180,7 @@ export default function Home() {
 
     if (error) {
       alert(
-        "Kunde konnte nicht gelÃ¶scht werden. PrÃ¼fe, ob noch verknÃ¼pfte Daten existieren.",
+        "Kunde konnte nicht gelöscht werden. Prüfe, ob noch verknüpfte Daten existieren.",
       );
       return;
     }
@@ -4210,9 +4210,9 @@ export default function Home() {
     setServiceContactName("");
     setServiceContactPhone("");
     setServiceContactEmail("");
-    setIssue(`Service fÃ¼r ${item.name}`);
+    setIssue(`Service für ${item.name}`);
     setDescription(item.note || "");
-    setPriority(item.status === "PrÃ¼fung erforderlich" ? "Hoch" : "Mittel");
+    setPriority(item.status === "Prüfung erforderlich" ? "Hoch" : "Mittel");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -4244,7 +4244,7 @@ export default function Home() {
 
   function prepareAbnahmeFromCustomer(item: Customer) {
     if (isCustomer) {
-      alert("Abnahmeprotokolle / SicherheitsprÃ¼fung dÃ¼rfen nur Techniker und Admin erstellen.");
+      alert("Abnahmeprotokolle / Sicherheitsprüfung dürfen nur Techniker und Admin erstellen.");
       return;
     }
 
@@ -4261,7 +4261,7 @@ export default function Home() {
 
   function prepareAbnahmeFromTicket(ticket: Ticket) {
     if (isCustomer) {
-      alert("Abnahmeprotokolle / SicherheitsprÃ¼fung dÃ¼rfen nur Techniker und Admin erstellen.");
+      alert("Abnahmeprotokolle / Sicherheitsprüfung dürfen nur Techniker und Admin erstellen.");
       return;
     }
 
@@ -4334,11 +4334,11 @@ export default function Home() {
     setActivePage("Service-Tickets");
     setMobileTicketFormOpen(true);
     setDevice(item.name);
-    setIssue(`PrÃ¼fung / PrÃ¼fsiegel fÃ¼r ${item.name}`);
+    setIssue(`Prüfung / Prüfsiegel für ${item.name}`);
     setDescription(
-      `Bitte PrÃ¼fung fÃ¼r ${item.name} einplanen. Seriennummer: ${
+      `Bitte Prüfung für ${item.name} einplanen. Seriennummer: ${
         item.serial_number || "nicht angegeben"
-      }. Standort: ${item.location || "nicht angegeben"}. NÃ¤chste PrÃ¼fung: ${
+      }. Standort: ${item.location || "nicht angegeben"}. Nächste Prüfung: ${
         item.next_check || "kein Datum hinterlegt"
       }.`,
     );
@@ -4389,7 +4389,7 @@ export default function Home() {
 
   async function cancelOwnCustomerTicket(ticket: Ticket) {
     if (!canCustomerCancelTicket(ticket)) {
-      alert("Dieses Ticket kann nicht storniert werden. Nur eigene offene Tickets kÃ¶nnen storniert werden.");
+      alert("Dieses Ticket kann nicht storniert werden. Nur eigene offene Tickets können storniert werden.");
       return;
     }
 
@@ -4461,17 +4461,17 @@ export default function Home() {
       serviceType: ticketServiceTypeText(ticket),
       subject: ticketSubjectText(ticket),
       appointment: ticket.service_date
-        ? `${ticket.service_date}${ticket.service_time ? ` Â· ${ticket.service_time}` : ""}`
+        ? `${ticket.service_date}${ticket.service_time ? ` · ${ticket.service_time}` : ""}`
         : "Kein Termin geplant",
     };
   }
 
   function deviceStatusClass(statusValue: string | null) {
     if (statusValue === "Aktiv") return "bg-sky-100 text-sky-600";
-    if (statusValue === "Wartung bald fÃ¤llig") {
+    if (statusValue === "Wartung bald fällig") {
       return "bg-yellow-100 text-yellow-700";
     }
-    if (statusValue === "AuÃŸer Betrieb") return "bg-slate-200 text-slate-700";
+    if (statusValue === "Außer Betrieb") return "bg-slate-200 text-slate-700";
     return "bg-red-100 text-red-700";
   }
 
@@ -4479,7 +4479,7 @@ export default function Home() {
     if (!nextCheck) {
       return {
         label: "Kein Datum",
-        daysText: "Keine PrÃ¼fung geplant",
+        daysText: "Keine Prüfung geplant",
         className: "bg-slate-200 text-slate-700",
       };
     }
@@ -4495,23 +4495,23 @@ export default function Home() {
 
     if (diffDays < 0) {
       return {
-        label: "ÃœberfÃ¤llig",
-        daysText: `${Math.abs(diffDays)} Tage Ã¼berfÃ¤llig`,
+        label: "Überfällig",
+        daysText: `${Math.abs(diffDays)} Tage überfällig`,
         className: "bg-red-100 text-red-700",
       };
     }
 
     if (diffDays <= 30) {
       return {
-        label: "Bald fÃ¤llig",
+        label: "Bald fällig",
         daysText: `${diffDays} Tage bis Ablauf`,
         className: "bg-yellow-100 text-yellow-700",
       };
     }
 
     return {
-      label: "GÃ¼ltig",
-      daysText: `${diffDays} Tage gÃ¼ltig`,
+      label: "Gültig",
+      daysText: `${diffDays} Tage gültig`,
       className: "bg-sky-100 text-sky-600",
     };
   }
@@ -4522,7 +4522,7 @@ export default function Home() {
   }
 
   function fileSizeText(size: number | null) {
-    if (!size) return "GrÃ¶ÃŸe unbekannt";
+    if (!size) return "Größe unbekannt";
     return `${Math.round(size / 1024)} KB`;
   }
 
@@ -4578,11 +4578,11 @@ export default function Home() {
   }
 
   function getDeviceNameById(deviceId: number | null) {
-    if (!deviceId) return "Kein GerÃ¤t zugeordnet";
+    if (!deviceId) return "Kein Gerät zugeordnet";
 
     const foundDevice = devices.find((item) => item.id === deviceId);
 
-    return foundDevice?.name || "GerÃ¤t nicht gefunden";
+    return foundDevice?.name || "Gerät nicht gefunden";
   }
 
   function getDocumentCustomerName(item: DocumentItem) {
@@ -4639,17 +4639,17 @@ export default function Home() {
 
   function documentDeleteLockedReason(item: DocumentItem) {
     if (isTechnician && item.category === "Abnahmeprotokolle") {
-      return "Abnahmeprotokolle sind geschÃ¼tzt und kÃ¶nnen nur vom Admin gelÃ¶scht werden.";
+      return "Abnahmeprotokolle sind geschützt und können nur vom Admin gelöscht werden.";
     }
 
-    return "Keine LÃ¶schberechtigung.";
+    return "Keine Löschberechtigung.";
   }
 
 
 
   function openDeviceFromQr(item: Device) {
     setSelectedDeviceView(item);
-    setActivePage("GerÃ¤te");
+    setActivePage("Geräte");
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -4685,7 +4685,7 @@ export default function Home() {
         <body>
           <div class="label">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-            <p>GerÃ¤teakte / Service-QR</p>
+            <p>Geräteakte / Service-QR</p>
             <img src="${qrUrl}" />
             <h2>${item.name}</h2>
             <p><strong>Kunde:</strong> ${linkedCustomer?.company || "Nicht zugeordnet"}</p>
@@ -4718,7 +4718,7 @@ export default function Home() {
       <div className="flex w-full flex-col items-center justify-center text-center">
         <img
           src="/pro-effekt-logo.png"
-          alt="Pro-Effekt Software Service"
+          alt="Pro-Effekt Logo"
           className="h-auto w-full max-w-[280px] object-contain drop-shadow-xl"
           onError={(event) => {
             event.currentTarget.style.display = "none";
@@ -4776,11 +4776,11 @@ export default function Home() {
     const foundDevice = findDeviceFromQrInput(value);
 
     if (!foundDevice) {
-      setQrScanStatus("Kein passendes GerÃ¤t gefunden. Bitte GerÃ¤te-ID, Seriennummer oder QR-Link prÃ¼fen.");
+      setQrScanStatus("Kein passendes Gerät gefunden. Bitte Geräte-ID, Seriennummer oder QR-Link prüfen.");
       return;
     }
 
-    setQrScanStatus(`GerÃ¤t gefunden: ${foundDevice.name}`);
+    setQrScanStatus(`Gerät gefunden: ${foundDevice.name}`);
     stopQrScanner();
     openDeviceFromQr(foundDevice);
   }
@@ -4832,12 +4832,12 @@ export default function Home() {
         },
       );
 
-      setQrScanStatus("Kamera aktiv. QR-Code am GerÃ¤t in den Rahmen halten.");
+      setQrScanStatus("Kamera aktiv. QR-Code am Gerät in den Rahmen halten.");
     } catch (error) {
       console.error(error);
       setQrScannerActive(false);
       setQrScanStatus(
-        "Kamera konnte nicht geÃ¶ffnet werden. Bitte HTTPS, Kamera-Berechtigung und Browser-Einstellungen prÃ¼fen.",
+        "Kamera konnte nicht geöffnet werden. Bitte HTTPS, Kamera-Berechtigung und Browser-Einstellungen prüfen.",
       );
     }
   }
@@ -4858,7 +4858,7 @@ export default function Home() {
 
   function getDeviceDirectUrl(item: Device) {
     if (typeof window === "undefined") {
-      return `PRO-EFFEKT GerÃ¤t ${item.id}`;
+      return `PRO-EFFEKT Gerät ${item.id}`;
     }
 
     const url = new URL(window.location.href);
@@ -4875,7 +4875,7 @@ export default function Home() {
 
   async function copyDeviceLink(item: Device) {
     await navigator.clipboard.writeText(getDeviceDirectUrl(item));
-    alert("GerÃ¤te-Link wurde kopiert.");
+    alert("Geräte-Link wurde kopiert.");
   }
 
   function getMaintenanceStatus(nextDue: string | null) {
@@ -4898,7 +4898,7 @@ export default function Home() {
 
     if (diffDays < 0) {
       return {
-        label: `${Math.abs(diffDays)} Tage Ã¼berfÃ¤llig`,
+        label: `${Math.abs(diffDays)} Tage überfällig`,
         className: "bg-red-100 text-red-700",
       };
     }
@@ -4955,7 +4955,7 @@ export default function Home() {
     const categoryName = getDeviceModelTypeName(modelItem);
     const modelName = getDeviceModelDisplayName(modelItem);
 
-    return [manufacturerName, categoryName, modelName].filter(Boolean).join(" Â· ");
+    return [manufacturerName, categoryName, modelName].filter(Boolean).join(" · ");
   }
 
   function toggleTicketLibraryModel(modelId: string) {
@@ -4984,7 +4984,7 @@ export default function Home() {
       deviceItem.location || "",
     ]
       .filter(Boolean)
-      .join(" Â· ");
+      .join(" · ");
   }
 
   function toggleTicketCustomerDevice(deviceId: string) {
@@ -5056,7 +5056,7 @@ export default function Home() {
     const { error } = await supabase.from("devices").insert(rows);
 
     if (error) {
-      alert("KundengerÃ¤te konnten nicht vollstÃ¤ndig angelegt werden.");
+      alert("Kundengeräte konnten nicht vollständig angelegt werden.");
     }
   }
 
@@ -5116,7 +5116,7 @@ export default function Home() {
   }
 
   function startEditManufacturer(item: Manufacturer) {
-    setActivePage("GerÃ¤te");
+    setActivePage("Geräte");
     setSelectedDeviceView(null);
     setEditingManufacturer(item);
     setManufacturerName(item.name || "");
@@ -5271,12 +5271,12 @@ export default function Home() {
 
   async function saveMaintenancePlan() {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker kÃ¶nnen Wartungen planen.");
+      alert("Nur Admins und Techniker können Wartungen planen.");
       return;
     }
 
     if (!maintenanceCustomerId || !maintenanceDeviceId || !maintenanceNextDue) {
-      alert("Bitte Kunde, GerÃ¤t und nÃ¤chsten Wartungstermin auswÃ¤hlen.");
+      alert("Bitte Kunde, Gerät und nächsten Wartungstermin auswählen.");
       return;
     }
 
@@ -5293,14 +5293,14 @@ export default function Home() {
     }
 
     if (!selectedDevice) {
-      alert("GerÃ¤t wurde nicht gefunden oder gehÃ¶rt nicht zu diesem Kunden.");
+      alert("Gerät wurde nicht gefunden oder gehört nicht zu diesem Kunden.");
       return;
     }
 
     const payload = {
       device_id: deviceId,
       customer_id: customerId,
-      title: `${maintenanceType} Â· ${selectedCustomer.company || "Kunde"} Â· ${selectedDevice.name}`,
+      title: `${maintenanceType} · ${selectedCustomer.company || "Kunde"} · ${selectedDevice.name}`,
       maintenance_type: maintenanceType,
       interval_days: Number(maintenanceIntervalDays) || null,
       next_due: maintenanceNextDue,
@@ -5320,7 +5320,7 @@ export default function Home() {
     await createDeviceHistory(
       deviceId,
       "Wartung geplant",
-      `${maintenanceType} Â· Kunde: ${selectedCustomer.company || "Nicht angegeben"} Â· Termin: ${maintenanceNextDue} Â· Techniker: ${getMaintenanceAssignedName(maintenanceAssignedTo)} Â· Status: ${maintenanceStatus}`,
+      `${maintenanceType} · Kunde: ${selectedCustomer.company || "Nicht angegeben"} · Termin: ${maintenanceNextDue} · Techniker: ${getMaintenanceAssignedName(maintenanceAssignedTo)} · Status: ${maintenanceStatus}`,
       "Wartung",
     );
 
@@ -5347,7 +5347,7 @@ export default function Home() {
 
     await createDeviceHistory(
       plan.device_id || null,
-      "Wartungsstatus geÃ¤ndert",
+      "Wartungsstatus geändert",
       `${plan.title || "Wartung"}: ${newStatus}`,
       "Wartung",
     );
@@ -5367,7 +5367,7 @@ export default function Home() {
     const intervalDays = Number(intervalInput);
 
     if (!Number.isFinite(intervalDays) || intervalDays <= 0) {
-      alert("Bitte eine gÃ¼ltige Tageszahl eingeben.");
+      alert("Bitte eine gültige Tageszahl eingeben.");
       return;
     }
 
@@ -5379,7 +5379,7 @@ export default function Home() {
     const payload = {
       device_id: item.id,
       customer_id: item.customer_id || null,
-      title: `Regelwartung ${getCustomerNameById(item.customer_id)} Â· ${item.name}`,
+      title: `Regelwartung ${getCustomerNameById(item.customer_id)} · ${item.name}`,
       maintenance_type: "Regelwartung",
       interval_days: intervalDays,
       next_due: nextDue.toISOString().split("T")[0],
@@ -5403,7 +5403,7 @@ export default function Home() {
     await createDeviceHistory(
       item.id,
       existingPlan ? "Wartungsplan aktualisiert" : "Wartungsplan erstellt",
-      `Intervall: ${intervalDays} Tage Â· NÃ¤chste Wartung: ${payload.next_due}`,
+      `Intervall: ${intervalDays} Tage · Nächste Wartung: ${payload.next_due}`,
       "Wartung",
     );
 
@@ -5412,7 +5412,7 @@ export default function Home() {
   }
 
   async function deleteMaintenancePlan(planId: number) {
-    if (!confirm("Wartungsplan wirklich lÃ¶schen?")) return;
+    if (!confirm("Wartungsplan wirklich löschen?")) return;
 
     const { error } = await supabase
       .from("maintenance_plans")
@@ -5420,7 +5420,7 @@ export default function Home() {
       .eq("id", planId);
 
     if (error) {
-      alert("Wartungsplan konnte nicht gelÃ¶scht werden.");
+      alert("Wartungsplan konnte nicht gelöscht werden.");
       return;
     }
 
@@ -5438,7 +5438,7 @@ export default function Home() {
 
   async function saveInspectionBadge() {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admin und Techniker kÃ¶nnen PrÃ¼fsiegel eintragen.");
+      alert("Nur Admin und Techniker können Prüfsiegel eintragen.");
       return;
     }
 
@@ -5449,7 +5449,7 @@ export default function Home() {
       !inspectionBadgeNumber.trim()
     ) {
       alert(
-        "Bitte GerÃ¤t, PrÃ¼fsiegelnummer, PrÃ¼fdatum und Ablaufdatum ausfÃ¼llen.",
+        "Bitte Gerät, Prüfsiegelnummer, Prüfdatum und Ablaufdatum ausfüllen.",
       );
       return;
     }
@@ -5462,7 +5462,7 @@ export default function Home() {
       .update({
         next_check: inspectionExpires,
         status:
-          inspectionResult === "Bestanden" ? "Aktiv" : "PrÃ¼fung erforderlich",
+          inspectionResult === "Bestanden" ? "Aktiv" : "Prüfung erforderlich",
         inspection_badge_number: inspectionBadgeNumber.trim(),
         inspection_date: inspectionDate,
         inspection_expires: inspectionExpires,
@@ -5474,40 +5474,40 @@ export default function Home() {
 
     if (error) {
       alert(
-        `PrÃ¼fsiegel konnte nicht gespeichert werden: ${error.message}\n\nBitte zuerst die SQL-Datei aus Schritt 16 in Supabase ausfÃ¼hren.`,
+        `Prüfsiegel konnte nicht gespeichert werden: ${error.message}\n\nBitte zuerst die SQL-Datei aus Schritt 16 in Supabase ausführen.`,
       );
       return;
     }
 
     await createDeviceHistory(
       deviceId,
-      "PrÃ¼fsiegel eingetragen",
-      `Siegel: ${inspectionBadgeNumber} Â· Ergebnis: ${inspectionResult} Â· gÃ¼ltig bis ${inspectionExpires}${inspectionComment ? ` Â· ${inspectionComment}` : ""}`,
-      "PrÃ¼fsiegel",
+      "Prüfsiegel eingetragen",
+      `Siegel: ${inspectionBadgeNumber} · Ergebnis: ${inspectionResult} · gültig bis ${inspectionExpires}${inspectionComment ? ` · ${inspectionComment}` : ""}`,
+      "Prüfsiegel",
     );
 
     if (selectedDevice) {
       await createDeviceHistory(
         deviceId,
-        "PrÃ¼fung dokumentiert",
-        `${selectedDevice.name} wurde am ${inspectionDate} geprÃ¼ft. Ablaufdatum: ${inspectionExpires}`,
-        "PrÃ¼fung",
+        "Prüfung dokumentiert",
+        `${selectedDevice.name} wurde am ${inspectionDate} geprüft. Ablaufdatum: ${inspectionExpires}`,
+        "Prüfung",
       );
     }
 
     resetInspectionForm();
     await loadDevices();
-    alert("PrÃ¼fsiegel wurde gespeichert.");
+    alert("Prüfsiegel wurde gespeichert.");
   }
 
   async function customerCreateDeviceTicketAndRequest() {
     if (!isCustomer) {
-      alert("Diese Funktion ist nur fÃ¼r Kunden vorgesehen.");
+      alert("Diese Funktion ist nur für Kunden vorgesehen.");
       return;
     }
 
     if (!customerDeviceName.trim() || !customerDefectDescription.trim()) {
-      alert("Bitte GerÃ¤tename und Beschreibung ausfÃ¼llen.");
+      alert("Bitte Gerätename und Beschreibung ausfüllen.");
       return;
     }
 
@@ -5524,13 +5524,13 @@ export default function Home() {
           serial_number: customerDeviceSerial.trim() || null,
           location: customerDeviceLocation.trim() || null,
           status:
-            customerServiceType === "PrÃ¼fung / PrÃ¼fsiegel"
-              ? "PrÃ¼fung erforderlich"
+            customerServiceType === "Prüfung / Prüfsiegel"
+              ? "Prüfung erforderlich"
               : "Aktiv",
           note: customerDefectDescription.trim(),
           customer_id: customerId,
           next_check:
-            customerServiceType === "PrÃ¼fung / PrÃ¼fsiegel"
+            customerServiceType === "Prüfung / Prüfsiegel"
               ? customerPreferredDate || null
               : null,
         },
@@ -5540,14 +5540,14 @@ export default function Home() {
 
     if (deviceInsert.error || !deviceInsert.data) {
       alert(
-        `GerÃ¤t konnte nicht angelegt werden: ${deviceInsert.error?.message || "Unbekannter Fehler"}\n\nBitte zuerst die SQL-Datei aus Schritt 16 in Supabase ausfÃ¼hren.`,
+        `Gerät konnte nicht angelegt werden: ${deviceInsert.error?.message || "Unbekannter Fehler"}\n\nBitte zuerst die SQL-Datei aus Schritt 16 in Supabase ausführen.`,
       );
       return;
     }
 
     const issuePrefix =
-      customerServiceType === "PrÃ¼fung / PrÃ¼fsiegel"
-        ? "PrÃ¼fung / PrÃ¼fsiegel angefordert"
+      customerServiceType === "Prüfung / Prüfsiegel"
+        ? "Prüfung / Prüfsiegel angefordert"
         : customerServiceType === "Wartung"
           ? "Wartung angefragt"
           : "Defekt gemeldet";
@@ -5580,7 +5580,7 @@ export default function Home() {
 
     if (ticketInsert.error) {
       alert(
-        `GerÃ¤t wurde angelegt, aber Ticket konnte nicht erstellt werden: ${ticketInsert.error.message}`,
+        `Gerät wurde angelegt, aber Ticket konnte nicht erstellt werden: ${ticketInsert.error.message}`,
       );
       await loadDevices();
       return;
@@ -5588,14 +5588,14 @@ export default function Home() {
 
     if (
       customerServiceType === "Wartung" ||
-      customerServiceType === "PrÃ¼fung / PrÃ¼fsiegel"
+      customerServiceType === "Prüfung / Prüfsiegel"
     ) {
       const nextDue =
         customerPreferredDate || new Date().toISOString().split("T")[0];
       await supabase.from("maintenance_plans").insert([
         {
           device_id: deviceInsert.data.id,
-          title: `${customerServiceType} angefragt Â· ${deviceInsert.data.name}`,
+          title: `${customerServiceType} angefragt · ${deviceInsert.data.name}`,
           interval_days: null,
           next_due: nextDue,
         },
@@ -5605,7 +5605,7 @@ export default function Home() {
     await createDeviceHistory(
       deviceInsert.data.id,
       "Kundenmeldung erstellt",
-      `${customerServiceType} Â· ${ticketDescription}`,
+      `${customerServiceType} · ${ticketDescription}`,
       "Kundenportal",
     );
 
@@ -5620,7 +5620,7 @@ export default function Home() {
     await loadDevices();
     await loadTickets();
     await loadMaintenancePlans();
-    alert("GerÃ¤t und Service-Anfrage wurden gespeichert.");
+    alert("Gerät und Service-Anfrage wurden gespeichert.");
   }
 
   function generateInspectionPdf(item: Device) {
@@ -5632,7 +5632,7 @@ export default function Home() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT PrÃ¼fbericht</title>
+          <title>PRO-EFFEKT Prüfbericht</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { color: #0284c7; margin-bottom: 4px; }
@@ -5646,23 +5646,23 @@ export default function Home() {
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">Pro-Effekt Software Service Â· Automatischer PrÃ¼fbericht</p>
+          <p class="muted">Pro-Effekt Software Service · Automatischer Prüfbericht</p>
 
-          <h2>PrÃ¼fbericht</h2>
+          <h2>Prüfbericht</h2>
           <div class="box grid">
-            <div><strong>GerÃ¤t</strong><br />${item.name}</div>
+            <div><strong>Gerät</strong><br />${item.name}</div>
             <div><strong>Seriennummer</strong><br />${item.serial_number || "Nicht angegeben"}</div>
             <div><strong>Standort</strong><br />${item.location || "Nicht angegeben"}</div>
             <div><strong>Status</strong><br />${item.status || "Aktiv"}</div>
-            <div><strong>NÃ¤chste PrÃ¼fung</strong><br />${item.next_check || "Nicht geplant"}</div>
-            <div><strong>PrÃ¼fstatus</strong><br />${inspection.label}</div>
+            <div><strong>Nächste Prüfung</strong><br />${item.next_check || "Nicht geplant"}</div>
+            <div><strong>Prüfstatus</strong><br />${inspection.label}</div>
           </div>
 
-          <h2>SicherheitsprÃ¼fung- und Service-/Wartungsplanung</h2>
+          <h2>Sicherheitsprüfung- und Service-/Wartungsplanung</h2>
           <div class="box">
-            <p><strong>SicherheitsprÃ¼fung-/Wartungsplan:</strong> ${plan?.title || "Kein Wartungsplan hinterlegt"}</p>
+            <p><strong>Sicherheitsprüfung-/Wartungsplan:</strong> ${plan?.title || "Kein Wartungsplan hinterlegt"}</p>
             <p><strong>Intervall:</strong> ${plan?.interval_days || "-"} Tage</p>
-            <p><strong>NÃ¤chste SicherheitsprÃ¼fung/Wartung:</strong> ${plan?.next_due || "Nicht geplant"}</p>
+            <p><strong>Nächste Sicherheitsprüfung/Wartung:</strong> ${plan?.next_due || "Nicht geplant"}</p>
           </div>
 
           <h2>Hinweise</h2>
@@ -5671,7 +5671,7 @@ export default function Home() {
           </div>
 
           <div class="footer">
-            <div class="line">PrÃ¼fer / Techniker</div>
+            <div class="line">Prüfer / Techniker</div>
             <div class="line">Kunde / Unterschrift</div>
           </div>
 
@@ -5692,8 +5692,8 @@ export default function Home() {
 
     createDeviceHistory(
       item.id,
-      "PDF-PrÃ¼fbericht erstellt",
-      `PrÃ¼fbericht fÃ¼r ${item.name}`,
+      "PDF-Prüfbericht erstellt",
+      `Prüfbericht für ${item.name}`,
       "PDF",
     );
   }
@@ -5705,17 +5705,17 @@ export default function Home() {
     );
 
     const recipient = relatedCustomer?.email || "";
-    const subject = encodeURIComponent(`PrÃ¼fbericht ${item.name}`);
+    const subject = encodeURIComponent(`Prüfbericht ${item.name}`);
     const body = encodeURIComponent(
       `Hallo,
 
-anbei bzw. im PRO-EFFEKT Portal finden Sie den PrÃ¼fbericht fÃ¼r folgendes GerÃ¤t:
+anbei bzw. im PRO-EFFEKT Portal finden Sie den Prüfbericht für folgendes Gerät:
 
-GerÃ¤t: ${item.name}
+Gerät: ${item.name}
 Seriennummer: ${item.serial_number || "nicht angegeben"}
 Standort: ${item.location || "nicht angegeben"}
 
-Viele GrÃ¼ÃŸe
+Viele Grüße
 PRO-EFFEKT`,
     );
 
@@ -5755,7 +5755,7 @@ PRO-EFFEKT`,
     setPartCategory(part.category || "");
     setPartStock(String(part.stock ?? 0));
     setPartMinStock(String(part.min_stock ?? 1));
-    setPartUnit(part.unit || "StÃ¼ck");
+    setPartUnit(part.unit || "Stück");
     setPartLocation(part.location || "");
     setPartNote(part.note || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -5763,7 +5763,7 @@ PRO-EFFEKT`,
 
   async function saveServicePart() {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Ersatzteile anlegen oder bearbeiten.");
+      alert("Nur Admins können Ersatzteile anlegen oder bearbeiten.");
       return;
     }
 
@@ -5778,7 +5778,7 @@ PRO-EFFEKT`,
       category: partCategory.trim() || null,
       stock: Number(partStock) || 0,
       min_stock: Number(partMinStock) || 0,
-      unit: partUnit.trim() || "StÃ¼ck",
+      unit: partUnit.trim() || "Stück",
       location: partLocation.trim() || null,
       note: partNote.trim() || null,
     };
@@ -5803,11 +5803,11 @@ PRO-EFFEKT`,
 
   async function deleteServicePart(partId: number) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Ersatzteile lÃ¶schen.");
+      alert("Nur Admins können Ersatzteile löschen.");
       return;
     }
 
-    if (!confirm("Ersatzteil wirklich lÃ¶schen?")) return;
+    if (!confirm("Ersatzteil wirklich löschen?")) return;
 
     const { error } = await supabase
       .from("service_parts")
@@ -5815,7 +5815,7 @@ PRO-EFFEKT`,
       .eq("id", partId);
 
     if (error) {
-      alert(`Ersatzteil konnte nicht gelÃ¶scht werden: ${error.message}`);
+      alert(`Ersatzteil konnte nicht gelöscht werden: ${error.message}`);
       return;
     }
 
@@ -5829,12 +5829,12 @@ PRO-EFFEKT`,
     const quantity = Number(partUsageQuantity);
 
     if (!part) {
-      alert("Bitte Ersatzteil auswÃ¤hlen.");
+      alert("Bitte Ersatzteil auswählen.");
       return;
     }
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      alert("Bitte gÃ¼ltige Menge eingeben.");
+      alert("Bitte gültige Menge eingeben.");
       return;
     }
 
@@ -5842,7 +5842,7 @@ PRO-EFFEKT`,
 
     if (quantity > currentStock) {
       const proceed = confirm(
-        "Die Menge ist grÃ¶ÃŸer als der aktuelle Bestand. Trotzdem buchen?",
+        "Die Menge ist größer als der aktuelle Bestand. Trotzdem buchen?",
       );
       if (!proceed) return;
     }
@@ -5882,7 +5882,7 @@ PRO-EFFEKT`,
     await createDeviceHistory(
       partUsageDeviceId ? Number(partUsageDeviceId) : null,
       "Ersatzteil verbraucht",
-      `${quantity} ${part.unit || "StÃ¼ck"} Â· ${part.name}${partUsageNote ? ` Â· ${partUsageNote}` : ""}`,
+      `${quantity} ${part.unit || "Stück"} · ${part.name}${partUsageNote ? ` · ${partUsageNote}` : ""}`,
       "Ersatzteil",
     );
 
@@ -5907,7 +5907,7 @@ PRO-EFFEKT`,
     );
 
     if (customerDevices.length === 0) {
-      alert("FÃ¼r diesen Kunden sind keine GerÃ¤te vorhanden.");
+      alert("Für diesen Kunden sind keine Geräte vorhanden.");
       return;
     }
 
@@ -5922,7 +5922,7 @@ PRO-EFFEKT`,
     const maintenanceRows = customerDevices.map((deviceItem) => ({
       device_id: deviceItem.id,
       customer_id: contract.customer_id,
-      title: `Automatische SicherheitsprÃ¼fung/Wartung Â· ${contract.contract_number} Â· ${deviceItem.name}`,
+      title: `Automatische Sicherheitsprüfung/Wartung · ${contract.contract_number} · ${deviceItem.name}`,
       maintenance_type: contract.contract_type || "Wartungsvertrag",
       interval_days: intervalMonths * 30,
       next_due: nextDue.toISOString().split("T")[0],
@@ -5943,8 +5943,8 @@ PRO-EFFEKT`,
     for (const deviceItem of customerDevices) {
       await createDeviceHistory(
         deviceItem.id,
-        "SicherheitsprÃ¼fung/Wartung automatisch erzeugt",
-        `${contract.contract_number} Â· nÃ¤chste Wartung: ${nextDue.toISOString().split("T")[0]}`,
+        "Sicherheitsprüfung/Wartung automatisch erzeugt",
+        `${contract.contract_number} · nächste Wartung: ${nextDue.toISOString().split("T")[0]}`,
         "Vertrag",
       );
     }
@@ -5987,7 +5987,7 @@ PRO-EFFEKT`,
 
   async function saveContract() {
     if (!contractCustomerId || !contractTitle.trim()) {
-      alert("Bitte Kunde und Vertragstitel auswÃ¤hlen.");
+      alert("Bitte Kunde und Vertragstitel auswählen.");
       return;
     }
 
@@ -6043,12 +6043,12 @@ PRO-EFFEKT`,
 
   async function deleteContract(contractId: number) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen VertrÃ¤ge lÃ¶schen.");
+      alert("Nur Admins können Verträge löschen.");
       return;
     }
 
     const confirmed = window.confirm(
-      "Diesen Vertrag wirklich lÃ¶schen? Bereits erzeugte Wartungen bleiben erhalten.",
+      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen bleiben erhalten.",
     );
 
     if (!confirmed) return;
@@ -6059,7 +6059,7 @@ PRO-EFFEKT`,
       .eq("id", contractId);
 
     if (error) {
-      alert(`Vertrag konnte nicht gelÃ¶scht werden: ${error.message}`);
+      alert(`Vertrag konnte nicht gelöscht werden: ${error.message}`);
       return;
     }
 
@@ -6068,7 +6068,7 @@ PRO-EFFEKT`,
     }
 
     setContracts((prev) => prev.filter((item) => item.id !== contractId));
-    alert("Vertrag wurde gelÃ¶scht.");
+    alert("Vertrag wurde gelöscht.");
   }
 
   async function updateContractStatus(
@@ -6081,7 +6081,7 @@ PRO-EFFEKT`,
       .eq("id", contractId);
 
     if (error) {
-      alert(`Status konnte nicht geÃ¤ndert werden: ${error.message}`);
+      alert(`Status konnte nicht geändert werden: ${error.message}`);
       return;
     }
 
@@ -6095,7 +6095,7 @@ PRO-EFFEKT`,
   }
 
   function resetNotificationForm() {
-    setNotificationType("EinsatzbestÃ¤tigung");
+    setNotificationType("Einsatzbestätigung");
     setNotificationRecipient("");
     setNotificationSubject("");
     setNotificationMessage("");
@@ -6104,7 +6104,7 @@ PRO-EFFEKT`,
 
   async function saveNotification() {
     if (!notificationRecipient.trim() || !notificationSubject.trim()) {
-      alert("Bitte EmpfÃ¤nger und Betreff ausfÃ¼llen.");
+      alert("Bitte Empfänger und Betreff ausfüllen.");
       return;
     }
 
@@ -6144,7 +6144,7 @@ PRO-EFFEKT`,
       .eq("id", notificationId);
 
     if (error) {
-      alert(`Status konnte nicht geÃ¤ndert werden: ${error.message}`);
+      alert(`Status konnte nicht geändert werden: ${error.message}`);
       return;
     }
 
@@ -6188,7 +6188,7 @@ PRO-EFFEKT`,
   }
 
   function getAbnahmeNeutralDeviceLabel(item?: Device | null) {
-    if (!item) return "Unbekanntes GerÃ¤t";
+    if (!item) return "Unbekanntes Gerät";
 
     const manufacturerName =
       item.manufacturer ||
@@ -6202,11 +6202,11 @@ PRO-EFFEKT`,
       item.model ||
       "";
 
-    const deviceName = item.name || modelName || "Unbekanntes GerÃ¤t";
+    const deviceName = item.name || modelName || "Unbekanntes Gerät";
 
     return [manufacturerName, categoryName, modelName || deviceName]
       .filter(Boolean)
-      .join(" Â· ");
+      .join(" · ");
   }
 
   function buildAbnahmeDeviceRow(item: Device): AbnahmeDeviceRow {
@@ -6523,7 +6523,7 @@ PRO-EFFEKT`,
         ? protocolDeviceRows
             .map(
               (item, index) =>
-                `${index + 1}. ${item.manufacturer || "-"} Â· ${item.model || "-"} Â· SN: ${item.serial || "-"}`,
+                `${index + 1}. ${item.manufacturer || "-"} · ${item.model || "-"} · SN: ${item.serial || "-"}`,
             )
             .join("<br/>")
         : `${abnahmeManufacturer || ""} ${abnahmeModel || ""}`.trim();
@@ -6531,7 +6531,7 @@ PRO-EFFEKT`,
       .map(
         (item, index) => `
           <tr>
-            <td colspan="6" class="question">GerÃ¤t ${index + 1}</td>
+            <td colspan="6" class="question">Gerät ${index + 1}</td>
             <td>${item.manufacturer || ""}</td>
             <td>${item.model || ""}</td>
             <td>${item.serial || ""}</td>
@@ -6561,8 +6561,8 @@ PRO-EFFEKT`,
             <td>${item.vs ? "X" : ""}</td>
             <td>${item.df ? "X" : ""}</td>
             <td>${index + 1}</td>
-            <td>${protocolDeviceRows.length > 1 ? "siehe GerÃ¤teliste" : protocolDeviceRows[0]?.manufacturer || ""}</td>
-            <td>${protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} GerÃ¤te / GerÃ¤te / Modelle` : protocolDeviceRows[0]?.model || ""}</td>
+            <td>${protocolDeviceRows.length > 1 ? "siehe Geräteliste" : protocolDeviceRows[0]?.manufacturer || ""}</td>
+            <td>${protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} Geräte / Geräte / Modelle` : protocolDeviceRows[0]?.model || ""}</td>
             <td>${protocolDeviceRows.length > 1 ? "" : protocolDeviceRows[0]?.serial || ""}</td>
             <td>${item.comment || (index === 0 ? abnahmeDefects : "")}</td>
             <td>${abnahmeDeviceResult}</td>
@@ -6739,7 +6739,7 @@ PRO-EFFEKT`,
                 <img src="/pro-effekt-logo.png" class="logo" onerror="this.style.display='none'" />
               </div>
               <div>
-                <h1>Abnahmeprotokoll Reparatur & Wartung fÃ¼r Sport-Fitness â€“ Kraft & Medizin GerÃ¤te</h1>
+                <h1>Abnahmeprotokoll Reparatur & Wartung für Sport-Fitness – Kraft & Medizin Geräte</h1>
               </div>
               <div class="small" style="text-align:right;">
                 Seite <span class="line short">${abnahmePage}</span> von
@@ -6748,13 +6748,13 @@ PRO-EFFEKT`,
             </div>
 
             <div class="row">
-              Datum der PrÃ¼fung <span class="line mid">${abnahmeDate}</span>
+              Datum der Prüfung <span class="line mid">${abnahmeDate}</span>
               Adresse / Objekt <span class="line">${abnahmeAddressObject || (selectedCustomer ? buildCustomerAddress(selectedCustomer) : selectedDevice?.location || "")}</span>
             </div>
 
             ${
               protocolDevices.length > 1
-                ? `<div class="row">GeprÃ¼fte GerÃ¤te / GerÃ¤te / Modelle <span class="line" style="min-width:520px;">${protocolDeviceText}</span></div>`
+                ? `<div class="row">Geprüfte Geräte / Geräte / Modelle <span class="line" style="min-width:520px;">${protocolDeviceText}</span></div>`
                 : ""
             }
 
@@ -6765,13 +6765,13 @@ PRO-EFFEKT`,
               Einmalige Wartung ( ${abnahmeContractType === "Einmalige Wartung" ? "X" : ""} )
               Abnahme ( ${abnahmeContractType === "Abnahme" ? "X" : ""} )
               DGUV202-044 ( ${abnahmeDguvChecked ? "X" : ""} )
-              SicherheitsprÃ¼fung-UnfallverhÃ¼tungsvorschrift PrÃ¼fung ( ${abnahmeUvvChecked ? "X" : ""} )
+              Sicherheitsprüfung-Unfallverhütungsvorschrift Prüfung ( ${abnahmeUvvChecked ? "X" : ""} )
             </div>
 
             <table>
               <thead>
                 <tr>
-                  <th>PrÃ¼fpunkt</th>
+                  <th>Prüfpunkt</th>
                   <th>Ja</th>
                   <th>OK</th>
                   <th>VS</th>
@@ -6780,14 +6780,14 @@ PRO-EFFEKT`,
                   <th>Hersteller</th>
                   <th>Modell / NR</th>
                   <th>Seriennr.</th>
-                  <th>MÃ¤ngel</th>
+                  <th>Mängel</th>
                   <th>DF / OK / Rep</th>
                 </tr>
               </thead>
               <tbody>
                 ${checkRows}
                 <tr>
-                  <td class="question">PrÃ¼fplakette angebracht</td>
+                  <td class="question">Prüfplakette angebracht</td>
                   <td colspan="2">N ( ${abnahmeBadgeApplied ? "" : "X"} )</td>
                   <td colspan="2">OK ( ${abnahmeBadgeApplied ? "X" : ""} )</td>
                   <td colspan="6"></td>
@@ -6805,7 +6805,7 @@ PRO-EFFEKT`,
                 <div class="footer-line">${abnahmeDate}</div>
               </div>
               <div>
-                KÃ¼rzel:
+                Kürzel:
                 <div class="footer-line">${abnahmeTechnicianShort}</div>
               </div>
             </div>
@@ -6822,7 +6822,7 @@ PRO-EFFEKT`,
             </div>
 
             <div class="row">
-              NÃ¤chste PrÃ¼fung:
+              Nächste Prüfung:
               <span class="line mid">${abnahmeNextInspection}</span>
             </div>
 
@@ -6847,7 +6847,7 @@ PRO-EFFEKT`,
                 Lockenbach 1, 51491 Overath&nbsp;&nbsp;&nbsp; Lager: Mathildenstr. 5, 53797 Lohmar<br/>
                 Tel. 02206-9389333, Fax 02206-9389339<br/>
                 E-Mail: info@pro-effekt.de, URL: www.pro-effekt.de<br/>
-                Inhaber-GeschÃ¤ftsfÃ¼hrer: Frank Ehlers&nbsp;&nbsp; Ust_iD: DE2335605663&nbsp;&nbsp; HRA 37460 Amtsgericht KÃ¶ln
+                Inhaber-Geschäftsführer: Frank Ehlers&nbsp;&nbsp; Ust_iD: DE2335605663&nbsp;&nbsp; HRA 37460 Amtsgericht Köln
               </div>
 
               <div class="footer-partner">
@@ -6896,7 +6896,7 @@ PRO-EFFEKT`,
         ? protocolDeviceRows
             .map(
               (item, index) =>
-                `${index + 1}. ${item.manufacturer || "-"} Â· ${item.model || "-"} Â· SN: ${item.serial || "-"}`,
+                `${index + 1}. ${item.manufacturer || "-"} · ${item.model || "-"} · SN: ${item.serial || "-"}`,
             )
             .join(" | ")
         : `${abnahmeManufacturer || ""} ${abnahmeModel || ""}`.trim();
@@ -6958,7 +6958,7 @@ PRO-EFFEKT`,
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.text(
-      "Abnahmeprotokoll Reparatur & Wartung fÃ¼r Sport-Fitness â€“ Kraft & Medizin GerÃ¤te",
+      "Abnahmeprotokoll Reparatur & Wartung für Sport-Fitness – Kraft & Medizin Geräte",
       pageWidth / 2,
       y,
       { align: "center" },
@@ -6967,7 +6967,7 @@ PRO-EFFEKT`,
     y += 6;
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(6.8);
-    pdf.text(`Datum der PrÃ¼fung: ${abnahmeDate || "-"}`, 10, y);
+    pdf.text(`Datum der Prüfung: ${abnahmeDate || "-"}`, 10, y);
     pdf.text(`Auftrag: ${abnahmeOrderNumber || selectedTicket?.ticket_number || "-"}`, 58, y);
     pdf.text(`Kunden-Nr.: ${abnahmeCustomerNumber || selectedCustomer?.id || "-"}`, 103, y);
     pdf.text(`Seite ${abnahmePage || "1"} von ${abnahmePagesTotal || "1"}`, 260, y);
@@ -6985,7 +6985,7 @@ PRO-EFFEKT`,
     checkbox("Einmalige Wartung", abnahmeContractType === "Einmalige Wartung", 48, y);
     checkbox("Abnahme", abnahmeContractType === "Abnahme", 91, y);
     checkbox("DGUV202-044", abnahmeDguvChecked, 118, y);
-    checkbox("SicherheitsprÃ¼fung-UnfallverhÃ¼tungsvorschrift PrÃ¼fung", abnahmeUvvChecked, 153, y);
+    checkbox("Sicherheitsprüfung-Unfallverhütungsvorschrift Prüfung", abnahmeUvvChecked, 153, y);
 
     y += 6;
 
@@ -6993,7 +6993,7 @@ PRO-EFFEKT`,
     drawCell(58, y, 76, 7, "Modell / NR", 5.8, true);
     drawCell(134, y, 42, 7, "Seriennummer", 5.8, true);
     drawCell(176, y, 30, 7, "Ergebnis", 5.8, true);
-    drawCell(206, y, 78, 7, "MÃ¤ngel / GerÃ¤tedaten", 5.8, true);
+    drawCell(206, y, 78, 7, "Mängel / Gerätedaten", 5.8, true);
 
     y += 7;
     drawCell(
@@ -7001,7 +7001,7 @@ PRO-EFFEKT`,
       y,
       48,
       8,
-      protocolDeviceRows.length > 1 ? "siehe GerÃ¤teliste" : protocolDeviceRows[0]?.manufacturer || "-",
+      protocolDeviceRows.length > 1 ? "siehe Geräteliste" : protocolDeviceRows[0]?.manufacturer || "-",
       5.8,
     );
     drawCell(
@@ -7009,19 +7009,19 @@ PRO-EFFEKT`,
       y,
       76,
       8,
-      protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} GerÃ¤te` : protocolDeviceRows[0]?.model || "-",
+      protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} Geräte` : protocolDeviceRows[0]?.model || "-",
       5.8,
     );
     drawCell(134, y, 42, 8, protocolDeviceRows.length > 1 ? "" : protocolDeviceRows[0]?.serial || "-", 5.8);
     drawCell(176, y, 30, 8, protocolDeviceRows.length > 1 ? "" : protocolDeviceRows[0]?.result || "-", 5.8, true, "center");
-    drawCell(206, y, 78, 8, protocolDeviceRows.length > 1 ? "siehe GerÃ¤teliste unten" : protocolDeviceRows[0]?.defects || "-", 5.6);
+    drawCell(206, y, 78, 8, protocolDeviceRows.length > 1 ? "siehe Geräteliste unten" : protocolDeviceRows[0]?.defects || "-", 5.6);
 
     y += 10;
 
     if (protocolDeviceRows.length > 1) {
       protocolDeviceRows.forEach((deviceRow, deviceIndex) => {
         const rowHeight = 8;
-        drawCell(10, y, 18, rowHeight, `GerÃ¤t ${deviceIndex + 1}`, 5.4, true);
+        drawCell(10, y, 18, rowHeight, `Gerät ${deviceIndex + 1}`, 5.4, true);
         drawCell(28, y, 48, rowHeight, deviceRow.manufacturer || "-", 5.2);
         drawCell(76, y, 70, rowHeight, deviceRow.model || "-", 5.2);
         drawCell(146, y, 38, rowHeight, deviceRow.serial || "-", 5.2);
@@ -7036,7 +7036,7 @@ PRO-EFFEKT`,
     const colX = [10, 151, 163, 175, 187, 199];
     const colW = [141, 12, 12, 12, 12, 85];
 
-    drawCell(colX[0], y, colW[0], 6, "PrÃ¼fpunkt", 5.8, true);
+    drawCell(colX[0], y, colW[0], 6, "Prüfpunkt", 5.8, true);
     drawCell(colX[1], y, colW[1], 6, "Ja", 5.8, true, "center");
     drawCell(colX[2], y, colW[2], 6, "OK", 5.8, true, "center");
     drawCell(colX[3], y, colW[3], 6, "VS", 5.8, true, "center");
@@ -7066,10 +7066,10 @@ PRO-EFFEKT`,
     y += 4;
 
     pdf.setFontSize(6.5);
-    checkbox("PrÃ¼fplakette angebracht", abnahmeBadgeApplied, 10, y);
-    pdf.text(`NÃ¤chste PrÃ¼fung: ${abnahmeNextInspection || "-"}`, 62, y);
+    checkbox("Prüfplakette angebracht", abnahmeBadgeApplied, 10, y);
+    pdf.text(`Nächste Prüfung: ${abnahmeNextInspection || "-"}`, 62, y);
     pdf.text(`Techniker: ${technicianName}`, 115, y);
-    pdf.text(`KÃ¼rzel: ${abnahmeTechnicianShort || "-"}`, 205, y);
+    pdf.text(`Kürzel: ${abnahmeTechnicianShort || "-"}`, 205, y);
 
     y += 5;
     pdf.text(`Angebot folgt: ${abnahmeOfferFollows || "-"}`, 10, y);
@@ -7118,14 +7118,14 @@ PRO-EFFEKT`,
     pdf.setFontSize(7.4);
     pdf.text("Pro-Effekt e.K.", 12, footerY);
     pdf.setFontSize(4.4);
-    pdf.text("FITNESS EQUIPMENT SERVICE", 12, footerY + 3.4);
+    pdf.text("Pro-Effekt Software Service", 12, footerY + 3.4);
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(5.0);
     pdf.text("Lockenbach 1, 51491 Overath   Lager: Mathildenstr. 5, 53797 Lohmar", 58, footerY);
     pdf.text("Tel. 02206-9389333, Fax 02206-9389339", 58, footerY + 3.8);
     pdf.text("E-Mail: info@pro-effekt.de, URL: www.pro-effekt.de", 58, footerY + 7.6);
-    pdf.text("Inhaber-GeschÃ¤ftsfÃ¼hrer: Frank Ehlers   Ust_iD: DE2335605663   HRA 37460 Amtsgericht KÃ¶ln", 58, footerY + 11.4);
+    pdf.text("Inhaber-Geschäftsführer: Frank Ehlers   Ust_iD: DE2335605663   HRA 37460 Amtsgericht Köln", 58, footerY + 11.4);
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(5.8);
@@ -7149,7 +7149,7 @@ PRO-EFFEKT`,
 
     try {
       const pdfBlob = await createAbnahmeProtocolPdfBlob();
-      const fileName = `Abnahmeprotokoll-DGUV-SicherheitsprÃ¼fung-${Date.now().toString().slice(-6)}.pdf`;
+      const fileName = `Abnahmeprotokoll-DGUV-Sicherheitsprüfung-${Date.now().toString().slice(-6)}.pdf`;
       const filePath = `Abnahmeprotokolle/${Date.now()}-${fileName}`;
 
       const uploadResult = await supabase.storage
@@ -7188,7 +7188,7 @@ PRO-EFFEKT`,
       await createDeviceHistory(
         null,
         "Abnahmeprotokoll Reparatur & Wartung als PDF archiviert",
-        `${fileName} Â· nÃ¤chste PrÃ¼fung: ${abnahmeNextInspection || "nicht angegeben"}`,
+        `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
         "PDF",
       );
 
@@ -7198,7 +7198,7 @@ PRO-EFFEKT`,
       }
     } catch (error: any) {
       alert(
-        `PDF konnte nicht erzeugt werden. Bitte prÃ¼fen, ob jsPDF installiert ist. Fehler: ${
+        `PDF konnte nicht erzeugt werden. Bitte prüfen, ob jsPDF installiert ist. Fehler: ${
           error?.message || "unbekannt"
         }`,
       );
@@ -7207,7 +7207,7 @@ PRO-EFFEKT`,
 
   async function printAbnahmeProtocol() {
     if (!abnahmeCustomerId || selectedAbnahmeDevices.length === 0) {
-      alert("Bitte Kunde und mindestens ein GerÃ¤t / Modell auswÃ¤hlen.");
+      alert("Bitte Kunde und mindestens ein Gerät / Modell auswählen.");
       return;
     }
 
@@ -7221,7 +7221,7 @@ PRO-EFFEKT`,
         : null;
 
       const pdfBlob = await createAbnahmeProtocolPdfBlob();
-      const fileName = `Abnahmeprotokoll-DGUV-SicherheitsprÃ¼fung-${Date.now()
+      const fileName = `Abnahmeprotokoll-DGUV-Sicherheitsprüfung-${Date.now()
         .toString()
         .slice(-6)}.pdf`;
       const filePath = `Abnahmeprotokolle/${Date.now()}-${fileName}`;
@@ -7264,7 +7264,7 @@ PRO-EFFEKT`,
       await createDeviceHistory(
         null,
         "Abnahmeprotokoll Reparatur & Wartung als PDF archiviert",
-        `${fileName} Â· nÃ¤chste PrÃ¼fung: ${abnahmeNextInspection || "nicht angegeben"}`,
+        `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
         "PDF",
       );
 
@@ -7300,12 +7300,12 @@ PRO-EFFEKT`,
 
   async function saveInvoice() {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Rechnungen und Angebote erstellen.");
+      alert("Nur Admins können Rechnungen und Angebote erstellen.");
       return;
     }
 
     if (!invoiceTitle.trim() || !invoiceAmountNet.trim()) {
-      alert("Bitte Titel und Netto-Betrag ausfÃ¼llen.");
+      alert("Bitte Titel und Netto-Betrag ausfüllen.");
       return;
     }
 
@@ -7313,7 +7313,7 @@ PRO-EFFEKT`,
     const tax = Number(invoiceTaxRate.replace(",", "."));
 
     if (!Number.isFinite(net) || net < 0) {
-      alert("Bitte einen gÃ¼ltigen Netto-Betrag eingeben.");
+      alert("Bitte einen gültigen Netto-Betrag eingeben.");
       return;
     }
 
@@ -7355,7 +7355,7 @@ PRO-EFFEKT`,
       .eq("id", invoiceId);
 
     if (error) {
-      alert(`Status konnte nicht geÃ¤ndert werden: ${error.message}`);
+      alert(`Status konnte nicht geändert werden: ${error.message}`);
       return;
     }
 
@@ -7368,12 +7368,12 @@ PRO-EFFEKT`,
 
   async function deleteInvoice(invoiceId: number) {
     if (!isAdmin) {
-      alert("Nur Admins kÃ¶nnen Rechnungen und Angebote lÃ¶schen.");
+      alert("Nur Admins können Rechnungen und Angebote löschen.");
       return;
     }
 
     const confirmed = window.confirm(
-      "Diese Rechnung / dieses Angebot wirklich lÃ¶schen? Diese Aktion kann nicht rÃ¼ckgÃ¤ngig gemacht werden.",
+      "Diese Rechnung / dieses Angebot wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     );
 
     if (!confirmed) return;
@@ -7384,12 +7384,12 @@ PRO-EFFEKT`,
       .eq("id", invoiceId);
 
     if (error) {
-      alert(`Rechnung/Angebot konnte nicht gelÃ¶scht werden: ${error.message}`);
+      alert(`Rechnung/Angebot konnte nicht gelöscht werden: ${error.message}`);
       return;
     }
 
     setInvoices((prev) => prev.filter((item) => item.id !== invoiceId));
-    alert("Rechnung/Angebot wurde gelÃ¶scht.");
+    alert("Rechnung/Angebot wurde gelöscht.");
   }
 
   async function archiveInvoiceDocument(
@@ -7458,7 +7458,7 @@ PRO-EFFEKT`,
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p>Pro-Effekt Software Service Â· ${item.type}</p>
+          <p>Pro-Effekt Software Service · ${item.type}</p>
 
           <h2>${item.type} ${item.number}</h2>
           <div class="box grid">
@@ -7773,16 +7773,16 @@ PRO-EFFEKT`,
 
   async function quickPlanTicket(ticket: Ticket, technicianId: string) {
     if (!technicianId) {
-      alert("Bitte Techniker auswÃ¤hlen.");
+      alert("Bitte Techniker auswählen.");
       return;
     }
 
     if (!calendarDate) {
-      alert("Bitte zuerst ein Planungsdatum auswÃ¤hlen.");
+      alert("Bitte zuerst ein Planungsdatum auswählen.");
       return;
     }
 
-    const time = window.prompt("Uhrzeit fÃ¼r den Einsatz", ticket.service_time || "09:00");
+    const time = window.prompt("Uhrzeit für den Einsatz", ticket.service_time || "09:00");
 
     if (time === null) return;
 
@@ -7902,11 +7902,11 @@ PRO-EFFEKT`,
       : 0;
 
   const overdueInspectionsCount = devices.filter(
-    (item) => getInspectionStatus(item.next_check).label === "ÃœberfÃ¤llig",
+    (item) => getInspectionStatus(item.next_check).label === "Überfällig",
   ).length;
 
   const soonInspectionsCount = devices.filter(
-    (item) => getInspectionStatus(item.next_check).label === "Bald fÃ¤llig",
+    (item) => getInspectionStatus(item.next_check).label === "Bald fällig",
   ).length;
 
   const completedMaintenanceCount = maintenancePlans.filter(
@@ -7996,7 +7996,7 @@ PRO-EFFEKT`,
                 Zustimmung erforderlich
               </h1>
               <p className="mt-4 max-w-3xl text-sm font-semibold leading-7 text-slate-300 md:text-base">
-                Vor Nutzung der Plattform mÃ¼ssen Datenschutz, Nutzungsbedingungen
+                Vor Nutzung der Plattform müssen Datenschutz, Nutzungsbedingungen
                 sowie digitale Dokumentation und Signaturen akzeptiert werden.
               </p>
             </div>
@@ -8007,8 +8007,8 @@ PRO-EFFEKT`,
               <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
                 Die Pro-Effekt Plattform verarbeitet Kundendaten, Kontaktdaten,
-                GerÃ¤tedaten, Tickets, Dokumente, Serviceberichte und PrÃ¼fprotokolle
-                zur DurchfÃ¼hrung von Service-, Wartungs- und PrÃ¼fleistungen.
+                Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
+                zur Durchführung von Service-, Wartungs- und Prüfleistungen.
               </p>
             </section>
 
@@ -8017,9 +8017,9 @@ PRO-EFFEKT`,
                 Nutzungsbedingungen
               </h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Die Plattform darf nur fÃ¼r berechtigte interne und kundenbezogene
+                Die Plattform darf nur für berechtigte interne und kundenbezogene
                 Serviceprozesse genutzt werden. Manipulationen, unberechtigter
-                Zugriff oder missbrÃ¤uchliche Nutzung sind untersagt.
+                Zugriff oder missbräuchliche Nutzung sind untersagt.
               </p>
             </section>
 
@@ -8028,8 +8028,8 @@ PRO-EFFEKT`,
                 Digitale Dokumentation
               </h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Digitale PrÃ¼fprotokolle, PDF-Dokumente und elektronische
-                Signaturen werden zur NachweisfÃ¼hrung gespeichert und archiviert.
+                Digitale Prüfprotokolle, PDF-Dokumente und elektronische
+                Signaturen werden zur Nachweisführung gespeichert und archiviert.
               </p>
             </section>
           </div>
@@ -8043,7 +8043,7 @@ PRO-EFFEKT`,
                 className="mt-1 h-6 w-6 accent-sky-500"
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
-                Ich akzeptiere die DatenschutzerklÃ¤rung und stimme der Verarbeitung
+                Ich akzeptiere die Datenschutzerklärung und stimme der Verarbeitung
                 personenbezogener Daten im Rahmen der Pro-Effekt Plattform zu.
               </span>
             </label>
@@ -8069,7 +8069,7 @@ PRO-EFFEKT`,
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
                 Ich stimme der digitalen Speicherung von Signaturen,
-                PrÃ¼fprotokollen, Serviceberichten und Dokumentationen zu.
+                Prüfprotokollen, Serviceberichten und Dokumentationen zu.
               </span>
             </label>
           </div>
@@ -8083,7 +8083,7 @@ PRO-EFFEKT`,
           </button>
 
           <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
-            Pro-Effekt e.K. Â· Pro-Effekt Software Service Â· Digitale Service-,
+            Pro-Effekt e.K. · Pro-Effekt Software Service · Digitale Service-,
             Wartungs- und Dokumentationsplattform. Hinweis: Diese technische
             Einwilligung ersetzt keine individuelle Rechtsberatung.
           </p>
@@ -8099,20 +8099,20 @@ PRO-EFFEKT`,
       : "Kundenportal";
 
   const portalSubtitle = isAdmin
-    ? "Vollzugriff auf Kunden, GerÃ¤te, Tickets, SicherheitsprÃ¼fung-Wartung, Einsatz, Teile, Dokumente und Berichte."
+    ? "Vollzugriff auf Kunden, Geräte, Tickets, Sicherheitsprüfung-Wartung, Einsatz, Teile, Dokumente und Berichte."
     : isTechnician
-      ? "Einsatzbereich fÃ¼r Tickets, GerÃ¤te, SicherheitsprÃ¼fungen, Fotos und Serviceberichte."
-      : "Eigene GerÃ¤te, Tickets und Dokumente im Ãœberblick.";
+      ? "Einsatzbereich für Tickets, Geräte, Sicherheitsprüfungen, Fotos und Serviceberichte."
+      : "Eigene Geräte, Tickets und Dokumente im Überblick.";
 
   const primaryActionLabel = isAdmin
-    ? "Verwaltung Ã¶ffnen"
+    ? "Verwaltung öffnen"
     : isTechnician
-      ? "Einsatz Ã¶ffnen"
-      : "Portal Ã¶ffnen";
+      ? "Einsatz öffnen"
+      : "Portal öffnen";
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "GerÃ¤te", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
+      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
 
   if (session && legalAccepted && userProfile && !visibleNavItems.includes(activePage)) {
@@ -8133,12 +8133,12 @@ PRO-EFFEKT`,
     {
       title: "Stammdaten",
       icon: "ðŸ¢",
-      items: ["Kunden", "GerÃ¤te"],
+      items: ["Kunden", "Geräte"],
     },
     {
       title: "Dokumente",
       icon: "ðŸ“",
-      items: ["Dokumente", "VertrÃ¤ge", "Rechnungen"],
+      items: ["Dokumente", "Verträge", "Rechnungen"],
     },
     {
       title: "Lager",
@@ -8169,13 +8169,13 @@ PRO-EFFEKT`,
       Kalender: "Kalender",
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
-      GerÃ¤te: "Hersteller-/GerÃ¤tebibliothek",
+      Geräte: "Hersteller-/Gerätebibliothek",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Abnahmeprotokoll",
       Ersatzteile: "Teile",
       Dokumente: "Dokumente",
       Rechnungen: "Rechnungen",
-      VertrÃ¤ge: "VertrÃ¤ge",
+      Verträge: "Verträge",
       Benachrichtigungen: "Kommunikation",
       Auswertungen: "Auswertung",
       Kundenportal: "Portal",
@@ -8213,7 +8213,7 @@ PRO-EFFEKT`,
     }
   }
 
-  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fÃ¤llig" | "ÃœberfÃ¤llig") {
+  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Überfällig") {
     setActivePage("Dokumente");
     setActiveDocumentCategory("Abnahmeprotokolle");
     setUploadCategory("Abnahmeprotokolle");
@@ -8223,7 +8223,7 @@ PRO-EFFEKT`,
     setDocumentDeviceFilter("Alle");
 
     if (typeof window !== "undefined" && session?.user?.id) {
-      window.localStorage.setItem(`pro-effekt-active-page-${session.user.id}`, "GerÃ¤te");
+      window.localStorage.setItem(`pro-effekt-active-page-${session.user.id}`, "Geräte");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -8447,9 +8447,9 @@ PRO-EFFEKT`,
     if (!name) return false;
     if (name.length < 2) return false;
 
-    // Kunden-/Import-/Sammelbezeichnungen gehÃ¶ren nicht in den GerÃ¤tekatalog.
+    // Kunden-/Import-/Sammelbezeichnungen gehören nicht in den Gerätekatalog.
     if (name.includes("/")) return false;
-    if (lower.includes("gerÃ¤tebestand")) return false;
+    if (lower.includes("gerätebestand")) return false;
     if (lower.includes("geraetebestand")) return false;
     if (lower.includes("reviere")) return false;
     if (lower.includes("paket")) return false;
@@ -8458,7 +8458,7 @@ PRO-EFFEKT`,
     if (lower.includes("kalk")) return false;
     if (lower.includes("wp ")) return false;
     if (lower.startsWith("wp")) return false;
-    if (lower.includes("gerÃ¤te ")) return false;
+    if (lower.includes("geräte ")) return false;
     if (lower.includes("geraete ")) return false;
 
     return true;
@@ -8499,7 +8499,7 @@ PRO-EFFEKT`,
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearchNormalized;
 
-    // Ohne Suchbegriff wird nur die saubere Katalog-/Asset-Ãœbersicht angezeigt.
+    // Ohne Suchbegriff wird nur die saubere Katalog-/Asset-Übersicht angezeigt.
     if (!isDeviceDirectorySearchReady) return [];
 
     return devices
@@ -8607,7 +8607,7 @@ PRO-EFFEKT`,
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9Ã¤Ã¶Ã¼ÃŸ]+/gi, " ")
+        .replace(/[^a-z0-9äöüß]+/gi, " ")
         .replace(/\s+/g, " ")
         .trim();
 
@@ -8722,8 +8722,8 @@ PRO-EFFEKT`,
         const singleWordMatch =
           searchParts.length === 1 && searchableText.includes(searchParts[0]);
 
-        // Mehrwortsuchen wie "1 FC Kais" oder "Frank Bell" dÃ¼rfen nicht zufÃ¤llig
-        // Ã¼ber Adresse/E-Mail/Telefon zusammengesucht werden. Sie mÃ¼ssen im Namen,
+        // Mehrwortsuchen wie "1 FC Kais" oder "Frank Bell" dürfen nicht zufällig
+        // über Adresse/E-Mail/Telefon zusammengesucht werden. Sie müssen im Namen,
         // in der Firma, im Ansprechpartner oder in einer Nummer zusammenpassen.
         const matches =
           namePhraseMatch ||
@@ -8737,7 +8737,7 @@ PRO-EFFEKT`,
 
         if (allWordsInNameOrCompany) score += 900;
 
-        // HÃ¶chste PrioritÃ¤t: exakte Kundennummern und zusammenhÃ¤ngende Namens-/Firmensuche.
+        // Höchste Priorität: exakte Kundennummern und zusammenhängende Namens-/Firmensuche.
         if (customerNumber === search || compactCustomerNumber === compactSearch) score += 1500;
         else if (customerNumber.startsWith(search) || compactCustomerNumber.startsWith(compactSearch)) score += 1250;
         else if (customerNumber.includes(search) || compactCustomerNumber.includes(compactSearch)) score += 950;
@@ -8769,7 +8769,7 @@ PRO-EFFEKT`,
         if (address.includes(search)) score += 80;
 
         // Mehrwortsuche wie "1 FC" oder "frank bell":
-        // Treffer in Firma/Label zÃ¤hlen deutlich stÃ¤rker als zufÃ¤llige Treffer in E-Mail/Adresse.
+        // Treffer in Firma/Label zählen deutlich stärker als zufällige Treffer in E-Mail/Adresse.
         score += searchParts.reduce((sum, part) => {
           if (customerNumber.includes(part)) return sum + 120;
           if (company.includes(part) || label.includes(part) || displayName.includes(part)) return sum + 100;
@@ -8799,7 +8799,7 @@ PRO-EFFEKT`,
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9Ã¤Ã¶Ã¼ÃŸ]+/gi, " ")
+        .replace(/[^a-z0-9äöüß]+/gi, " ")
         .replace(/\s+/g, " ")
         .trim();
 
@@ -8807,9 +8807,9 @@ PRO-EFFEKT`,
     const searchParts = search.split(/\s+/).filter(Boolean);
 
     // Wichtig:
-    // Abnahmeprotokolle suchen zuerst in der neutralen GerÃ¤tebibliothek
+    // Abnahmeprotokolle suchen zuerst in der neutralen Gerätebibliothek
     // Hersteller -> Kategorie -> Modell. Seriennummern und Kundenzuordnungen
-    // bleiben ausschlieÃŸlich an KundengerÃ¤ten und werden hier NICHT Ã¼bernommen.
+    // bleiben ausschließlich an Kundengeräten und werden hier NICHT übernommen.
     const neutralDeviceMap = new Map<string, Device>();
 
     deviceModels.forEach((modelItem) => {
@@ -8844,8 +8844,8 @@ PRO-EFFEKT`,
       });
     });
 
-    // Fallback: bereits vorhandene KundengerÃ¤te neutralisieren, falls ein Modell
-    // noch nicht in der Bibliothek angelegt wurde. Seriennummern bleiben drauÃŸen.
+    // Fallback: bereits vorhandene Kundengeräte neutralisieren, falls ein Modell
+    // noch nicht in der Bibliothek angelegt wurde. Seriennummern bleiben draußen.
     devices.forEach((deviceItem) => {
       const manufacturerName =
         deviceItem.manufacturer ||
@@ -8861,7 +8861,7 @@ PRO-EFFEKT`,
         ? getDeviceModelTypeName(deviceModels.find((modelItem) => modelItem.id === deviceItem.model_id))
         : "";
 
-      const deviceName = deviceItem.name || modelName || "Unbekanntes GerÃ¤t";
+      const deviceName = deviceItem.name || modelName || "Unbekanntes Gerät";
 
       const key = [
         normalizeSearchValue(manufacturerName),
@@ -8995,14 +8995,14 @@ PRO-EFFEKT`,
     "Serviceberichte",
     "Abnahmeprotokolle",
     "Fotos",
-    "VertrÃ¤ge",
+    "Verträge",
     "Sonstige Dokumente",
   ].filter((category) => visibleDocumentCategoriesForRole.includes(category));
 
   if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#07111d] text-white">
-        <h1 className="text-4xl font-black">LÃ¤dt...</h1>
+        <h1 className="text-4xl font-black">Lädt...</h1>
       </main>
     );
   }
@@ -9023,7 +9023,7 @@ PRO-EFFEKT`,
 
               <img
                 src="/pro-effekt-logo.png"
-                alt="Pro-Effekt Software Service"
+                alt="Pro-Effekt Logo"
                 className="mx-auto mt-6 h-auto w-full max-w-[220px] object-contain drop-shadow-xl"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
@@ -9035,7 +9035,7 @@ PRO-EFFEKT`,
               </h2>
 
               <p className="mx-auto mt-5 max-w-sm text-base font-semibold leading-relaxed text-slate-300">
-                Service-Tickets, SicherheitsprÃ¼fung-Wartungen und Kundenanfragen sicher verwalten.
+                Service-Tickets, Reparatur & Wartung, Sicherheitsprüfungen und Kundenanfragen sicher verwalten.
               </p>
             </div>
 
@@ -9075,7 +9075,7 @@ PRO-EFFEKT`,
         <div className="text-center">
           <h1 className="text-4xl font-black">Rolle wird geladen...</h1>
           <p className="mt-4 max-w-xl text-sm font-semibold text-slate-300">
-            Die App prÃ¼ft dein Benutzerprofil. Es wird kein automatischer Admin- oder Kundenmodus mehr gesetzt.
+            Die App prüft dein Benutzerprofil. Es wird kein automatischer Admin- oder Kundenmodus mehr gesetzt.
           </p>
           <button
             type="button"
@@ -9125,7 +9125,7 @@ PRO-EFFEKT`,
 
             <img
               src="/pro-effekt-logo.png"
-              alt="Pro-Effekt Software Service"
+              alt="Pro-Effekt Logo"
               className="mt-4 w-56 object-contain"
             />
 
@@ -9182,9 +9182,9 @@ PRO-EFFEKT`,
                         }`}
                       >
                         {navItemLabel(item)}
-                        {item === "GerÃ¤te" && (
+                        {item === "Geräte" && (
                           <span className="mt-1 block text-[11px] font-bold text-slate-400">
-                            Hersteller Â· GerÃ¤tetyp Â· Modell
+                            Hersteller · Gerätetyp · Modell
                           </span>
                         )}
                       </button>
@@ -9246,9 +9246,9 @@ PRO-EFFEKT`,
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
                 className="shrink-0 rounded-2xl border border-sky-500/30 bg-sky-500 px-4 py-3 text-sm font-black text-black shadow-lg shadow-sky-950/30 active:scale-[0.98]"
-                aria-label="MenÃ¼ Ã¶ffnen"
+                aria-label="Menü öffnen"
               >
-                â˜° MenÃ¼
+                â˜° Menü
               </button>
             </div>
           </div>
@@ -9262,14 +9262,14 @@ PRO-EFFEKT`,
                 <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4 pt-[env(safe-area-inset-top)]">
                   <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-400">PRO-EFFEKT</p>
-                    <h3 className="mt-1 text-2xl font-black">MenÃ¼</h3>
+                    <h3 className="mt-1 text-2xl font-black">Menü</h3>
                     <p className="mt-1 truncate text-xs font-semibold text-slate-400">{session.user.email}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
                     className="shrink-0 rounded-2xl bg-white/10 px-4 py-3 text-sm font-black text-white"
-                    aria-label="MenÃ¼ schlieÃŸen"
+                    aria-label="Menü schließen"
                   >
                     âœ•
                   </button>
@@ -9326,7 +9326,7 @@ PRO-EFFEKT`,
                         PDF / Signatur
                       </p>
                       <h3 className="truncate text-xl font-black text-slate-900">
-                        {currentTicket.ticket_number} Â· Servicebericht unterschreiben
+                        {currentTicket.ticket_number} · Servicebericht unterschreiben
                       </h3>
                     </div>
 
@@ -9335,28 +9335,28 @@ PRO-EFFEKT`,
                       onClick={closeServiceReportSigning}
                       className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700"
                     >
-                      SchlieÃŸen
+                      Schließen
                     </button>
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5">
                       <p className="text-sm font-bold text-slate-600">
-                        Techniker und Kunde kÃ¶nnen direkt am Handy, Tablet oder Notebook unterschreiben. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
+                        Techniker und Kunde können direkt am Handy, Tablet oder Notebook unterschreiben. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
-                          placeholder="DurchgefÃ¼hrte Arbeiten / Servicebericht"
+                          placeholder="Durchgeführte Arbeiten / Servicebericht"
                           className="min-h-[150px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
 
                         <input
                           value={serviceBadgeNumber}
                           onChange={(event) => setServiceBadgeNumber(event.target.value)}
-                          placeholder="PrÃ¼fsiegelnummer / PrÃ¼fnummer"
+                          placeholder="Prüfsiegelnummer / Prüfnummer"
                           className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
                         />
 
@@ -9377,7 +9377,7 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceInternalNote}
                           onChange={(event) => setServiceInternalNote(event.target.value)}
-                          placeholder="Interne Notiz, nicht fÃ¼r Kundenbericht"
+                          placeholder="Interne Notiz, nicht für Kundenbericht"
                           className="min-h-[90px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
                       </div>
@@ -9398,7 +9398,7 @@ PRO-EFFEKT`,
                             onClick={() => clearServiceSignature("technician")}
                             className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
                           >
-                            Techniker-Signatur lÃ¶schen
+                            Techniker-Signatur löschen
                           </button>
                         </div>
 
@@ -9417,7 +9417,7 @@ PRO-EFFEKT`,
                             onClick={() => clearServiceSignature("customer")}
                             className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
                           >
-                            Kunden-Signatur lÃ¶schen
+                            Kunden-Signatur löschen
                           </button>
                         </div>
                       </div>
@@ -9430,7 +9430,7 @@ PRO-EFFEKT`,
                       onClick={() => printServiceReport(currentTicket)}
                       className="rounded-3xl bg-slate-900 px-5 py-4 font-black text-white"
                     >
-                      Vorschau / PDF Ã¶ffnen
+                      Vorschau / PDF öffnen
                     </button>
 
                     <button
@@ -9438,7 +9438,7 @@ PRO-EFFEKT`,
                       onClick={() => saveServiceReport(currentTicket)}
                       className="rounded-3xl bg-sky-500 px-5 py-4 font-black text-white"
                     >
-                      Unterschrieben abschlieÃŸen & archivieren
+                      Unterschrieben abschließen & archivieren
                     </button>
                   </div>
                 </div>
@@ -9460,7 +9460,7 @@ PRO-EFFEKT`,
                     onClick={closePreview}
                     className="shrink-0 rounded-2xl bg-red-600 px-4 py-3 text-sm font-black text-white shadow-lg active:scale-[0.98] sm:bg-red-100 sm:px-5 sm:text-red-700"
                   >
-                    âœ• SchlieÃŸen
+                    âœ• Schließen
                   </button>
                 </div>
 
@@ -9486,7 +9486,7 @@ PRO-EFFEKT`,
                   Pro-Effekt Leitstand
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Alle offenen ServicefÃ¤lle, EinsÃ¤tze, SicherheitsprÃ¼fung-Wartungen, PrÃ¼fungen, Teile und Berichte auf einen Blick.
+                  Alle offenen Servicefälle, Einsätze, Sicherheitsprüfung-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
                 </p>
 
                 <button
@@ -9514,7 +9514,7 @@ PRO-EFFEKT`,
                   >
                     Abnahmeprotokoll
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Wartung + DGUV / SicherheitsprÃ¼fung
+                      Wartung + DGUV / Sicherheitsprüfung
                     </span>
                   </button>
 
@@ -9522,7 +9522,7 @@ PRO-EFFEKT`,
                     onClick={() => openPage("Einsatz")}
                     className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
                   >
-                    EinsÃ¤tze
+                    Einsätze
                     <span className="mt-1 block text-xs font-bold opacity-80">
                       Techniker-Workflow
                     </span>
@@ -9542,7 +9542,7 @@ PRO-EFFEKT`,
 
               {!appDataLoaded ? (
                 <div className="rounded-[24px] bg-white p-6 text-sm font-black text-slate-500 shadow-sm">
-                  Dashboard-Daten werden vollstÃ¤ndig geladen â€¦
+                  Dashboard-Daten werden vollständig geladen â€¦
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-5">
@@ -9550,7 +9550,7 @@ PRO-EFFEKT`,
                   <StatCard label="Offen" value={ticketStats.open} />
                   <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
                   <StatCard label="Erledigt" value={ticketStats.completed} />
-                  <StatCard label="Heute EinsÃ¤tze" value={ticketStats.today} />
+                  <StatCard label="Heute Einsätze" value={ticketStats.today} />
                 </div>
               )}
 
@@ -9567,14 +9567,14 @@ PRO-EFFEKT`,
                       onClick={() => openPage("Service-Tickets")}
                       className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                     >
-                      Ã–ffnen
+                      Öffnen
                     </button>
                   </div>
 
                   <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-600">
                     {sortedOpenAdminTickets.length === 0
                       ? "Keine offenen Tickets gefunden."
-                      : `${sortedOpenAdminTickets.length} offene Ticket(s). Die ersten ${Math.min(sortedOpenAdminTickets.length, 5)} werden nach PrioritÃ¤t und Termin angezeigt.`}
+                      : `${sortedOpenAdminTickets.length} offene Ticket(s). Die ersten ${Math.min(sortedOpenAdminTickets.length, 5)} werden nach Priorität und Termin angezeigt.`}
                   </div>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -9638,7 +9638,7 @@ PRO-EFFEKT`,
 
                                   <div className="rounded-2xl bg-slate-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                      ðŸ”§ GerÃ¤t
+                                      ðŸ”§ Gerät
                                     </p>
                                     <p className="mt-1 break-words text-sm font-black text-slate-900">
                                       {ticket.device || "Noch nicht zugewiesen"}
@@ -9688,7 +9688,7 @@ PRO-EFFEKT`,
 
                     {sortedOpenAdminTickets.length > 5 && (
                       <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-600">
-                        Weitere {sortedOpenAdminTickets.length - 5} offene Ticket(s) ausgeblendet. FÃ¼r die vollstÃ¤ndige Disposition bitte Ticketliste Ã¶ffnen.
+                        Weitere {sortedOpenAdminTickets.length - 5} offene Ticket(s) ausgeblendet. Für die vollständige Disposition bitte Ticketliste öffnen.
                       </div>
                     )}
                   </div>
@@ -9697,7 +9697,7 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black">Heutige EinsÃ¤tze</h3>
+                      <h3 className="text-xl font-black">Heutige Einsätze</h3>
                       <p className="mt-1 break-words text-sm font-semibold text-slate-500">
                         Alle Tickets mit Termin heute.
                       </p>
@@ -9706,14 +9706,14 @@ PRO-EFFEKT`,
                       onClick={() => openPage("Einsatz")}
                       className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
                     >
-                      Einsatz Ã¶ffnen
+                      Einsatz öffnen
                     </button>
                   </div>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {todaysAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Heute keine EinsÃ¤tze geplant.
+                        Heute keine Einsätze geplant.
                       </div>
                     ) : (
                       todaysAdminTickets.map((ticket) => {
@@ -9748,13 +9748,13 @@ PRO-EFFEKT`,
                                 </p>
 
                                 <p className="mt-1 break-words text-sm text-slate-600">
-                                  {ticket.device || "Kein GerÃ¤t"} Â· {meta.serviceType}
+                                  {ticket.device || "Kein Gerät"} · {meta.serviceType}
                                 </p>
 
                                 {ticket.service_contact_name && (
                                   <p className="mt-1 break-words text-xs font-bold text-slate-500">
                                     Kontakt: {ticket.service_contact_name}
-                                    {ticket.service_contact_phone ? ` Â· ${ticket.service_contact_phone}` : ""}
+                                    {ticket.service_contact_phone ? ` · ${ticket.service_contact_phone}` : ""}
                                   </p>
                                 )}
                               </div>
@@ -9769,11 +9769,11 @@ PRO-EFFEKT`,
 
               <div className="grid gap-6 xl:grid-cols-3">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">ÃœberfÃ¤llige SicherheitsprÃ¼fung/Wartungen</h3>
+                  <h3 className="text-xl font-black">Überfällige Sicherheitsprüfung/Wartungen</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {overdueAdminMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Ã¼berfÃ¤lligen SicherheitsprÃ¼fung/Wartungen.
+                        Keine überfälligen Sicherheitsprüfung/Wartungen.
                       </div>
                     ) : (
                       overdueAdminMaintenancePlans.slice(0, 5).map((plan) => (
@@ -9811,7 +9811,7 @@ PRO-EFFEKT`,
                         >
                           <p className="break-words font-black text-slate-900">{part.name}</p>
                           <p className="mt-1 text-sm font-bold text-yellow-700">
-                            Bestand: {part.stock ?? 0} Â· Minimum: {part.min_stock ?? 0}
+                            Bestand: {part.stock ?? 0} · Minimum: {part.min_stock ?? 0}
                           </p>
                         </div>
                       ))
@@ -9842,7 +9842,7 @@ PRO-EFFEKT`,
                             onClick={() => openDocument(doc)}
                             className="mt-3 rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
                           >
-                            Ã–ffnen
+                            Öffnen
                           </button>
                         </div>
                       ))
@@ -9854,16 +9854,16 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black">Abnahmeprotokolle / PrÃ¼ffristen</h3>
+                      <h3 className="text-xl font-black">Abnahmeprotokolle / Prüffristen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Ãœbersicht aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
+                        Übersicht aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
                       </p>
                     </div>
                     <button
                       onClick={() => openAbnahmeDocuments("Alle")}
                       className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                     >
-                      Abnahme Ã¶ffnen
+                      Abnahme öffnen
                     </button>
                   </div>
 
@@ -9871,32 +9871,32 @@ PRO-EFFEKT`,
                     <button onClick={() => openAbnahmeDocuments("Alle")} className="rounded-2xl bg-sky-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Gesamt</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{acceptanceProtocolDocuments.length}</p>
-                      <p className="mt-2 text-xs font-black text-sky-600">Ã–ffnen</p>
+                      <p className="mt-2 text-xs font-black text-sky-600">Öffnen</p>
                     </button>
                     <button onClick={() => openAbnahmeDocuments("Dieser Monat")} className="rounded-2xl bg-blue-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dieser Monat</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{acceptanceProtocolsThisMonth.length}</p>
-                      <p className="mt-2 text-xs font-black text-blue-700">Ã–ffnen</p>
+                      <p className="mt-2 text-xs font-black text-blue-700">Öffnen</p>
                     </button>
-                    <button onClick={() => openAbnahmeDocuments("Bald fÃ¤llig")} className="rounded-2xl bg-yellow-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-700">Bald fÃ¤llig</p>
+                    <button onClick={() => openAbnahmeDocuments("Bald fällig")} className="rounded-2xl bg-yellow-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-700">Bald fällig</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{upcomingAcceptanceProtocols.length}</p>
-                      <p className="mt-2 text-xs font-black text-yellow-700">Ã–ffnen</p>
+                      <p className="mt-2 text-xs font-black text-yellow-700">Öffnen</p>
                     </button>
-                    <button onClick={() => openAbnahmeDocuments("ÃœberfÃ¤llig")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">ÃœberfÃ¤llig</p>
+                    <button onClick={() => openAbnahmeDocuments("Überfällig")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Überfällig</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{overdueAcceptanceProtocols.length}</p>
-                      <p className="mt-2 text-xs font-black text-red-700">Ã–ffnen</p>
+                      <p className="mt-2 text-xs font-black text-red-700">Öffnen</p>
                     </button>
                   </div>
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">NÃ¤chste PrÃ¼fungen aus Protokollen</h3>
+                  <h3 className="text-xl font-black">Nächste Prüfungen aus Protokollen</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {nextAcceptanceProtocolDueItems.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine PrÃ¼ffristen aus Abnahmeprotokollen hinterlegt.
+                        Keine Prüffristen aus Abnahmeprotokollen hinterlegt.
                       </div>
                     ) : (
                       nextAcceptanceProtocolDueItems.map((documentItem) => (
@@ -9906,14 +9906,14 @@ PRO-EFFEKT`,
                               <p className="text-xs font-black text-sky-600">{documentItem.next_inspection_date || "-"}</p>
                               <p className="mt-1 font-black text-slate-900">{getDocumentCustomerName(documentItem)}</p>
                               <p className="mt-1 text-sm font-semibold text-slate-500">
-                                {getDeviceNameById(documentItem.device_id)} Â· {documentItem.file_name}
+                                {getDeviceNameById(documentItem.device_id)} · {documentItem.file_name}
                               </p>
                             </div>
                             <button
                               onClick={() => openDocument(documentItem)}
                               className="rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
                             >
-                              Ã–ffnen
+                              Öffnen
                             </button>
                           </div>
                         </div>
@@ -9924,9 +9924,9 @@ PRO-EFFEKT`,
               </div>
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">GerÃ¤te ohne PrÃ¼ffrist</h3>
+                <h3 className="text-xl font-black">Geräte ohne Prüffrist</h3>
                 <p className="mt-1 text-sm font-semibold text-slate-500">
-                  GerÃ¤te ohne nÃ¤chstes PrÃ¼fdatum oder Ablaufdatum: {devicesWithoutInspectionDate.length}
+                  Geräte ohne nächstes Prüfdatum oder Ablaufdatum: {devicesWithoutInspectionDate.length}
                 </p>
               </div>
             </div>
@@ -9935,7 +9935,7 @@ PRO-EFFEKT`,
           {activePage === "Kalender" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -9943,10 +9943,10 @@ PRO-EFFEKT`,
                   Disposition
                 </p>
                 <h3 className="mt-2 text-4xl font-black">
-                  Tagesplanung & TourenÃ¼bersicht
+                  Tagesplanung & Tourenübersicht
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Termine werden direkt aus den Tickets gelesen. Ã„nderungen im Ticket aktualisieren Einsatz und Kalender automatisch.
+                  Termine werden direkt aus den Tickets gelesen. Änderungen im Ticket aktualisieren Einsatz und Kalender automatisch.
                 </p>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-3">
@@ -9972,7 +9972,7 @@ PRO-EFFEKT`,
 
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
                     <p className="text-xs font-bold text-slate-300">
-                      EintrÃ¤ge am Tag
+                      Einträge am Tag
                     </p>
                     <p className="text-xl font-black text-sky-400">
                       {calendarItemsCount}
@@ -9983,9 +9983,9 @@ PRO-EFFEKT`,
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets" value={calendarTickets.length} />
-                <StatCard label="SicherheitsprÃ¼fung/Wartungen" value={calendarMaintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen" value={calendarMaintenancePlans.length} />
                 <StatCard
-                  label="Offene EinsÃ¤tze"
+                  label="Offene Einsätze"
                   value={
                     calendarTickets.filter(
                       (ticket) =>
@@ -10013,9 +10013,9 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black">Service-EinsÃ¤tze</h3>
+                      <h3 className="text-xl font-black">Service-Einsätze</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Direkt aus den Ticket-Terminen des gewÃ¤hlten Tages.
+                        Direkt aus den Ticket-Terminen des gewählten Tages.
                       </p>
                     </div>
                     <button
@@ -10029,7 +10029,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Service-EinsÃ¤tze fÃ¼r diesen Tag.
+                        Keine Service-Einsätze für diesen Tag.
                       </div>
                     ) : (
                       calendarTickets.map((ticket) => (
@@ -10040,13 +10040,13 @@ PRO-EFFEKT`,
                             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                               <div>
                                 <p className="text-xs font-black text-sky-500">
-                                  {ticket.service_time || "ohne Uhrzeit"} Â· {ticket.ticket_number}
+                                  {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number}
                                 </p>
                                 <h4 className="mt-1 break-words text-xl font-black">
                                   {ticket.customer}
                                 </h4>
                                 <p className="mt-2 break-words text-sm text-slate-600">
-                                  {ticket.device} Â· {ticket.issue}
+                                  {ticket.device} · {ticket.issue}
                                 </p>
                                 <p className="mt-1 break-words text-sm font-bold text-slate-700">
                                   Techniker: {getTechnicianNameById(ticket.assigned_to)}
@@ -10061,7 +10061,7 @@ PRO-EFFEKT`,
                                   onClick={() => openPage("Einsatz")}
                                   className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
                                 >
-                                  Einsatz Ã¶ffnen
+                                  Einsatz öffnen
                                 </button>
                               </div>
                             </div>
@@ -10076,7 +10076,7 @@ PRO-EFFEKT`,
                     <div>
                       <h3 className="text-xl font-black">Wartungen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        SicherheitsprÃ¼fung- und WartungsplÃ¤ne mit FÃ¤lligkeit am gewÃ¤hlten Tag.
+                        Sicherheitsprüfung- und Wartungspläne mit Fälligkeit am gewählten Tag.
                       </p>
                     </div>
                     <button
@@ -10090,7 +10090,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine SicherheitsprÃ¼fung/Wartungen fÃ¼r diesen Tag.
+                        Keine Sicherheitsprüfung/Wartungen für diesen Tag.
                       </div>
                     ) : (
                       calendarMaintenancePlans.map((plan) => {
@@ -10115,7 +10115,7 @@ PRO-EFFEKT`,
                                   Kunde: {getCustomerNameById(plan.customer_id || deviceItem?.customer_id || null)}
                                 </p>
                                 <p className="mt-1 text-sm text-slate-600">
-                                  GerÃ¤t: {deviceItem?.name || "Unbekanntes GerÃ¤t"}
+                                  Gerät: {deviceItem?.name || "Unbekanntes Gerät"}
                                 </p>
                                 <p className="mt-1 break-words text-sm font-bold text-slate-700">
                                   Techniker: {getMaintenanceAssignedName(plan.assigned_to)}
@@ -10139,7 +10139,7 @@ PRO-EFFEKT`,
           {activePage === "Benachrichtigungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -10150,7 +10150,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-                VertrÃ¤ge kÃ¶nnen automatisch SicherheitsprÃ¼fung- und WartungsplÃ¤ne fÃ¼r alle GerÃ¤te des Kunden erzeugen. Gleichnamige GerÃ¤te bleiben Ã¼ber Kunde + GerÃ¤t eindeutig getrennt.
+                Verträge können automatisch Sicherheitsprüfung- und Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
               </div>
 
               {selectedTicketView && (() => {
@@ -10195,10 +10195,10 @@ PRO-EFFEKT`,
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
-                          Ticket-Akte Â· alles auf einen Blick
+                          Ticket-Akte · alles auf einen Blick
                         </p>
                         <h3 className="mt-2 text-2xl font-black text-slate-900">
-                          {currentTicket.ticket_number} Â· {currentTicket.issue}
+                          {currentTicket.ticket_number} · {currentTicket.issue}
                         </h3>
                         <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-600">
                           {currentTicket.description || "Keine Beschreibung hinterlegt."}
@@ -10222,7 +10222,7 @@ PRO-EFFEKT`,
                           onClick={() => setSelectedTicketView(null)}
                           className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700"
                         >
-                          Akte schlieÃŸen
+                          Akte schließen
                         </button>
                       </div>
                     </div>
@@ -10240,12 +10240,12 @@ PRO-EFFEKT`,
                           {ticketCustomer?.email || "E-Mail nicht hinterlegt"}
                         </p>
                         <p className="mt-2 text-xs font-bold text-slate-500">
-                          {ticketCustomer ? buildCustomerAddress(ticketCustomer) || "Keine Adresse" : "Kunde spÃ¤ter zuweisen"}
+                          {ticketCustomer ? buildCustomerAddress(ticketCustomer) || "Keine Adresse" : "Kunde später zuweisen"}
                         </p>
                       </div>
 
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">GerÃ¤te im Ticket</p>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Geräte im Ticket</p>
                         {ticketLinkedDevices.length > 0 ? (
                           <div className="mt-2 space-y-2">
                             {ticketLinkedDevices.map((deviceItem) => (
@@ -10255,7 +10255,7 @@ PRO-EFFEKT`,
                                 </p>
                                 <p className="mt-1 text-xs font-bold text-slate-500">
                                   {deviceItem.status || "Status offen"}
-                                  {deviceItem.next_check ? ` Â· nÃ¤chste PrÃ¼fung: ${deviceItem.next_check}` : ""}
+                                  {deviceItem.next_check ? ` · nächste Prüfung: ${deviceItem.next_check}` : ""}
                                 </p>
                               </div>
                             ))}
@@ -10292,7 +10292,7 @@ PRO-EFFEKT`,
                           Techniker: {getTechnicianNameById(currentTicket.assigned_to)}
                         </p>
                         <p className="mt-1 text-sm font-bold text-slate-600">
-                          Termin: {currentTicket.service_date || "Nicht geplant"}{currentTicket.service_time ? ` Â· ${currentTicket.service_time}` : ""}
+                          Termin: {currentTicket.service_date || "Nicht geplant"}{currentTicket.service_time ? ` · ${currentTicket.service_time}` : ""}
                         </p>
                       </div>
 
@@ -10302,7 +10302,7 @@ PRO-EFFEKT`,
                           {contextDocuments.length}
                         </h4>
                         <p className="mt-1 text-sm font-bold text-slate-600">
-                          Ticket-, GerÃ¤te- und Kundendokumente zusammengefÃ¼hrt.
+                          Ticket-, Geräte- und Kundendokumente zusammengeführt.
                         </p>
                       </div>
                     </div>
@@ -10319,14 +10319,14 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
-                          placeholder="DurchgefÃ¼hrte Arbeiten / Servicebericht"
+                          placeholder="Durchgeführte Arbeiten / Servicebericht"
                           className="min-h-[140px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
 
                         <input
                           value={serviceBadgeNumber}
                           onChange={(event) => setServiceBadgeNumber(event.target.value)}
-                          placeholder="PrÃ¼fsiegelnummer / PrÃ¼fnummer"
+                          placeholder="Prüfsiegelnummer / Prüfnummer"
                           className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold"
                         />
 
@@ -10347,7 +10347,7 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceInternalNote}
                           onChange={(event) => setServiceInternalNote(event.target.value)}
-                          placeholder="Interne Notiz, nicht fÃ¼r Kundenbericht"
+                          placeholder="Interne Notiz, nicht für Kundenbericht"
                           className="min-h-[90px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
                       </div>
@@ -10368,7 +10368,7 @@ PRO-EFFEKT`,
                             onClick={() => clearServiceSignature("technician")}
                             className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
                           >
-                            Techniker-Signatur lÃ¶schen
+                            Techniker-Signatur löschen
                           </button>
                         </div>
 
@@ -10387,7 +10387,7 @@ PRO-EFFEKT`,
                             onClick={() => clearServiceSignature("customer")}
                             className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
                           >
-                            Kunden-Signatur lÃ¶schen
+                            Kunden-Signatur löschen
                           </button>
                         </div>
                       </div>
@@ -10406,7 +10406,7 @@ PRO-EFFEKT`,
                           onClick={() => saveServiceReport(currentTicket)}
                           className="rounded-3xl bg-sky-500 px-5 py-4 font-black text-white"
                         >
-                          Unterschrieben abschlieÃŸen & archivieren
+                          Unterschrieben abschließen & archivieren
                         </button>
                       </div>
                     </div>
@@ -10414,14 +10414,14 @@ PRO-EFFEKT`,
                     <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center justify-between gap-3">
-                          <h4 className="text-lg font-black">ZugehÃ¶rige Dokumente</h4>
+                          <h4 className="text-lg font-black">Zugehörige Dokumente</h4>
                           <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-600">
                             {contextDocuments.length} Datei(en)
                           </span>
                         </div>
 
                         <div className="mt-4 rounded-2xl border border-blue-100 bg-white p-3">
-                          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dokument direkt zur Ticket-Akte hinzufÃ¼gen</p>
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dokument direkt zur Ticket-Akte hinzufügen</p>
                           <div className="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
                             <select
                               value={ticketAkteUploadCategory}
@@ -10435,7 +10435,7 @@ PRO-EFFEKT`,
                             </select>
 
                             <label className="flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-blue-600 px-4 text-sm font-black text-white transition hover:bg-blue-700">
-                              {uploading ? "Upload lÃ¤uft..." : "Datei hochladen und zuordnen"}
+                              {uploading ? "Upload läuft..." : "Datei hochladen und zuordnen"}
                               <input
                                 type="file"
                                 className="hidden"
@@ -10460,7 +10460,7 @@ PRO-EFFEKT`,
                                     <div className="min-w-0">
                                       <p className="truncate text-sm font-black text-slate-900">{doc.file_name}</p>
                                       <p className="mt-1 text-xs font-bold text-slate-500">
-                                        {doc.category} Â· {getDocumentCustomerName(doc)} Â· {getDeviceNameById(doc.device_id)}
+                                        {doc.category} · {getDocumentCustomerName(doc)} · {getDeviceNameById(doc.device_id)}
                                       </p>
                                     </div>
                                     <button
@@ -10479,7 +10479,7 @@ PRO-EFFEKT`,
                         <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
                           {contextDocuments.length === 0 ? (
                             <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                              Noch keine Dokumente zum Ticket, Kunden oder GerÃ¤t gefunden.
+                              Noch keine Dokumente zum Ticket, Kunden oder Gerät gefunden.
                             </div>
                           ) : (
                             contextDocuments.map((doc) => (
@@ -10487,14 +10487,14 @@ PRO-EFFEKT`,
                                 <div className="min-w-0">
                                   <p className="truncate font-black text-slate-900">{doc.file_name}</p>
                                   <p className="mt-1 text-xs font-bold text-slate-500">
-                                    {doc.category} Â· {formatDate(doc.created_at)} Â· {fileSizeText(doc.file_size)}
+                                    {doc.category} · {formatDate(doc.created_at)} · {fileSizeText(doc.file_size)}
                                   </p>
                                 </div>
                                 <button
                                   onClick={() => openDocument(doc)}
                                   className="shrink-0 rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
                                 >
-                                  Ã–ffnen
+                                  Öffnen
                                 </button>
                               </div>
                             ))
@@ -10504,10 +10504,10 @@ PRO-EFFEKT`,
 
                       <div className="space-y-4">
                         <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <h4 className="text-lg font-black">KundengerÃ¤te</h4>
+                          <h4 className="text-lg font-black">Kundengeräte</h4>
                           <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
                             {customerDevices.length === 0 ? (
-                              <p className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">Keine KundengerÃ¤te hinterlegt.</p>
+                              <p className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">Keine Kundengeräte hinterlegt.</p>
                             ) : (
                               customerDevices.slice(0, 8).map((item) => (
                                 <button
@@ -10515,7 +10515,7 @@ PRO-EFFEKT`,
                                   onClick={() => openDeviceFromQr(item)}
                                   className="w-full rounded-2xl bg-white p-3 text-left text-sm font-bold text-slate-700 hover:bg-sky-50"
                                 >
-                                  {item.name} Â· {item.serial_number || "ohne Seriennr."}
+                                  {item.name} · {item.serial_number || "ohne Seriennr."}
                                 </button>
                               ))
                             )}
@@ -10534,7 +10534,7 @@ PRO-EFFEKT`,
                                   onClick={() => setSelectedTicketView(ticketItem)}
                                   className={`w-full rounded-2xl p-3 text-left text-sm font-bold hover:bg-sky-50 ${ticketItem.id === currentTicket.id ? "bg-sky-50 text-sky-700" : "bg-white text-slate-700"}`}
                                 >
-                                  {ticketItem.ticket_number} Â· {ticketItem.issue}
+                                  {ticketItem.ticket_number} · {ticketItem.issue}
                                 </button>
                               ))
                             )}
@@ -10556,8 +10556,8 @@ PRO-EFFEKT`,
                       onChange={(e) => setNotificationType(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option>EinsatzbestÃ¤tigung</option>
-                      <option>SicherheitsprÃ¼fung-/Wartungserinnerung</option>
+                      <option>Einsatzbestätigung</option>
+                      <option>Sicherheitsprüfung-/Wartungserinnerung</option>
                       <option>Ticketstatus</option>
                       <option>Interner Hinweis</option>
                     </select>
@@ -10567,10 +10567,10 @@ PRO-EFFEKT`,
                       onChange={(e) => setNotificationTicketId(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Kein Ticket verknÃ¼pfen</option>
+                      <option value="">Kein Ticket verknüpfen</option>
                       {tickets.map((ticket) => (
                         <option key={ticket.id} value={ticket.id}>
-                          {ticket.ticket_number} Â· {ticket.customer}
+                          {ticket.ticket_number} · {ticket.customer}
                         </option>
                       ))}
                     </select>
@@ -10578,7 +10578,7 @@ PRO-EFFEKT`,
                     <input
                       value={notificationRecipient}
                       onChange={(e) => setNotificationRecipient(e.target.value)}
-                      placeholder="EmpfÃ¤nger (E-Mail / intern)"
+                      placeholder="Empfänger (E-Mail / intern)"
                       className="h-14 w-full rounded-2xl border border-[var(--pe-blue)]/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-[var(--pe-blue)]"
                     />
 
@@ -10631,7 +10631,7 @@ PRO-EFFEKT`,
                               </h4>
 
                               <p className="mt-2 text-sm font-bold text-slate-700">
-                                EmpfÃ¤nger: {item.recipient}
+                                Empfänger: {item.recipient}
                               </p>
 
                               <p className="mt-2 break-words text-sm text-slate-600">
@@ -10665,12 +10665,12 @@ PRO-EFFEKT`,
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gesamt" value={visibleInvoices.length} />
-                <StatCard label="EntwÃ¼rfe" value={visibleInvoices.filter((item) => item.status === "Entwurf").length} />
+                <StatCard label="Entwürfe" value={visibleInvoices.filter((item) => item.status === "Entwurf").length} />
                 <StatCard label="Offen" value={visibleInvoices.filter((item) => item.status === "Offen").length} />
                 <StatCard label="Bezahlt" value={visibleInvoices.filter((item) => item.status === "Bezahlt").length} />
               </div>
@@ -10701,15 +10701,15 @@ PRO-EFFEKT`,
                         const selectedTicket = tickets.find((ticket) => ticket.id === Number(selectedId));
 
                         if (selectedTicket && !invoiceTitle) {
-                          setInvoiceTitle(`${selectedTicket.issue} Â· ${selectedTicket.device}`);
+                          setInvoiceTitle(`${selectedTicket.issue} · ${selectedTicket.device}`);
                         }
                       }}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Kein Ticket verknÃ¼pfen</option>
+                      <option value="">Kein Ticket verknüpfen</option>
                       {tickets.map((ticket) => (
                         <option key={ticket.id} value={ticket.id}>
-                          {ticket.ticket_number} Â· {ticket.customer} Â· {ticket.issue}
+                          {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
                         </option>
                       ))}
                     </select>
@@ -10788,7 +10788,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
                               <p className="text-xs font-black text-sky-500">
-                                {item.type} Â· {item.number}
+                                {item.type} · {item.number}
                               </p>
                               <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {item.title}
@@ -10797,7 +10797,7 @@ PRO-EFFEKT`,
                                 Kunde: {getInvoiceCustomerName(item)}
                               </p>
                               <p className="mt-1 text-sm font-bold text-slate-800">
-                                Netto: {item.amount_net.toFixed(2)} â‚¬ Â· Brutto: {item.amount_gross.toFixed(2)} â‚¬
+                                Netto: {item.amount_net.toFixed(2)} â‚¬ · Brutto: {item.amount_gross.toFixed(2)} â‚¬
                               </p>
                               {item.note && (
                                 <p className="mt-2 break-words text-sm text-slate-500">
@@ -10833,7 +10833,7 @@ PRO-EFFEKT`,
                                 onClick={() => deleteInvoice(item.id)}
                                 className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
                               >
-                                LÃ¶schen
+                                Löschen
                               </button>
                               )}
                             </div>
@@ -10883,7 +10883,7 @@ PRO-EFFEKT`,
                           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                       }`}
                     >
-                      {category} Â· {categoryCount(category)}
+                      {category} · {categoryCount(category)}
                     </button>
                   ))}
                 </div>
@@ -10895,7 +10895,7 @@ PRO-EFFEKT`,
                     <h3 className="text-xl font-black">Dokumente</h3>
 
                     <p className="mt-2 text-slate-600">
-                      Abnahmeprotokoll oder Dokument hochladen, Kunde per Suche auswÃ¤hlen und GerÃ¤t optional zuordnen.
+                      Abnahmeprotokoll oder Dokument hochladen, Kunde per Suche auswählen und Gerät optional zuordnen.
                     </p>
                   </div>
 
@@ -10928,7 +10928,7 @@ PRO-EFFEKT`,
                               {profileCustomer ? getCustomerLabel(profileCustomer) : "Dein Kundenkonto"}
                             </p>
                             <p className="mt-1 text-xs font-bold text-slate-500">
-                              Dokumente werden ausschlieÃŸlich deinem Kundenkonto zugeordnet.
+                              Dokumente werden ausschließlich deinem Kundenkonto zugeordnet.
                             </p>
                           </div>
                         ) : (
@@ -10948,13 +10948,13 @@ PRO-EFFEKT`,
                         {!isCustomer && selectedUploadCustomer && (
                           <div className="mt-3 rounded-2xl border border-sky-200 bg-white p-3">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                              AusgewÃ¤hlter Auftraggeber
+                              Ausgewählter Auftraggeber
                             </p>
                             <p className="mt-1 font-black text-slate-900">
                               {getCustomerLabel(selectedUploadCustomer)}
                             </p>
                             <p className="mt-1 text-xs font-semibold text-slate-500">
-                              {selectedUploadCustomer.customer_number ? `Kunden-Nr. ${selectedUploadCustomer.customer_number} Â· ` : ""}
+                              {selectedUploadCustomer.customer_number ? `Kunden-Nr. ${selectedUploadCustomer.customer_number} · ` : ""}
                               {buildCustomerAddress(selectedUploadCustomer) || "Keine Adresse"}
                             </p>
                             <button
@@ -10967,7 +10967,7 @@ PRO-EFFEKT`,
                               }}
                               className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
                             >
-                              Auswahl Ã¤ndern
+                              Auswahl ändern
                             </button>
                           </div>
                         )}
@@ -10993,7 +10993,7 @@ PRO-EFFEKT`,
                                     {getCustomerLabel(customerItem)}
                                   </p>
                                   <p className="mt-1 text-xs font-semibold text-slate-500">
-                                    {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} Â· ` : ""}
+                                    {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} · ` : ""}
                                     {buildCustomerAddress(customerItem) || "Keine Adresse"}
                                   </p>
                                 </button>
@@ -11011,14 +11011,14 @@ PRO-EFFEKT`,
 
                         {!isCustomer && !selectedUploadCustomer && uploadCustomerSearch.trim().length < 2 && (
                           <p className="mt-3 text-xs font-bold text-slate-500">
-                            FÃ¼r Abnahmeprotokolle ist ein Kunde Pflicht.
+                            Für Abnahmeprotokolle ist ein Kunde Pflicht.
                           </p>
                         )}
                       </div>
 
                       <div>
                         <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                          GerÃ¤t optional zuweisen
+                          Gerät optional zuweisen
                         </label>
                         <input
                           value={uploadDeviceSearch}
@@ -11028,8 +11028,8 @@ PRO-EFFEKT`,
                           }}
                           placeholder={
                             selectedUploadCustomer
-                              ? "GerÃ¤t dieses Kunden suchen..."
-                              : "GerÃ¤t suchen..."
+                              ? "Gerät dieses Kunden suchen..."
+                              : "Gerät suchen..."
                           }
                           className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                         />
@@ -11037,13 +11037,13 @@ PRO-EFFEKT`,
                         {selectedUploadDevice && (
                           <div className="mt-3 rounded-2xl border border-sky-200 bg-white p-3">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                              AusgewÃ¤hltes GerÃ¤t
+                              Ausgewähltes Gerät
                             </p>
                             <p className="mt-1 font-black text-slate-900">
                               {selectedUploadDevice.name}
                             </p>
                             <p className="mt-1 text-xs font-semibold text-slate-500">
-                              {selectedUploadDevice.serial_number ? `SN: ${selectedUploadDevice.serial_number} Â· ` : ""}
+                              {selectedUploadDevice.serial_number ? `SN: ${selectedUploadDevice.serial_number} · ` : ""}
                               {selectedUploadDevice.location || "Kein Standort"}
                             </p>
                             <button
@@ -11054,7 +11054,7 @@ PRO-EFFEKT`,
                               }}
                               className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
                             >
-                              GerÃ¤t entfernen
+                              Gerät entfernen
                             </button>
                           </div>
                         )}
@@ -11087,9 +11087,9 @@ PRO-EFFEKT`,
                                       {deviceItem.name}
                                     </p>
                                     <p className="mt-1 text-xs font-semibold text-slate-500">
-                                      {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} Â· ` : ""}
+                                      {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
                                       {deviceItem.location || "Kein Standort"}
-                                      {linkedCustomer ? ` Â· ${getCustomerLabel(linkedCustomer)}` : ""}
+                                      {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
                                     </p>
                                   </button>
                                 );
@@ -11101,7 +11101,7 @@ PRO-EFFEKT`,
                           uploadDeviceSearch.trim().length >= 2 &&
                           filteredUploadDevices.length === 0 && (
                             <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                              Kein GerÃ¤t gefunden.
+                              Kein Gerät gefunden.
                             </p>
                           )}
                       </div>
@@ -11109,15 +11109,15 @@ PRO-EFFEKT`,
                       {!isCustomer && uploadCategory === "Abnahmeprotokolle" && (
                         <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 xl:col-span-3">
                           <p className="text-sm font-black text-yellow-800">
-                            PrÃ¼ffrist fÃ¼r handschriftliches Abnahmeprotokoll
+                            Prüffrist für handschriftliches Abnahmeprotokoll
                           </p>
                           <p className="mt-1 text-xs font-bold text-yellow-700">
-                            Diese Angaben aktualisieren das GerÃ¤t und erzeugen automatisch einen PrÃ¼ftermin.
+                            Diese Angaben aktualisieren das Gerät und erzeugen automatisch einen Prüftermin.
                           </p>
 
                           <div className="mt-4 grid gap-3 md:grid-cols-5">
                             <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">PrÃ¼fdatum</label>
+                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Prüfdatum</label>
                               <input
                                 type="date"
                                 value={uploadInspectionDate}
@@ -11140,7 +11140,7 @@ PRO-EFFEKT`,
                             </div>
 
                             <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">NÃ¤chste PrÃ¼fung</label>
+                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Nächste Prüfung</label>
                               <input
                                 type="date"
                                 value={uploadNextInspectionDate}
@@ -11150,7 +11150,7 @@ PRO-EFFEKT`,
                             </div>
 
                             <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">PrÃ¼fsiegel</label>
+                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Prüfsiegel</label>
                               <input
                                 value={uploadInspectionBadgeNumber}
                                 onChange={(e) => setUploadInspectionBadgeNumber(e.target.value)}
@@ -11171,7 +11171,7 @@ PRO-EFFEKT`,
                           </div>
 
                           <p className="mt-3 text-xs font-bold text-yellow-700">
-                            Wenn â€žNÃ¤chste PrÃ¼fungâ€œ leer bleibt, wird sie aus PrÃ¼fdatum + Intervall berechnet.
+                            Wenn „Nächste Prüfung“ leer bleibt, wird sie aus Prüfdatum + Intervall berechnet.
                           </p>
                         </div>
                       )}
@@ -11180,7 +11180,7 @@ PRO-EFFEKT`,
                         <label className={`cursor-pointer rounded-2xl px-6 py-4 text-center font-black text-white ${
                           uploading ? "bg-slate-400" : "bg-sky-500 hover:bg-sky-600"
                         }`}>
-                          {uploading ? "Upload lÃ¤uft..." : "Dokument hochladen"}
+                          {uploading ? "Upload läuft..." : "Dokument hochladen"}
 
                           <input
                             type="file"
@@ -11192,8 +11192,8 @@ PRO-EFFEKT`,
 
                         <p className="mt-3 text-xs font-bold text-slate-500">
                           {isCustomer
-                            ? "Dein Upload wird deinem Kundenkonto zugeordnet. GeschÃ¼tzte/interne Kategorien sind im Kundenportal gesperrt."
-                            : "Abnahmeprotokolle werden geschÃ¼tzt archiviert und dem Kunden zugeordnet."}
+                            ? "Dein Upload wird deinem Kundenkonto zugeordnet. Geschützte/interne Kategorien sind im Kundenportal gesperrt."
+                            : "Abnahmeprotokolle werden geschützt archiviert und dem Kunden zugeordnet."}
                         </p>
                       </div>
                     </div>
@@ -11217,7 +11217,7 @@ PRO-EFFEKT`,
                     <input
                       value={documentSearchTerm}
                       onChange={(e) => setDocumentSearchTerm(e.target.value)}
-                      placeholder="Suche: Kunde, GerÃ¤t, Ticket, Datei..."
+                      placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                     />
 
@@ -11245,7 +11245,7 @@ PRO-EFFEKT`,
                       onChange={(e) => setDocumentDeviceFilter(e.target.value)}
                       className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
                     >
-                      <option value="Alle">Alle GerÃ¤te</option>
+                      <option value="Alle">Alle Geräte</option>
                       {availableTicketDevices.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
@@ -11277,7 +11277,7 @@ PRO-EFFEKT`,
                           : activeDocumentCategory}
                       </h4>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        {filteredDocuments.length} Dokument(e) gefunden Â· Seite {safeDocumentPage} von {totalDocumentPages}
+                        {filteredDocuments.length} Dokument(e) gefunden · Seite {safeDocumentPage} von {totalDocumentPages}
                       </p>
                     </div>
 
@@ -11288,7 +11288,7 @@ PRO-EFFEKT`,
                         onClick={() => setDocumentPage((prev) => Math.max(1, prev - 1))}
                         className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm disabled:opacity-40"
                       >
-                        ZurÃ¼ck
+                        Zurück
                       </button>
                       <button
                         type="button"
@@ -11331,7 +11331,7 @@ PRO-EFFEKT`,
                                         {item.file_name}
                                       </p>
                                       <p className="mt-1 truncate text-xs font-bold text-slate-500">
-                                        {customerName} Â· {ticketNumber} Â· {formatDate(item.created_at)}
+                                        {customerName} · {ticketNumber} · {formatDate(item.created_at)}
                                       </p>
                                     </div>
                                   </div>
@@ -11354,7 +11354,7 @@ PRO-EFFEKT`,
                                       <span className="text-sky-600">Kunde:</span> {customerName}
                                     </p>
                                     <p className="font-bold text-slate-700">
-                                      <span className="text-sky-600">GerÃ¤t:</span> {deviceName}
+                                      <span className="text-sky-600">Gerät:</span> {deviceName}
                                     </p>
                                     <p className="font-bold text-slate-700">
                                       <span className="text-sky-600">Ticket:</span> {ticketNumber}
@@ -11363,7 +11363,7 @@ PRO-EFFEKT`,
                                       <span className="text-sky-600">Techniker:</span> {getDocumentTechnicianName(item)}
                                     </p>
                                     <p className="font-bold text-slate-700">
-                                      <span className="text-sky-600">GrÃ¶ÃŸe:</span> {fileSizeText(item.file_size)}
+                                      <span className="text-sky-600">Größe:</span> {fileSizeText(item.file_size)}
                                     </p>
                                     <p className="font-bold text-slate-700">
                                       <span className="text-sky-600">Datum:</span> {formatDate(item.created_at)}
@@ -11371,8 +11371,8 @@ PRO-EFFEKT`,
 
                                     {item.category === "Abnahmeprotokolle" && (
                                       <p className="font-bold text-slate-700 md:col-span-2">
-                                        <span className="text-sky-600">PrÃ¼fung:</span> {item.inspection_date || "-"} Â· nÃ¤chste PrÃ¼fung: {item.next_inspection_date || "-"}
-                                        {item.inspection_badge_number ? ` Â· Siegel: ${item.inspection_badge_number}` : ""}
+                                        <span className="text-sky-600">Prüfung:</span> {item.inspection_date || "-"} · nächste Prüfung: {item.next_inspection_date || "-"}
+                                        {item.inspection_badge_number ? ` · Siegel: ${item.inspection_badge_number}` : ""}
                                       </p>
                                     )}
                                   </div>
@@ -11382,7 +11382,7 @@ PRO-EFFEKT`,
                                       onClick={() => openDocument(item)}
                                       className="rounded-2xl bg-[#dfe7ff] px-5 py-3 text-sm font-black text-[#4455dd]"
                                     >
-                                      Ã–ffnen
+                                      Öffnen
                                     </button>
 
                                     {canDeleteDocument(item) ? (
@@ -11390,7 +11390,7 @@ PRO-EFFEKT`,
                                         onClick={() => deleteDocument(item)}
                                         className="rounded-2xl bg-[#f3dede] px-5 py-3 text-sm font-black text-[#bb2d2d]"
                                       >
-                                        LÃ¶schen
+                                        Löschen
                                       </button>
                                     ) : (
                                       <button
@@ -11398,7 +11398,7 @@ PRO-EFFEKT`,
                                         onClick={() => alert(documentDeleteLockedReason(item))}
                                         className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-400"
                                       >
-                                        GeschÃ¼tzt
+                                        Geschützt
                                       </button>
                                     )}
                                   </div>
@@ -11418,7 +11418,7 @@ PRO-EFFEKT`,
           {activePage === "Auswertungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -11429,7 +11429,7 @@ PRO-EFFEKT`,
                   Pro-Effekt Auswertungen
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Kennzahlen fÃ¼r Umsatz, Tickets, Wartungen, PrÃ¼fungen, Technikerleistung und KundenaktivitÃ¤t.
+                  Kennzahlen für Umsatz, Tickets, Wartungen, Prüfungen, Technikerleistung und Kundenaktivität.
                 </p>
               </div>
 
@@ -11442,7 +11442,7 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">Offene BetrÃ¤ge</p>
+                  <p className="text-sm font-bold text-slate-500">Offene Beträge</p>
                   <p className="mt-2 text-xl font-black text-yellow-700">
                     {euro(openInvoiceGross)}
                   </p>
@@ -11456,7 +11456,7 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">SicherheitsprÃ¼fung-/Wartungsquote</p>
+                  <p className="text-sm font-bold text-slate-500">Sicherheitsprüfung-/Wartungsquote</p>
                   <p className="mt-2 text-xl font-black text-purple-700">
                     {maintenanceCompletionRate}%
                   </p>
@@ -11466,8 +11466,8 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets gesamt" value={tickets.length} />
                 <StatCard label="Abgeschlossen" value={completedTicketsCount} />
-                <StatCard label="PrÃ¼fung Ã¼berfÃ¤llig" value={overdueInspectionsCount} />
-                <StatCard label="PrÃ¼fung bald fÃ¤llig" value={soonInspectionsCount} />
+                <StatCard label="Prüfung überfällig" value={overdueInspectionsCount} />
+                <StatCard label="Prüfung bald fällig" value={soonInspectionsCount} />
               </div>
 
               <div className="grid gap-6 xl:grid-cols-2">
@@ -11513,15 +11513,15 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">HÃ¤ufige GerÃ¤tefÃ¤lle</h3>
+                  <h3 className="text-xl font-black">Häufige Gerätefälle</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">
-                    GerÃ¤te mit den meisten Tickets.
+                    Geräte mit den meisten Tickets.
                   </p>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {topDevicesByTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine GerÃ¤te vorhanden.
+                        Keine Geräte vorhanden.
                       </div>
                     ) : (
                       topDevicesByTickets.map((item) => (
@@ -11610,7 +11610,7 @@ PRO-EFFEKT`,
                         {partUsages.length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
-                        TeileverbrÃ¤uche
+                        Teileverbräuche
                       </p>
                     </div>
                   </div>
@@ -11660,7 +11660,7 @@ PRO-EFFEKT`,
                     onChange={(e) => setCustomerType(e.target.value)}
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3 font-bold"
                   >
-                    <option value="B2B">B2B / GeschÃ¤ftskunde</option>
+                    <option value="B2B">B2B / Geschäftskunde</option>
                     <option value="Privatkunde">Privatkunde</option>
                   </select>
 
@@ -11705,7 +11705,7 @@ PRO-EFFEKT`,
                     <input
                       value={customerStreet}
                       onChange={(e) => setCustomerStreet(e.target.value)}
-                      placeholder="StraÃŸe"
+                      placeholder="Straße"
                       className="rounded-2xl border border-slate-300 px-5 py-3"
                     />
 
@@ -11760,15 +11760,15 @@ PRO-EFFEKT`,
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                       <div>
                         <h4 className="text-lg font-black text-slate-900">
-                          GerÃ¤te diesem Kunden zuweisen
+                          Geräte diesem Kunden zuweisen
                         </h4>
                         <p className="mt-1 text-sm font-semibold text-slate-500">
-                          Suche in der Hersteller-/GerÃ¤tebibliothek. Beim Zuordnen zum Kunden wird daraus ein eigenes KundengerÃ¤t mit eigener Seriennummer.
+                          Suche in der Hersteller-/Gerätebibliothek. Beim Zuordnen zum Kunden wird daraus ein eigenes Kundengerät mit eigener Seriennummer.
                         </p>
                       </div>
 
                       <span className="rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-sky-600">
-                        {assignedDeviceIds.length + customerAssignedLibraryModels.length} ausgewÃ¤hlt
+                        {assignedDeviceIds.length + customerAssignedLibraryModels.length} ausgewählt
                       </span>
                     </div>
 
@@ -11782,7 +11782,7 @@ PRO-EFFEKT`,
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-sm font-black text-slate-700">
-                          AusgewÃ¤hlte KundengerÃ¤te
+                          Ausgewählte Kundengeräte
                         </p>
 
                         {(assignedDeviceIds.length > 0 || customerAssignedLibraryModels.length > 0) && (
@@ -11801,7 +11801,7 @@ PRO-EFFEKT`,
 
                       {assignedCustomerDevices.length === 0 && customerAssignedLibraryModels.length === 0 ? (
                         <p className="mt-3 text-sm font-semibold text-slate-400">
-                          Noch keine GerÃ¤te ausgewÃ¤hlt.
+                          Noch keine Geräte ausgewählt.
                         </p>
                       ) : (
                         <div className="mt-3 space-y-3">
@@ -11816,7 +11816,7 @@ PRO-EFFEKT`,
                                     {deviceItem.name}
                                   </p>
                                   <p className="mt-1 text-xs font-bold text-sky-600">
-                                    Bestehendes KundengerÃ¤t{deviceItem.serial_number ? ` Â· SN: ${deviceItem.serial_number}` : ""}
+                                    Bestehendes Kundengerät{deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
                                   </p>
                                 </div>
                                 <button
@@ -11843,7 +11843,7 @@ PRO-EFFEKT`,
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-500">
-                                      Neues KundengerÃ¤t {index + 1}
+                                      Neues Kundengerät {index + 1}
                                     </p>
                                     <p className="mt-1 break-words font-black text-sky-950">
                                       {getTicketLibraryModelLabel(modelItem)}
@@ -11862,7 +11862,7 @@ PRO-EFFEKT`,
                                   <input
                                     value={draft.serial}
                                     onChange={(event) => updateCustomerLibraryDraft(draft.key, { serial: event.target.value })}
-                                    placeholder="Seriennummer nur fÃ¼r diesen Kunden"
+                                    placeholder="Seriennummer nur für diesen Kunden"
                                     className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-500"
                                   />
                                   <input
@@ -11907,10 +11907,10 @@ PRO-EFFEKT`,
                             </p>
                             <p className="mt-1 break-words text-sm font-bold text-slate-500">
                               {getManufacturerNameById(modelItem.manufacturer_id) || "Hersteller unbekannt"}
-                              {getDeviceModelTypeName(modelItem) ? ` Â· ${getDeviceModelTypeName(modelItem)}` : ""}
+                              {getDeviceModelTypeName(modelItem) ? ` · ${getDeviceModelTypeName(modelItem)}` : ""}
                             </p>
                             <p className="mt-2 text-xs font-black text-sky-600">
-                              + diesem Kunden als eigenes GerÃ¤t zuordnen
+                              + diesem Kunden als eigenes Gerät zuordnen
                             </p>
                           </button>
                         ))
@@ -11918,7 +11918,7 @@ PRO-EFFEKT`,
                     </div>
 
                     <p className="mt-4 rounded-2xl bg-white p-3 text-xs font-bold text-slate-500">
-                      Wichtig: Die Seriennummer wird nur beim KundengerÃ¤t gespeichert. Die Modellbibliothek bleibt neutral und seriennummernfrei.
+                      Wichtig: Die Seriennummer wird nur beim Kundengerät gespeichert. Die Modellbibliothek bleibt neutral und seriennummernfrei.
                     </p>
                   </div>
 
@@ -11975,7 +11975,7 @@ PRO-EFFEKT`,
                       onClick={createCustomer}
                       className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
                     >
-                      Kunde hinzufÃ¼gen
+                      Kunde hinzufügen
                     </button>
                   )}
                 </div>
@@ -11986,7 +11986,7 @@ PRO-EFFEKT`,
                 <h3 className="break-words text-xl font-black">Kundenstamm</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                    Such- und Lesemodus: Techniker kÃ¶nnen Kundendaten ansehen, aber nicht bearbeiten.
+                    Such- und Lesemodus: Techniker können Kundendaten ansehen, aber nicht bearbeiten.
                   </p>
                 )}
 
@@ -12020,7 +12020,7 @@ PRO-EFFEKT`,
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">
                       {customerDirectorySearchIsActive ? (
                         <p className="font-bold">
-                          Keine passenden Kunden gefunden. Bitte Suchbegriff prÃ¼fen oder neuen Kunden anlegen.
+                          Keine passenden Kunden gefunden. Bitte Suchbegriff prüfen oder neuen Kunden anlegen.
                         </p>
                       ) : (
                         <div>
@@ -12028,7 +12028,7 @@ PRO-EFFEKT`,
                             Kundenliste bereit
                           </p>
                           <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Alle geladenen Kundenstammdaten sind Ã¼ber die Suche abrufbar. Aus ÃœbersichtsgrÃ¼nden wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
+                            Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Übersichtsgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
                             Nutze oben Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
                           </p>
                         </div>
@@ -12065,17 +12065,17 @@ PRO-EFFEKT`,
                             <div className="mt-4 rounded-2xl border border-sky-100 bg-white p-4">
                               <div className="flex items-center justify-between gap-3">
                                 <p className="text-sm font-black text-sky-600">
-                                  Zugewiesene GerÃ¤te
+                                  Zugewiesene Geräte
                                 </p>
 
                                 <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-black text-sky-600">
-                                  {getDevicesForCustomer(item.id).length} GerÃ¤t(e)
+                                  {getDevicesForCustomer(item.id).length} Gerät(e)
                                 </span>
                               </div>
 
                               {getDevicesForCustomer(item.id).length === 0 ? (
                                 <p className="mt-3 text-sm font-semibold text-slate-400">
-                                  Noch keine GerÃ¤te zugewiesen.
+                                  Noch keine Geräte zugewiesen.
                                 </p>
                               ) : (
                                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -12097,7 +12097,7 @@ PRO-EFFEKT`,
                                           </p>
                                           <p className="mt-1 truncate text-xs font-bold text-slate-500">
                                             {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                            {deviceItem.serial_number ? ` Â· SN: ${deviceItem.serial_number}` : ""}
+                                            {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
                                           </p>
                                         </button>
 
@@ -12106,7 +12106,7 @@ PRO-EFFEKT`,
                                           onClick={() => addCustomerDeviceToAbnahmeProtocol(item, deviceItem)}
                                           className="mt-2 w-full rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-600 transition hover:bg-sky-500 hover:text-white"
                                         >
-                                          In Abnahme Ã¼bernehmen
+                                          In Abnahme übernehmen
                                         </button>
                                       </div>
                                     ))}
@@ -12117,7 +12117,7 @@ PRO-EFFEKT`,
                                       onClick={() => prepareAbnahmeFromCustomer(item)}
                                       className="rounded-2xl bg-slate-200 px-3 py-3 text-xs font-black text-slate-700"
                                     >
-                                      +{getDevicesForCustomer(item.id).length - 6} weitere Ã¼ber Abnahme-Suche
+                                      +{getDevicesForCustomer(item.id).length - 6} weitere über Abnahme-Suche
                                     </button>
                                   )}
                                 </div>
@@ -12156,7 +12156,7 @@ PRO-EFFEKT`,
                                     onClick={() => deleteCustomer(item.id)}
                                     className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                   >
-                                    LÃ¶schen
+                                    Löschen
                                   </button>
                                 )}
                               </>
@@ -12171,17 +12171,17 @@ PRO-EFFEKT`,
             </div>
           )}
 
-                    {activePage === "GerÃ¤te" && !selectedDeviceView && (isAdmin || isTechnician) && (
+                    {activePage === "Geräte" && !selectedDeviceView && (isAdmin || isTechnician) && (
             <div className="space-y-6">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                  Hersteller-/GerÃ¤tebibliothek
+                  Hersteller-/Gerätebibliothek
                 </h3>
                 <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
-                  Ein zentraler Bereich fÃ¼r Herstellerkontakte, GerÃ¤tetypen und Modellbezeichnungen. Keine Kunden und keine Seriennummern in der Bibliothek.
+                  Ein zentraler Bereich für Herstellerkontakte, Gerätetypen und Modellbezeichnungen. Keine Kunden und keine Seriennummern in der Bibliothek.
                 </p>
               </div>
 
@@ -12262,7 +12262,7 @@ PRO-EFFEKT`,
                             onClick={saveManufacturer}
                             className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                           >
-                            {editingManufacturer ? "Ã„nderungen speichern" : "Hersteller speichern"}
+                            {editingManufacturer ? "Änderungen speichern" : "Hersteller speichern"}
                           </button>
 
                           <button
@@ -12279,7 +12279,7 @@ PRO-EFFEKT`,
                   {isAdmin && (
                     <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
                       <summary className="cursor-pointer text-xl font-black">
-                        {editingDeviceModel ? "GerÃ¤t / Modell bearbeiten" : "GerÃ¤t / Modell anlegen"}
+                        {editingDeviceModel ? "Gerät / Modell bearbeiten" : "Gerät / Modell anlegen"}
                       </summary>
 
                       <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -12288,7 +12288,7 @@ PRO-EFFEKT`,
                           onChange={(e) => setModelManufacturerId(e.target.value)}
                           className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
                         >
-                          <option value="">Hersteller wÃ¤hlen</option>
+                          <option value="">Hersteller wählen</option>
                           {manufacturers.map((item) => (
                             <option key={item.id} value={item.id}>
                               {item.name}
@@ -12314,7 +12314,7 @@ PRO-EFFEKT`,
                           <input
                             value={modelType}
                             onChange={(e) => setModelType(e.target.value)}
-                            placeholder="GerÃ¤tetyp, z. B. Laufband, Crosstrainer, Beinpresse"
+                            placeholder="Gerätetyp, z. B. Laufband, Crosstrainer, Beinpresse"
                             className="rounded-2xl border border-slate-300 px-5 py-4"
                           />
                         </div>
@@ -12332,7 +12332,7 @@ PRO-EFFEKT`,
                             onClick={saveDeviceModel}
                             className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                           >
-                            {editingDeviceModel ? "Modell speichern" : "GerÃ¤t / Modell hinzufÃ¼gen"}
+                            {editingDeviceModel ? "Modell speichern" : "Gerät / Modell hinzufügen"}
                           </button>
 
                           <button
@@ -12351,7 +12351,7 @@ PRO-EFFEKT`,
                   <h3 className="text-xl font-black">Bibliothek</h3>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                      Such- und Lesemodus: Techniker kÃ¶nnen Hersteller und GerÃ¤te / Modelle einsehen, aber nicht bearbeiten.
+                      Such- und Lesemodus: Techniker können Hersteller und Geräte / Modelle einsehen, aber nicht bearbeiten.
                     </p>
                   )}
 
@@ -12376,7 +12376,7 @@ PRO-EFFEKT`,
 
                   <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                     <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                      Hersteller auswÃ¤hlen
+                      Hersteller auswählen
                     </label>
                     <select
                       value={catalogManufacturerId}
@@ -12384,7 +12384,7 @@ PRO-EFFEKT`,
                       className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-lg font-black text-[#07111d]"
                     >
                       <option value="">
-                        Hersteller auswÃ¤hlen ({filteredManufacturerDirectory.length})
+                        Hersteller auswählen ({filteredManufacturerDirectory.length})
                       </option>
                       {filteredManufacturerDirectory.map((item) => {
                         const modelCount = deviceModels.filter(
@@ -12393,14 +12393,14 @@ PRO-EFFEKT`,
 
                         return (
                           <option key={item.id} value={item.id}>
-                            {item.name} Â· {modelCount} Modellbezeichnung(en)
+                            {item.name} · {modelCount} Modellbezeichnung(en)
                           </option>
                         );
                       })}
                     </select>
 
                     <p className="mt-3 text-sm font-semibold text-slate-500">
-                      Dadurch bleibt die Seite kurz: Es wird immer nur der ausgewÃ¤hlte Hersteller geÃ¶ffnet.
+                      Dadurch bleibt die Seite kurz: Es wird immer nur der ausgewählte Hersteller geöffnet.
                     </p>
                   </div>
 
@@ -12411,7 +12411,7 @@ PRO-EFFEKT`,
                       </p>
                     ) : !catalogManufacturerId ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
-                        Bitte oben einen Hersteller auswÃ¤hlen, um GerÃ¤te / Modelle und Daten anzuzeigen.
+                        Bitte oben einen Hersteller auswählen, um Geräte / Modelle und Daten anzuzeigen.
                       </p>
                     ) : (
                       filteredManufacturerDirectory
@@ -12428,7 +12428,7 @@ PRO-EFFEKT`,
                                 <div>
                                   <h4 className="text-2xl font-black text-[#07111d]">{item.name}</h4>
                                   <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                                    {modelsForManufacturer.length} Modellbezeichnung(en) Â· {Object.keys(modelsByType).length} Kategorie(n)
+                                    {modelsForManufacturer.length} Modellbezeichnung(en) · {Object.keys(modelsByType).length} Kategorie(n)
                                   </p>
                                 </div>
 
@@ -12445,7 +12445,7 @@ PRO-EFFEKT`,
                                       onClick={() => deleteManufacturer(item)}
                                       className="rounded-2xl bg-red-100 px-4 py-2 text-sm font-black text-red-700"
                                     >
-                                      LÃ¶schen
+                                      Löschen
                                     </button>
                                   </div>
                                 )}
@@ -12470,7 +12470,7 @@ PRO-EFFEKT`,
                                     className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
                                     defaultValue=""
                                   >
-                                    <option value="">Kategorie oder Modell auswÃ¤hlen</option>
+                                    <option value="">Kategorie oder Modell auswählen</option>
                                     {Object.entries(modelsByType).map(([typeName, typeModels]) => (
                                       <optgroup key={typeName} label={`${typeName} (${typeModels.length})`}>
                                         {typeModels.map((modelItem) => (
@@ -12491,7 +12491,7 @@ PRO-EFFEKT`,
                                       Object.entries(modelsByType).map(([typeName, typeModels]) => (
                                         <div key={typeName} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                                           <p className="text-sm font-black uppercase tracking-[0.14em] text-sky-600">
-                                            {typeName} Â· {typeModels.length}
+                                            {typeName} · {typeModels.length}
                                           </p>
                                           <div className="mt-2 space-y-2">
                                             {typeModels.map((modelItem) => (
@@ -12515,7 +12515,7 @@ PRO-EFFEKT`,
                                                       onClick={() => deleteDeviceModel(modelItem)}
                                                       className="rounded-xl bg-red-100 px-3 py-2 text-xs font-black text-red-700"
                                                     >
-                                                      LÃ¶schen
+                                                      Löschen
                                                     </button>
                                                   </div>
                                                 )}
@@ -12536,12 +12536,12 @@ PRO-EFFEKT`,
               </div>
             </div>
           )}
-          {activePage === "GerÃ¤te" && selectedDeviceView && (
+          {activePage === "Geräte" && selectedDeviceView && (
             <div className="mb-6 rounded-[24px] bg-white p-4 shadow-sm">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                 <div>
                   <p className="text-sm font-bold text-sky-500">
-                    GerÃ¤te-Detailansicht
+                    Geräte-Detailansicht
                   </p>
 
                   <h3 className="mt-2 text-4xl font-black">
@@ -12566,7 +12566,7 @@ PRO-EFFEKT`,
                     </div>
 
                     <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">NÃ¤chste PrÃ¼fung</p>
+                      <p className="text-xs text-slate-500">Nächste Prüfung</p>
 
                       <p className="mt-1 font-bold">
                         {selectedDeviceView.next_check || "Nicht geplant"}
@@ -12603,7 +12603,7 @@ PRO-EFFEKT`,
                     onClick={() => generateInspectionPdf(selectedDeviceView)}
                     className="rounded-2xl bg-blue-600 px-4 py-4 font-bold text-white"
                   >
-                    PDF-PrÃ¼fbericht
+                    PDF-Prüfbericht
                   </button>
 
                   <button
@@ -12639,7 +12639,7 @@ PRO-EFFEKT`,
                     </select>
 
                     <label className="block cursor-pointer rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold text-white hover:bg-sky-600">
-                      {uploading ? "Upload lÃ¤uft..." : "Datei auswÃ¤hlen"}
+                      {uploading ? "Upload läuft..." : "Datei auswählen"}
 
                       <input
                         type="file"
@@ -12654,24 +12654,24 @@ PRO-EFFEKT`,
 
                   <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-center">
                     <p className="mb-3 text-sm font-bold text-sky-600">
-                      QR-Code fÃ¼r dieses GerÃ¤t
+                      QR-Code für dieses Gerät
                     </p>
 
                     <img
                       src={getDeviceQrCodeUrl(selectedDeviceView)}
-                      alt={`QR-Code fÃ¼r ${selectedDeviceView.name}`}
+                      alt={`QR-Code für ${selectedDeviceView.name}`}
                       className="mx-auto h-44 w-44 rounded-2xl bg-white p-3"
                     />
 
                     <p className="mt-3 text-xs text-slate-600">
-                      Scannen Ã¶ffnet direkt diese GerÃ¤teansicht.
+                      Scannen öffnet direkt diese Geräteansicht.
                     </p>
 
                     <button
                       onClick={() => copyDeviceLink(selectedDeviceView)}
                       className="mt-3 w-full rounded-2xl bg-white px-4 py-3 text-sm font-bold text-sky-600"
                     >
-                      GerÃ¤te-Link kopieren
+                      Geräte-Link kopieren
                     </button>
                   </div>
 
@@ -12684,7 +12684,7 @@ PRO-EFFEKT`,
                     }}
                     className="rounded-2xl border border-slate-300 bg-white px-4 py-4 font-bold"
                   >
-                    SchlieÃŸen
+                    Schließen
                   </button>
                 </div>
               </div>
@@ -12708,7 +12708,7 @@ PRO-EFFEKT`,
                             getMaintenancePlanForDevice(selectedDeviceView.id)
                               ?.interval_days
                           }{" "}
-                          Tage Â· NÃ¤chste Wartung:{" "}
+                          Tage · Nächste Wartung:{" "}
                           {getMaintenancePlanForDevice(selectedDeviceView.id)
                             ?.next_due || "Nicht geplant"}
                         </p>
@@ -12768,7 +12768,7 @@ PRO-EFFEKT`,
                             onClick={() => openDocument(doc)}
                             className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
                           >
-                            Ã–ffnen
+                            Öffnen
                           </button>
                         </div>
                       ))
@@ -12777,14 +12777,14 @@ PRO-EFFEKT`,
               </div>
 
               <div className="mt-10">
-                <h4 className="text-xl font-black">Tickets zu diesem GerÃ¤t</h4>
+                <h4 className="text-xl font-black">Tickets zu diesem Gerät</h4>
 
                 <div className="mt-4 space-y-3">
                   {tickets.filter(
                     (ticket) => ticket.device === selectedDeviceView.name,
                   ).length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Keine Tickets fÃ¼r dieses GerÃ¤t vorhanden.
+                      Keine Tickets für dieses Gerät vorhanden.
                     </div>
                   ) : (
                     tickets
@@ -12855,7 +12855,7 @@ PRO-EFFEKT`,
                 </div>
               </div>
               <div className="mt-10">
-                <h4 className="text-xl font-black">GerÃ¤tehistorie</h4>
+                <h4 className="text-xl font-black">Gerätehistorie</h4>
 
                 <div className="mt-4 space-y-3">
                   {deviceHistory.filter(
@@ -12900,7 +12900,7 @@ PRO-EFFEKT`,
               </div>
             </div>
           )}
-          {activePage === "KundengerÃ¤teAlt" && !selectedDeviceView && (
+          {activePage === "KundengeräteAlt" && !selectedDeviceView && (
             <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
               {isAdmin && (
               <div
@@ -12909,14 +12909,14 @@ PRO-EFFEKT`,
                 }`}
               >
                 <h3 className="text-xl font-black">
-                  {editingDevice ? "GerÃ¤t bearbeiten" : "Neues GerÃ¤t"}
+                  {editingDevice ? "Gerät bearbeiten" : "Neues Gerät"}
                 </h3>
 
                 <div className="mt-5 space-y-4">
                   <input
                     value={deviceName}
                     onChange={(e) => setDeviceName(e.target.value)}
-                    placeholder="GerÃ¤tename"
+                    placeholder="Gerätename"
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
 
@@ -12938,7 +12938,7 @@ PRO-EFFEKT`,
                         }}
                         className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
                       >
-                        <option value="">Hersteller aus Verwaltung wÃ¤hlen</option>
+                        <option value="">Hersteller aus Verwaltung wählen</option>
                         {manufacturers.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name}
@@ -12960,10 +12960,10 @@ PRO-EFFEKT`,
                         disabled={!deviceManufacturerId}
                         className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold disabled:bg-slate-100 disabled:text-slate-400"
                       >
-                        <option value="">Modell wÃ¤hlen</option>
+                        <option value="">Modell wählen</option>
                         {selectedDeviceManufacturerModels.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {getDeviceModelDisplayName(item)} {getDeviceModelTypeName(item) ? `Â· ${getDeviceModelTypeName(item)}` : ""}
+                            {getDeviceModelDisplayName(item)} {getDeviceModelTypeName(item) ? `· ${getDeviceModelTypeName(item)}` : ""}
                           </option>
                         ))}
                       </select>
@@ -13033,7 +13033,7 @@ PRO-EFFEKT`,
                         onClick={updateDevice}
                         className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
                       >
-                        GerÃ¤t speichern
+                        Gerät speichern
                       </button>
 
                       <button
@@ -13048,7 +13048,7 @@ PRO-EFFEKT`,
                       onClick={createDevice}
                       className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
                     >
-                      GerÃ¤t hinzufÃ¼gen
+                      Gerät hinzufügen
                     </button>
                   )}
                 </div>
@@ -13056,17 +13056,17 @@ PRO-EFFEKT`,
               )}
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">GerÃ¤teliste</h3>
+                <h3 className="text-xl font-black">Geräteliste</h3>
                 {!isAdmin && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                    Such- und Lesemodus: Techniker kÃ¶nnen GerÃ¤te Ã¶ffnen und Tickets starten, aber keine Stammdaten bearbeiten.
+                    Such- und Lesemodus: Techniker können Geräte öffnen und Tickets starten, aber keine Stammdaten bearbeiten.
                   </p>
                 )}
 
                 <input
                   value={deviceDirectorySearch}
                   onChange={(e) => setDeviceDirectorySearch(e.target.value)}
-                  placeholder="KundengerÃ¤t suchen: Kunde, Kundennr., Modell, Seriennummer, Hersteller, Standort"
+                  placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Hersteller, Standort"
                   className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
@@ -13076,7 +13076,7 @@ PRO-EFFEKT`,
                     onClick={() => setDeviceDirectorySearch("")}
                     className="mt-3 rounded-full bg-slate-200 px-4 py-2 text-sm font-black text-slate-700"
                   >
-                    Suche zurÃ¼cksetzen
+                    Suche zurücksetzen
                   </button>
                 )}
 
@@ -13110,7 +13110,7 @@ PRO-EFFEKT`,
                     </section>
 
                     <section className="rounded-[28px] bg-slate-50 p-5">
-                      <h3 className="text-lg font-black text-slate-900">GerÃ¤temodelle</h3>
+                      <h3 className="text-lg font-black text-slate-900">Gerätemodelle</h3>
                       <p className="text-sm font-semibold text-slate-500">
                         Jedes Modell nur einmal. Keine Kundenanzahl, keine Seriennummern.
                       </p>
@@ -13124,7 +13124,7 @@ PRO-EFFEKT`,
                             title={`${item.manufacturerName} ${item.name}`}
                           >
                             <span className="inline-block max-w-[260px] truncate align-bottom">
-                              {item.manufacturerName ? `${item.manufacturerName} Â· ` : ""}{item.name}
+                              {item.manufacturerName ? `${item.manufacturerName} · ` : ""}{item.name}
                             </span>
                           </button>
                         ))}
@@ -13132,7 +13132,7 @@ PRO-EFFEKT`,
                     </section>
 
                     <section className="rounded-[28px] bg-slate-50 p-5">
-                      <h3 className="text-lg font-black text-slate-900">Letzte Kunden-GerÃ¤te</h3>
+                      <h3 className="text-lg font-black text-slate-900">Letzte Kunden-Geräte</h3>
                       <p className="text-sm font-semibold text-slate-500">
                         Nur hier sind Kunde und Seriennummer sichtbar, weil es konkrete Kundenassets sind.
                       </p>
@@ -13162,14 +13162,14 @@ PRO-EFFEKT`,
 
                 {isDeviceDirectorySearchReady && (
                   <div className="mt-3 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-600">
-                    {filteredDeviceDirectory.length} Kunden-GerÃ¤te angezeigt Â· maximal {deviceDirectoryResultLimit}. Suche weiter eingrenzen, falls das gewÃ¼nschte GerÃ¤t fehlt.
+                    {filteredDeviceDirectory.length} Kunden-Geräte angezeigt · maximal {deviceDirectoryResultLimit}. Suche weiter eingrenzen, falls das gewünschte Gerät fehlt.
                   </div>
                 )}
 
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {!isDeviceDirectorySearchReady ? null : filteredDeviceDirectory.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
-                      Keine Kunden-GerÃ¤te gefunden.
+                      Keine Kunden-Geräte gefunden.
                     </div>
                   ) : (
                     filteredDeviceDirectory.map((item) => (
@@ -13195,7 +13195,7 @@ PRO-EFFEKT`,
                               Hersteller / Modell:{" "}
                               {getCleanManufacturerName(item.manufacturer_id) || item.manufacturer || "Unbekannt"}
                               {getCleanModelName(item.model_id) || item.model
-                                ? ` Â· ${getCleanModelName(item.model_id) || item.model}`
+                                ? ` · ${getCleanModelName(item.model_id) || item.model}`
                                 : ""}
                             </p>
 
@@ -13204,7 +13204,7 @@ PRO-EFFEKT`,
                             </p>
 
                             <p className="break-words text-sm text-slate-600">
-                              NÃ¤chste PrÃ¼fung:{" "}
+                              Nächste Prüfung:{" "}
                               {item.next_check || "Nicht geplant"}
                             </p>
 
@@ -13248,7 +13248,7 @@ PRO-EFFEKT`,
                                   onClick={() => deleteDevice(item.id)}
                                   className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
-                                  LÃ¶schen
+                                  Löschen
                                 </button>
                               </>
                             )}
@@ -13262,14 +13262,14 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {activePage === "VertrÃ¤ge" && (
+          {activePage === "Verträge" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="VertrÃ¤ge gesamt" value={contracts.length} />
+                <StatCard label="Verträge gesamt" value={contracts.length} />
                 <StatCard label="Aktiv" value={activeContracts.length} />
                 <StatCard
                   label="MRR"
@@ -13293,7 +13293,7 @@ PRO-EFFEKT`,
                       onChange={(e) => setContractCustomerId(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Kunde auswÃ¤hlen</option>
+                      <option value="">Kunde auswählen</option>
                       {customers.length === 0 ? (
                         <option value="" disabled>
                           Keine Kunden geladen
@@ -13320,11 +13320,11 @@ PRO-EFFEKT`,
                         onChange={(e) => setContractType(e.target.value)}
                         className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
-                        <option>SicherheitsprÃ¼fung-Wartungsvertrag</option>
+                        <option>Sicherheitsprüfung-Wartungsvertrag</option>
                         <option>Wartungsvertrag</option>
                         <option>Servicevertrag</option>
                         <option>Premium SLA</option>
-                        <option>PrÃ¼fvertrag</option>
+                        <option>Prüfvertrag</option>
                       </select>
 
                       <select
@@ -13402,13 +13402,13 @@ PRO-EFFEKT`,
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">
-                    VertragsÃ¼bersicht
+                    Vertragsübersicht
                   </h3>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {contracts.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Noch keine VertrÃ¤ge vorhanden.
+                        Noch keine Verträge vorhanden.
                       </div>
                     ) : (
                       contracts.map((item) => (
@@ -13419,7 +13419,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
                               <p className="text-xs font-black text-sky-500">
-                                {item.contract_type} Â· {item.contract_number}
+                                {item.contract_type} · {item.contract_number}
                               </p>
 
                               <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
@@ -13486,7 +13486,7 @@ PRO-EFFEKT`,
                                 onClick={() => deleteContract(item.id)}
                                 className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
                               >
-                                LÃ¶schen
+                                Löschen
                               </button>
                             </div>
                           </div>
@@ -13503,22 +13503,22 @@ PRO-EFFEKT`,
             <div className="space-y-6">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Digitales PrÃ¼fprotokoll
+                  Digitales Prüfprotokoll
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
                   Abnahmeprotokoll Reparatur & Wartung
                 </h3>
                 <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
-                  Ein gemeinsames Formular fÃ¼r Wartung, DGUV202-044 und SicherheitsprÃ¼fung.-PrÃ¼fung.
-                  Der Techniker arbeitet die PrÃ¼fpunkte direkt am Handy ab, Kunde und Techniker unterschreiben digital.
+                  Ein gemeinsames Formular für Wartung, DGUV202-044 und Sicherheitsprüfung.-Prüfung.
+                  Der Techniker arbeitet die Prüfpunkte direkt am Handy ab, Kunde und Techniker unterschreiben digital.
                 </p>
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">PrÃ¼fauftrag & Auswahl</h3>
+                  <h3 className="text-xl font-black">Prüfauftrag & Auswahl</h3>
                   <p className="mt-2 text-sm font-semibold text-slate-500">
-                    Kunde, GerÃ¤t und Auftragsdaten fÃ¼r das Abnahmeprotokoll auswÃ¤hlen.
+                    Kunde, Gerät und Auftragsdaten für das Abnahmeprotokoll auswählen.
                   </p>
 
                   <div className="mt-5 space-y-4">
@@ -13542,7 +13542,7 @@ PRO-EFFEKT`,
                     <div className="grid gap-4 xl:grid-cols-2">
                       <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                         <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                          Auftraggeber / RechnungsempfÃ¤nger suchen
+                          Auftraggeber / Rechnungsempfänger suchen
                         </label>
                         <input
                           value={abnahmeCustomerSearch}
@@ -13557,7 +13557,7 @@ PRO-EFFEKT`,
                           className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-sky-500"
                         />
                         <p className="mt-2 text-xs font-bold text-slate-500">
-                          {abnahmeCustomerSearch.trim().length < 2 ? "Bitte mindestens 2 Zeichen oder Kundennummer eingeben." : `${abnahmeCustomers.length} Treffer Â· nach Relevanz sortiert`}
+                          {abnahmeCustomerSearch.trim().length < 2 ? "Bitte mindestens 2 Zeichen oder Kundennummer eingeben." : `${abnahmeCustomers.length} Treffer · nach Relevanz sortiert`}
                         </p>
 
                         <div
@@ -13601,7 +13601,7 @@ PRO-EFFEKT`,
                                 </p>
                                 <p className="mt-1 break-words text-xs font-bold text-slate-400">
                                   {customerItem.email || "Keine E-Mail"}
-                                  {customerItem.phone ? ` Â· ${customerItem.phone}` : ""}
+                                  {customerItem.phone ? ` · ${customerItem.phone}` : ""}
                                 </p>
                               </button>
                             ))
@@ -13611,7 +13611,7 @@ PRO-EFFEKT`,
 
                       <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                         <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                          GerÃ¤t / Modell neutral suchen und auswÃ¤hlen
+                          Gerät / Modell neutral suchen und auswählen
                         </label>
                         <input
                           value={abnahmeDeviceSearch}
@@ -13620,7 +13620,7 @@ PRO-EFFEKT`,
                           className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-sky-500"
                         />
                         <p className="mt-2 text-xs font-bold text-slate-500">
-                          {abnahmeDevices.length} Treffer aus Hersteller-/GerÃ¤tebibliothek Â· ohne Seriennummer und Kundenzuordnung
+                          {abnahmeDevices.length} Treffer aus Hersteller-/Gerätebibliothek · ohne Seriennummer und Kundenzuordnung
                         </p>
 
                         <div
@@ -13630,7 +13630,7 @@ PRO-EFFEKT`,
                         >
                           {abnahmeDevices.length === 0 ? (
                             <div className="rounded-2xl bg-white p-4 text-sm font-bold text-red-600">
-                              Kein GerÃ¤t gefunden.
+                              Kein Gerät gefunden.
                             </div>
                           ) : (
                             abnahmeDevices.slice(0, 40).map((deviceItem, deviceResultIndex) => (
@@ -13651,14 +13651,14 @@ PRO-EFFEKT`,
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-slate-500">
                                   {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                  {getAbnahmeDeviceCategoryLabel(deviceItem) ? ` Â· ${getAbnahmeDeviceCategoryLabel(deviceItem)}` : ""}
-                                  {deviceItem.model || getDeviceModelNameById(deviceItem.model_id) ? ` Â· ${deviceItem.model || getDeviceModelNameById(deviceItem.model_id)}` : ""}
+                                  {getAbnahmeDeviceCategoryLabel(deviceItem) ? ` · ${getAbnahmeDeviceCategoryLabel(deviceItem)}` : ""}
+                                  {deviceItem.model || getDeviceModelNameById(deviceItem.model_id) ? ` · ${deviceItem.model || getDeviceModelNameById(deviceItem.model_id)}` : ""}
                                 </p>
                                 <p className="mt-1 break-words text-xs font-bold text-slate-400">
-                                  Bibliotheksmodell Â· keine Seriennummer Â· keine Kundenzuordnung
+                                  Bibliotheksmodell · keine Seriennummer · keine Kundenzuordnung
                                 </p>
                                 <p className="mt-2 text-xs font-black text-sky-600">
-                                  {abnahmeSelectedDeviceIds.includes(String(deviceItem.id)) ? "âœ“ AusgewÃ¤hlt" : "+ Zum Protokoll hinzufÃ¼gen"}
+                                  {abnahmeSelectedDeviceIds.includes(String(deviceItem.id)) ? "âœ“ Ausgewählt" : "+ Zum Protokoll hinzufügen"}
                                 </p>
                               </button>
                             ))
@@ -13668,7 +13668,7 @@ PRO-EFFEKT`,
                         {selectedAbnahmeDevices.length > 0 && (
                           <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4">
                             <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
-                              AusgewÃ¤hlte GerÃ¤te / GerÃ¤te / Modelle ({selectedAbnahmeDevices.length})
+                              Ausgewählte Geräte / Geräte / Modelle ({selectedAbnahmeDevices.length})
                             </p>
                             <div className="mt-3 flex flex-wrap gap-2">
                               {selectedAbnahmeDevices.map((item) => (
@@ -13697,16 +13697,16 @@ PRO-EFFEKT`,
                         >
                           <div>
                             <h4 className="text-lg font-black text-slate-900">
-                              KundengerÃ¤te ins Protokoll Ã¼bernehmen
+                              Kundengeräte ins Protokoll übernehmen
                             </h4>
                             <p className="mt-1 text-sm font-semibold text-slate-600">
-                              Alle dem Kunden zugewiesenen GerÃ¤te als kompakte Dropdown-Liste.
+                              Alle dem Kunden zugewiesenen Geräte als kompakte Dropdown-Liste.
                             </p>
                           </div>
 
                           <div className="flex shrink-0 items-center gap-2">
                             <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-sky-600">
-                              {getDevicesForCustomer(Number(abnahmeCustomerId)).length} GerÃ¤t(e)
+                              {getDevicesForCustomer(Number(abnahmeCustomerId)).length} Gerät(e)
                             </span>
                             <span className="rounded-full bg-white px-3 py-2 text-sm font-black text-sky-600">
                               {abnahmeCustomerDevicesOpen ? "â–²" : "â–¼"}
@@ -13737,7 +13737,7 @@ PRO-EFFEKT`,
                                       </p>
                                       <p className="mt-1 break-words text-xs font-bold text-slate-500">
                                         {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                        {deviceItem.serial_number ? ` Â· SN: ${deviceItem.serial_number}` : ""}
+                                        {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
                                       </p>
                                       {deviceItem.location && (
                                         <p className="mt-1 break-words text-xs font-semibold text-slate-400">
@@ -13764,18 +13764,18 @@ PRO-EFFEKT`,
                       </div>
                     )}
 
-{/* Kunde wird Ã¼ber die direkte Kundensuche oben ausgewÃ¤hlt.
-                       Das alte Dropdown â€žKunde manuell auswÃ¤hlenâ€œ wurde entfernt,
-                       weil es dieselbe Funktion doppelt und unÃ¼bersichtlich angeboten hat. */}
+{/* Kunde wird über die direkte Kundensuche oben ausgewählt.
+                       Das alte Dropdown „Kunde manuell auswählen“ wurde entfernt,
+                       weil es dieselbe Funktion doppelt und unübersichtlich angeboten hat. */}
 <select
                       value={abnahmeDeviceId}
                       onChange={(e) => toggleAbnahmeDevice(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">GerÃ¤t / Modell zur Auswahl hinzufÃ¼gen</option>
+                      <option value="">Gerät / Modell zur Auswahl hinzufügen</option>
                       {abnahmeDevices.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {item.manufacturer || getManufacturerNameById(item.manufacturer_id) || "Hersteller unbekannt"} Â· {item.model || getDeviceModelNameById(item.model_id) || item.name}
+                            {item.manufacturer || getManufacturerNameById(item.manufacturer_id) || "Hersteller unbekannt"} · {item.model || getDeviceModelNameById(item.model_id) || item.name}
                           </option>
                         ))}
                     </select>
@@ -13785,10 +13785,10 @@ PRO-EFFEKT`,
                       onChange={(e) => setAbnahmeTicketId(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Optional Ticket verknÃ¼pfen</option>
+                      <option value="">Optional Ticket verknüpfen</option>
                       {filteredTickets.map((ticket) => (
                         <option key={ticket.id} value={ticket.id}>
-                          {ticket.ticket_number} Â· {ticket.customer} Â· {ticket.issue}
+                          {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
                         </option>
                       ))}
                     </select>
@@ -13858,7 +13858,7 @@ PRO-EFFEKT`,
                           className="mt-1 h-5 w-5 shrink-0 accent-sky-500"
                         />
                         <span className="min-w-0 flex-1 text-base leading-snug text-slate-900 [overflow-wrap:anywhere]">
-                          SicherheitsprÃ¼fung-UnfallverhÃ¼tungsvorschrift PrÃ¼fung
+                          Sicherheitsprüfung-Unfallverhütungsvorschrift Prüfung
                         </span>
                       </label>
                     </div>
@@ -13866,9 +13866,9 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">GerÃ¤te- und Ergebnisdaten</h3>
+                  <h3 className="text-xl font-black">Geräte- und Ergebnisdaten</h3>
                   <p className="mt-2 text-sm font-semibold text-slate-500">
-                    AusgewÃ¤hlte GerÃ¤te erscheinen hier einzeln und kÃ¶nnen vor dem PDF korrigiert werden.
+                    Ausgewählte Geräte erscheinen hier einzeln und können vor dem PDF korrigiert werden.
                   </p>
 
                   {abnahmeDeviceRows.length === 0 ? (
@@ -13907,7 +13907,7 @@ PRO-EFFEKT`,
                       <textarea
                         value={abnahmeDefects}
                         onChange={(e) => setAbnahmeDefects(e.target.value)}
-                        placeholder="MÃ¤ngel / Feststellungen"
+                        placeholder="Mängel / Feststellungen"
                         rows={5}
                         className="md:col-span-2 rounded-2xl border border-slate-300 px-5 py-4"
                       />
@@ -13921,7 +13921,7 @@ PRO-EFFEKT`,
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <p className="text-sm font-black text-sky-600">
-                              GerÃ¤t {rowIndex + 1}
+                              Gerät {rowIndex + 1}
                             </p>
 
                             <button
@@ -13978,7 +13978,7 @@ PRO-EFFEKT`,
                               onChange={(e) =>
                                 updateAbnahmeDeviceRow(row.rowId, "defects", e.target.value)
                               }
-                              placeholder="MÃ¤ngel / Feststellungen"
+                              placeholder="Mängel / Feststellungen"
                               rows={3}
                               className="md:col-span-2 rounded-2xl border border-slate-300 bg-white px-5 py-4"
                             />
@@ -13991,7 +13991,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">PrÃ¼ffragen nach Vorlage</h3>
+                <h3 className="text-xl font-black">Prüffragen nach Vorlage</h3>
                 <p className="mt-2 text-sm font-semibold text-slate-500">
                   Jeder Punkt wird wie im Papierformular mit Ja, OK, VS, DF und optionalem Mangeltext dokumentiert.
                 </p>
@@ -14036,7 +14036,7 @@ PRO-EFFEKT`,
                         onChange={(e) =>
                           updateAbnahmeCheck(index, "comment", e.target.value)
                         }
-                        placeholder="Mangel / Bemerkung zu diesem PrÃ¼fpunkt"
+                        placeholder="Mangel / Bemerkung zu diesem Prüfpunkt"
                         className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
                       />
                     </div>
@@ -14055,7 +14055,7 @@ PRO-EFFEKT`,
                         checked={abnahmeBadgeApplied}
                         onChange={(e) => setAbnahmeBadgeApplied(e.target.checked)}
                       />
-                      PrÃ¼fplakette angebracht
+                      Prüfplakette angebracht
                     </label>
 
                     <div className="grid gap-3 md:grid-cols-2">
@@ -14069,7 +14069,7 @@ PRO-EFFEKT`,
                       <input
                         value={abnahmeTechnicianShort}
                         onChange={(e) => setAbnahmeTechnicianShort(e.target.value)}
-                        placeholder="KÃ¼rzel"
+                        placeholder="Kürzel"
                         className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
                     </div>
@@ -14130,7 +14130,7 @@ PRO-EFFEKT`,
                           onClick={() => clearSignatureCanvas("technician")}
                           className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black"
                         >
-                          LÃ¶schen
+                          Löschen
                         </button>
                       </div>
                       <canvas
@@ -14150,7 +14150,7 @@ PRO-EFFEKT`,
                           onClick={() => clearSignatureCanvas("customer")}
                           className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black"
                         >
-                          LÃ¶schen
+                          Löschen
                         </button>
                       </div>
                       <canvas
@@ -14171,7 +14171,7 @@ PRO-EFFEKT`,
                   onClick={printAbnahmeProtocol}
                   className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                 >
-                  PDF speichern & Druckansicht Ã¶ffnen
+                  PDF speichern & Druckansicht öffnen
                 </button>
 
                 <button
@@ -14194,11 +14194,11 @@ PRO-EFFEKT`,
           {activePage === "Wartungsplanung" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="SicherheitsprÃ¼fung/Wartungen gesamt" value={maintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
                   value={maintenancePlans.filter((plan) => (plan.status || "Geplant") === "Geplant").length}
@@ -14208,7 +14208,7 @@ PRO-EFFEKT`,
                   value={maintenancePlans.filter((plan) => plan.status === "In Arbeit").length}
                 />
                 <StatCard
-                  label="FÃ¤llig in 30 Tagen"
+                  label="Fällig in 30 Tagen"
                   value={dueMaintenancePlans.length}
                 />
               </div>
@@ -14217,10 +14217,10 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
                   <p className="mt-2 text-slate-600">
-                    Plane SicherheitsprÃ¼fungen und Wartungen zuerst kundenbezogen und danach nur fÃ¼r GerÃ¤te dieses Kunden.
+                    Plane Sicherheitsprüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
                   <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                    SicherheitsprÃ¼fung- und SicherheitsprÃ¼fungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle PrÃ¼fungen werden digital dokumentiert, archiviert und kÃ¶nnen spÃ¤ter Ã¼ber GerÃ¤teakte, Ticket, Servicebericht oder Kundendokumente nachvollzogen werden.
+                    Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht oder Kundendokumente nachvollzogen werden.
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -14232,7 +14232,7 @@ PRO-EFFEKT`,
                       }}
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Kunde auswÃ¤hlen</option>
+                      <option value="">Kunde auswählen</option>
                       {customers.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.company || `Kunde ${item.id}`}
@@ -14247,11 +14247,11 @@ PRO-EFFEKT`,
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-bold disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option value="">
-                        {maintenanceCustomerId ? "GerÃ¤t dieses Kunden auswÃ¤hlen" : "Erst Kunde auswÃ¤hlen"}
+                        {maintenanceCustomerId ? "Gerät dieses Kunden auswählen" : "Erst Kunde auswählen"}
                       </option>
                       {maintenanceFilteredDevices.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.name} Â· {item.serial_number || "ohne Seriennummer"} Â· {item.location || "ohne Standort"}
+                          {item.name} · {item.serial_number || "ohne Seriennummer"} · {item.location || "ohne Standort"}
                         </option>
                       ))}
                     </select>
@@ -14261,12 +14261,12 @@ PRO-EFFEKT`,
                       onChange={(e) => setMaintenanceType(e.target.value)}
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option>SicherheitsprÃ¼fung-Wartung</option>
-                      <option>SicherheitsprÃ¼fung-PrÃ¼fung</option>
+                      <option>Sicherheitsprüfung-Wartung</option>
+                      <option>Sicherheitsprüfung-Prüfung</option>
                       <option>Regelwartung</option>
-                      <option>SicherheitsprÃ¼fung</option>
+                      <option>Sicherheitsprüfung</option>
                       <option>Reparatur-Nachkontrolle</option>
-                      <option>PrÃ¼fsiegel-Erneuerung</option>
+                      <option>Prüfsiegel-Erneuerung</option>
                     </select>
 
                     <input
@@ -14313,7 +14313,7 @@ PRO-EFFEKT`,
                   <textarea
                     value={maintenanceNote}
                     onChange={(e) => setMaintenanceNote(e.target.value)}
-                    placeholder="Hinweis fÃ¼r Techniker / Admin"
+                    placeholder="Hinweis für Techniker / Admin"
                     rows={4}
                     className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4"
                   />
@@ -14337,10 +14337,10 @@ PRO-EFFEKT`,
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">
-                  {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "WartungsÃ¼bersicht"}
+                  {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "Wartungsübersicht"}
                 </h3>
                 <p className="mt-2 text-slate-600">
-                  Ãœbersicht aller geplanten und laufenden Wartungen.
+                  Übersicht aller geplanten und laufenden Wartungen.
                 </p>
 
                 <div className="mt-6 space-y-4">
@@ -14361,7 +14361,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-sky-500">
-                                {plan.maintenance_type || "Wartung"} Â· {deviceItem?.serial_number || "Keine Seriennummer"}
+                                {plan.maintenance_type || "Wartung"} · {deviceItem?.serial_number || "Keine Seriennummer"}
                               </p>
                               <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
                                 {plan.title || `Wartung ${deviceItem?.name || ""}`}
@@ -14370,10 +14370,10 @@ PRO-EFFEKT`,
                                 Kunde: {getCustomerNameById(plan.customer_id || deviceItem?.customer_id || null)}
                               </p>
                               <p className="mt-1 text-sm text-slate-600">
-                                GerÃ¤t: {deviceItem?.name || "Unbekanntes GerÃ¤t"} Â· Termin: {plan.next_due || "Nicht geplant"}
+                                Gerät: {deviceItem?.name || "Unbekanntes Gerät"} · Termin: {plan.next_due || "Nicht geplant"}
                               </p>
                               <p className="mt-1 text-sm text-slate-600">
-                                Techniker: {getMaintenanceAssignedName(plan.assigned_to)} Â· Intervall: {plan.interval_days || "-"} Tage
+                                Techniker: {getMaintenanceAssignedName(plan.assigned_to)} · Intervall: {plan.interval_days || "-"} Tage
                               </p>
                               {plan.note && (
                                 <p className="mt-3 rounded-2xl bg-white p-3 text-sm text-slate-600">
@@ -14409,7 +14409,7 @@ PRO-EFFEKT`,
                                   onClick={() => deleteMaintenancePlan(plan.id)}
                                   className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
-                                  LÃ¶schen
+                                  Löschen
                                 </button>
                               )}
                             </div>
@@ -14431,7 +14431,7 @@ PRO-EFFEKT`,
                   Einsatzplanung
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                  Dispo-Zentrale fÃ¼r Tickets & Techniker
+                  Dispo-Zentrale für Tickets & Techniker
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Hier planst du vorhandene Kunden- und Admin-Tickets. Es wird kein neues Ticket erzeugt: Datum, Uhrzeit und Techniker werden direkt am bestehenden Ticket gespeichert.
@@ -14453,7 +14453,7 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">{plannedDispatchTickets.length}</p>
                   </div>
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
-                    <p className="text-xs font-bold text-slate-300">ÃœberfÃ¤llig</p>
+                    <p className="text-xs font-bold text-slate-300">Überfällig</p>
                     <p className="text-2xl font-black text-red-300">{overdueDispatchTickets.length}</p>
                   </div>
                 </div>
@@ -14472,7 +14472,7 @@ PRO-EFFEKT`,
                     <div>
                       <h3 className="text-xl font-black text-slate-900">Ungeplante Tickets</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Tickets ohne Techniker oder ohne Datum. Diese Liste ist dein Arbeitsvorrat fÃ¼r die Disposition.
+                        Tickets ohne Techniker oder ohne Datum. Diese Liste ist dein Arbeitsvorrat für die Disposition.
                       </p>
                     </div>
                     <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-black text-yellow-800">
@@ -14509,7 +14509,7 @@ PRO-EFFEKT`,
                               {ticketSubjectText(ticket)}
                             </p>
                             <p className="mt-1 break-words text-xs font-bold text-slate-500">
-                              {ticket.device || "GerÃ¤t offen"}
+                              {ticket.device || "Gerät offen"}
                             </p>
 
                             <div className="mt-4 grid gap-2">
@@ -14525,7 +14525,7 @@ PRO-EFFEKT`,
                                     onClick={() => quickPlanTicket(ticket, technician.id)}
                                     className="rounded-2xl bg-white px-4 py-3 text-left text-sm font-black text-slate-800 shadow-sm hover:bg-sky-50"
                                   >
-                                    + {technician.full_name || technician.company || "Techniker"} Â· {calendarDate}
+                                    + {technician.full_name || technician.company || "Techniker"} · {calendarDate}
                                   </button>
                                 ))
                               )}
@@ -14536,7 +14536,7 @@ PRO-EFFEKT`,
                               onClick={() => setSelectedTicketView(ticket)}
                               className="mt-3 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
                             >
-                              Ticket-Akte Ã¶ffnen
+                              Ticket-Akte öffnen
                             </button>
                           </div>
                         );
@@ -14551,7 +14551,7 @@ PRO-EFFEKT`,
                       <div>
                         <h3 className="text-xl font-black text-slate-900">Tagesplanung</h3>
                         <p className="mt-1 text-sm font-semibold text-slate-500">
-                          Geplante Tickets fÃ¼r das ausgewÃ¤hlte Datum. Kalender zeigt diese Planung nur an.
+                          Geplante Tickets für das ausgewählte Datum. Kalender zeigt diese Planung nur an.
                         </p>
                       </div>
                       <button
@@ -14583,7 +14583,7 @@ PRO-EFFEKT`,
                           <div className="mt-4 space-y-2">
                             {group.tickets.length === 0 ? (
                               <div className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-400">
-                                Keine EinsÃ¤tze geplant.
+                                Keine Einsätze geplant.
                               </div>
                             ) : (
                               group.tickets.map((ticket) => {
@@ -14593,7 +14593,7 @@ PRO-EFFEKT`,
                                     <div className="flex items-start justify-between gap-3">
                                       <div className="min-w-0">
                                         <p className="text-xs font-black text-sky-600">
-                                          {ticket.service_time || "ohne Uhrzeit"} Â· {ticket.ticket_number}
+                                          {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number}
                                         </p>
                                         <p className="mt-1 break-words font-black text-slate-900">
                                           {meta.serviceLocation || ticket.customer}
@@ -14631,7 +14631,7 @@ PRO-EFFEKT`,
                           <div className="mt-3 space-y-2">
                             {unassignedDispatchDayTickets.map((ticket) => (
                               <button key={ticket.id} type="button" onClick={() => setSelectedTicketView(ticket)} className="w-full rounded-2xl bg-white p-3 text-left text-sm font-black text-slate-800">
-                                {ticket.service_time || "ohne Uhrzeit"} Â· {ticket.ticket_number} Â· {ticket.customer}
+                                {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number} · {ticket.customer}
                               </button>
                             ))}
                           </div>
@@ -14641,20 +14641,20 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
-                    <h3 className="text-xl font-black text-slate-900">ÃœberfÃ¤llige geplante Tickets</h3>
+                    <h3 className="text-xl font-black text-slate-900">Überfällige geplante Tickets</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
                       Geplante Tickets mit Datum vor heute und nicht abgeschlossen.
                     </p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
                       {overdueDispatchTickets.length === 0 ? (
                         <div className="rounded-2xl bg-slate-100 p-4 text-sm font-bold text-slate-500">
-                          Keine Ã¼berfÃ¤lligen EinsÃ¤tze.
+                          Keine überfälligen Einsätze.
                         </div>
                       ) : (
                         overdueDispatchTickets.slice(0, 8).map((ticket) => (
                           <button key={ticket.id} type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-2xl border border-red-100 bg-red-50 p-4 text-left">
-                            <p className="text-xs font-black text-red-700">{ticket.service_date} Â· {ticket.service_time || "ohne Uhrzeit"}</p>
-                            <p className="mt-1 font-black text-slate-900">{ticket.ticket_number} Â· {ticket.customer}</p>
+                            <p className="text-xs font-black text-red-700">{ticket.service_date} · {ticket.service_time || "ohne Uhrzeit"}</p>
+                            <p className="mt-1 font-black text-slate-900">{ticket.ticket_number} · {ticket.customer}</p>
                             <p className="mt-1 text-sm font-semibold text-slate-600">{ticket.status}</p>
                           </button>
                         ))
@@ -14675,7 +14675,7 @@ PRO-EFFEKT`,
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Hier sieht der Techniker nur das, was vor Ort gebraucht wird:
-                  heutige EinsÃ¤tze, Anfahrt, Ansprechpartner, GerÃ¤t, Starten und Servicebericht.
+                  heutige Einsätze, Anfahrt, Ansprechpartner, Gerät, Starten und Servicebericht.
                 </p>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -14705,7 +14705,7 @@ PRO-EFFEKT`,
               {technicianTodayTickets.length === 0 ? (
                 <div className="rounded-[28px] bg-white p-6 shadow-sm">
                   <h3 className="text-xl font-black text-slate-900">
-                    Heute keine geplanten EinsÃ¤tze
+                    Heute keine geplanten Einsätze
                   </h3>
                   <p className="mt-2 text-sm font-semibold text-slate-600">
                     Sobald im Ticket ein Datum, eine Uhrzeit und ein Techniker gesetzt sind,
@@ -14715,7 +14715,7 @@ PRO-EFFEKT`,
                   {activeEinsatzTickets.length > 0 && (
                     <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-black text-slate-700">
-                        NÃ¤chste offene EinsÃ¤tze
+                        Nächste offene Einsätze
                       </p>
                       <div className="mt-3 space-y-2">
                         {activeEinsatzTickets.slice(0, 5).map((ticket) => {
@@ -14735,7 +14735,7 @@ PRO-EFFEKT`,
                                 {meta.serviceLocation || ticket.customer || ticket.ticket_number}
                               </p>
                               <p className="mt-1 text-sm font-semibold text-slate-600">
-                                {ticket.device || "GerÃ¤t offen"} Â· {ticket.status}
+                                {ticket.device || "Gerät offen"} · {ticket.status}
                               </p>
                             </button>
                           );
@@ -14819,10 +14819,10 @@ PRO-EFFEKT`,
 
                               <div className="rounded-3xl bg-slate-50 p-4">
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                                  GerÃ¤t
+                                  Gerät
                                 </p>
                                 <p className="mt-1 break-words text-lg font-black text-slate-900">
-                                  {ticket.device || "GerÃ¤t offen"}
+                                  {ticket.device || "Gerät offen"}
                                 </p>
                                 <p className="mt-1 break-words text-sm font-bold text-slate-600">
                                   {relatedDevice?.serial_number
@@ -14870,7 +14870,7 @@ PRO-EFFEKT`,
                               onClick={() => setSelectedTicketView(ticket)}
                               className="rounded-3xl bg-slate-100 px-4 py-4 text-center text-sm font-black text-slate-800"
                             >
-                              Akte Ã¶ffnen
+                              Akte öffnen
                             </button>
 
                             <button
@@ -14886,7 +14886,7 @@ PRO-EFFEKT`,
                               onClick={() => updateServiceStatus(ticket.id, "Abgeschlossen")}
                               className="rounded-3xl bg-sky-500 px-4 py-4 text-center text-sm font-black text-white"
                             >
-                              âœ“ AbschlieÃŸen
+                              âœ“ Abschließen
                             </button>
                           </div>
                         </div>
@@ -14902,25 +14902,25 @@ PRO-EFFEKT`,
 
           
 
-          {activePage === "PrÃ¼fungen" && (
+          {activePage === "Prüfungen" && (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="GÃ¼ltig" value={inspectionStats.ok} />
-                <StatCard label="Bald fÃ¤llig" value={inspectionStats.soon} />
-                <StatCard label="ÃœberfÃ¤llig" value={inspectionStats.overdue} />
+                <StatCard label="Gültig" value={inspectionStats.ok} />
+                <StatCard label="Bald fällig" value={inspectionStats.soon} />
+                <StatCard label="Überfällig" value={inspectionStats.overdue} />
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">PrÃ¼fungen & PrÃ¼fsiegel</h3>
+                <h3 className="text-xl font-black">Prüfungen & Prüfsiegel</h3>
                 {(isAdmin || isTechnician) && (
                   <div className="mt-5 rounded-[28px] border border-sky-200 bg-sky-50 p-5">
                     <h4 className="text-xl font-black text-slate-900">
-                      PrÃ¼fsiegel eintragen
+                      Prüfsiegel eintragen
                     </h4>
                     <p className="mt-1 text-sm font-semibold text-slate-600">
-                      Speichert PrÃ¼fsiegelnummer, PrÃ¼fdatum, Ablaufdatum und
-                      Ergebnis direkt am GerÃ¤t.
+                      Speichert Prüfsiegelnummer, Prüfdatum, Ablaufdatum und
+                      Ergebnis direkt am Gerät.
                     </p>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -14929,7 +14929,7 @@ PRO-EFFEKT`,
                         onChange={(e) => setInspectionDeviceId(e.target.value)}
                         className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
-                        <option value="">GerÃ¤t auswÃ¤hlen</option>
+                        <option value="">Gerät auswählen</option>
                         {devices.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name}
@@ -14942,7 +14942,7 @@ PRO-EFFEKT`,
                         onChange={(e) =>
                           setInspectionBadgeNumber(e.target.value)
                         }
-                        placeholder="PrÃ¼fsiegel-Nr."
+                        placeholder="Prüfsiegel-Nr."
                         className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
 
@@ -14952,7 +14952,7 @@ PRO-EFFEKT`,
                         className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
                         <option>Bestanden</option>
-                        <option>MÃ¤ngel festgestellt</option>
+                        <option>Mängel festgestellt</option>
                         <option>Nicht bestanden</option>
                       </select>
 
@@ -14973,7 +14973,7 @@ PRO-EFFEKT`,
                       <input
                         value={inspectionComment}
                         onChange={(e) => setInspectionComment(e.target.value)}
-                        placeholder="PrÃ¼fhinweis / Mangel / Notiz"
+                        placeholder="Prüfhinweis / Mangel / Notiz"
                         className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
                     </div>
@@ -14982,7 +14982,7 @@ PRO-EFFEKT`,
                       onClick={saveInspectionBadge}
                       className="mt-4 rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                     >
-                      PrÃ¼fsiegel speichern
+                      Prüfsiegel speichern
                     </button>
                   </div>
                 )}
@@ -14990,7 +14990,7 @@ PRO-EFFEKT`,
                 <div className="mt-6 space-y-4">
                   {devices.length === 0 ? (
                     <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
-                      Noch keine GerÃ¤te vorhanden.
+                      Noch keine Geräte vorhanden.
                     </div>
                   ) : (
                     devices.map((item) => {
@@ -15019,7 +15019,7 @@ PRO-EFFEKT`,
                             <div className="grid gap-3 sm:grid-cols-3 xl:w-[540px]">
                               <div className="rounded-2xl bg-white p-4">
                                 <p className="text-xs text-slate-500">
-                                  NÃ¤chste PrÃ¼fung
+                                  Nächste Prüfung
                                 </p>
                                 <p className="font-bold">
                                   {item.next_check || "Nicht geplant"}
@@ -15048,10 +15048,10 @@ PRO-EFFEKT`,
                                 onClick={() => startEditDevice(item)}
                                 className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
                               >
-                                PrÃ¼fung bearbeiten
+                                Prüfung bearbeiten
                               </button>
 
-                              {inspection.label !== "GÃ¼ltig" && (
+                              {inspection.label !== "Gültig" && (
                                 <button
                                   onClick={() => createInspectionTicket(item)}
                                   className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white"
@@ -15073,7 +15073,7 @@ PRO-EFFEKT`,
           {activePage === "QR-Scan" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT Â· Betriebsbereit
+                PRO-EFFEKT · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -15082,22 +15082,22 @@ PRO-EFFEKT`,
                 </div>
 
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  GerÃ¤te-Scan
+                  Geräte-Scan
                 </p>
 
                 <h3 className="mt-2 text-4xl font-black">
-                  QR-Code scannen oder GerÃ¤t suchen
+                  QR-Code scannen oder Gerät suchen
                 </h3>
 
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Der QR-Scan nutzt die Kamera Ã¼ber html5-qrcode. Funktioniert am besten Ã¼ber HTTPS auf der Vercel-URL.
+                  Der QR-Scan nutzt die Kamera über html5-qrcode. Funktioniert am besten über HTTPS auf der Vercel-URL.
                 </p>
 
                 <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto]">
                   <input
                     value={qrManualCode}
                     onChange={(e) => setQrManualCode(e.target.value)}
-                    placeholder="QR-Link, GerÃ¤te-ID, Seriennummer oder GerÃ¤tename einfÃ¼gen..."
+                    placeholder="QR-Link, Geräte-ID, Seriennummer oder Gerätename einfügen..."
                     className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-bold text-slate-900"
                   />
 
@@ -15105,7 +15105,7 @@ PRO-EFFEKT`,
                     onClick={() => openDeviceFromScanValue(qrManualCode)}
                     className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                   >
-                    GerÃ¤t Ã¶ffnen
+                    Gerät öffnen
                   </button>
                 </div>
 
@@ -15142,40 +15142,40 @@ PRO-EFFEKT`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label={qrSearchTerm.trim() ? "Treffer" : "GerÃ¤te gesamt"} value={qrMatchedDeviceCount} />
+                <StatCard label={qrSearchTerm.trim() ? "Treffer" : "Geräte gesamt"} value={qrMatchedDeviceCount} />
                 <StatCard
                   label="Vorschau"
                   value={filteredQrDevices.length}
                 />
                 <StatCard
-                  label="PrÃ¼fung fÃ¤llig"
+                  label="Prüfung fällig"
                   value={
                     filteredQrDevices.filter(
                       (item) =>
-                        getInspectionStatus(item.next_check).label === "ÃœberfÃ¤llig" ||
-                        getInspectionStatus(item.next_check).label === "Bald fÃ¤llig",
+                        getInspectionStatus(item.next_check).label === "Überfällig" ||
+                        getInspectionStatus(item.next_check).label === "Bald fällig",
                     ).length
                   }
                 />
                 <StatCard
-                  label="AuÃŸer Betrieb"
-                  value={filteredQrDevices.filter((item) => item.status === "AuÃŸer Betrieb").length}
+                  label="Außer Betrieb"
+                  value={filteredQrDevices.filter((item) => item.status === "Außer Betrieb").length}
                 />
               </div>
 
               <div className="rounded-[32px] bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h3 className="text-2xl font-black">GerÃ¤tesuche</h3>
+                    <h3 className="text-2xl font-black">Gerätesuche</h3>
                     <p className="mt-2 text-slate-600">
-                      Es werden nur wenige GerÃ¤te als Vorschau angezeigt. Suche nach Kunde, GerÃ¤t, Seriennummer, Standort oder GerÃ¤te-ID.
+                      Es werden nur wenige Geräte als Vorschau angezeigt. Suche nach Kunde, Gerät, Seriennummer, Standort oder Geräte-ID.
                     </p>
                   </div>
 
                   <input
                     value={qrSearchTerm}
                     onChange={(e) => setQrSearchTerm(e.target.value)}
-                    placeholder="GerÃ¤t, Kunde, Seriennummer, Standort oder ID suchen..."
+                    placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                     className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                   />
                 </div>
@@ -15183,13 +15183,13 @@ PRO-EFFEKT`,
                 <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-600">
                   {qrSearchTerm.trim()
                     ? `${qrMatchedDeviceCount} Treffer gefunden. Maximal 40 werden angezeigt.`
-                    : `${qrMatchedDeviceCount} GerÃ¤te vorhanden. Die ersten ${filteredQrDevices.length} werden als Vorschau angezeigt.`}
+                    : `${qrMatchedDeviceCount} Geräte vorhanden. Die ersten ${filteredQrDevices.length} werden als Vorschau angezeigt.`}
                 </div>
 
                 <div className="mt-6 grid gap-4 xl:grid-cols-2">
                   {filteredQrDevices.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Keine GerÃ¤te gefunden.
+                      Keine Geräte gefunden.
                     </div>
                   ) : (
                     filteredQrDevices.map((item) => {
@@ -15214,11 +15214,11 @@ PRO-EFFEKT`,
 
                             <div className="min-w-0 flex-1">
                               <p className="text-xs font-black text-sky-500">
-                                ID {item.id} Â· {linkedCustomer?.company || "Kein Kunde"} Â· {item.serial_number || "Keine Seriennummer"}
+                                ID {item.id} · {linkedCustomer?.company || "Kein Kunde"} · {item.serial_number || "Keine Seriennummer"}
                               </p>
 
                               <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
-                                {item.name || "Unbenanntes GerÃ¤t"}
+                                {item.name || "Unbenanntes Gerät"}
                               </h4>
 
                               <p className="mt-2 break-words text-sm text-slate-600">
@@ -15227,7 +15227,7 @@ PRO-EFFEKT`,
 
                               <div className="mt-3 flex flex-wrap gap-2">
                                 <span className={`rounded-full px-3 py-2 text-xs font-black ${inspection.className}`}>
-                                  PrÃ¼fung: {inspection.label}
+                                  Prüfung: {inspection.label}
                                 </span>
 
                                 <span className={`rounded-full px-3 py-2 text-xs font-black ${deviceStatusClass(item.status)}`}>
@@ -15240,7 +15240,7 @@ PRO-EFFEKT`,
                                   onClick={() => openDeviceFromQr(item)}
                                   className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                                 >
-                                  GerÃ¤teakte Ã¶ffnen
+                                  Geräteakte öffnen
                                 </button>
 
                                 <button
@@ -15320,7 +15320,7 @@ PRO-EFFEKT`,
                     ) : (
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-sm font-bold text-slate-700">
-                          Kunde suchen und auswÃ¤hlen
+                          Kunde suchen und auswählen
                         </p>
 
                         <input
@@ -15339,7 +15339,7 @@ PRO-EFFEKT`,
                         {customer && (
                           <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 p-3">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                              AusgewÃ¤hlter Kunde
+                              Ausgewählter Kunde
                             </p>
                             <p className="mt-1 text-base font-black text-slate-900">
                               {customer}
@@ -15372,7 +15372,7 @@ PRO-EFFEKT`,
                                   setCustomer(nextCustomerName);
                                   setSelectedTicketCustomerId(String(customerItem.id));
                                   setTicketCustomerSearch(nextCustomerName);
-                                  // Einsatzort wird bewusst NICHT automatisch vom Auftraggeber Ã¼bernommen.
+                                  // Einsatzort wird bewusst NICHT automatisch vom Auftraggeber übernommen.
                                   // Nur abweichende Leistungsadressen sollen manuell eingetragen und angezeigt werden.
                                   setDevice("");
                                   setTicketDeviceSearch("");
@@ -15383,7 +15383,7 @@ PRO-EFFEKT`,
                                   {getCustomerLabel(customerItem)}
                                 </p>
                                 <p className="mt-1 text-xs font-semibold text-slate-500">
-                                  {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} Â· ` : ""}
+                                  {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} · ` : ""}
                                   {buildCustomerAddress(customerItem) || "Keine Adresse"}
                                 </p>
                               </button>
@@ -15395,7 +15395,7 @@ PRO-EFFEKT`,
 
                     <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
-                        Abweichender Einsatzort / Leistungsadresse <span className="text-slate-400">(nur ausfÃ¼llen, wenn abweichend)</span>
+                        Abweichender Einsatzort / Leistungsadresse <span className="text-slate-400">(nur ausfüllen, wenn abweichend)</span>
                       </p>
 
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -15431,7 +15431,7 @@ PRO-EFFEKT`,
                       <textarea
                         value={serviceAddress}
                         onChange={(e) => setServiceAddress(e.target.value)}
-                        placeholder="StraÃŸe, Hausnummer, PLZ, Ort"
+                        placeholder="Straße, Hausnummer, PLZ, Ort"
                         rows={3}
                         className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                       />
@@ -15488,7 +15488,7 @@ PRO-EFFEKT`,
                                 onClick={() => setTicketTypes(["Reparatur"])}
                                 className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
                               >
-                                ZurÃ¼cksetzen
+                                Zurücksetzen
                               </button>
                               <button
                                 type="button"
@@ -15503,16 +15503,16 @@ PRO-EFFEKT`,
                       </div>
 
                       <p className="mt-3 text-xs font-bold text-slate-500">
-                        Mehrere Leistungen sind mÃ¶glich, z. B. Wartung + Reparatur.
+                        Mehrere Leistungen sind möglich, z. B. Wartung + Reparatur.
                       </p>
                     </div>
 
                     <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
-                        GerÃ¤te suchen und auswÃ¤hlen <span className="text-slate-400">(optional, Mehrfachauswahl)</span>
+                        Geräte suchen und auswählen <span className="text-slate-400">(optional, Mehrfachauswahl)</span>
                       </p>
                       <p className="mt-1 text-xs font-semibold text-slate-500">
-                        KundengerÃ¤te bringen Seriennummer und Standort mit. Bibliotheksmodelle sind nur Modellbezeichnungen ohne Seriennummer.
+                        Kundengeräte bringen Seriennummer und Standort mit. Bibliotheksmodelle sind nur Modellbezeichnungen ohne Seriennummer.
                       </p>
 
                       <input
@@ -15524,8 +15524,8 @@ PRO-EFFEKT`,
                         }}
                         placeholder={
                           selectedTicketCustomer
-                            ? "KundengerÃ¤t oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Standort..."
-                            : "GerÃ¤t oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Kunde..."
+                            ? "Kundengerät oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Standort..."
+                            : "Gerät oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Kunde..."
                         }
                         className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         autoComplete="off"
@@ -15535,7 +15535,7 @@ PRO-EFFEKT`,
                       {(selectedTicketDevices.length > 0 || selectedTicketLibraryModels.length > 0) && (
                         <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 p-3">
                           <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                            Zum Ticket ausgewÃ¤hlt
+                            Zum Ticket ausgewählt
                           </p>
 
                           {selectedTicketDevices.length > 0 && (
@@ -15572,13 +15572,13 @@ PRO-EFFEKT`,
 
                       {selectedTicketCustomer && !ticketDeviceSearch.trim() && ticketCustomerDevices.length === 0 && (
                         <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          FÃ¼r diesen Kunden ist noch kein KundengerÃ¤t zugeordnet. Du kannst ein Bibliotheksmodell suchen oder unten einen freien GerÃ¤tenamen eintragen.
+                          Für diesen Kunden ist noch kein Kundengerät zugeordnet. Du kannst ein Bibliotheksmodell suchen oder unten einen freien Gerätenamen eintragen.
                         </p>
                       )}
 
                       {ticketDeviceSearch.trim() && filteredTicketDevices.length === 0 && filteredTicketLibraryModels.length === 0 && (
                         <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          Kein Treffer gefunden. Du kannst unten einen freien GerÃ¤tenamen eintragen.
+                          Kein Treffer gefunden. Du kannst unten einen freien Gerätenamen eintragen.
                         </p>
                       )}
 
@@ -15586,8 +15586,8 @@ PRO-EFFEKT`,
                         <div className="mt-3">
                           <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
                             {selectedTicketCustomer
-                              ? "KundengerÃ¤te dieses Kunden"
-                              : "KundengerÃ¤te"}
+                              ? "Kundengeräte dieses Kunden"
+                              : "Kundengeräte"}
                           </p>
                           <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                             {filteredTicketDevices.map((deviceItem) => {
@@ -15621,12 +15621,12 @@ PRO-EFFEKT`,
                                     {deviceItem.name}
                                   </p>
                                   <p className="mt-1 text-xs font-semibold text-slate-500">
-                                    {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} Â· ` : ""}
+                                    {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
                                     {deviceItem.location || "Kein Standort"}
-                                    {linkedCustomer ? ` Â· ${getCustomerLabel(linkedCustomer)}` : ""}
+                                    {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
                                   </p>
                                   <p className="mt-1 text-xs font-black text-sky-600">
-                                    {selected ? "âœ“ AusgewÃ¤hlt" : "+ KundengerÃ¤t zum Ticket hinzufÃ¼gen"}
+                                    {selected ? "âœ“ Ausgewählt" : "+ Kundengerät zum Ticket hinzufügen"}
                                   </p>
                                 </button>
                               );
@@ -15638,7 +15638,7 @@ PRO-EFFEKT`,
                       {ticketDeviceSearch.trim() && filteredTicketLibraryModels.length > 0 && (
                         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                           <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                            Treffer aus Hersteller-/GerÃ¤tebibliothek
+                            Treffer aus Hersteller-/Gerätebibliothek
                           </p>
                           <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                             {filteredTicketLibraryModels.map((modelItem) => {
@@ -15658,10 +15658,10 @@ PRO-EFFEKT`,
                                     {getDeviceModelDisplayName(modelItem)}
                                   </p>
                                   <p className="mt-1 text-xs font-semibold text-slate-500">
-                                    {getManufacturerNameById(modelItem.manufacturer_id)} Â· {getDeviceModelTypeName(modelItem) || "Kategorie offen"}
+                                    {getManufacturerNameById(modelItem.manufacturer_id)} · {getDeviceModelTypeName(modelItem) || "Kategorie offen"}
                                   </p>
                                   <p className="mt-1 text-xs font-black text-sky-600">
-                                    {selected ? "âœ“ AusgewÃ¤hlt" : "+ Bibliotheksmodell zum Ticket hinzufÃ¼gen"}
+                                    {selected ? "âœ“ Ausgewählt" : "+ Bibliotheksmodell zum Ticket hinzufügen"}
                                   </p>
                                 </button>
                               );
@@ -15671,7 +15671,7 @@ PRO-EFFEKT`,
                       )}
 
                       <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        oder freien GerÃ¤tenamen eintragen (optional)
+                        oder freien Gerätenamen eintragen (optional)
                       </div>
 
                       <input
@@ -15693,7 +15693,7 @@ PRO-EFFEKT`,
                     <input
                       value={issue}
                       onChange={(e) => setIssue(e.target.value)}
-                      placeholder="Betreff, z. B. Wartung fÃ¤llig, GerÃ¤t defekt, PrÃ¼fung benÃ¶tigt"
+                      placeholder="Betreff, z. B. Wartung fällig, Gerät defekt, Prüfung benötigt"
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
 
@@ -15710,7 +15710,7 @@ PRO-EFFEKT`,
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Beschreibung, Standort, Ansprechpartner, bekannte Hinweise. GerÃ¤t kann spÃ¤ter ergÃ¤nzt werden."
+                      placeholder="Beschreibung, Standort, Ansprechpartner, bekannte Hinweise. Gerät kann später ergänzt werden."
                       rows={5}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
@@ -15751,7 +15751,7 @@ PRO-EFFEKT`,
                           </select>
 
                           <label className="cursor-pointer rounded-2xl border border-dashed border-sky-400 bg-white px-4 py-3 text-center font-bold text-sky-600 transition hover:bg-sky-50">
-                            {ticketCreateFile ? ticketCreateFile.name : "Datei auswÃ¤hlen"}
+                            {ticketCreateFile ? ticketCreateFile.name : "Datei auswählen"}
                             <input
                               type="file"
                               className="hidden"
@@ -15768,7 +15768,7 @@ PRO-EFFEKT`,
                           onClick={updateTicket}
                           className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
                         >
-                          Ã„nderungen speichern
+                          Änderungen speichern
                         </button>
 
                         <button
@@ -15806,7 +15806,7 @@ PRO-EFFEKT`,
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Telefon, GerÃ¤t oder Seriennummer suchen..."
+                      placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Telefon, Gerät oder Seriennummer suchen..."
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
 
@@ -15891,7 +15891,7 @@ PRO-EFFEKT`,
                                   {statusIcon(ticket.status)} {ticket.status}
                                 </span>
                                 <span className={`rounded-full px-3 py-1 text-xs font-black ${priorityClass(ticket.priority)}`}>
-                                  PrioritÃ¤t {ticket.priority}
+                                  Priorität {ticket.priority}
                                 </span>
                               </div>
 
@@ -15925,7 +15925,7 @@ PRO-EFFEKT`,
                                     )}
                                     {(ticket.service_contact_name || ticket.service_contact_phone) && (
                                       <p className="mt-1 break-words text-xs font-black text-slate-700">
-                                        {ticket.service_contact_name || "Ansprechpartner"}{ticket.service_contact_phone ? ` Â· ${ticket.service_contact_phone}` : ""}
+                                        {ticket.service_contact_name || "Ansprechpartner"}{ticket.service_contact_phone ? ` · ${ticket.service_contact_phone}` : ""}
                                       </p>
                                     )}
                                   </div>
@@ -15933,14 +15933,14 @@ PRO-EFFEKT`,
 
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                    ðŸ”§ GerÃ¤t
+                                    ðŸ”§ Gerät
                                   </p>
                                   <p className="mt-1 break-words text-sm font-black text-slate-900">
                                     {ticket.device || "Noch nicht zugewiesen"}
                                   </p>
                                   <p className="mt-1 break-words text-xs font-bold text-slate-600">
                                     {ticketDevice?.serial_number ? `SN: ${ticketDevice.serial_number}` : "Seriennummer offen"}
-                                    {ticketDevice?.location ? ` Â· ${ticketDevice.location}` : ""}
+                                    {ticketDevice?.location ? ` · ${ticketDevice.location}` : ""}
                                   </p>
                                 </div>
 
@@ -15953,9 +15953,9 @@ PRO-EFFEKT`,
                                   </p>
                                   <p className="mt-1 break-words text-xs font-bold text-slate-600">
                                     {ticket.service_date
-                                      ? `${ticket.service_date}${ticket.service_time ? ` Â· ${ticket.service_time}` : ""}`
+                                      ? `${ticket.service_date}${ticket.service_time ? ` · ${ticket.service_time}` : ""}`
                                       : "Kein Termin geplant"}
-                                    {ticket.service_status ? ` Â· ${ticket.service_status}` : ""}
+                                    {ticket.service_status ? ` · ${ticket.service_status}` : ""}
                                   </p>
                                 </div>
                               </div>
@@ -16037,7 +16037,7 @@ PRO-EFFEKT`,
                                   </div>
                                 ) : (
                                   <p className="mt-2 break-words text-sm font-bold text-slate-700">
-                                    {getTechnicianNameById(ticket.assigned_to)} Â· {ticket.service_date || "kein Termin"}
+                                    {getTechnicianNameById(ticket.assigned_to)} · {ticket.service_date || "kein Termin"}
                                   </p>
                                 )}
                               </div>
@@ -16124,7 +16124,7 @@ PRO-EFFEKT`,
                                   onClick={() => deleteTicket(ticket.id)}
                                   className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
-                                  LÃ¶schen
+                                  Löschen
                                 </button>
                               )}
                             </div>
@@ -16152,14 +16152,14 @@ PRO-EFFEKT`,
                     "Mein Servicebereich"}
                 </h3>
                 <p className="mt-3 text-base leading-relaxed text-slate-700">
-                  Hier findest du deine GerÃ¤te, deine offenen Tickets und kannst
+                  Hier findest du deine Geräte, deine offenen Tickets und kannst
                   direkt eine neue Service-Anfrage erstellen.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
                 <StatCard
-                  label="Meine GerÃ¤te"
+                  label="Meine Geräte"
                   value={
                     devices.filter(
                       (item) => item.customer_id === userProfile?.customer_id,
@@ -16189,11 +16189,11 @@ PRO-EFFEKT`,
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">
-                    GerÃ¤t melden & Service anfragen
+                    Gerät melden & Service anfragen
                   </h3>
                   <p className="mt-2 text-base text-slate-700">
-                    Lege dein TrainingsgerÃ¤t an und melde direkt Defekt, Wartung
-                    oder PrÃ¼fsiegel-PrÃ¼fung.
+                    Lege dein Trainingsgerät an und melde direkt Defekt, Wartung
+                    oder Prüfsiegel-Prüfung.
                   </p>
 
                   <div className="mt-5 space-y-4">
@@ -16213,13 +16213,13 @@ PRO-EFFEKT`,
                     >
                       <option>Reparatur / Defekt</option>
                       <option>Wartung</option>
-                      <option>PrÃ¼fung / PrÃ¼fsiegel</option>
+                      <option>Prüfung / Prüfsiegel</option>
                     </select>
 
                     <input
                       value={customerDeviceName}
                       onChange={(e) => setCustomerDeviceName(e.target.value)}
-                      placeholder="GerÃ¤tename, z. B. Laufband, Crosstrainer, Kraftstation"
+                      placeholder="Gerätename, z. B. Laufband, Crosstrainer, Kraftstation"
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                     />
 
@@ -16264,7 +16264,7 @@ PRO-EFFEKT`,
                       onChange={(e) =>
                         setCustomerDefectDescription(e.target.value)
                       }
-                      placeholder="Defekt, gewÃ¼nschte Wartung oder PrÃ¼fanforderung beschreiben"
+                      placeholder="Defekt, gewünschte Wartung oder Prüfanforderung beschreiben"
                       rows={6}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base leading-relaxed"
                     />
@@ -16273,21 +16273,21 @@ PRO-EFFEKT`,
                       onClick={customerCreateDeviceTicketAndRequest}
                       className="w-full rounded-2xl bg-sky-500 py-5 text-lg font-black text-white"
                     >
-                      GerÃ¤t & Anfrage speichern
+                      Gerät & Anfrage speichern
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-6">
                   <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                    <h3 className="text-xl font-black">Meine GerÃ¤te</h3>
+                    <h3 className="text-xl font-black">Meine Geräte</h3>
                     <div className="mt-4 space-y-3">
                       {devices.filter(
                         (item) => item.customer_id === userProfile?.customer_id,
                       ).length === 0 ? (
                         <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
-                          Noch keine GerÃ¤te zugeordnet. Du kannst oben trotzdem
-                          ein GerÃ¤t frei eintragen.
+                          Noch keine Geräte zugeordnet. Du kannst oben trotzdem
+                          ein Gerät frei eintragen.
                         </div>
                       ) : (
                         devices
@@ -16302,11 +16302,11 @@ PRO-EFFEKT`,
                             >
                               <p className="text-lg font-black">{item.name}</p>
                               <p className="mt-1 text-base text-slate-700">
-                                {item.serial_number || "Keine Seriennummer"} Â·{" "}
+                                {item.serial_number || "Keine Seriennummer"} ·{" "}
                                 {item.location || "Kein Standort"}
                               </p>
                               <p className="mt-2 text-sm font-bold text-sky-600">
-                                NÃ¤chste PrÃ¼fung:{" "}
+                                Nächste Prüfung:{" "}
                                 {item.next_check || "Nicht geplant"}
                               </p>
                             </div>
@@ -16366,7 +16366,7 @@ PRO-EFFEKT`,
                               {ticket.issue}
                             </h4>
                             <p className="mt-2 text-base text-slate-700">
-                              GerÃ¤t: {ticket.device}
+                              Gerät: {ticket.device}
                             </p>
                             <span
                               className={`mt-3 inline-block rounded-full px-4 py-2 text-sm font-black ${statusClass(ticket.status)}`}
@@ -16513,7 +16513,7 @@ PRO-EFFEKT`,
                 >
                   <h3 className="text-xl font-black">Verbrauch buchen</h3>
                   <p className="mt-2 text-slate-600">
-                    Techniker und Admin kÃ¶nnen Teile einem GerÃ¤t, Ticket oder
+                    Techniker und Admin können Teile einem Gerät, Ticket oder
                     Einsatzhinweis zuordnen.
                   </p>
 
@@ -16523,11 +16523,11 @@ PRO-EFFEKT`,
                       onChange={(e) => setSelectedPartId(e.target.value)}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
-                      <option value="">Ersatzteil auswÃ¤hlen</option>
+                      <option value="">Ersatzteil auswählen</option>
                       {serviceParts.map((part) => (
                         <option key={part.id} value={part.id}>
-                          {part.name} Â· Bestand: {part.stock ?? 0}{" "}
-                          {part.unit || "StÃ¼ck"}
+                          {part.name} · Bestand: {part.stock ?? 0}{" "}
+                          {part.unit || "Stück"}
                         </option>
                       ))}
                     </select>
@@ -16546,7 +16546,7 @@ PRO-EFFEKT`,
                         onChange={(e) => setPartUsageDeviceId(e.target.value)}
                         className="rounded-2xl border border-slate-300 px-5 py-4"
                       >
-                        <option value="">Kein GerÃ¤t</option>
+                        <option value="">Kein Gerät</option>
                         {devices.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name}
@@ -16561,7 +16561,7 @@ PRO-EFFEKT`,
                         <option value="">Kein Ticket</option>
                         {tickets.map((ticket) => (
                           <option key={ticket.id} value={ticket.id}>
-                            {ticket.ticket_number} Â· {ticket.issue}
+                            {ticket.ticket_number} · {ticket.issue}
                           </option>
                         ))}
                       </select>
@@ -16590,7 +16590,7 @@ PRO-EFFEKT`,
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {serviceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Noch keine Ersatzteile angelegt. Admins kÃ¶nnen oben erste
+                      Noch keine Ersatzteile angelegt. Admins können oben erste
                       Teile erfassen.
                     </div>
                   ) : (
@@ -16610,9 +16610,9 @@ PRO-EFFEKT`,
                                 {part.name}
                               </h4>
                               <p className="mt-2 break-words text-sm text-slate-600">
-                                Lagerort: {part.location || "nicht angegeben"} Â·
+                                Lagerort: {part.location || "nicht angegeben"} ·
                                 Mindestbestand: {part.min_stock ?? 0}{" "}
-                                {part.unit || "StÃ¼ck"}
+                                {part.unit || "Stück"}
                               </p>
                               {part.note && (
                                 <p className="mt-2 break-words text-sm text-slate-500">
@@ -16647,7 +16647,7 @@ PRO-EFFEKT`,
                                     onClick={() => deleteServicePart(part.id)}
                                     className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                   >
-                                    LÃ¶schen
+                                    Löschen
                                   </button>
                                 </>
                               )}
@@ -16679,7 +16679,7 @@ PRO-EFFEKT`,
                               {getPartNameById(usage.part_id)}
                             </p>
                             <p className="mt-1 text-sm text-slate-600">
-                              Menge: {usage.quantity} Â· GerÃ¤t:{" "}
+                              Menge: {usage.quantity} · Gerät:{" "}
                               {getDeviceNameById(usage.device_id)}
                             </p>
                             {usage.note && (
