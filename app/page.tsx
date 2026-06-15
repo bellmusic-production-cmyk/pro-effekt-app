@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.0.8 · Wider Software Hero No Reload Button · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.0.9 · Centered Hero With Slogan · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,13 +6156,13 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
         src={TECHFLOW_LOGO_PATH}
         alt="TechFlow"
         style={{
-          width: "94%",
-          maxWidth: "1600px",
-          minWidth: "1120px",
+          width: "86%",
+          maxWidth: "1450px",
           height: "auto",
           display: "block",
           objectFit: "contain",
-          margin: "0 auto",
+          marginLeft: "auto",
+          marginRight: "auto",
         }}
       />
     );
@@ -11623,25 +11623,36 @@ PRO-EFFEKT`,
             className="mb-7 hidden border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70 lg:block"
             style={{
               borderRadius: "24px",
-              padding: "16px 24px 14px",
+              padding: "18px 28px 16px",
             }}
           >
             <div
               className="flex w-full flex-col items-center justify-center overflow-hidden text-center"
-              style={{ minHeight: "190px", maxHeight: "218px" }}
+              style={{ minHeight: "218px", maxHeight: "238px" }}
             >
-              <TechFlowLogo hero />
+              <div
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <TechFlowLogo hero />
+              </div>
+
               <p
                 className="font-black uppercase text-sky-500"
                 style={{
-                  marginTop: "-10px",
-                  fontSize: "19px",
+                  marginTop: "8px",
+                  fontSize: "20px",
                   lineHeight: "1",
-                  letterSpacing: "0.48em",
+                  letterSpacing: "0.42em",
                   whiteSpace: "nowrap",
+                  textAlign: "center",
                 }}
               >
-                Service Management System
+                Service - Management - System
               </p>
             </div>
           </div>
