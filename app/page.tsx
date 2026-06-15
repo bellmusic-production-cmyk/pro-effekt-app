@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.0.0 · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Premium Kundenbereich · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.1.0 · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Kundenportal Final · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -413,6 +413,8 @@ const customerUploadDocumentCategories = [
   "Fotos",
   "Videos",
   "Lieferscheine",
+  "Servicebilder",
+  "Schadensbilder",
   "Sonstige Dokumente",
 ];
 
@@ -430,6 +432,15 @@ const customerVisibleDocumentCategories = [
   "Fotos",
   "Videos",
   "Sonstige Dokumente",
+];
+
+const customerPortalFinalFeatures = [
+  "Eigenes Kunden-Dashboard",
+  "Eigene Geräte",
+  "Eigene Tickets",
+  "Eigene Dokumente",
+  "Störung melden",
+  "Foto / Video / Lieferschein hochladen",
 ];
 
 const abnahmeProtocolQuestions = [
