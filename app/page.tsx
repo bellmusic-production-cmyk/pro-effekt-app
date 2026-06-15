@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.5.0 · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.5.1 · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2268,10 +2268,30 @@ export default function Home() {
       ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId))
       : null;
 
+    const selectedUploadTicket = customerUploadTicketId
+      ? tickets.find((ticketItem) => ticketItem.id === Number(customerUploadTicketId)) || null
+      : null;
+
+    const ticketDevice = selectedUploadTicket ? getDeviceForTicket(selectedUploadTicket) : null;
+    const finalDeviceId = selectedUploadDevice?.id || ticketDevice?.id || null;
+    const finalTicketId = selectedUploadTicket?.id || null;
+
     if (isCustomer && !userProfile?.customer_id) {
       alert("Dein Kundenkonto ist noch keinem Kunden zugeordnet. Bitte Pro-Effekt kontaktieren.");
       event.target.value = "";
       return;
+    }
+
+    if (isCustomer && selectedUploadTicket) {
+      const ticketBelongsToCustomer =
+        selectedUploadTicket.customer_id === userProfile?.customer_id ||
+        (!!profileCustomer?.company && selectedUploadTicket.customer === profileCustomer.company);
+
+      if (!ticketBelongsToCustomer) {
+        alert("Dieses Ticket gehört nicht zu deinem Kundenkonto.");
+        event.target.value = "";
+        return;
+      }
     }
 
     if (isCustomer && selectedUploadDevice && selectedUploadDevice.customer_id !== userProfile?.customer_id) {
@@ -2317,7 +2337,9 @@ export default function Home() {
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory =
       uploadCategory === "Abnahmeprotokolle" ? "abnahmeprotokolle" : uploadCategory.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `${safeCategory}/${Date.now()}-${safeFileName}`;
+    const filePath = isCustomer
+      ? `kundenportal/customer-${userProfile?.customer_id || "unknown"}/${finalTicketId ? `ticket-${finalTicketId}/` : ""}${Date.now()}-${safeFileName}`
+      : `${safeCategory}/${Date.now()}-${safeFileName}`;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -2335,7 +2357,8 @@ export default function Home() {
         file_path: filePath,
         category: uploadCategory,
         file_size: file.size,
-        device_id: selectedDeviceId ? Number(selectedDeviceId) : null,
+        device_id: finalDeviceId,
+        ticket_id: finalTicketId,
         customer_id: uploadCustomerId ? Number(uploadCustomerId) : null,
         inspection_date: isAcceptanceProtocolUpload ? uploadInspectionDate || null : null,
         next_inspection_date: isAcceptanceProtocolUpload ? finalNextInspectionDate || null : null,
@@ -2396,7 +2419,7 @@ export default function Home() {
     }
 
     await createDeviceHistory(
-      selectedDeviceId ? Number(selectedDeviceId) : null,
+      finalDeviceId,
       isAcceptanceProtocolUpload
         ? "Abnahmeprotokoll hochgeladen und Prüffrist gesetzt"
         : "Dokument hochgeladen und zugeordnet",
@@ -2414,6 +2437,8 @@ export default function Home() {
     setUploadInspectionIntervalMonths("12");
     setUploadInspectionBadgeNumber("");
     setUploadInspectionNote("");
+    setCustomerUploadTicketId("");
+    setCustomerUploadFile(null);
     await loadDocuments();
     await loadDevices();
     await loadMaintenancePlans();
@@ -2421,7 +2446,9 @@ export default function Home() {
     alert(
       isAcceptanceProtocolUpload
         ? "Abnahmeprotokoll wurde hochgeladen, dem Kunden zugeordnet und die nächste Prüfung wurde gesetzt."
-        : "Dokument erfolgreich hochgeladen und dem Kunden zugeordnet.",
+        : finalTicketId
+          ? "Dokument erfolgreich hochgeladen, dem Kundenkonto zugeordnet und mit dem Ticket verknüpft."
+          : "Dokument erfolgreich hochgeladen und dem Kunden zugeordnet.",
     );
   }
 
@@ -9246,6 +9273,23 @@ PRO-EFFEKT`,
       ? customers.find((customerItem) => customerItem.id === Number(selectedUploadCustomerId)) || null
       : null;
 
+  const selectedCustomerUploadTicket = customerUploadTicketId
+    ? tickets.find((ticketItem) => ticketItem.id === Number(customerUploadTicketId)) || null
+    : null;
+
+  const customerUploadTickets = tickets
+    .filter((ticketItem) => {
+      if (!userProfile?.customer_id) return false;
+
+      const belongsToCustomer =
+        ticketItem.customer_id === userProfile.customer_id ||
+        (!!profileCustomer?.company && ticketItem.customer === profileCustomer.company);
+
+      return belongsToCustomer;
+    })
+    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))
+    .slice(0, 50);
+
   const filteredUploadCustomers = (() => {
     const search = uploadCustomerSearch.toLowerCase().trim();
 
@@ -12264,6 +12308,29 @@ PRO-EFFEKT`,
                         )}
                       </div>
 
+                      {isCustomer && (
+                        <div>
+                          <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                            Ticket zuweisen
+                          </label>
+                          <select
+                            value={customerUploadTicketId}
+                            onChange={(e) => setCustomerUploadTicketId(e.target.value)}
+                            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                          >
+                            <option value="">Ohne Ticketbezug</option>
+                            {customerUploadTickets.map((ticketItem) => (
+                              <option key={ticketItem.id} value={ticketItem.id}>
+                                {ticketItem.ticket_number || `Ticket #${ticketItem.id}`} · {ticketItem.issue || ticketItem.status}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="mt-2 text-xs font-bold text-slate-500">
+                            Wird ein Ticket ausgewählt, erscheint der Upload direkt in der Ticket-Akte für den Techniker.
+                          </p>
+                        </div>
+                      )}
+
                       <div>
                         <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
                           Gerät optional zuweisen
@@ -12433,7 +12500,10 @@ PRO-EFFEKT`,
                           <input
                             type="file"
                             className="hidden"
-                            onChange={handleFileUpload}
+                            onChange={(event) => {
+                              setCustomerUploadFile(event.target.files?.[0] || null);
+                              handleFileUpload(event);
+                            }}
                             disabled={uploading}
                           />
                         </label>
