@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.8.0 · Chat-Mailversand Live · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.9.0 · Kommunikationszentrale Live · Resend Live Integration für Ticket-Chat · Chat-Mailversand Live · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -775,6 +775,9 @@ export default function Home() {
   const [notificationEmailTemplate, setNotificationEmailTemplate] = useState("Standard");
   const [notificationEmailStatus, setNotificationEmailStatus] = useState("pending");
   const [editingNotificationId, setEditingNotificationId] = useState<number | null>(null);
+  const [communicationStatusFilter, setCommunicationStatusFilter] = useState("Alle");
+  const [communicationTypeFilter, setCommunicationTypeFilter] = useState("Alle");
+  const [communicationSearchTerm, setCommunicationSearchTerm] = useState("");
   const [notificationPage, setNotificationPage] = useState(1);
   const notificationPageSize = 20;
 
@@ -1495,12 +1498,64 @@ export default function Home() {
     }).length;
   }
 
-  const notificationTotalPages = Math.max(1, Math.ceil(notifications.length / notificationPageSize));
+  const communicationFilteredNotifications = useMemo(() => {
+    const search = communicationSearchTerm.toLowerCase().trim();
+
+    return notifications.filter((item) => {
+      const statusValue = String(item.email_status || item.status || "pending").toLowerCase();
+
+      const matchesStatus =
+        communicationStatusFilter === "Alle" ||
+        (communicationStatusFilter === "Ausstehend" && ["pending", "queued", "geplant", "vorgemerkt"].includes(statusValue)) ||
+        (communicationStatusFilter === "Gesendet" && ["sent", "gesendet"].includes(statusValue)) ||
+        (communicationStatusFilter === "Fehler" && ["failed", "fehler"].includes(statusValue));
+
+      const matchesType = communicationTypeFilter === "Alle" || item.type === communicationTypeFilter;
+
+      const matchesSearch =
+        !search ||
+        [
+          item.type,
+          item.recipient,
+          item.subject,
+          item.message,
+          item.email_status,
+          item.status,
+          item.email_error,
+          item.email_template,
+          item.email_provider_id,
+          getTicketNumberById(item.related_ticket_id || null),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+
+      return matchesStatus && matchesType && matchesSearch;
+    });
+  }, [notifications, communicationStatusFilter, communicationTypeFilter, communicationSearchTerm, tickets]);
+
+  const communicationTypes = useMemo(() => {
+    return Array.from(new Set(notifications.map((item) => item.type).filter(Boolean))).sort();
+  }, [notifications]);
+
+  const communicationLiveStats = useMemo(() => {
+    return {
+      total: notifications.length,
+      visible: communicationFilteredNotifications.length,
+      pending: emailStatusStats.pending + emailStatusStats.queued,
+      sent: emailStatusStats.sent,
+      failed: emailStatusStats.failed,
+    };
+  }, [notifications.length, communicationFilteredNotifications.length, emailStatusStats]);
+
+  const notificationTotalPages = Math.max(1, Math.ceil(communicationFilteredNotifications.length / notificationPageSize));
 
   const visibleNotifications = useMemo(() => {
     const startIndex = (notificationPage - 1) * notificationPageSize;
-    return notifications.slice(startIndex, startIndex + notificationPageSize);
-  }, [notifications, notificationPage]);
+    return communicationFilteredNotifications.slice(startIndex, startIndex + notificationPageSize);
+  }, [communicationFilteredNotifications, notificationPage]);
+
 
   function getEmailStatusLabel(status?: string | null) {
     const value = String(status || "pending").toLowerCase();
@@ -1749,20 +1804,147 @@ export default function Home() {
     setCompanyLogoUrlInput(logoUrl);
     alert("Firmenlogo gespeichert.");
   }
-
-  
-  async function sendChatNotificationEmail(notificationId: number) {
-    try {
+  async function sendChatNotificationEmail(notificationItem: NotificationItem) {
+    if (!notificationItem.recipient || !notificationItem.subject) {
       await supabase
         .from("notifications")
         .update({
-          email_status: "queued",
+          email_status: "failed",
+          status: "Fehler",
+          email_error: "Empfänger oder Betreff fehlt.",
           email_last_attempt_at: new Date().toISOString(),
         })
-        .eq("id", notificationId);
-    } catch (error) {
-      console.error("Chat-Mailversand Fehler:", error);
+        .eq("id", notificationItem.id);
+
+      await loadNotifications();
+      return;
     }
+
+    const attemptAt = new Date().toISOString();
+
+    await supabase
+      .from("notifications")
+      .update({
+        email_status: "queued",
+        status: "Geplant",
+        email_error: null,
+        email_last_attempt_at: attemptAt,
+      })
+      .eq("id", notificationItem.id);
+
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === notificationItem.id
+          ? {
+              ...item,
+              email_status: "queued",
+              status: "Geplant",
+              email_error: null,
+              email_last_attempt_at: attemptAt,
+            }
+          : item,
+      ),
+    );
+
+    const { data, error } = await supabase.functions.invoke("resend-email", {
+      body: {
+        to: notificationItem.recipient,
+        subject: notificationItem.subject,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#0f172a">
+            <div style="border:1px solid #e2e8f0;border-radius:18px;padding:24px;background:#ffffff">
+              <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0284c7;font-weight:700">
+                TechFlow · Ticket-Chat
+              </p>
+              <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2">${notificationItem.subject}</h1>
+              <div style="font-size:15px;line-height:1.6;color:#334155">
+                ${String(notificationItem.message || "").replace(/
+/g, "<br/>")}
+              </div>
+              <hr style="border:0;border-top:1px solid #e2e8f0;margin:24px 0" />
+              <p style="font-size:12px;color:#64748b;margin:0">
+                Diese Nachricht wurde automatisch aus dem Ticket-Chat gesendet.
+              </p>
+            </div>
+          </div>
+        `,
+      },
+    });
+
+    if (error) {
+      const errorMessage = error.message || "Resend Edge Function Fehler";
+
+      await supabase
+        .from("notifications")
+        .update({
+          email_status: "failed",
+          status: "Fehler",
+          email_error: errorMessage,
+          email_last_attempt_at: new Date().toISOString(),
+        })
+        .eq("id", notificationItem.id);
+
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === notificationItem.id
+            ? {
+                ...item,
+                email_status: "failed",
+                status: "Fehler",
+                email_error: errorMessage,
+                email_last_attempt_at: new Date().toISOString(),
+              }
+            : item,
+        ),
+      );
+
+      console.error("Chat-Mail konnte nicht gesendet werden:", errorMessage);
+      return;
+    }
+
+    const mailWasAccepted = Boolean(data?.id || data?.success);
+    const nextStatus = mailWasAccepted ? "sent" : "failed";
+    const nextLabel = mailWasAccepted ? "Gesendet" : "Fehler";
+    const nextError = mailWasAccepted ? null : JSON.stringify(data || { error: "Keine Resend-ID erhalten" });
+
+    await supabase
+      .from("notifications")
+      .update({
+        email_status: nextStatus,
+        status: nextLabel,
+        email_provider_id: data?.id || data?.message_id || null,
+        email_sent_at: mailWasAccepted ? new Date().toISOString() : null,
+        email_error: nextError,
+        email_last_attempt_at: new Date().toISOString(),
+      })
+      .eq("id", notificationItem.id);
+
+    setNotifications((prev) =>
+      prev.map((item) =>
+        item.id === notificationItem.id
+          ? {
+              ...item,
+              email_status: nextStatus,
+              status: nextLabel,
+              email_provider_id: data?.id || data?.message_id || null,
+              email_sent_at: mailWasAccepted ? new Date().toISOString() : item.email_sent_at,
+              email_error: nextError,
+              email_last_attempt_at: new Date().toISOString(),
+            }
+          : item,
+      ),
+    );
+
+    await loadNotifications();
+  }
+
+  async function retryNotificationEmail(notificationItem: NotificationItem) {
+    if (!["failed", "pending", "queued"].includes(String(notificationItem.email_status || "pending").toLowerCase())) {
+      const confirmed = window.confirm("Diese Nachricht wurde bereits als gesendet markiert. Trotzdem erneut senden?");
+      if (!confirmed) return;
+    }
+
+    await sendChatNotificationEmail(notificationItem);
   }
 
 async function loadApplicationData() {
@@ -2473,14 +2655,24 @@ async function loadApplicationData() {
       email_error: null,
     };
 
-    const { error } = await supabase.from("notifications").insert([notificationPayload]);
+    const insertResult = await supabase
+      .from("notifications")
+      .insert([notificationPayload])
+      .select("*")
+      .single();
 
-    if (error) {
-      console.error("Chat-Benachrichtigung konnte nicht erstellt werden:", error.message);
+    if (insertResult.error || !insertResult.data) {
+      console.error(
+        "Chat-Benachrichtigung konnte nicht erstellt werden:",
+        insertResult.error?.message || "Unbekannter Fehler",
+      );
       return;
     }
 
+    const createdNotification = insertResult.data as NotificationItem;
+
     await loadNotifications();
+    await sendChatNotificationEmail(createdNotification);
   }
 
   async function sendTicketChatMessage(ticket: Ticket) {
@@ -12595,6 +12787,69 @@ PRO-EFFEKT`,
           )}
 
           {activePage === "Benachrichtigungen" && (
+            <section className="space-y-5">
+              <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
+                      Kommunikationszentrale Live · v4.9.0
+                    </p>
+                    <h2 className="mt-1 text-2xl font-black text-slate-900">
+                      Mail-Queue, Verlauf und erneuter Versand
+                    </h2>
+                    <p className="mt-1 text-sm font-bold text-slate-600">
+                      Filtere Ausstehend, Gesendet und Fehler. Fehlerhafte Mails können direkt erneut gesendet werden.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadNotifications()}
+                    className="rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-black text-white"
+                  >
+                    Aktualisieren
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-5">
+                  <StatCard label="Alle" value={communicationLiveStats.total} />
+                  <StatCard label="Gefiltert" value={communicationLiveStats.visible} />
+                  <StatCard label="Ausstehend" value={communicationLiveStats.pending} />
+                  <StatCard label="Gesendet" value={communicationLiveStats.sent} />
+                  <StatCard label="Fehler" value={communicationLiveStats.failed} />
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                  <input
+                    value={communicationSearchTerm}
+                    onChange={(e) => setCommunicationSearchTerm(e.target.value)}
+                    placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
+                    className="rounded-2xl border border-cyan-200 bg-white px-4 py-3 text-sm font-bold text-slate-900"
+                  />
+                  <select
+                    value={communicationStatusFilter}
+                    onChange={(e) => setCommunicationStatusFilter(e.target.value)}
+                    className="rounded-2xl border border-cyan-200 bg-white px-4 py-3 text-sm font-black text-slate-900"
+                  >
+                    <option>Alle</option>
+                    <option>Ausstehend</option>
+                    <option>Gesendet</option>
+                    <option>Fehler</option>
+                  </select>
+                  <select
+                    value={communicationTypeFilter}
+                    onChange={(e) => setCommunicationTypeFilter(e.target.value)}
+                    className="rounded-2xl border border-cyan-200 bg-white px-4 py-3 text-sm font-black text-slate-900"
+                  >
+                    <option>Alle</option>
+                    {communicationTypes.map((type) => (
+                      <option key={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
                 PRO-EFFEKT · Betriebsbereit
