@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.6.0 · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.0.0 · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1254,6 +1254,58 @@ export default function Home() {
     return { ok, soon, overdue, missing };
   }, [devices]);
 
+
+  function getMaintenanceDueState(plan: MaintenancePlan) {
+    if (!plan.next_due) {
+      return { label: "Ohne Termin", className: "bg-slate-100 text-slate-700", days: 9999 };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueDate = new Date(plan.next_due);
+    dueDate.setHours(0, 0, 0, 0);
+
+    const days = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (days < 0) {
+      return { label: `${Math.abs(days)} Tag(e) überfällig`, className: "bg-red-100 text-red-700", days };
+    }
+
+    if (days === 0) {
+      return { label: "Heute fällig", className: "bg-orange-100 text-orange-700", days };
+    }
+
+    if (days <= 7) {
+      return { label: `in ${days} Tag(en) fällig`, className: "bg-amber-100 text-amber-700", days };
+    }
+
+    return { label: `in ${days} Tag(en)`, className: "bg-emerald-100 text-emerald-700", days };
+  }
+
+  const maintenancePremiumStats = useMemo(() => {
+    const activePlans = maintenancePlans.filter(
+      (plan) => String(plan.status || "").toLowerCase() !== "abgeschlossen",
+    );
+
+    return {
+      total: activePlans.length,
+      dueToday: activePlans.filter((plan) => getMaintenanceDueState(plan).days === 0).length,
+      dueSoon: activePlans.filter((plan) => {
+        const days = getMaintenanceDueState(plan).days;
+        return days > 0 && days <= 7;
+      }).length,
+      overdue: activePlans.filter((plan) => getMaintenanceDueState(plan).days < 0).length,
+    };
+  }, [maintenancePlans]);
+
+  const maintenanceTicketSuggestions = useMemo(() => {
+    return maintenancePlans
+      .filter((plan) => String(plan.status || "").toLowerCase() !== "abgeschlossen")
+      .filter((plan) => getMaintenanceDueState(plan).days <= 7)
+      .sort((a, b) => getMaintenanceDueState(a).days - getMaintenanceDueState(b).days)
+      .slice(0, 20);
+  }, [maintenancePlans]);
 
   const emailStatusStats = useMemo(() => {
     return {
@@ -6121,6 +6173,101 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     alert("Wartungsplan gespeichert.");
   }
 
+  async function createTicketFromMaintenancePlan(plan: MaintenancePlan) {
+    if (!isAdmin && !isTechnician) {
+      alert("Nur Admins und Techniker können aus Wartungen Tickets erstellen.");
+      return;
+    }
+
+    const deviceItem = plan.device_id
+      ? devices.find((item) => item.id === plan.device_id) || null
+      : null;
+    const customerItem =
+      (plan.customer_id ? customers.find((item) => item.id === plan.customer_id) || null : null) ||
+      (deviceItem?.customer_id ? customers.find((item) => item.id === deviceItem.customer_id) || null : null);
+
+    const customerName = customerItem ? getCustomerLabel(customerItem) : getCustomerNameById(plan.customer_id) || "Kunde";
+    const deviceName = deviceItem?.name || plan.title || "Gerät";
+    const dueState = getMaintenanceDueState(plan);
+
+    const existingTicket = tickets.find((ticket) => {
+      const text = [ticket.issue, ticket.description, ticket.device, ticket.customer]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        text.includes(String(plan.id).toLowerCase()) ||
+        (
+          text.includes(String(deviceName).toLowerCase()) &&
+          text.includes(String(plan.next_due || "").toLowerCase()) &&
+          text.includes("wartung")
+        )
+      );
+    });
+
+    if (existingTicket) {
+      const confirmed = window.confirm(
+        `Zu diesem Wartungsplan gibt es vermutlich schon ein Ticket (${existingTicket.ticket_number}). Trotzdem ein neues Ticket erstellen?`,
+      );
+
+      if (!confirmed) return;
+    }
+
+    const ticketNumber = `W-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
+
+    const insertResult = await supabase
+      .from("tickets")
+      .insert([
+        {
+          ticket_number: ticketNumber,
+          customer: customerName,
+          customer_id: customerItem?.id || plan.customer_id || deviceItem?.customer_id || null,
+          device: deviceName,
+          issue: `${plan.maintenance_type || "Wartung"} fällig: ${deviceName}`,
+          description: [
+            `Automatisch aus Wartungsplan erzeugt.`,
+            `Wartungsplan-ID: ${plan.id}`,
+            `Fälligkeit: ${plan.next_due || "ohne Termin"} (${dueState.label})`,
+            plan.interval_days ? `Intervall: ${plan.interval_days} Tage` : "",
+            plan.note ? `Hinweis: ${plan.note}` : "",
+          ].filter(Boolean).join("\n"),
+          priority: dueState.days < 0 ? "Hoch" : dueState.days <= 7 ? "Mittel" : "Niedrig",
+          status: "Offen",
+          assigned_to: plan.assigned_to || null,
+          service_date: plan.next_due || null,
+          service_status: "Geplant",
+        },
+      ])
+      .select("*")
+      .single();
+
+    if (insertResult.error) {
+      alert(`Ticket konnte nicht erstellt werden: ${insertResult.error.message}`);
+      return;
+    }
+
+    await supabase
+      .from("maintenance_plans")
+      .update({
+        status: "Ticket erstellt",
+        note: [plan.note, `Ticket erstellt: ${ticketNumber}`].filter(Boolean).join(" · "),
+      })
+      .eq("id", plan.id);
+
+    await createDeviceHistory(
+      plan.device_id || null,
+      "Wartungsticket erstellt",
+      `${ticketNumber} · ${plan.maintenance_type || "Wartung"} · Fällig: ${plan.next_due || "ohne Termin"}`,
+      "Wartung",
+    );
+
+    await loadTickets();
+    await loadMaintenancePlans();
+
+    alert(`Wartungsticket ${ticketNumber} wurde erstellt.`);
+  }
+
   async function markMaintenanceReminderSent(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können Erinnerungen markieren.");
@@ -10681,6 +10828,25 @@ PRO-EFFEKT`,
                 </button>
 
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl bg-white/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Wartungspläne</p>
+                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.total}</p>
+                  </div>
+                  <div className="rounded-2xl bg-orange-500/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute fällig</p>
+                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueToday}</p>
+                  </div>
+                  <div className="rounded-2xl bg-amber-500/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">In 7 Tagen</p>
+                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueSoon}</p>
+                  </div>
+                  <div className="rounded-2xl bg-red-500/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Überfällig</p>
+                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.overdue}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <button
                     onClick={() => openPage("Service-Tickets")}
                     className="rounded-2xl bg-sky-500 px-4 py-4 text-left font-black text-white"
@@ -11191,6 +11357,46 @@ PRO-EFFEKT`,
                   </div>
                 </div>
               </div>
+
+              {!isCustomer && maintenanceTicketSuggestions.length > 0 && (
+                <div className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-sm">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">
+                        Wartungsplaner Premium
+                      </p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">
+                        Nächste automatische Ticketvorschläge
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openPage("Service-Tickets")}
+                      className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
+                    >
+                      Zu den Vorschlägen
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    {maintenanceTicketSuggestions.slice(0, 3).map((plan) => {
+                      const dueState = getMaintenanceDueState(plan);
+
+                      return (
+                        <div key={plan.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="font-black text-slate-900">{plan.title || "Wartung"}</p>
+                          <p className="mt-1 text-xs font-bold text-slate-500">
+                            {plan.maintenance_type || "Wartung"} · {plan.next_due || "ohne Termin"}
+                          </p>
+                          <span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${dueState.className}`}>
+                            {dueState.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets" value={calendarTickets.length} />
@@ -11852,6 +12058,64 @@ PRO-EFFEKT`,
                   </div>
                 );
               })()}
+
+              {!isCustomer && maintenanceTicketSuggestions.length > 0 && (
+                <div className="mb-6 rounded-[28px] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+                        Wartungsplaner Premium · v4.0.0
+                      </p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">
+                        Automatische Ticketvorschläge aus fälligen Wartungen
+                      </h3>
+                      <p className="mt-1 text-sm font-bold text-slate-600">
+                        Fällige, bald fällige und überfällige Wartungen können direkt als Service-Ticket angelegt werden.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openPage("Dashboard")}
+                      className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-amber-700"
+                    >
+                      Dashboard prüfen
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {maintenanceTicketSuggestions.slice(0, 6).map((plan) => {
+                      const deviceItem = plan.device_id ? devices.find((item) => item.id === plan.device_id) : null;
+                      const dueState = getMaintenanceDueState(plan);
+
+                      return (
+                        <div key={plan.id} className="rounded-2xl border border-amber-200 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate font-black text-slate-900">
+                                {plan.title || deviceItem?.name || "Wartung"}
+                              </p>
+                              <p className="mt-1 text-xs font-bold text-slate-500">
+                                {plan.maintenance_type || "Wartung"} · {plan.next_due || "ohne Termin"}
+                              </p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${dueState.className}`}>
+                              {dueState.label}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => createTicketFromMaintenancePlan(plan)}
+                            className="mt-4 w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
+                          >
+                            Ticket erstellen
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
