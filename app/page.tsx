@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.5.2 · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.6.0 · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -229,6 +229,21 @@ type NotificationItem = {
   email_template?: string | null;
   email_provider_id?: string | null;
   email_last_attempt_at?: string | null;
+  created_at: string;
+};
+
+type TicketChatMessage = {
+  id: number;
+  ticket_id: number;
+  sender_id?: string | null;
+  sender_name?: string | null;
+  sender_role?: "admin" | "technician" | "customer" | string | null;
+  message: string;
+  attachment_name?: string | null;
+  attachment_url?: string | null;
+  read_by_admin?: boolean | null;
+  read_by_technician?: boolean | null;
+  read_by_customer?: boolean | null;
   created_at: string;
 };
 
@@ -547,6 +562,9 @@ export default function Home() {
   const [partUsages, setPartUsages] = useState<PartUsage[]>([]);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [ticketChatMessages, setTicketChatMessages] = useState<TicketChatMessage[]>([]);
+  const [ticketChatDrafts, setTicketChatDrafts] = useState<Record<number, string>>({});
+  const [ticketChatFiles, setTicketChatFiles] = useState<Record<number, File | null>>({});
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -1455,6 +1473,28 @@ export default function Home() {
   }, [notifications]);
 
 
+  const ticketChatUnreadCount = useMemo(() => {
+    return ticketChatMessages.filter((message) => {
+      if (userProfile?.role === "customer") return !message.read_by_customer;
+      if (userProfile?.role === "technician") return !message.read_by_technician;
+      return !message.read_by_admin;
+    }).length;
+  }, [ticketChatMessages, userProfile?.role]);
+
+  function getTicketChatMessages(ticketId: number) {
+    return ticketChatMessages
+      .filter((message) => message.ticket_id === ticketId)
+      .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  }
+
+  function getTicketChatUnreadCount(ticketId: number) {
+    return getTicketChatMessages(ticketId).filter((message) => {
+      if (userProfile?.role === "customer") return !message.read_by_customer;
+      if (userProfile?.role === "technician") return !message.read_by_technician;
+      return !message.read_by_admin;
+    }).length;
+  }
+
   const notificationTotalPages = Math.max(1, Math.ceil(notifications.length / notificationPageSize));
 
   const visibleNotifications = useMemo(() => {
@@ -1727,6 +1767,7 @@ export default function Home() {
       loadPartUsages(),
       loadInvoices(),
       loadNotifications(),
+      loadTicketChatMessages(),
       loadContracts(),
       loadTechnicians(),
     ]);
@@ -1755,6 +1796,9 @@ export default function Home() {
     setPartUsages([]);
     setInvoices([]);
     setNotifications([]);
+    setTicketChatMessages([]);
+    setTicketChatDrafts({});
+    setTicketChatFiles({});
     setContracts([]);
     setTechnicians([]);
     setUserProfile(null);
@@ -1932,6 +1976,9 @@ export default function Home() {
       setPartUsages([]);
       setInvoices([]);
       setNotifications([]);
+      setTicketChatMessages([]);
+      setTicketChatDrafts({});
+      setTicketChatFiles({});
       setContracts([]);
       setTechnicians([]);
       setUserProfile(null);
@@ -2298,6 +2345,155 @@ export default function Home() {
     }
 
     setNotifications((data || []) as NotificationItem[]);
+  }
+
+  async function loadTicketChatMessages() {
+    const { data, error } = await supabase
+      .from("ticket_chat_messages")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Ticket-Chat konnte nicht geladen werden:", error.message);
+      setTicketChatMessages([]);
+      return;
+    }
+
+    setTicketChatMessages((data || []) as TicketChatMessage[]);
+  }
+
+  async function uploadTicketChatAttachment(ticketId: number, file: File | null) {
+    if (!file) return { name: null as string | null, url: null as string | null };
+
+    const safeName = file.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+    const filePath = `ticket-chat/${ticketId}/${Date.now()}-${safeName}`;
+
+    const uploadResult = await supabase.storage
+      .from("documents")
+      .upload(filePath, file, { upsert: false, contentType: file.type || "application/octet-stream" });
+
+    if (uploadResult.error) {
+      throw new Error(uploadResult.error.message);
+    }
+
+    const publicUrlResult = supabase.storage.from("documents").getPublicUrl(filePath);
+
+    return {
+      name: file.name,
+      url: publicUrlResult.data.publicUrl,
+    };
+  }
+
+  function canUseTicketChat(ticket: Ticket) {
+    if (isAdmin) return true;
+    if (isTechnician) {
+      return (
+        ticket.assigned_to === userProfile?.id ||
+        !ticket.assigned_to ||
+        ticket.status === "Offen" ||
+        ticket.status === "Zugewiesen"
+      );
+    }
+    return isCustomer && isOwnCustomerTicket(ticket);
+  }
+
+  async function sendTicketChatMessage(ticket: Ticket) {
+    if (!canUseTicketChat(ticket)) {
+      alert("Für dieses Ticket ist kein Chatzugriff möglich.");
+      return;
+    }
+
+    const message = (ticketChatDrafts[ticket.id] || "").trim();
+    const file = ticketChatFiles[ticket.id] || null;
+
+    if (!message && !file) {
+      alert("Bitte Nachricht oder Datei auswählen.");
+      return;
+    }
+
+    let attachmentName: string | null = null;
+    let attachmentUrl: string | null = null;
+
+    try {
+      const upload = await uploadTicketChatAttachment(ticket.id, file);
+      attachmentName = upload.name;
+      attachmentUrl = upload.url;
+    } catch (error: any) {
+      alert(`Datei konnte nicht hochgeladen werden: ${error?.message || "Unbekannter Fehler"}`);
+      return;
+    }
+
+    const payload = {
+      ticket_id: ticket.id,
+      sender_id: userProfile?.id || null,
+      sender_name: userProfile?.full_name || userProfile?.company || profileCustomer?.company || "Nutzer",
+      sender_role: userProfile?.role || "admin",
+      message: message || (attachmentName ? `Dateianhang: ${attachmentName}` : ""),
+      attachment_name: attachmentName,
+      attachment_url: attachmentUrl,
+      read_by_admin: userProfile?.role === "admin",
+      read_by_technician: userProfile?.role === "technician",
+      read_by_customer: userProfile?.role === "customer",
+    };
+
+    const insertResult = await supabase
+      .from("ticket_chat_messages")
+      .insert([payload])
+      .select("*")
+      .single();
+
+    if (insertResult.error || !insertResult.data) {
+      alert(`Nachricht konnte nicht gespeichert werden: ${insertResult.error?.message || "Unbekannter Fehler"}`);
+      return;
+    }
+
+    await createDeviceHistory(
+      getDeviceForTicket(ticket)?.id || null,
+      "Ticket-Chat Nachricht",
+      `${ticket.ticket_number} · ${payload.sender_name}: ${payload.message}`,
+      "Kommunikation",
+    );
+
+    setTicketChatDrafts((prev) => ({ ...prev, [ticket.id]: "" }));
+    setTicketChatFiles((prev) => ({ ...prev, [ticket.id]: null }));
+
+    await loadTicketChatMessages();
+  }
+
+  async function markTicketChatRead(ticket: Ticket) {
+    if (!canUseTicketChat(ticket)) return;
+
+    const unreadMessages = ticketChatMessages.filter((message) => {
+      if (message.ticket_id !== ticket.id) return false;
+      if (userProfile?.role === "customer") return !message.read_by_customer;
+      if (userProfile?.role === "technician") return !message.read_by_technician;
+      return !message.read_by_admin;
+    });
+
+    if (unreadMessages.length === 0) return;
+
+    const updatePayload =
+      userProfile?.role === "customer"
+        ? { read_by_customer: true }
+        : userProfile?.role === "technician"
+          ? { read_by_technician: true }
+          : { read_by_admin: true };
+
+    const { error } = await supabase
+      .from("ticket_chat_messages")
+      .update(updatePayload)
+      .in("id", unreadMessages.map((message) => message.id));
+
+    if (error) {
+      console.error("Chat konnte nicht als gelesen markiert werden:", error.message);
+      return;
+    }
+
+    await loadTicketChatMessages();
   }
 
   async function loadContracts() {
@@ -11535,6 +11731,29 @@ PRO-EFFEKT`,
                     <span className="mt-1 block text-xs font-bold opacity-80">
                       Lager & Verbrauch
                     </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
+                      Kundenkommunikation Premium · v4.6.0
+                    </p>
+                    <h3 className="mt-1 text-xl font-black text-slate-900">
+                      Ticket-Chat & Rückfragen
+                    </h3>
+                    <p className="mt-1 text-sm font-bold text-slate-600">
+                      Ungelesene Nachrichten: {ticketChatUnreadCount}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openPage("Service-Tickets")}
+                    className="rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-black text-white"
+                  >
+                    Chats öffnen
                   </button>
                 </div>
               </div>
