@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.8 · Minimal Software Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.9 · Compact Hero Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,7 +6156,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
       alt="TechFlow"
       className={
         hero
-          ? "h-32 w-auto max-w-[720px] object-contain md:h-40"
+          ? "h-24 w-auto max-w-[860px] object-contain md:h-28 lg:h-32"
           : compact
             ? "h-12 w-auto max-w-[260px] object-contain"
             : "h-16 w-auto max-w-[340px] object-contain"
@@ -6193,7 +6193,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
             dark ? "text-sky-400" : "text-sky-500"
           }`}
         >
-          Service Management Platform
+          Service Management System
         </p>
       </div>
     );
@@ -11607,9 +11607,12 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-10 shadow-sm shadow-slate-200/70 lg:block">
-            <div className="flex min-h-[260px] items-center justify-center">
+          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white px-8 py-7 shadow-sm shadow-slate-200/70 lg:block">
+            <div className="flex flex-col items-center justify-center text-center">
               <TechFlowLogo hero />
+              <p className="mt-3 text-sm font-black uppercase tracking-[0.36em] text-sky-500">
+                Service Management System
+              </p>
             </div>
           </div>
 
