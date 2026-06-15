@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.1.0 FIXED · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.2.0 · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6378,6 +6378,117 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     alert(`Wartungsticket ${ticketNumber} wurde erstellt.`);
   }
 
+  function buildMaintenanceReminderDraft(plan: MaintenancePlan) {
+    const deviceItem = plan.device_id
+      ? devices.find((item) => item.id === plan.device_id) || null
+      : null;
+
+    const customerItem =
+      (plan.customer_id ? customers.find((item) => item.id === plan.customer_id) || null : null) ||
+      (deviceItem?.customer_id ? customers.find((item) => item.id === deviceItem.customer_id) || null : null);
+
+    const customerName = customerItem ? getCustomerLabel(customerItem) : getCustomerNameById(plan.customer_id) || "Kunde";
+    const deviceName = deviceItem?.name || plan.title || "Gerät / Anlage";
+    const dueState = getMaintenanceDueState(plan);
+    const recipient =
+      customerItem?.email ||
+      customerItem?.contact_1_email ||
+      customerItem?.email_2 ||
+      "";
+
+    const subject = `${plan.maintenance_type || "Wartung"} fällig · ${deviceName}`;
+
+    const message = [
+      `Guten Tag${customerName ? ` ${customerName}` : ""},`,
+      "",
+      `für Ihr Gerät / Ihre Anlage "${deviceName}" ist eine ${plan.maintenance_type || "Wartung"} vorgesehen.`,
+      "",
+      `Fälligkeit: ${plan.next_due || "noch nicht terminiert"} (${dueState.label})`,
+      plan.interval_days ? `Wartungsintervall: ${plan.interval_days} Tage` : "",
+      plan.note ? `Hinweis: ${plan.note}` : "",
+      "",
+      "Bitte melden Sie sich bei uns, falls der Termin angepasst werden soll.",
+      "",
+      "Mit freundlichen Grüßen",
+      companyData?.name || "Ihr Serviceteam",
+    ]
+      .filter((line) => line !== "")
+      .join("\n");
+
+    return {
+      recipient,
+      subject,
+      message,
+      customerName,
+      deviceName,
+      dueState,
+    };
+  }
+
+  async function createMaintenanceReminderNotification(plan: MaintenancePlan, sendImmediately = false) {
+    if (!isAdmin && !isTechnician) {
+      alert("Nur Admins und Techniker können Wartungsmails vorbereiten.");
+      return;
+    }
+
+    const draft = buildMaintenanceReminderDraft(plan);
+
+    if (!draft.recipient) {
+      alert("Für diesen Kunden ist keine E-Mail-Adresse hinterlegt.");
+      return;
+    }
+
+    const existingNotification = notifications.find((item) => {
+      const relatedText = `${item.type} ${item.subject} ${item.message}`.toLowerCase();
+
+      return (
+        item.recipient === draft.recipient &&
+        relatedText.includes("wartung") &&
+        relatedText.includes(String(plan.next_due || "").toLowerCase()) &&
+        relatedText.includes(String(plan.id).toLowerCase())
+      );
+    });
+
+    if (existingNotification && !sendImmediately) {
+      alert("Für diese Wartung existiert bereits eine vorgemerkte Wartungsmail.");
+      return;
+    }
+
+    const payload = {
+      type: "Wartungserinnerung",
+      recipient: draft.recipient,
+      subject: draft.subject,
+      message: [`Wartungsplan-ID: ${plan.id}`, "", draft.message].join("\n"),
+      related_ticket_id: null,
+      status: sendImmediately ? "Geplant" : "Vorgemerkt",
+      email_status: sendImmediately ? "queued" : "pending",
+      email_template: "Wartung Standard",
+      email_error: null,
+      email_last_attempt_at: sendImmediately ? new Date().toISOString() : null,
+    };
+
+    const insertResult = await supabase
+      .from("notifications")
+      .insert([payload])
+      .select("*")
+      .single();
+
+    if (insertResult.error || !insertResult.data) {
+      alert(`Wartungsmail konnte nicht vorbereitet werden: ${insertResult.error?.message || "Unbekannter Fehler"}`);
+      return;
+    }
+
+    await loadNotifications();
+
+    if (sendImmediately) {
+      await sendNotificationEmail(insertResult.data as NotificationItem);
+      await markMaintenanceReminderSent(plan);
+      return;
+    }
+
+    alert("Wartungsmail wurde vorgemerkt und ist in der Kommunikationszentrale sichtbar.");
+  }
+
   async function markMaintenanceReminderSent(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können Erinnerungen markieren.");
@@ -8792,6 +8903,29 @@ PRO-EFFEKT`,
     : documentCategories.filter((category) => category !== "Alle");
 
   const todayDateString = new Date().toISOString().split("T")[0];
+
+  const maintenanceMailCandidates = useMemo(() => {
+    return maintenancePlans
+      .filter((plan) => String(plan.status || "").toLowerCase() !== "abgeschlossen")
+      .filter((plan) => plan.reminder_enabled !== false)
+      .filter((plan) => {
+        const dueState = getMaintenanceDueState(plan);
+        const daysBefore = Math.max(1, Number(plan.reminder_days_before || 14));
+
+        return dueState.days <= daysBefore && dueState.days <= 14;
+      })
+      .filter((plan) => {
+        if (!plan.last_reminder_sent_at) return true;
+
+        const lastSent = new Date(plan.last_reminder_sent_at);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24));
+
+        return diffDays >= Math.max(1, Number(plan.reminder_days_before || 14));
+      })
+      .sort((a, b) => getMaintenanceDueState(a).days - getMaintenanceDueState(b).days)
+      .slice(0, 25);
+  }, [maintenancePlans]);
 
   const openAdminTickets = visibleRoleTickets.filter(
     (ticket) =>
@@ -11511,6 +11645,31 @@ PRO-EFFEKT`,
                 </div>
               </div>
 
+              {!isCustomer && maintenanceMailCandidates.length > 0 && (
+                <div className="rounded-[28px] border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
+                        Automatische Wartungsmails · v4.2.0
+                      </p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">
+                        {maintenanceMailCandidates.length} Wartungsmail(s) bereit
+                      </h3>
+                      <p className="mt-1 text-sm font-bold text-slate-600">
+                        Fällige Wartungen können direkt als E-Mail vorgemerkt oder sofort versendet werden.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openPage("Benachrichtigungen")}
+                      className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white"
+                    >
+                      Kommunikationszentrale öffnen
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {!isCustomer && maintenanceTicketSuggestions.length > 0 && (
                 <div className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-sm">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -12256,13 +12415,31 @@ PRO-EFFEKT`,
                             </span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => createTicketFromMaintenancePlan(plan)}
-                            className="mt-4 w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
-                          >
-                            Ticket erstellen
-                          </button>
+                          <div className="mt-4 grid gap-2">
+                            <button
+                              type="button"
+                              onClick={() => createTicketFromMaintenancePlan(plan)}
+                              className="w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
+                            >
+                              Ticket erstellen
+                            </button>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => createMaintenanceReminderNotification(plan, false)}
+                                className="rounded-2xl bg-blue-100 px-4 py-3 text-xs font-black text-blue-700"
+                              >
+                                Mail vormerken
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => createMaintenanceReminderNotification(plan, true)}
+                                className="rounded-2xl bg-blue-600 px-4 py-3 text-xs font-black text-white"
+                              >
+                                Mail senden
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}
