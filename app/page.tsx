@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.3.0 · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.4.0 · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -9290,6 +9290,64 @@ PRO-EFFEKT`,
 
   const unassignedDispatchDayTickets = plannedDispatchTickets.filter((ticket) => !ticket.assigned_to);
 
+  const dispatchPremiumWeekTickets = sortTicketsByAppointment(
+    activePlanningTickets.filter((ticket) => {
+      if (!ticket.service_date) return false;
+
+      const startDate = new Date(calendarDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 7);
+
+      const serviceDate = new Date(ticket.service_date);
+      serviceDate.setHours(0, 0, 0, 0);
+
+      return serviceDate >= startDate && serviceDate <= endDate;
+    }),
+  );
+
+  const dispatchPremiumMaintenanceSuggestions = maintenanceTicketSuggestions
+    .filter((plan) => String(plan.status || "").toLowerCase() !== "ticket erstellt")
+    .slice(0, 10);
+
+  function getSuggestedTechnicianForTicket(ticket: Ticket) {
+    const sameCustomerTicket = tickets.find((item) =>
+      item.id !== ticket.id &&
+      item.customer_id &&
+      item.customer_id === ticket.customer_id &&
+      item.assigned_to,
+    );
+
+    if (sameCustomerTicket?.assigned_to) {
+      return sameCustomerTicket.assigned_to;
+    }
+
+    const leastBusyTechnician = technicians
+      .map((technician) => ({
+        technician,
+        count: plannedDispatchTickets.filter((item) => item.assigned_to === technician.id).length,
+      }))
+      .sort((a, b) => a.count - b.count)[0]?.technician;
+
+    return leastBusyTechnician?.id || "";
+  }
+
+  async function quickPlanTicketSuggested(ticket: Ticket) {
+    const suggestedTechnicianId = getSuggestedTechnicianForTicket(ticket);
+
+    if (!suggestedTechnicianId) {
+      alert("Kein Techniker verfügbar. Bitte zuerst Techniker anlegen.");
+      return;
+    }
+
+    await quickPlanTicket(ticket, suggestedTechnicianId);
+  }
+
+  async function quickCreateMaintenanceTicketAndPlan(plan: MaintenancePlan) {
+    await createTicketFromMaintenancePlan(plan);
+    await loadTickets();
+  }
+
   async function quickPlanTicket(ticket: Ticket, technicianId: string) {
     if (!technicianId) {
       alert("Bitte Techniker auswählen.");
@@ -16945,6 +17003,99 @@ PRO-EFFEKT`,
                   </div>
                 </div>
               </div>
+
+              <div className="rounded-[28px] border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-700">
+                      Einsatzplanung Premium · v4.4.0
+                    </p>
+                    <h3 className="mt-1 text-xl font-black text-slate-900">
+                      Automatische Planungsvorschläge
+                    </h3>
+                    <p className="mt-1 text-sm font-bold text-slate-600">
+                      Offene Einsätze, überfällige Tickets, Wochenübersicht und Wartungen für die Disposition.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCalendarDate(new Date().toISOString().split("T")[0])}
+                    className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white"
+                  >
+                    Heute anzeigen
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-4">
+                  <StatCard label="Heute geplant" value={plannedDispatchTickets.length} />
+                  <StatCard label="Diese Woche" value={dispatchPremiumWeekTickets.length} />
+                  <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
+                  <StatCard label="Wartungen" value={dispatchPremiumMaintenanceSuggestions.length} />
+                </div>
+
+                {dispatchPremiumMaintenanceSuggestions.length > 0 && (
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {dispatchPremiumMaintenanceSuggestions.slice(0, 6).map((plan) => {
+                      const dueState = getMaintenanceDueState(plan);
+                      return (
+                        <div key={plan.id} className="rounded-2xl border border-indigo-100 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate font-black text-slate-900">{plan.title || "Wartung"}</p>
+                              <p className="mt-1 text-xs font-bold text-slate-500">
+                                {plan.maintenance_type || "Wartung"} · {plan.next_due || "ohne Termin"}
+                              </p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${dueState.className}`}>
+                              {dueState.label}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => quickCreateMaintenanceTicketAndPlan(plan)}
+                            className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white"
+                          >
+                            Wartung als Ticket erzeugen
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {unplannedDispatchTickets.length > 0 && (
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Schnellplanung</p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">Ungeplante Einsätze mit Techniker-Vorschlag</h3>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {unplannedDispatchTickets.slice(0, 6).map((ticket) => {
+                      const suggestedTechnicianId = getSuggestedTechnicianForTicket(ticket);
+                      return (
+                        <div key={ticket.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="truncate font-black text-slate-900">{ticket.ticket_number} · {ticket.issue}</p>
+                          <p className="mt-1 text-xs font-bold text-slate-500">{ticket.customer} · {ticket.device}</p>
+                          <p className="mt-2 text-xs font-bold text-indigo-700">
+                            Vorschlag: {getTechnicianNameById(suggestedTechnicianId) || "kein Techniker"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => quickPlanTicketSuggested(ticket)}
+                            className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
+                          >
+                            Schnell mit Vorschlag planen
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Offene Tickets" value={activePlanningTickets.length} />
