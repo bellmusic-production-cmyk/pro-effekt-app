@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.5 · Professional SaaS Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.6 · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,7 +6156,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
       alt="TechFlow"
       className={
         hero
-          ? "h-20 w-auto max-w-[460px] object-contain md:h-24"
+          ? "h-24 w-auto max-w-[520px] object-contain md:h-28"
           : compact
             ? "h-12 w-auto max-w-[260px] object-contain"
             : "h-16 w-auto max-w-[340px] object-contain"
@@ -11607,32 +11607,18 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-6 shadow-sm shadow-slate-200/70 lg:block">
-            <div className="flex items-center justify-between gap-8">
-              <div className="flex min-w-0 items-center gap-8">
-                <TechFlowLogo hero />
-                <div className="h-24 w-px bg-slate-200" />
-                <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-500">
-                    Service Management Platform
-                  </p>
-                  <h2 className="mt-3 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950">
-                    {portalTitle}
-                  </h2>
-                  <p className="mt-3 max-w-4xl text-[15px] font-semibold leading-6 text-slate-500">
-                    {portalSubtitle}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-4 rounded-[28px] border border-slate-100 bg-slate-50 px-5 py-4">
-                <ProEffektLogo />
-                <div className="text-right">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Mandant</p>
-                  <p className="mt-1 max-w-[220px] truncate text-xl font-black text-slate-950">{companyData?.name || "Pro-Effekt"}</p>
-                  <p className="mt-1 max-w-[220px] truncate text-sm font-bold text-slate-500">{userProfile?.full_name || session.user.email}</p>
-                </div>
-              </div>
+          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-sm shadow-slate-200/70 lg:block">
+            <div className="flex flex-col items-center text-center">
+              <TechFlowLogo hero />
+              <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-sky-500">
+                Service Management Platform
+              </p>
+              <h2 className="mt-3 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 lg:text-4xl">
+                {portalTitle}
+              </h2>
+              <p className="mt-3 max-w-4xl text-[15px] font-semibold leading-6 text-slate-500">
+                {portalSubtitle}
+              </p>
             </div>
           </div>
 
@@ -11683,7 +11669,10 @@ PRO-EFFEKT`,
                   <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-400">PRO-EFFEKT</p>
                     <h3 className="mt-1 text-2xl font-black">Menü</h3>
-                    <p className="mt-1 truncate text-xs font-semibold text-slate-400">{session.user.email}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-400">{userProfile?.full_name || session.user.email}</p>
+                    <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -11940,20 +11929,11 @@ PRO-EFFEKT`,
           {activePage === "Dashboard" && (
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-6 flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="flex flex-col gap-3">
-                    <TechFlowLogo hero />
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
-                      Service Management Platform
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 rounded-[28px] border border-white/10 bg-white/10 px-5 py-4">
-                    <ProEffektLogo dark />
-                    <div className="text-left md:text-right">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Mandant</p>
-                      <p className="mt-1 text-lg font-black text-white">{companyData?.name || "Pro-Effekt"}</p>
-                    </div>
-                  </div>
+                <div className="mb-6 flex flex-col items-start gap-3">
+                  <TechFlowLogo hero />
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
+                    Service Management Platform
+                  </p>
                 </div>
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Admin-Zentrale
