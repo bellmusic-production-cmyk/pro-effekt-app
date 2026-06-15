@@ -1308,13 +1308,13 @@ export default function Home() {
   }, [maintenancePlans]);
 
   const technicianPremiumTickets = useMemo(() => {
-    if (isCustomer) return [];
+    if (userProfile?.role === "customer") return [];
 
     return sortTicketsByAppointment(
       visibleRoleTickets.filter((ticket) => {
         if (["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || "")) return false;
 
-        if (isTechnician) {
+        if (userProfile?.role === "technician") {
           return (
             ticket.assigned_to === userProfile?.id ||
             !ticket.assigned_to ||
@@ -1326,7 +1326,7 @@ export default function Home() {
         return true;
       }),
     );
-  }, [visibleRoleTickets, isCustomer, isTechnician, userProfile?.id]);
+  }, [visibleRoleTickets, userProfile?.role, userProfile?.id]);
 
   const technicianPremiumTodayTickets = useMemo(() => {
     return technicianPremiumTickets.filter((ticket) => ticket.service_date === todayDateString);
@@ -1354,10 +1354,10 @@ export default function Home() {
 
   const technicianPremiumMaintenancePlans = useMemo(() => {
     return maintenanceTicketSuggestions.filter((plan) => {
-      if (isTechnician) return !plan.assigned_to || plan.assigned_to === userProfile?.id;
+      if (userProfile?.role === "technician") return !plan.assigned_to || plan.assigned_to === userProfile?.id;
       return true;
     });
-  }, [maintenanceTicketSuggestions, isTechnician, userProfile?.id]);
+  }, [maintenanceTicketSuggestions, userProfile?.role, userProfile?.id]);
 
   function getTicketCustomerContactPremium(ticket: Ticket) {
     const relatedCustomer = getCustomerForTicket(ticket);
@@ -1387,7 +1387,7 @@ export default function Home() {
   }
 
   async function quickTechnicianStatusPremium(ticket: Ticket, nextStatus: string) {
-    if (!isAdmin && !isTechnician) {
+    if (userProfile?.role !== "admin" && userProfile?.role !== "technician") {
       alert("Nur Admins und Techniker können den Einsatzstatus ändern.");
       return;
     }
@@ -5432,7 +5432,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     if (isCustomer) return false;
 
-    if (isTechnician) {
+    if (userProfile?.role === "technician") {
       if (item.category === "Abnahmeprotokolle") return false;
       if (item.file_path?.startsWith("Abnahmeprotokolle/")) return false;
       if (item.file_name?.toLowerCase().includes("abnahmeprotokoll")) return false;
@@ -9580,7 +9580,7 @@ PRO-EFFEKT`,
   const filteredUploadCustomers = (() => {
     const search = uploadCustomerSearch.toLowerCase().trim();
 
-    if (isCustomer) return [];
+    if (userProfile?.role === "customer") return [];
 
     if (!search || search.length < 2) {
       return [];
@@ -10937,7 +10937,7 @@ PRO-EFFEKT`,
                   Dashboard neu laden
                 </button>
 
-                {!isCustomer && (
+                {userProfile?.role !== "customer" && (
                   <div className="mt-6 rounded-[28px] border border-sky-400/20 bg-white/10 p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
@@ -14186,7 +14186,7 @@ PRO-EFFEKT`,
                               Ticket
                             </button>
 
-                            {!isCustomer && (
+                            {userProfile?.role !== "customer" && (
                               <button
                                 onClick={() => prepareAbnahmeFromCustomer(item)}
                                 className="w-full rounded-2xl bg-sky-100 px-3 py-3 text-center text-xs font-bold text-sky-600 md:text-sm"
