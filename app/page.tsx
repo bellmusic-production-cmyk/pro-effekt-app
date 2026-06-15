@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.3.0 · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.3.0 FIXED · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4094,11 +4094,14 @@ export default function Home() {
     const linkedCustomer = getCustomerForTicket(ticket);
     const linkedDevice = getDeviceForTicket(ticket);
 
-    const customerName = getCustomerLabel(linkedCustomer) || ticket.customer || "Kunde";
+    const customerName =
+      linkedCustomer
+        ? getCustomerLabel(linkedCustomer)
+        : (ticket.customer || "Kunde");
     const deviceName =
-      getDeviceLabel(linkedDevice) ||
-      ticket.device ||
-      "Gerät / Anlage";
+      linkedDevice
+        ? getDeviceLabel(linkedDevice)
+        : (ticket.device || "Gerät / Anlage");
     const technicianName = userProfile?.full_name || "Techniker";
     const today = new Date().toLocaleDateString("de-DE");
 
