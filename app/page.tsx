@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.5.1 · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.6.0 · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1305,6 +1305,36 @@ export default function Home() {
     } catch {
       return value;
     }
+  }
+
+  function isCustomerPortalDocument(documentItem: DocumentItem) {
+    return String(documentItem.file_path || "").includes("kundenportal/");
+  }
+
+  function getDocumentPremiumKind(documentItem: DocumentItem) {
+    const name = String(documentItem.file_name || "").toLowerCase();
+    const category = String(documentItem.category || "").toLowerCase();
+
+    if (category.includes("video") || /\.(mp4|mov|webm|m4v|avi)$/i.test(name)) return "Video";
+    if (category.includes("foto") || category.includes("bild") || /\.(jpg|jpeg|png|webp|heic|gif)$/i.test(name)) return "Foto";
+    if (category.includes("lieferschein")) return "Lieferschein";
+    if (/\.pdf$/i.test(name)) return "PDF";
+
+    return "Dokument";
+  }
+
+  function getDocumentPremiumClass(documentItem: DocumentItem) {
+    const kind = getDocumentPremiumKind(documentItem);
+
+    if (isCustomerPortalDocument(documentItem)) {
+      return "border-emerald-200 bg-emerald-50";
+    }
+
+    if (kind === "Foto") return "border-sky-200 bg-sky-50";
+    if (kind === "Video") return "border-purple-200 bg-purple-50";
+    if (kind === "Lieferschein") return "border-amber-200 bg-amber-50";
+
+    return "border-slate-200 bg-white";
   }
 
   async function checkSession() {
@@ -11340,6 +11370,10 @@ PRO-EFFEKT`,
                 const ticketDevice = getDeviceForTicket(currentTicket);
                 const ticketLinkedDevices = getDevicesForTicketSelection(currentTicket);
                 const contextDocuments = getDocumentsForTicketContext(currentTicket);
+                const customerPortalDocuments = contextDocuments.filter((doc) => isCustomerPortalDocument(doc));
+                const fotoDocuments = contextDocuments.filter((doc) => getDocumentPremiumKind(doc) === "Foto");
+                const videoDocuments = contextDocuments.filter((doc) => getDocumentPremiumKind(doc) === "Video");
+                const lieferscheinDocuments = contextDocuments.filter((doc) => getDocumentPremiumKind(doc) === "Lieferschein");
                 const documentSearch = ticketAkteDocumentSearch.trim().toLowerCase();
                 const attachableDocuments = documentSearch.length < 2
                   ? []
@@ -11483,7 +11517,7 @@ PRO-EFFEKT`,
                           {contextDocuments.length}
                         </h4>
                         <p className="mt-1 text-sm font-bold text-slate-600">
-                          Ticket-, Geräte- und Kundendokumente zusammengeführt.
+                          {customerPortalDocuments.length} Kunden-Upload(s) · {fotoDocuments.length} Foto(s) · {videoDocuments.length} Video(s) · {lieferscheinDocuments.length} Lieferschein(e)
                         </p>
                       </div>
                     </div>
@@ -11699,28 +11733,78 @@ PRO-EFFEKT`,
                           </div>
                         </div>
 
-                        <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+                        <div className="mt-4 grid gap-3 md:grid-cols-4">
+                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Kunden-Uploads</p>
+                            <p className="mt-1 text-2xl font-black text-emerald-700">{customerPortalDocuments.length}</p>
+                          </div>
+                          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-700">Fotos</p>
+                            <p className="mt-1 text-2xl font-black text-sky-700">{fotoDocuments.length}</p>
+                          </div>
+                          <div className="rounded-2xl border border-purple-200 bg-purple-50 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-purple-700">Videos</p>
+                            <p className="mt-1 text-2xl font-black text-purple-700">{videoDocuments.length}</p>
+                          </div>
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">Lieferscheine</p>
+                            <p className="mt-1 text-2xl font-black text-amber-700">{lieferscheinDocuments.length}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 max-h-[520px] space-y-3 overflow-y-auto pr-1">
                           {contextDocuments.length === 0 ? (
                             <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
                               Noch keine Dokumente zum Ticket, Kunden oder Gerät gefunden.
                             </div>
                           ) : (
-                            contextDocuments.map((doc) => (
-                              <div key={doc.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 md:flex-row md:items-center md:justify-between">
-                                <div className="min-w-0">
-                                  <p className="truncate font-black text-slate-900">{doc.file_name}</p>
-                                  <p className="mt-1 text-xs font-bold text-slate-500">
-                                    {doc.category} · {formatDate(doc.created_at)} · {fileSizeText(doc.file_size)}
-                                  </p>
+                            contextDocuments.map((doc) => {
+                              const docKind = getDocumentPremiumKind(doc);
+                              const fromCustomer = isCustomerPortalDocument(doc);
+
+                              return (
+                                <div key={doc.id} className={`flex flex-col gap-3 rounded-2xl border p-3 md:flex-row md:items-center md:justify-between ${getDocumentPremiumClass(doc)}`}>
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap gap-2">
+                                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700">
+                                        {docKind}
+                                      </span>
+                                      {fromCustomer && (
+                                        <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-black text-white">
+                                          vom Kunden hochgeladen
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <p className="mt-2 truncate font-black text-slate-900">{doc.file_name}</p>
+
+                                    <p className="mt-1 text-xs font-bold text-slate-500">
+                                      {doc.category} · hochgeladen am {formatDateTime(doc.created_at)} · {fileSizeText(doc.file_size)}
+                                    </p>
+
+                                    <p className="mt-1 break-all text-[11px] font-bold text-slate-400">
+                                      Speicherpfad: {doc.file_path}
+                                    </p>
+                                  </div>
+
+                                  <div className="grid shrink-0 grid-cols-2 gap-2 md:flex md:flex-col">
+                                    <button
+                                      onClick={() => openDocument(doc)}
+                                      className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-black text-white"
+                                    >
+                                      Schnellvorschau
+                                    </button>
+
+                                    <button
+                                      onClick={() => openDocument(doc)}
+                                      className="rounded-2xl bg-white px-4 py-2 text-sm font-black text-blue-700"
+                                    >
+                                      Öffnen
+                                    </button>
+                                  </div>
                                 </div>
-                                <button
-                                  onClick={() => openDocument(doc)}
-                                  className="shrink-0 rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
-                                >
-                                  Öffnen
-                                </button>
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                       </div>
