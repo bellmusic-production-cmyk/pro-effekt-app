@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.0 · Kommunikationszentrale Live · Resend Live Integration für Ticket-Chat · Chat-Mailversand Live · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.9.1 · Rollen- und Plattform-Aufräumung · Kommunikationszentrale Live · Resend Live Integration für Ticket-Chat · Chat-Mailversand Live · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11926,35 +11926,63 @@ PRO-EFFEKT`,
                   Dashboard neu laden
                 </button>
 
-                {userProfile?.role !== "customer" && (
-                  <div className="mt-6 rounded-[28px] border border-sky-400/20 bg-white/10 p-5">
+                {isAdmin && (
+                  <div className="mt-6 rounded-[28px] border border-emerald-400/20 bg-white/10 p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+                      Plattform-Rollen sauber getrennt
+                    </p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                      <div className="rounded-2xl bg-white/10 p-4">
+                        <p className="text-sm font-black text-white">Admin</p>
+                        <p className="mt-1 text-xs font-bold text-slate-300">
+                          Leitstand, Disposition, Stammdaten, Kommunikation, Verträge, Rechnungen und Einstellungen.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-white/10 p-4">
+                        <p className="text-sm font-black text-white">Techniker</p>
+                        <p className="mt-1 text-xs font-bold text-slate-300">
+                          Mein Tag, Einsatzliste, QR-Scan, Servicebericht, Abnahmeprotokoll, Dokumente und Teile.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-white/10 p-4">
+                        <p className="text-sm font-black text-white">Kunde</p>
+                        <p className="mt-1 text-xs font-bold text-slate-300">
+                          Eigenes Portal mit eigenen Tickets, Geräten, Dokumenten, Uploads, Chat und Terminantworten.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isAdmin && (
+                  <div className="mt-6 rounded-[28px] border border-cyan-400/20 bg-white/10 p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
-                          Techniker-App Premium · v4.1.0
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                          Admin-Team-Leitstand · v4.9.1
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">Mein Tag</h3>
+                        <h3 className="mt-1 text-2xl font-black text-white">Teamübersicht</h3>
                         <p className="mt-1 text-sm font-bold text-slate-300">
-                          Heute, diese Woche, überfällige Einsätze und fällige Wartungen auf einen Blick.
+                          Gesamtüberblick über alle Techniker, heutigen Einsätze, überfällige Tickets und offene Wartungen.
                         </p>
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => openPage("Service-Tickets")}
-                        className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                        onClick={() => openPage("Einsatz")}
+                        className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-black text-white"
                       >
-                        Einsätze öffnen
+                        Einsatzplanung öffnen
                       </button>
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute gesamt</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Woche gesamt</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-red-500/20 p-4">
@@ -18682,13 +18710,15 @@ PRO-EFFEKT`,
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">
-                        Techniker-App Premium · Mein Tag
+                        {isAdmin ? "Admin-Ticketzentrale · Teamüberblick" : "Techniker-App Premium · Mein Tag"}
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Schnelleinsatz-Zentrale
+                        {isAdmin ? "Alle Einsätze & Technikersteuerung" : "Schnelleinsatz-Zentrale"}
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        1-Klick Navigation, Anruf, Mail, Statuswechsel und Servicebericht.
+                        {isAdmin
+                          ? "Admin sieht alle offenen, heutigen und überfälligen Einsätze aller Techniker und kann disponieren."
+                          : "Techniker sieht nur eigene oder freigegebene Einsätze mit Navigation, Anruf, Mail, Statuswechsel und Servicebericht."}
                       </p>
                     </div>
                   </div>
