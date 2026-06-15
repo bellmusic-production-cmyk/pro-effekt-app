@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.0.9 · Centered Hero With Slogan · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.1.0 · Professional Portal Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht erfassen PDF Premium · Servicebericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -432,7 +432,7 @@ const modelOverviewLimit = 40;
 const documentCategories = [
   "Alle",
   "Abnahmeprotokolle",
-  "Serviceberichte",
+  "Servicebericht erfassene",
   "Prüfberichte",
   "Sicherheitsprüfungen",
   "Wartungsprotokolle",
@@ -463,7 +463,7 @@ const customerUploadDocumentCategories = [
 
 const customerVisibleDocumentCategories = [
   "Alle",
-  "Serviceberichte",
+  "Servicebericht erfassene",
   "Abnahmeprotokolle",
   "Prüfberichte",
   "Sicherheitsprüfungen",
@@ -1323,7 +1323,7 @@ export default function Home() {
     }
 
     if (days === 0) {
-      return { label: "Heute fällig", className: "bg-orange-100 text-orange-700", days };
+      return { label: "Heute fällig", className: "bg-slate-100 text-slate-700", days };
     }
 
     if (days <= 7) {
@@ -1461,7 +1461,7 @@ export default function Home() {
       { label: "Ankunft bestätigt", done: ["Vor Ort", "In Bearbeitung", "Abgeschlossen"].includes(ticket.status) },
       { label: "Sichtprüfung / Funktionstest", done: ["In Bearbeitung", "Abgeschlossen"].includes(ticket.status) },
       { label: "Fotos / Nachweise vorhanden", done: documentsCount > 0 },
-      { label: "Servicebericht erstellt", done: hasReport },
+      { label: "Servicebericht erfassen erstellt", done: hasReport },
       { label: "Unterschrift vorhanden", done: hasSignatures },
       { label: "Einsatz abgeschlossen", done: ticket.status === "Abgeschlossen" },
     ];
@@ -1572,11 +1572,11 @@ export default function Home() {
   function getEmailStatusClass(status?: string | null) {
     const value = String(status || "pending").toLowerCase();
 
-    if (value === "sent") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+    if (value === "sent") return "bg-sky-500/15 text-sky-300 border-emerald-500/30";
     if (value === "failed") return "bg-red-500/15 text-red-300 border-red-500/30";
     if (value === "queued") return "bg-blue-500/15 text-blue-300 border-blue-500/30";
 
-    return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+    return "bg-slate-600/15 text-sky-300 border-amber-500/30";
   }
 
 
@@ -4223,7 +4223,7 @@ async function loadApplicationData() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number || ""}</title>
+          <title>PRO-EFFEKT Servicebericht erfassen ${ticket.ticket_number || ""}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { margin: 0; color: #0284c7; letter-spacing: 1px; }
@@ -4241,7 +4241,7 @@ async function loadApplicationData() {
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatisch archivierter Servicebericht</p>
+          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatisch archivierter Servicebericht erfassen</p>
 
           <h2>Kunde & Gerät</h2>
           <div class="box grid">
@@ -4451,7 +4451,7 @@ async function loadApplicationData() {
     pdf.text(companyDisplayName, headerTextX, y);
     pdf.setFontSize(8.5);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`${companySubtitle} · Servicebericht Premium`, headerTextX, y + 6);
+    pdf.text(`${companySubtitle} · Servicebericht erfassen Premium`, headerTextX, y + 6);
     pdf.text(companyContactLine, headerTextX, y + 11);
 
     pdf.setFont("helvetica", "bold");
@@ -4548,8 +4548,8 @@ async function loadApplicationData() {
     const relatedDevice = devices.find((item) => item.name === ticket.device);
     const customerId = ticket.customer_id || relatedDevice?.customer_id || null;
     const pdfBlob = await createServiceReportPdfBlob(ticket);
-    const fileName = `Servicebericht-${ticket.ticket_number || ticket.id}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    const filePath = `Serviceberichte/${Date.now()}-${fileName}`;
+    const fileName = `Servicebericht erfassen-${ticket.ticket_number || ticket.id}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filePath = `Servicebericht erfassene/${Date.now()}-${fileName}`;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -4559,7 +4559,7 @@ async function loadApplicationData() {
       });
 
     if (uploadResult.error) {
-      console.error("Servicebericht konnte nicht archiviert werden:", uploadResult.error.message);
+      console.error("Servicebericht erfassen konnte nicht archiviert werden:", uploadResult.error.message);
       return null;
     }
 
@@ -4569,7 +4569,7 @@ async function loadApplicationData() {
         {
           file_name: fileName,
           file_path: filePath,
-          category: "Serviceberichte",
+          category: "Servicebericht erfassene",
           file_size: pdfBlob.size,
           device_id: relatedDevice?.id || null,
           ticket_id: ticket.id,
@@ -4580,13 +4580,13 @@ async function loadApplicationData() {
       .single();
 
     if (insertResult.error) {
-      console.error("Servicebericht-PDF wurde hochgeladen, aber nicht gelistet:", insertResult.error.message);
+      console.error("Servicebericht erfassen-PDF wurde hochgeladen, aber nicht gelistet:", insertResult.error.message);
       return null;
     }
 
     await createDeviceHistory(
       relatedDevice?.id || null,
-      "Servicebericht automatisch als PDF archiviert",
+      "Servicebericht erfassen automatisch als PDF archiviert",
       `${ticket.ticket_number || "Ticket"} · ${fileName}`,
       "PDF",
     );
@@ -4598,7 +4598,7 @@ async function loadApplicationData() {
 
   async function saveServiceReport(ticket: Ticket) {
     if (!technicianSignature && !ticket.technician_signature) {
-      alert("Bitte zuerst die Techniker-Signatur im Servicebericht erfassen.");
+      alert("Bitte zuerst die Techniker-Signatur im Servicebericht erfassen erfassen.");
       return;
     }
 
@@ -4608,7 +4608,7 @@ async function loadApplicationData() {
     }
 
     if (!customerSignature && !ticket.customer_signature) {
-      alert("Bitte zuerst die Kunden-Signatur im Servicebericht erfassen.");
+      alert("Bitte zuerst die Kunden-Signatur im Servicebericht erfassen erfassen.");
       return;
     }
 
@@ -4632,13 +4632,13 @@ async function loadApplicationData() {
       .eq("id", ticket.id);
 
     if (error) {
-      alert(`Servicebericht konnte nicht gespeichert werden: ${error.message}`);
+      alert(`Servicebericht erfassen konnte nicht gespeichert werden: ${error.message}`);
       return;
     }
 
     await createDeviceHistory(
       null,
-      "Servicebericht abgeschlossen",
+      "Servicebericht erfassen abgeschlossen",
       `${ticket.ticket_number || "Ticket"} · Prüfsiegel: ${serviceBadgeNumber || "keins"}`,
       "Service",
     );
@@ -4663,9 +4663,9 @@ async function loadApplicationData() {
     await loadDocuments();
 
     if (archivedDocument) {
-      alert("Servicebericht gespeichert, unterschrieben und als PDF archiviert.");
+      alert("Servicebericht erfassen gespeichert, unterschrieben und als PDF archiviert.");
     } else {
-      alert("Servicebericht gespeichert. Automatische PDF-Archivierung bitte prüfen.");
+      alert("Servicebericht erfassen gespeichert. Automatische PDF-Archivierung bitte prüfen.");
     }
   }
 
@@ -4697,7 +4697,7 @@ async function loadApplicationData() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number}</title>
+          <title>PRO-EFFEKT Servicebericht erfassen ${ticket.ticket_number}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { margin: 0; color: #38bdf8; letter-spacing: 4px; }
@@ -4718,8 +4718,8 @@ async function loadApplicationData() {
           <div class="top">
             <div>
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">${companyDisplayName}</h1></div>
-              <p class="muted">${companySubtitle} · Servicebericht Premium</p>
-              <span class="badge">Servicebericht / Prüfbericht</span>
+              <p class="muted">${companySubtitle} · Servicebericht erfassen Premium</p>
+              <span class="badge">Servicebericht erfassen / Prüfbericht</span>
             </div>
             <div>
               <div class="label">Ticket</div>
@@ -4831,7 +4831,7 @@ async function loadApplicationData() {
 
     createDeviceHistory(
       relatedDevice?.id || null,
-      "PDF-Servicebericht erstellt",
+      "PDF-Servicebericht erfassen erstellt",
       `${ticket.ticket_number || "Ticket"} · ${ticket.issue || ""}`,
       "PDF",
     );
@@ -4839,7 +4839,7 @@ async function loadApplicationData() {
 
   function openServiceReportSigning(ticket: Ticket) {
     if (isCustomer) {
-      alert("PDF / Signatur, Servicebericht, Sicherheitsprüfung und Abnahme sind nur für Techniker und Admin vorgesehen.");
+      alert("PDF / Signatur, Servicebericht erfassen, Sicherheitsprüfung und Abnahme sind nur für Techniker und Admin vorgesehen.");
       return;
     }
 
@@ -4873,7 +4873,7 @@ async function loadApplicationData() {
     const ticket = serviceSigningTicket || selectedTicketView;
 
     if (!ticket) {
-      alert("Bitte zuerst ein Ticket für den Servicebericht öffnen.");
+      alert("Bitte zuerst ein Ticket für den Servicebericht erfassen öffnen.");
       return;
     }
 
@@ -4914,7 +4914,7 @@ async function loadApplicationData() {
         ? notes.map((line) => `- ${line}`).join("\n")
         : `- ${ticket.issue || "Serviceeinsatz durchgeführt"}\n- ${ticket.description || "Gerät geprüft und Funktionskontrolle durchgeführt"}`;
 
-    const nextReport = `Servicebericht
+    const nextReport = `Servicebericht erfassen
 
 Datum: ${today}
 Kunde: ${customerName}
@@ -5627,7 +5627,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     if (statusValue === "Wartet auf Ersatzteil" || statusValue === "Wartet auf Ersatzteile")
       return "bg-purple-100 text-purple-700";
     if (statusValue === "Wartet auf Kundenfreigabe")
-      return "bg-orange-100 text-orange-700";
+      return "bg-slate-100 text-slate-700";
     if (statusValue === "Dringend")
       return "bg-red-100 text-red-700";
     return "bg-sky-100 text-sky-600";
@@ -6156,8 +6156,8 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
         src={TECHFLOW_LOGO_PATH}
         alt="TechFlow"
         style={{
-          width: "86%",
-          maxWidth: "1450px",
+          width: "84%",
+          maxWidth: "1320px",
           height: "auto",
           display: "block",
           objectFit: "contain",
@@ -6172,7 +6172,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
     <img
       src={TECHFLOW_LOGO_PATH}
       alt="TechFlow"
-      className={compact ? "h-12 w-auto max-w-[260px] object-contain" : "h-16 w-auto max-w-[340px] object-contain"}
+      className={compact ? "h-10 w-auto max-w-[220px] object-contain" : "h-14 w-auto max-w-[300px] object-contain"}
     />
   );
 }
@@ -6427,7 +6427,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     if (diffDays <= reminderDays) {
       return {
         label: "Erinnerung fällig",
-        className: "bg-orange-100 text-orange-700",
+        className: "bg-slate-100 text-slate-700",
         detail: `${diffDays} Tage bis Termin · Schwelle: ${reminderDays} Tage${sentInfo}`,
       };
     }
@@ -9811,7 +9811,7 @@ PRO-EFFEKT`,
   );
 
   const recentServiceReports = documents
-    .filter((documentItem) => documentItem.category === "Serviceberichte")
+    .filter((documentItem) => documentItem.category === "Servicebericht erfassene")
     .slice(0, 5);
 
   const acceptanceProtocolDocuments = documents.filter(
@@ -10239,7 +10239,7 @@ PRO-EFFEKT`,
               <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
                 Die TechFlow Plattform verarbeitet Kundendaten, Kontaktdaten,
-                Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
+                Gerätedaten, Tickets, Dokumente, Servicebericht erfassene und Prüfprotokolle
                 zur Durchführung von Service-, Wartungs- und Prüfleistungen.
               </p>
             </section>
@@ -10301,7 +10301,7 @@ PRO-EFFEKT`,
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
                 Ich stimme der digitalen Speicherung von Signaturen,
-                Prüfprotokollen, Serviceberichten und Dokumentationen zu.
+                Prüfprotokollen, Servicebericht erfassenen und Dokumentationen zu.
               </span>
             </label>
           </div>
@@ -10778,7 +10778,7 @@ PRO-EFFEKT`,
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearchNormalized;
 
-    // Ohne Suchbegriff wird nur die saubere Katalog-/Asset-Übersicht angezeigt.
+    // Ohne Suchbegriff wird nur die saubere Katalog-/Asset-Status angezeigt.
     if (!isDeviceDirectorySearchReady) return [];
 
     return devices
@@ -11271,7 +11271,7 @@ PRO-EFFEKT`,
     "Alle",
     "Lieferscheine",
     "Rechnungen",
-    "Serviceberichte",
+    "Servicebericht erfassene",
     "Abnahmeprotokolle",
     "Fotos",
     "Verträge",
@@ -11620,34 +11620,24 @@ PRO-EFFEKT`,
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
           <div
-            className="mb-7 hidden border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70 lg:block"
+            className="mb-7 border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70"
             style={{
               borderRadius: "24px",
-              padding: "18px 28px 16px",
+              padding: "18px 24px 16px",
             }}
           >
-            <div
-              className="flex w-full flex-col items-center justify-center overflow-hidden text-center"
-              style={{ minHeight: "218px", maxHeight: "238px" }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
+            <div className="flex w-full flex-col items-center justify-center overflow-hidden text-center">
+              <div className="w-full">
                 <TechFlowLogo hero />
               </div>
 
               <p
                 className="font-black uppercase text-sky-500"
                 style={{
-                  marginTop: "8px",
-                  fontSize: "20px",
+                  marginTop: "10px",
+                  fontSize: "clamp(13px, 1.35vw, 20px)",
                   lineHeight: "1",
-                  letterSpacing: "0.42em",
+                  letterSpacing: "clamp(0.22em, 0.9vw, 0.42em)",
                   whiteSpace: "nowrap",
                   textAlign: "center",
                 }}
@@ -11770,7 +11760,7 @@ PRO-EFFEKT`,
                         PDF / Signatur
                       </p>
                       <h3 className="truncate text-xl font-black text-slate-900">
-                        {currentTicket.ticket_number} · Servicebericht unterschreiben
+                        {currentTicket.ticket_number} · Servicebericht erfassen unterschreiben
                       </h3>
                     </div>
 
@@ -11786,7 +11776,7 @@ PRO-EFFEKT`,
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5">
                       <p className="text-sm font-bold text-slate-600">
-                        Techniker und Kunde können direkt am Handy, Tablet oder Notebook unterschreiben. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
+                        Techniker und Kunde können direkt am Handy, Tablet oder Notebook unterschreiben. Danach wird der Servicebericht erfassen archiviert und das Ticket abgeschlossen.
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -11794,7 +11784,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
                               <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
-                                KI-Servicebericht
+                                KI-Servicebericht erfassen
                               </p>
                               <h5 className="mt-1 text-lg font-black text-slate-900">
                                 Aus Stichpunkten professionellen Bericht erzeugen
@@ -11835,7 +11825,7 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
-                          placeholder="Durchgeführte Arbeiten / Servicebericht"
+                          placeholder="Durchgeführte Arbeiten / Servicebericht erfassen"
                           className="min-h-[150px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
 
@@ -11985,7 +11975,7 @@ PRO-EFFEKT`,
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-                          Übersicht
+                          Status
                         </p>
                       </div>
                     </div>
@@ -12003,7 +11993,7 @@ PRO-EFFEKT`,
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällig</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-amber-500/20 p-4">
+                      <div className="rounded-2xl bg-slate-600/20 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
                       </div>
@@ -12020,7 +12010,7 @@ PRO-EFFEKT`,
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute fällig</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueToday}</p>
                   </div>
-                  <div className="rounded-2xl bg-amber-500/20 p-4">
+                  <div className="rounded-2xl bg-slate-600/20 p-4">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">In 7 Tagen</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueSoon}</p>
                   </div>
@@ -12035,9 +12025,9 @@ PRO-EFFEKT`,
                     onClick={() => openPage("Service-Tickets")}
                     className="rounded-2xl bg-sky-500 px-4 py-4 text-left font-black text-white"
                   >
-                    Neues Ticket
+                    Ticket erstellen
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Servicefall anlegen
+                      Neuen Vorgang anlegen
                     </span>
                   </button>
 
@@ -12404,11 +12394,11 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Letzte Serviceberichte</h3>
+                  <h3 className="text-xl font-black">Letzte Servicebericht erfassene</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {recentServiceReports.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Noch keine Serviceberichte archiviert.
+                        Noch keine Servicebericht erfassene archiviert.
                       </div>
                     ) : (
                       recentServiceReports.map((doc) => (
@@ -12440,7 +12430,7 @@ PRO-EFFEKT`,
                     <div>
                       <h3 className="text-xl font-black">Abnahmeprotokolle / Prüffristen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Übersicht aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
+                        Status aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
                       </p>
                     </div>
                     <button
@@ -12646,7 +12636,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
+                      className="rounded-2xl bg-slate-600 px-4 py-3 text-sm font-black text-white"
                     >
                       Zu den Vorschlägen
                     </button>
@@ -13068,10 +13058,10 @@ PRO-EFFEKT`,
 
                     <div className="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5">
                       <h4 className="text-xl font-black text-sky-700">
-                        Servicebericht unterschreiben
+                        Servicebericht erfassen unterschreiben
                       </h4>
                       <p className="mt-2 text-sm font-bold text-slate-600">
-                        Hier unterschreiben Techniker und Kunde direkt am Handy oder Tablet. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
+                        Hier unterschreiben Techniker und Kunde direkt am Handy oder Tablet. Danach wird der Servicebericht erfassen archiviert und das Ticket abgeschlossen.
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -13079,7 +13069,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
                               <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
-                                KI-Servicebericht
+                                KI-Servicebericht erfassen
                               </p>
                               <h5 className="mt-1 text-lg font-black text-slate-900">
                                 Aus Stichpunkten professionellen Bericht erzeugen
@@ -13120,7 +13110,7 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
-                          placeholder="Durchgeführte Arbeiten / Servicebericht"
+                          placeholder="Durchgeführte Arbeiten / Servicebericht erfassen"
                           className="min-h-[140px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
 
@@ -13445,7 +13435,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => createTicketFromMaintenancePlan(plan)}
-                              className="w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
+                              className="w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-black text-white"
                             >
                               Ticket erstellen
                             </button>
@@ -14815,11 +14805,11 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Serviceberichte</h3>
+                  <h3 className="text-xl font-black">Servicebericht erfassene</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     <div className="rounded-2xl bg-slate-50 p-4">
                       <p className="text-4xl font-black">
-                        {visibleDocuments.filter((item) => item.category === "Serviceberichte").length}
+                        {visibleDocuments.filter((item) => item.category === "Servicebericht erfassene").length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
                         archivierte Berichte
@@ -15260,7 +15250,7 @@ PRO-EFFEKT`,
                             Kundenliste bereit
                           </p>
                           <p className="mt-2 max-w-3xl text-base font-semibold leading-7 text-slate-500">
-                            Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Übersichtsgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
+                            Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Statussgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
                             Nutze oben Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
                           </p>
                         </div>
@@ -16100,7 +16090,7 @@ PRO-EFFEKT`,
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
-                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
+                                  className="w-full rounded-2xl bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-700 md:text-sm"
                                 >
                                   Stornieren
                                 </button>
@@ -17482,7 +17472,7 @@ PRO-EFFEKT`,
                     Plane Sicherheitsprüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
                   <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                    Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht oder Kundendokumente nachvollzogen werden.
+                    Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht erfassen oder Kundendokumente nachvollzogen werden.
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -17623,7 +17613,7 @@ PRO-EFFEKT`,
                   {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "Wartungsübersicht"}
                 </h3>
                 <p className="mt-2 text-slate-600">
-                  Übersicht aller geplanten und laufenden Wartungen.
+                  Status aller geplanten und laufenden Wartungen.
                 </p>
 
                 <div className="mt-6 space-y-4">
@@ -18068,7 +18058,7 @@ PRO-EFFEKT`,
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Hier sieht der Techniker nur das, was vor Ort gebraucht wird:
-                  heutige Einsätze, Anfahrt, Ansprechpartner, Gerät, Starten und Servicebericht.
+                  heutige Einsätze, Anfahrt, Ansprechpartner, Gerät, Starten und Servicebericht erfassen.
                 </p>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -18282,7 +18272,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => updateServiceStatus(ticket.id, "Pause")}
-                              className="rounded-3xl bg-orange-50 px-4 py-4 text-center text-sm font-black text-orange-700"
+                              className="rounded-3xl bg-orange-50 px-4 py-4 text-center text-sm font-black text-slate-700"
                             >
                               Pause
                             </button>
@@ -18732,7 +18722,7 @@ PRO-EFFEKT`,
                       <p className="mt-1 text-sm font-bold text-slate-600">
                         {isAdmin
                           ? "Gesamtüberblick über offene, heutige und überfällige Einsätze mit direkter Disposition."
-                          : "Persönliche Einsatzübersicht mit Navigation, Kontakt, Statuswechsel und Servicebericht."}
+                          : "Persönliche Einsatzübersicht mit Navigation, Kontakt, Statuswechsel und Servicebericht erfassen."}
                       </p>
                     </div>
                   </div>
@@ -18795,7 +18785,7 @@ PRO-EFFEKT`,
                               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                                 {checklist.map((item) => (
                                   <div key={item.label} className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
+                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-sky-500 text-white" : "bg-slate-200 text-slate-500"}`}>
                                       {item.done ? "✓" : "–"}
                                     </span>
                                     {item.label}
@@ -18812,7 +18802,7 @@ PRO-EFFEKT`,
                               }}
                               className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
                             >
-                              Servicebericht / Signatur öffnen
+                              Servicebericht erfassen / Signatur öffnen
                             </button>
                           </div>
                         );
@@ -18832,7 +18822,7 @@ PRO-EFFEKT`,
                     onClick={() => setMobileTicketFormOpen((prev) => !prev)}
                     className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
-                    <span>{editingTicket ? "Ticket bearbeiten" : "Neues Ticket erstellen"}</span>
+                    <span>{editingTicket ? "Ticket bearbeiten" : "Ticket erstellen erstellen"}</span>
                     <span>{mobileTicketFormOpen || editingTicket ? "â–²" : "⌄"}</span>
                   </button>
 
@@ -19650,7 +19640,7 @@ PRO-EFFEKT`,
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
-                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
+                                  className="w-full rounded-2xl bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-700 md:text-sm"
                                 >
                                   Stornieren
                                 </button>
@@ -19959,7 +19949,7 @@ PRO-EFFEKT`,
                                     <button
                                       type="button"
                                       onClick={() => customerRespondToAppointment(ticket, "reschedule")}
-                                      className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-black text-orange-700"
+                                      className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700"
                                     >
                                       Verschieben anfragen
                                     </button>
