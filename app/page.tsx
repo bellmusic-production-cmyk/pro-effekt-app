@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.2.0 · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.3.0 · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -168,6 +168,10 @@ type MaintenancePlan = {
   reminder_enabled?: boolean | null;
   reminder_days_before?: number | null;
   last_reminder_sent_at?: string | null;
+  reminder_30_sent_at?: string | null;
+  reminder_14_sent_at?: string | null;
+  reminder_7_sent_at?: string | null;
+  reminder_1_sent_at?: string | null;
   completed_at?: string | null;
   created_at: string;
 };
@@ -6489,6 +6493,139 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     alert("Wartungsmail wurde vorgemerkt und ist in der Kommunikationszentrale sichtbar.");
   }
 
+  async function markMaintenanceAutomationLevelSent(plan: MaintenancePlan, fieldName?: string | null) {
+    const reminderLevel = fieldName
+      ? { field: fieldName }
+      : getMaintenanceReminderLevel(plan);
+
+    if (!reminderLevel?.field) return;
+
+    const sentAt = new Date().toISOString();
+
+    const updatePayload: Record<string, string> = {
+      [reminderLevel.field]: sentAt,
+      last_reminder_sent_at: sentAt,
+    };
+
+    const { error } = await supabase
+      .from("maintenance_plans")
+      .update(updatePayload)
+      .eq("id", plan.id);
+
+    if (error) {
+      console.error("Wartungsautomatik konnte Erinnerungsstufe nicht markieren:", error.message);
+      return;
+    }
+
+    setMaintenancePlans((prev) =>
+      prev.map((item) =>
+        item.id === plan.id
+          ? {
+              ...item,
+              ...updatePayload,
+            }
+          : item,
+      ),
+    );
+  }
+
+  async function runMaintenanceAutomation(sendImmediately = false) {
+    if (!isAdmin && !isTechnician) {
+      alert("Nur Admins und Techniker können die Wartungsautomatik starten.");
+      return;
+    }
+
+    if (maintenanceAutomationCandidates.length === 0) {
+      alert("Aktuell gibt es keine fälligen Wartungserinnerungen.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      sendImmediately
+        ? `${maintenanceAutomationCandidates.length} Wartungserinnerung(en) jetzt erzeugen und senden?`
+        : `${maintenanceAutomationCandidates.length} Wartungserinnerung(en) in der Kommunikationszentrale vormerken?`,
+    );
+
+    if (!confirmed) return;
+
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    for (const plan of maintenanceAutomationCandidates) {
+      const reminderLevel = getMaintenanceReminderLevel(plan);
+
+      if (!reminderLevel) {
+        skippedCount += 1;
+        continue;
+      }
+
+      const draft = buildMaintenanceReminderDraft(plan);
+
+      if (!draft.recipient) {
+        skippedCount += 1;
+        continue;
+      }
+
+      const duplicate = notifications.find((item) => {
+        const text = `${item.type} ${item.subject} ${item.message}`.toLowerCase();
+
+        return (
+          item.recipient === draft.recipient &&
+          text.includes(`wartungsplan-id: ${plan.id}`.toLowerCase()) &&
+          text.includes(reminderLevel.label.toLowerCase())
+        );
+      });
+
+      if (duplicate) {
+        skippedCount += 1;
+        continue;
+      }
+
+      const payload = {
+        type: "Wartungserinnerung",
+        recipient: draft.recipient,
+        subject: `${draft.subject} · ${reminderLevel.label}`,
+        message: [`Wartungsplan-ID: ${plan.id}`, `Erinnerungsstufe: ${reminderLevel.label}`, "", draft.message].join("\n"),
+        related_ticket_id: null,
+        status: sendImmediately ? "Geplant" : "Vorgemerkt",
+        email_status: sendImmediately ? "queued" : "pending",
+        email_template: `Wartung ${reminderLevel.label}`,
+        email_error: null,
+        email_last_attempt_at: sendImmediately ? new Date().toISOString() : null,
+      };
+
+      const insertResult = await supabase
+        .from("notifications")
+        .insert([payload])
+        .select("*")
+        .single();
+
+      if (insertResult.error || !insertResult.data) {
+        skippedCount += 1;
+        continue;
+      }
+
+      createdCount += 1;
+
+      await createDeviceHistory(
+        plan.device_id || null,
+        sendImmediately ? "Wartungserinnerung automatisch versendet" : "Wartungserinnerung automatisch vorgemerkt",
+        `${reminderLevel.label} · ${draft.subject} · Empfänger: ${draft.recipient}`,
+        "Wartungsautomatik",
+      );
+
+      if (sendImmediately) {
+        await sendNotificationEmail(insertResult.data as NotificationItem);
+        await markMaintenanceAutomationLevelSent(plan, reminderLevel.field);
+      }
+    }
+
+    await loadNotifications();
+    await loadMaintenancePlans();
+
+    alert(`Wartungsautomatik abgeschlossen. Erstellt: ${createdCount}. Übersprungen: ${skippedCount}.`);
+  }
+
   async function markMaintenanceReminderSent(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können Erinnerungen markieren.");
@@ -8903,6 +9040,41 @@ PRO-EFFEKT`,
     : documentCategories.filter((category) => category !== "Alle");
 
   const todayDateString = new Date().toISOString().split("T")[0];
+
+  function getMaintenanceReminderLevel(plan: MaintenancePlan) {
+    const dueState = getMaintenanceDueState(plan);
+    const days = dueState.days;
+
+    if (days <= 1 && !plan.reminder_1_sent_at) return { level: 1, field: "reminder_1_sent_at", label: "1 Tag vorher" };
+    if (days <= 7 && !plan.reminder_7_sent_at) return { level: 7, field: "reminder_7_sent_at", label: "7 Tage vorher" };
+    if (days <= 14 && !plan.reminder_14_sent_at) return { level: 14, field: "reminder_14_sent_at", label: "14 Tage vorher" };
+    if (days <= 30 && !plan.reminder_30_sent_at) return { level: 30, field: "reminder_30_sent_at", label: "30 Tage vorher" };
+
+    return null;
+  }
+
+  const maintenanceAutomationCandidates = useMemo(() => {
+    return maintenancePlans
+      .filter((plan) => String(plan.status || "").toLowerCase() !== "abgeschlossen")
+      .filter((plan) => plan.reminder_enabled !== false)
+      .filter((plan) => Boolean(getMaintenanceReminderLevel(plan)))
+      .sort((a, b) => getMaintenanceDueState(a).days - getMaintenanceDueState(b).days)
+      .slice(0, 50);
+  }, [maintenancePlans]);
+
+  const maintenanceAutomationStats = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+
+    return {
+      dueToday: maintenancePlans.filter((plan) => getMaintenanceDueState(plan).days === 0).length,
+      automationReady: maintenanceAutomationCandidates.length,
+      sentToday: notifications.filter((item) => {
+        const sentDate = String(item.email_sent_at || item.email_last_attempt_at || "").slice(0, 10);
+        return item.type === "Wartungserinnerung" && sentDate === today && (item.email_status || "").toLowerCase() === "sent";
+      }).length,
+      failed: notifications.filter((item) => item.type === "Wartungserinnerung" && (item.email_status || "").toLowerCase() === "failed").length,
+    };
+  }, [maintenancePlans, maintenanceAutomationCandidates, notifications]);
 
   const maintenanceMailCandidates = useMemo(() => {
     return maintenancePlans
@@ -11644,6 +11816,48 @@ PRO-EFFEKT`,
                   </div>
                 </div>
               </div>
+
+              {!isCustomer && (
+                <div className="rounded-[28px] border border-violet-200 bg-violet-50 p-5 shadow-sm">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
+                        Wartungsautomatik · v4.3.0
+                      </p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">
+                        Automatischer Erinnerungsmonitor
+                      </h3>
+                      <p className="mt-1 text-sm font-bold text-slate-600">
+                        30 / 14 / 7 / 1 Tage Erinnerungen mit Doppelversand-Schutz.
+                      </p>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => runMaintenanceAutomation(false)}
+                        className="rounded-2xl bg-violet-100 px-4 py-3 text-sm font-black text-violet-700"
+                      >
+                        Mails vormerken
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => runMaintenanceAutomation(true)}
+                        className="rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black text-white"
+                      >
+                        Automatik senden
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <StatCard label="Heute fällig" value={maintenanceAutomationStats.dueToday} />
+                    <StatCard label="Bereit" value={maintenanceAutomationStats.automationReady} />
+                    <StatCard label="Heute versendet" value={maintenanceAutomationStats.sentToday} />
+                    <StatCard label="Fehler" value={maintenanceAutomationStats.failed} />
+                  </div>
+                </div>
+              )}
 
               {!isCustomer && maintenanceMailCandidates.length > 0 && (
                 <div className="rounded-[28px] border border-blue-200 bg-blue-50 p-5 shadow-sm">
