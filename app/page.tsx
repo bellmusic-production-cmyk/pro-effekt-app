@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.6 · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.7 · Clean Admin Dashboard · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11929,40 +11929,32 @@ PRO-EFFEKT`,
           {activePage === "Dashboard" && (
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-6 flex flex-col items-start gap-3">
+                <div className="mb-6 flex flex-col items-start gap-4">
                   <TechFlowLogo hero />
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
-                    Service Management Platform
+                  <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
+                    Admin-Zentrale
                   </p>
+                  <p className="max-w-4xl text-sm font-semibold text-slate-300">
+                    Alle offenen Servicefälle, Einsätze, Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={loadApplicationData}
+                    className="rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
+                  >
+                    Dashboard neu laden
+                  </button>
                 </div>
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Admin-Zentrale
-                </p>
-                <h3 className="mt-2 text-4xl font-black">
-                  Operations-Leitstand
-                </h3>
-                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Alle offenen Servicefälle, Einsätze, Sicherheitsprüfung-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={loadApplicationData}
-                  className="mt-4 rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
-                >
-                  Dashboard neu laden
-                </button>
 
                 {isAdmin && (
                   <div className="mt-6 rounded-[28px] border border-cyan-400/20 bg-white/10 p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-                          Service Operations
+                          Schnellübersicht
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">Operations-Leitstand</h3>
                         <p className="mt-1 text-sm font-bold text-slate-300">
-                          Zentrale Übersicht über Disposition, offene Einsätze, Wartungen und aktuelle Prioritäten.
+                          Aktuelle Einsätze, Überfälligkeiten und Wartungen.
                         </p>
                       </div>
 
@@ -11971,7 +11963,7 @@ PRO-EFFEKT`,
                         onClick={() => openPage("Einsatz")}
                         className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-black text-white"
                       >
-                        Einsatzplanung öffnen
+                        Einsatzplanung
                       </button>
                     </div>
 
