@@ -12786,6 +12786,7 @@ PRO-EFFEKT`,
           )}
 
           {activePage === "Benachrichtigungen" && (
+            <>
             <section className="space-y-5">
               <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -13613,6 +13614,7 @@ PRO-EFFEKT`,
                 </div>
               </div>
             </div>
+            </>
           )}
 
           {activePage === "Rechnungen" && (
