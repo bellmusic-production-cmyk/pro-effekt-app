@@ -1329,18 +1329,18 @@ export default function Home() {
   }, [visibleRoleTickets, userProfile?.role, userProfile?.id]);
 
   const technicianPremiumTodayTickets = useMemo(() => {
-    return technicianPremiumTickets.filter((ticket) => ticket.service_date === todayDateString);
-  }, [technicianPremiumTickets, todayDateString]);
+    return technicianPremiumTickets.filter((ticket) => ticket.service_date === new Date().toISOString().split("T")[0]);
+  }, [technicianPremiumTickets]);
 
   const technicianPremiumOverdueTickets = useMemo(() => {
     return technicianPremiumTickets.filter((ticket) => {
       if (!ticket.service_date) return false;
-      return ticket.service_date < todayDateString;
+      return ticket.service_date < new Date().toISOString().split("T")[0];
     });
-  }, [technicianPremiumTickets, todayDateString]);
+  }, [technicianPremiumTickets]);
 
   const technicianPremiumWeekTickets = useMemo(() => {
-    const today = new Date(todayDateString);
+    const today = new Date(new Date().toISOString().split("T")[0]);
     const weekEnd = new Date(today);
     weekEnd.setDate(weekEnd.getDate() + 7);
 
@@ -1350,7 +1350,7 @@ export default function Home() {
       serviceDate.setHours(0, 0, 0, 0);
       return serviceDate >= today && serviceDate <= weekEnd;
     });
-  }, [technicianPremiumTickets, todayDateString]);
+  }, [technicianPremiumTickets]);
 
   const technicianPremiumMaintenancePlans = useMemo(() => {
     return maintenanceTicketSuggestions.filter((plan) => {
@@ -8825,7 +8825,7 @@ PRO-EFFEKT`,
   });
 
   const todaysAdminTickets = visibleRoleTickets
-    .filter((ticket) => ticket.service_date === todayDateString)
+    .filter((ticket) => ticket.service_date === new Date().toISOString().split("T")[0])
     .sort((a, b) => {
       const timeA = a.service_time || "99:99";
       const timeB = b.service_time || "99:99";
@@ -8938,7 +8938,7 @@ PRO-EFFEKT`,
   );
 
   const technicianTodayTickets = sortTicketsByAppointment(
-    visibleRoleTickets.filter((ticket) => ticket.service_date === todayDateString),
+    visibleRoleTickets.filter((ticket) => ticket.service_date === new Date().toISOString().split("T")[0]),
   );
 
   const technicianWaitingParts = sortTicketsByAppointment(
@@ -8964,7 +8964,7 @@ PRO-EFFEKT`,
   const overdueDispatchTickets = sortTicketsByAppointment(
     activePlanningTickets.filter((ticket) => {
       if (!ticket.service_date) return false;
-      return ticket.service_date < todayDateString;
+      return ticket.service_date < new Date().toISOString().split("T")[0];
     }),
   );
 
