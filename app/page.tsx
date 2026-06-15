@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.1.0 · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.1.0 FIXED · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1307,76 +1307,61 @@ export default function Home() {
       .slice(0, 20);
   }, [maintenancePlans]);
 
-  const technicianMyTickets = useMemo(() => {
-    if (!userProfile?.id) return [];
+  const technicianPremiumTickets = useMemo(() => {
+    if (isCustomer) return [];
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return tickets
-      .filter((ticket) => {
-        if (isCustomer) return false;
+    return sortTicketsByAppointment(
+      visibleRoleTickets.filter((ticket) => {
+        if (["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || "")) return false;
 
         if (isTechnician) {
-          const assignedToMe = ticket.assigned_to === userProfile.id;
-          const openPool =
+          return (
+            ticket.assigned_to === userProfile?.id ||
             !ticket.assigned_to ||
             ticket.status === "Offen" ||
-            ticket.status === "Zugewiesen";
-
-          return assignedToMe || openPool;
+            ticket.status === "Zugewiesen"
+          );
         }
 
         return true;
-      })
-      .sort((a, b) => {
-        const aDate = a.service_date || a.created_at || "";
-        const bDate = b.service_date || b.created_at || "";
-        return String(aDate).localeCompare(String(bDate));
-      });
-  }, [tickets, userProfile?.id, isTechnician, isCustomer]);
+      }),
+    );
+  }, [visibleRoleTickets, isCustomer, isTechnician, userProfile?.id]);
 
-  const technicianTodayTickets = useMemo(() => {
-    const todayString = new Date().toISOString().split("T")[0];
+  const technicianPremiumTodayTickets = useMemo(() => {
+    return technicianPremiumTickets.filter((ticket) => ticket.service_date === todayDateString);
+  }, [technicianPremiumTickets, todayDateString]);
 
-    return technicianMyTickets.filter((ticket) => ticket.service_date === todayString);
-  }, [technicianMyTickets]);
-
-  const technicianOverdueTickets = useMemo(() => {
-    const todayString = new Date().toISOString().split("T")[0];
-
-    return technicianMyTickets.filter((ticket) => {
+  const technicianPremiumOverdueTickets = useMemo(() => {
+    return technicianPremiumTickets.filter((ticket) => {
       if (!ticket.service_date) return false;
-      if (["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status)) return false;
-      return ticket.service_date < todayString;
+      return ticket.service_date < todayDateString;
     });
-  }, [technicianMyTickets]);
+  }, [technicianPremiumTickets, todayDateString]);
 
-  const technicianWeekTickets = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const technicianPremiumWeekTickets = useMemo(() => {
+    const today = new Date(todayDateString);
     const weekEnd = new Date(today);
     weekEnd.setDate(weekEnd.getDate() + 7);
 
-    return technicianMyTickets.filter((ticket) => {
+    return technicianPremiumTickets.filter((ticket) => {
       if (!ticket.service_date) return false;
       const serviceDate = new Date(ticket.service_date);
       serviceDate.setHours(0, 0, 0, 0);
       return serviceDate >= today && serviceDate <= weekEnd;
     });
-  }, [technicianMyTickets]);
+  }, [technicianPremiumTickets, todayDateString]);
 
-  const technicianMyMaintenancePlans = useMemo(() => {
-    if (!userProfile?.id) return maintenanceTicketSuggestions;
-
+  const technicianPremiumMaintenancePlans = useMemo(() => {
     return maintenanceTicketSuggestions.filter((plan) => {
-      if (isTechnician) return !plan.assigned_to || plan.assigned_to === userProfile.id;
+      if (isTechnician) return !plan.assigned_to || plan.assigned_to === userProfile?.id;
       return true;
     });
-  }, [maintenanceTicketSuggestions, userProfile?.id, isTechnician]);
+  }, [maintenanceTicketSuggestions, isTechnician, userProfile?.id]);
 
-  function getTicketCustomerContact(ticket: Ticket) {
+  function getTicketCustomerContactPremium(ticket: Ticket) {
     const relatedCustomer = getCustomerForTicket(ticket);
+    const relatedDevice = getDeviceForTicket(ticket);
 
     return {
       customer: relatedCustomer,
@@ -1384,14 +1369,14 @@ export default function Home() {
       email: ticket.service_contact_email || relatedCustomer?.email || "",
       address:
         ticket.service_address ||
-        buildCustomerAddress(relatedCustomer as Customer) ||
-        getDeviceForTicket(ticket)?.location ||
+        (relatedCustomer ? buildCustomerAddress(relatedCustomer) : "") ||
+        relatedDevice?.location ||
         "",
     };
   }
 
-  function openNavigationForTicket(ticket: Ticket) {
-    const contact = getTicketCustomerContact(ticket);
+  function openNavigationForTicketPremium(ticket: Ticket) {
+    const contact = getTicketCustomerContactPremium(ticket);
 
     if (!contact.address) {
       alert("Keine Adresse für Navigation gefunden.");
@@ -1401,7 +1386,7 @@ export default function Home() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address)}`, "_blank");
   }
 
-  async function quickTechnicianStatus(ticket: Ticket, nextStatus: string) {
+  async function quickTechnicianStatusPremium(ticket: Ticket, nextStatus: string) {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können den Einsatzstatus ändern.");
       return;
@@ -1409,17 +1394,15 @@ export default function Home() {
 
     await updateTicketStatus(ticket.id, nextStatus);
 
-    if (nextStatus === "Vor Ort" || nextStatus === "In Bearbeitung" || nextStatus === "Abgeschlossen") {
-      await createDeviceHistory(
-        getDeviceForTicket(ticket)?.id || null,
-        `Technikerstatus: ${nextStatus}`,
-        `${ticket.ticket_number || "Ticket"} · ${ticket.issue || "Einsatz"}`,
-        "Einsatz",
-      );
-    }
+    await createDeviceHistory(
+      getDeviceForTicket(ticket)?.id || null,
+      `Technikerstatus: ${nextStatus}`,
+      `${ticket.ticket_number || "Ticket"} · ${ticket.issue || "Einsatz"}`,
+      "Einsatz",
+    );
   }
 
-  function buildTechnicianChecklist(ticket: Ticket) {
+  function buildTechnicianChecklistPremium(ticket: Ticket) {
     const documentsCount = getDocumentsForTicket(ticket).length;
     const hasReport = Boolean(ticket.service_report);
     const hasSignatures = Boolean(ticket.technician_signature || ticket.customer_signature);
@@ -10979,76 +10962,21 @@ PRO-EFFEKT`,
                     <div className="mt-4 grid gap-3 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianTodayTickets.length}</p>
+                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-white/10 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianWeekTickets.length}</p>
+                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-red-500/20 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällig</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianOverdueTickets.length}</p>
+                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-amber-500/20 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianMyMaintenancePlans.length}</p>
+                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
                       </div>
                     </div>
-
-                    {(technicianTodayTickets.length > 0 || technicianOverdueTickets.length > 0) && (
-                      <div className="mt-4 grid gap-3 md:grid-cols-2">
-                        {[...technicianOverdueTickets, ...technicianTodayTickets].slice(0, 4).map((ticket) => {
-                          const contact = getTicketCustomerContact(ticket);
-
-                          return (
-                            <div key={ticket.id} className="rounded-2xl bg-white p-4 text-slate-900">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="truncate font-black">{ticket.ticket_number} · {ticket.issue}</p>
-                                  <p className="mt-1 text-xs font-bold text-slate-500">
-                                    {ticket.customer} · {ticket.service_date || "ohne Termin"}
-                                  </p>
-                                </div>
-                                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
-                                  {ticket.status}
-                                </span>
-                              </div>
-
-                              <div className="mt-3 grid grid-cols-2 gap-2">
-                                {contact.phone && (
-                                  <a href={`tel:${contact.phone}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">
-                                    Anrufen
-                                  </a>
-                                )}
-                                {contact.email && (
-                                  <a href={`mailto:${contact.email}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">
-                                    Mail
-                                  </a>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => openNavigationForTicket(ticket)}
-                                  className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700"
-                                >
-                                  Navigation
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedTicketView(ticket);
-                                    openServiceReportSigning(ticket);
-                                    openPage("Service-Tickets");
-                                  }}
-                                  className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white"
-                                >
-                                  Bericht
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -12338,106 +12266,6 @@ PRO-EFFEKT`,
                         </div>
                       );
                     })}
-                  </div>
-                </div>
-              )}
-
-              {!isCustomer && (
-                <div className="mb-6 rounded-[28px] border border-sky-200 bg-sky-50 p-5 shadow-sm">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">
-                        Techniker-App Premium · Mein Tag
-                      </p>
-                      <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Schnelleinsatz-Zentrale
-                      </h3>
-                      <p className="mt-1 text-sm font-bold text-slate-600">
-                        1-Klick Navigation, Anruf, Mail, Statuswechsel und Servicebericht.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute" value={technicianTodayTickets.length} />
-                    <StatCard label="Diese Woche" value={technicianWeekTickets.length} />
-                    <StatCard label="Überfällig" value={technicianOverdueTickets.length} />
-                    <StatCard label="Fällige Wartungen" value={technicianMyMaintenancePlans.length} />
-                  </div>
-
-                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                    {[...technicianOverdueTickets, ...technicianTodayTickets, ...technicianWeekTickets]
-                      .filter((ticket, index, list) => list.findIndex((item) => item.id === ticket.id) === index)
-                      .slice(0, 6)
-                      .map((ticket) => {
-                        const contact = getTicketCustomerContact(ticket);
-                        const checklist = buildTechnicianChecklist(ticket);
-
-                        return (
-                          <div key={ticket.id} className="rounded-2xl border border-sky-100 bg-white p-4">
-                            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                              <div className="min-w-0">
-                                <p className="truncate font-black text-slate-900">{ticket.ticket_number} · {ticket.issue}</p>
-                                <p className="mt-1 text-xs font-bold text-slate-500">
-                                  {ticket.customer} · {ticket.service_date || "ohne Termin"} {ticket.service_time ? `· ${ticket.service_time}` : ""}
-                                </p>
-                              </div>
-                              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
-                                {ticket.status}
-                              </span>
-                            </div>
-
-                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-                              {contact.phone && (
-                                <a href={`tel:${contact.phone}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Anrufen</a>
-                              )}
-                              {contact.email && (
-                                <a href={`mailto:${contact.email}?subject=${encodeURIComponent(ticket.ticket_number + " · " + ticket.issue)}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Mail</a>
-                              )}
-                              <button type="button" onClick={() => openNavigationForTicket(ticket)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">Navigation</button>
-                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white">Akte</button>
-                            </div>
-
-                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-                              {["Unterwegs", "Vor Ort", "In Bearbeitung", "Abgeschlossen"].map((nextStatus) => (
-                                <button
-                                  key={nextStatus}
-                                  type="button"
-                                  onClick={() => quickTechnicianStatus(ticket, nextStatus)}
-                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
-                                >
-                                  {nextStatus}
-                                </button>
-                              ))}
-                            </div>
-
-                            <div className="mt-3 rounded-2xl bg-slate-50 p-3">
-                              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Checkliste</p>
-                              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                {checklist.map((item) => (
-                                  <div key={item.label} className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
-                                      {item.done ? "✓" : "–"}
-                                    </span>
-                                    {item.label}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedTicketView(ticket);
-                                openServiceReportSigning(ticket);
-                              }}
-                              className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
-                            >
-                              Servicebericht / Signatur öffnen
-                            </button>
-                          </div>
-                        );
-                      })}
                   </div>
                 </div>
               )}
@@ -17593,6 +17421,106 @@ PRO-EFFEKT`,
                 <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
                 <StatCard label="Erledigt" value={ticketStats.completed} />
               </div>
+
+              {!isCustomer && (
+                <div className="mb-6 rounded-[28px] border border-sky-200 bg-sky-50 p-5 shadow-sm">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">
+                        Techniker-App Premium · Mein Tag
+                      </p>
+                      <h3 className="mt-1 text-xl font-black text-slate-900">
+                        Schnelleinsatz-Zentrale
+                      </h3>
+                      <p className="mt-1 text-sm font-bold text-slate-600">
+                        1-Klick Navigation, Anruf, Mail, Statuswechsel und Servicebericht.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <StatCard label="Heute" value={technicianPremiumTodayTickets.length} />
+                    <StatCard label="Diese Woche" value={technicianPremiumWeekTickets.length} />
+                    <StatCard label="Überfällig" value={technicianPremiumOverdueTickets.length} />
+                    <StatCard label="Fällige Wartungen" value={technicianPremiumMaintenancePlans.length} />
+                  </div>
+
+                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                    {[...technicianPremiumOverdueTickets, ...technicianPremiumTodayTickets, ...technicianPremiumWeekTickets]
+                      .filter((ticket, index, list) => list.findIndex((item) => item.id === ticket.id) === index)
+                      .slice(0, 6)
+                      .map((ticket) => {
+                        const contact = getTicketCustomerContactPremium(ticket);
+                        const checklist = buildTechnicianChecklistPremium(ticket);
+
+                        return (
+                          <div key={ticket.id} className="rounded-2xl border border-sky-100 bg-white p-4">
+                            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                              <div className="min-w-0">
+                                <p className="truncate font-black text-slate-900">{ticket.ticket_number} · {ticket.issue}</p>
+                                <p className="mt-1 text-xs font-bold text-slate-500">
+                                  {ticket.customer} · {ticket.service_date || "ohne Termin"} {ticket.service_time ? `· ${ticket.service_time}` : ""}
+                                </p>
+                              </div>
+                              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
+                                {ticket.status}
+                              </span>
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                              {contact.phone && (
+                                <a href={`tel:${contact.phone}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Anrufen</a>
+                              )}
+                              {contact.email && (
+                                <a href={`mailto:${contact.email}?subject=${encodeURIComponent(ticket.ticket_number + " · " + ticket.issue)}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Mail</a>
+                              )}
+                              <button type="button" onClick={() => openNavigationForTicketPremium(ticket)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">Navigation</button>
+                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white">Akte</button>
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                              {["Unterwegs", "Vor Ort", "In Bearbeitung", "Abgeschlossen"].map((nextStatus) => (
+                                <button
+                                  key={nextStatus}
+                                  type="button"
+                                  onClick={() => quickTechnicianStatusPremium(ticket, nextStatus)}
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                                >
+                                  {nextStatus}
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="mt-3 rounded-2xl bg-slate-50 p-3">
+                              <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Checkliste</p>
+                              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                {checklist.map((item) => (
+                                  <div key={item.label} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
+                                      {item.done ? "✓" : "–"}
+                                    </span>
+                                    {item.label}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTicketView(ticket);
+                                openServiceReportSigning(ticket);
+                              }}
+                              className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
+                            >
+                              Servicebericht / Signatur öffnen
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                 <div
