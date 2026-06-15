@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.6.0 · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.7.0 · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2401,6 +2401,73 @@ export default function Home() {
     return isCustomer && isOwnCustomerTicket(ticket);
   }
 
+  function getCustomerPrimaryEmailByTicket(ticket: Ticket) {
+    const relatedCustomer =
+      customers.find((item) => item.id === ticket.customer_id) ||
+      customers.find((item) => getCustomerLabel(item) === ticket.customer) ||
+      customers.find((item) => item.company === ticket.customer) ||
+      null;
+
+    return (
+      ticket.service_contact_email ||
+      relatedCustomer?.email ||
+      relatedCustomer?.contact_1_email ||
+      relatedCustomer?.email_2 ||
+      ""
+    );
+  }
+
+  function getTechnicianEmailByTicket(ticket: Ticket) {
+    const technician = technicians.find((item) => item.id === ticket.assigned_to);
+
+    return technician?.company || "";
+  }
+
+  function getChatNotificationRecipient(ticket: Ticket) {
+    if (userProfile?.role === "customer") {
+      return companyData?.email || getTechnicianEmailByTicket(ticket) || "service@techflow.local";
+    }
+
+    return getCustomerPrimaryEmailByTicket(ticket);
+  }
+
+  async function createChatNotification(ticket: Ticket, message: string, attachmentName?: string | null) {
+    const recipient = getChatNotificationRecipient(ticket);
+
+    if (!recipient) return;
+
+    const senderName = userProfile?.full_name || userProfile?.company || profileCustomer?.company || "Nutzer";
+    const shortMessage = message.length > 600 ? `${message.slice(0, 600)}...` : message;
+
+    const notificationPayload = {
+      type: "Ticket-Chat",
+      recipient,
+      subject: `Neue Chatnachricht · ${ticket.ticket_number}`,
+      message: [
+        `Ticket: ${ticket.ticket_number}`,
+        `Kunde: ${ticket.customer}`,
+        `Gerät: ${ticket.device || "-"}`,
+        `Von: ${senderName}`,
+        "",
+        shortMessage || (attachmentName ? `Dateianhang: ${attachmentName}` : "Neue Datei im Ticket-Chat"),
+      ].join("\n"),
+      related_ticket_id: ticket.id,
+      status: "Geplant",
+      email_status: "pending",
+      email_template: "Ticket-Chat",
+      email_error: null,
+    };
+
+    const { error } = await supabase.from("notifications").insert([notificationPayload]);
+
+    if (error) {
+      console.error("Chat-Benachrichtigung konnte nicht erstellt werden:", error.message);
+      return;
+    }
+
+    await loadNotifications();
+  }
+
   async function sendTicketChatMessage(ticket: Ticket) {
     if (!canUseTicketChat(ticket)) {
       alert("Für dieses Ticket ist kein Chatzugriff möglich.");
@@ -2457,6 +2524,29 @@ export default function Home() {
       `${ticket.ticket_number} · ${payload.sender_name}: ${payload.message}`,
       "Kommunikation",
     );
+
+    await createChatNotification(ticket, payload.message, attachmentName);
+
+    if (
+      userProfile?.role === "customer" &&
+      !["Abgeschlossen", "Erledigt", "Storniert", "Wartet auf Kundenfreigabe"].includes(ticket.status || "")
+    ) {
+      await supabase
+        .from("tickets")
+        .update({
+          status: "Wartet auf Kundenfreigabe",
+          service_status: "Neue Kundenrückfrage im Chat",
+        })
+        .eq("id", ticket.id);
+
+      setTickets((prev) =>
+        prev.map((item) =>
+          item.id === ticket.id
+            ? { ...item, status: "Wartet auf Kundenfreigabe", service_status: "Neue Kundenrückfrage im Chat" }
+            : item,
+        ),
+      );
+    }
 
     setTicketChatDrafts((prev) => ({ ...prev, [ticket.id]: "" }));
     setTicketChatFiles((prev) => ({ ...prev, [ticket.id]: null }));
@@ -11745,7 +11835,7 @@ PRO-EFFEKT`,
                       Ticket-Chat & Rückfragen
                     </h3>
                     <p className="mt-1 text-sm font-bold text-slate-600">
-                      Ungelesene Nachrichten: {ticketChatUnreadCount}
+                      Ungelesene Nachrichten: {ticketChatUnreadCount} · Kommunikationszentrale wird bei neuen Chatnachrichten automatisch befüllt.
                     </p>
                   </div>
                   <button
