@@ -1858,8 +1858,7 @@ export default function Home() {
               </p>
               <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2">${notificationItem.subject}</h1>
               <div style="font-size:15px;line-height:1.6;color:#334155">
-                ${String(notificationItem.message || "").replace(/
-/g, "<br/>")}
+                ${String(notificationItem.message || "").replace(/\n/g, "<br/>")}
               </div>
               <hr style="border:0;border-top:1px solid #e2e8f0;margin:24px 0" />
               <p style="font-size:12px;color:#64748b;margin:0">
