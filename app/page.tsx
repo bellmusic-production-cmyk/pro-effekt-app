@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.2.3 · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.3.0 · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -640,6 +640,8 @@ export default function Home() {
   const [serviceBadgeNumber, setServiceBadgeNumber] = useState("");
   const [serviceBadgeExpires, setServiceBadgeExpires] = useState("");
   const [serviceInternalNote, setServiceInternalNote] = useState("");
+  const [serviceAiNotes, setServiceAiNotes] = useState("");
+  const [serviceAiGenerating, setServiceAiGenerating] = useState(false);
 
   const [technicianSignature, setTechnicianSignature] = useState("");
   const [customerSignature, setCustomerSignature] = useState("");
@@ -4057,6 +4059,7 @@ export default function Home() {
     setServiceBadgeNumber(currentTicket.inspection_badge_number || "");
     setServiceBadgeExpires(currentTicket.inspection_expires || "");
     setServiceInternalNote(currentTicket.internal_note || "");
+    setServiceAiNotes("");
     setTechnicianSignature(currentTicket.technician_signature || "");
     setCustomerSignature(currentTicket.customer_signature || "");
     setCustomerApprovalName(currentTicket.customer_approval_name || "");
@@ -4071,6 +4074,69 @@ export default function Home() {
 
   function closeServiceReportSigning() {
     setServiceSigningTicket(null);
+  }
+
+  function generateAIServiceReport() {
+    const ticket = serviceSigningTicket || selectedTicketView;
+
+    if (!ticket) {
+      alert("Bitte zuerst ein Ticket für den Servicebericht öffnen.");
+      return;
+    }
+
+    if (!serviceAiNotes.trim() && !ticket.issue && !ticket.description) {
+      alert("Bitte Stichpunkte oder eine Ticketbeschreibung eingeben.");
+      return;
+    }
+
+    setServiceAiGenerating(true);
+
+    const linkedCustomer = getCustomerForTicket(ticket);
+    const linkedDevice = getDeviceForTicket(ticket);
+
+    const customerName = getCustomerLabel(linkedCustomer) || ticket.customer || "Kunde";
+    const deviceName =
+      getDeviceLabel(linkedDevice) ||
+      ticket.device ||
+      "Gerät / Anlage";
+    const technicianName = userProfile?.full_name || "Techniker";
+    const today = new Date().toLocaleDateString("de-DE");
+
+    const notes = serviceAiNotes
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const noteBlock =
+      notes.length > 0
+        ? notes.map((line) => `- ${line}`).join("\n")
+        : `- ${ticket.issue || "Serviceeinsatz durchgeführt"}\n- ${ticket.description || "Gerät geprüft und Funktionskontrolle durchgeführt"}`;
+
+    const nextReport = `Servicebericht
+
+Datum: ${today}
+Kunde: ${customerName}
+Gerät / Anlage: ${deviceName}
+Ticket: ${ticket.ticket_number || `#${ticket.id}`}
+Techniker: ${technicianName}
+
+Ausgangssituation:
+${ticket.issue || "Der Kunde meldete einen Servicebedarf am oben genannten Gerät."}
+
+Durchgeführte Arbeiten:
+${noteBlock}
+
+Prüfung / Ergebnis:
+Das Gerät wurde nach den durchgeführten Arbeiten auf Funktion, Sicherheit und sichtbare Auffälligkeiten geprüft. Die Funktionsprüfung wurde durchgeführt. Soweit vor Ort erkennbar, ist das Gerät nach Abschluss des Einsatzes betriebsbereit.
+
+Empfehlung:
+Regelmäßige Wartung und Sichtprüfung gemäß Betreiberpflichten und Herstellervorgaben fortführen. Auffälligkeiten sollten zeitnah gemeldet werden.
+
+Hinweis:
+Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor Abschluss vom Techniker geprüft.`;
+
+    setServiceReport(nextReport);
+    setServiceAiGenerating(false);
   }
 
   async function updateServiceStatus(ticketId: number, newServiceStatus: string) {
@@ -10285,6 +10351,48 @@ PRO-EFFEKT`,
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-3xl border border-purple-200 bg-purple-50 p-4 md:col-span-2">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
+                                KI-Servicebericht · v3.3.0
+                              </p>
+                              <h5 className="mt-1 text-lg font-black text-slate-900">
+                                Aus Stichpunkten professionellen Bericht erzeugen
+                              </h5>
+                              <p className="mt-1 text-sm font-bold text-slate-600">
+                                Kurze Techniker-Notizen eingeben, Bericht erzeugen, prüfen und übernehmen.
+                              </p>
+                            </div>
+                          </div>
+
+                          <textarea
+                            value={serviceAiNotes}
+                            onChange={(event) => setServiceAiNotes(event.target.value)}
+                            placeholder={"Stichpunkte, z. B.\nLaufband geprüft\nRiemen nachgestellt\nGeräusch beseitigt\nKunde eingewiesen"}
+                            className="mt-4 min-h-[120px] w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 font-semibold outline-none focus:border-purple-400"
+                          />
+
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              onClick={generateAIServiceReport}
+                              disabled={serviceAiGenerating}
+                              className="rounded-2xl bg-purple-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-purple-900/20 disabled:bg-slate-300"
+                            >
+                              {serviceAiGenerating ? "Bericht wird erzeugt..." : "KI-Bericht erzeugen"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setServiceAiNotes("")}
+                              className="rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm font-black text-purple-700"
+                            >
+                              Stichpunkte leeren
+                            </button>
+                          </div>
+                        </div>
+
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
@@ -11283,6 +11391,48 @@ PRO-EFFEKT`,
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="rounded-3xl border border-purple-200 bg-purple-50 p-4 md:col-span-2">
+                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
+                                KI-Servicebericht · v3.3.0
+                              </p>
+                              <h5 className="mt-1 text-lg font-black text-slate-900">
+                                Aus Stichpunkten professionellen Bericht erzeugen
+                              </h5>
+                              <p className="mt-1 text-sm font-bold text-slate-600">
+                                Kurze Techniker-Notizen eingeben, Bericht erzeugen, prüfen und übernehmen.
+                              </p>
+                            </div>
+                          </div>
+
+                          <textarea
+                            value={serviceAiNotes}
+                            onChange={(event) => setServiceAiNotes(event.target.value)}
+                            placeholder={"Stichpunkte, z. B.\nLaufband geprüft\nRiemen nachgestellt\nGeräusch beseitigt\nKunde eingewiesen"}
+                            className="mt-4 min-h-[120px] w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 font-semibold outline-none focus:border-purple-400"
+                          />
+
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              onClick={generateAIServiceReport}
+                              disabled={serviceAiGenerating}
+                              className="rounded-2xl bg-purple-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-purple-900/20 disabled:bg-slate-300"
+                            >
+                              {serviceAiGenerating ? "Bericht wird erzeugt..." : "KI-Bericht erzeugen"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setServiceAiNotes("")}
+                              className="rounded-2xl border border-purple-200 bg-white px-4 py-3 text-sm font-black text-purple-700"
+                            >
+                              Stichpunkte leeren
+                            </button>
+                          </div>
+                        </div>
+
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
