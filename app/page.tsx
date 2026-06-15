@@ -1524,7 +1524,7 @@ export default function Home() {
           item.email_error,
           item.email_template,
           item.email_provider_id,
-          getTicketNumberById(item.related_ticket_id || null),
+          tickets.find((ticket) => ticket.id === item.related_ticket_id)?.ticket_number,
         ]
           .filter(Boolean)
           .join(" ")
