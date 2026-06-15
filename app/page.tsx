@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.7 · Clean Admin Dashboard · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.8 · Minimal Software Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,7 +6156,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
       alt="TechFlow"
       className={
         hero
-          ? "h-24 w-auto max-w-[520px] object-contain md:h-28"
+          ? "h-32 w-auto max-w-[720px] object-contain md:h-40"
           : compact
             ? "h-12 w-auto max-w-[260px] object-contain"
             : "h-16 w-auto max-w-[340px] object-contain"
@@ -10317,10 +10317,10 @@ PRO-EFFEKT`,
       : "Kundenportal";
 
   const portalSubtitle = isAdmin
-    ? "Vollzugriff auf Kunden, Geräte, Tickets, Sicherheitsprüfung-Wartung, Einsatz, Teile, Dokumente und Berichte."
+    ? ""
     : isTechnician
-      ? "Einsatzbereich für Tickets, Geräte, Sicherheitsprüfungen, Fotos und Serviceberichte."
-      : "Eigene Geräte, Tickets und Dokumente im Überblick.";
+      ? ""
+      : "";
 
   const primaryActionLabel = isAdmin
     ? "Verwaltung öffnen"
@@ -11607,18 +11607,9 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-sm shadow-slate-200/70 lg:block">
-            <div className="flex flex-col items-center text-center">
+          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-10 shadow-sm shadow-slate-200/70 lg:block">
+            <div className="flex min-h-[260px] items-center justify-center">
               <TechFlowLogo hero />
-              <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-sky-500">
-                Service Management Platform
-              </p>
-              <h2 className="mt-3 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 lg:text-4xl">
-                {portalTitle}
-              </h2>
-              <p className="mt-3 max-w-4xl text-[15px] font-semibold leading-6 text-slate-500">
-                {portalSubtitle}
-              </p>
             </div>
           </div>
 
@@ -11930,12 +11921,8 @@ PRO-EFFEKT`,
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <div className="mb-6 flex flex-col items-start gap-4">
-                  <TechFlowLogo hero />
                   <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
                     Admin-Zentrale
-                  </p>
-                  <p className="max-w-4xl text-sm font-semibold text-slate-300">
-                    Alle offenen Servicefälle, Einsätze, Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
                   </p>
                   <button
                     type="button"
@@ -11951,10 +11938,7 @@ PRO-EFFEKT`,
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-                          Schnellübersicht
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-slate-300">
-                          Aktuelle Einsätze, Überfälligkeiten und Wartungen.
+                          Übersicht
                         </p>
                       </div>
 
