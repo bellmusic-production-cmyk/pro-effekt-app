@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.2.1 · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.2.2 · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -223,6 +223,8 @@ type NotificationItem = {
   email_sent_at?: string | null;
   email_error?: string | null;
   email_template?: string | null;
+  email_provider_id?: string | null;
+  email_last_attempt_at?: string | null;
   created_at: string;
 };
 
@@ -1272,6 +1274,20 @@ export default function Home() {
     if (value === "queued") return "bg-blue-500/15 text-blue-300 border-blue-500/30";
 
     return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+  }
+
+
+  function formatDateTime(value?: string | null) {
+    if (!value) return "—";
+
+    try {
+      return new Intl.DateTimeFormat("de-DE", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
   }
 
   async function checkSession() {
@@ -6683,7 +6699,13 @@ PRO-EFFEKT`,
     setNotifications((prev) =>
       prev.map((item) =>
         item.id === notificationItem.id
-          ? { ...item, email_status: "queued", status: "Geplant", email_error: null }
+          ? {
+              ...item,
+              email_status: "queued",
+              status: "Geplant",
+              email_error: null,
+              email_last_attempt_at: new Date().toISOString(),
+            }
           : item,
       ),
     );
@@ -6717,13 +6739,20 @@ PRO-EFFEKT`,
           email_status: "failed",
           status: "Fehler",
           email_error: error.message,
+          email_last_attempt_at: new Date().toISOString(),
         })
         .eq("id", notificationItem.id);
 
       setNotifications((prev) =>
         prev.map((item) =>
           item.id === notificationItem.id
-            ? { ...item, email_status: "failed", status: "Fehler", email_error: error.message }
+            ? {
+                ...item,
+                email_status: "failed",
+                status: "Fehler",
+                email_error: error.message,
+                email_last_attempt_at: new Date().toISOString(),
+              }
             : item,
         ),
       );
@@ -6736,6 +6765,21 @@ PRO-EFFEKT`,
     const nextStatus = mailWasAccepted ? "sent" : "failed";
     const nextLabel = mailWasAccepted ? "Gesendet" : "Fehler";
     const nextError = data?.error || data?.message || null;
+    const nextSentAt = mailWasAccepted ? new Date().toISOString() : null;
+    const nextProviderId = data?.id || data?.resend?.id || null;
+
+    await supabase
+      .from("notifications")
+      .update({
+        email_status: nextStatus,
+        status: nextLabel,
+        email_sent_at: nextSentAt,
+        email_error: nextError,
+        email_provider_id: nextProviderId,
+        email_last_attempt_at: new Date().toISOString(),
+      })
+      .eq("id", notificationItem.id);
+
 
     setNotifications((prev) =>
       prev.map((item) =>
@@ -6744,8 +6788,10 @@ PRO-EFFEKT`,
               ...item,
               email_status: nextStatus,
               status: nextLabel,
-              email_sent_at: data?.sentAt || new Date().toISOString(),
+              email_sent_at: data?.sentAt || nextSentAt,
               email_error: nextError,
+              email_provider_id: nextProviderId,
+              email_last_attempt_at: new Date().toISOString(),
             }
           : item,
       ),
@@ -11491,6 +11537,16 @@ PRO-EFFEKT`,
                                   Vorlage: {item.email_template}
                                 </div>
                               )}
+
+                              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-600">
+                                <div>Letzter Versuch: {formatDateTime(item.email_last_attempt_at)}</div>
+                                <div>Gesendet: {formatDateTime(item.email_sent_at)}</div>
+                                {item.email_provider_id && (
+                                  <div className="mt-1 break-all text-slate-500">
+                                    Resend-ID: {item.email_provider_id}
+                                  </div>
+                                )}
+                              </div>
 
                               {item.email_error && (
                                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
