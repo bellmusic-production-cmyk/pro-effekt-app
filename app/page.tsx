@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.3.0 FIXED-2 · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.4.0 · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -3482,8 +3482,9 @@ export default function Home() {
           <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number || ""}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
-            h1 { margin: 0; color: #38bdf8; letter-spacing: 4px; }
-            h2 { margin-top: 28px; border-bottom: 2px solid #38bdf8; padding-bottom: 8px; }
+            h1 { margin: 0; color: #0284c7; letter-spacing: 1px; }
+            h2 { margin-top: 28px; border-bottom: 2px solid #0284c7; padding-bottom: 8px; }
+            .badge { display:inline-block;background:#e0f2fe;color:#0369a1;border-radius:999px;padding:8px 12px;font-weight:700;font-size:12px; }
             .muted { color: #64748b; font-size: 13px; }
             .box { border: 1px solid #cbd5e1; border-radius: 16px; padding: 18px; margin: 14px 0; }
             .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -3506,9 +3507,10 @@ export default function Home() {
             <div><div class="label">Kundennummer</div><div class="value">${relatedCustomer?.customer_number || "-"}</div></div>
             <div><div class="label">Einsatzort</div><div class="value">${ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-"}</div></div>
             <div><div class="label">Ansprechpartner vor Ort</div><div class="value">${ticket.service_contact_name || relatedCustomer?.contact_person || "-"}</div></div>
-            <div><div class="label">Einsatzadresse</div><div class="value">${ticket.service_address || relatedDevice?.location || "-"}</div></div>
-            <div><div class="label">Telefon vor Ort</div><div class="value">${ticket.service_contact_phone || relatedCustomer?.phone || "-"}</div></div>
-            <div><div class="label">Gerät</div><div class="value">${ticket.device || relatedDevice?.name || "-"}</div></div>
+            <div><div class="label">Einsatzadresse</div><div class="value">${customerAddress}</div></div>
+            <div><div class="label">Kontakt vor Ort</div><div class="value">${ticket.service_contact_phone || ticket.service_contact_email || relatedCustomer?.phone || relatedCustomer?.email || "-"}</div></div>
+            <div><div class="label">Hersteller</div><div class="value">${manufacturerName}</div></div>
+            <div><div class="label">Modell / Gerät</div><div class="value">${modelName}</div></div>
             <div><div class="label">Seriennummer</div><div class="value">${relatedDevice?.serial_number || "-"}</div></div>
             <div><div class="label">Techniker</div><div class="value">${technicianName}</div></div>
           </div>
@@ -3526,7 +3528,7 @@ export default function Home() {
             ${serviceReport || ticket.service_report || "Keine Arbeiten dokumentiert."}
           </div>
 
-          <h2>Prüfsiegel / Sicherheitsprüfung-Prüfung</h2>
+          <h2>Prüfsiegel / Sicherheitsprüfung</h2>
           <div class="box">
             Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
             Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
@@ -3585,12 +3587,34 @@ export default function Home() {
   }
 
   async function createServiceReportPdfBlob(ticket: Ticket) {
-    const relatedDevice = devices.find((item) => item.name === ticket.device);
+    const relatedDevice =
+      devices.find((item) => item.name === ticket.device) ||
+      devices.find((item) => String(item.serial_number || "") === String(ticket.device || "")) ||
+      null;
     const relatedCustomer =
       customers.find((item) => item.id === ticket.customer_id) ||
-      customers.find((item) => item.company === ticket.customer);
+      customers.find((item) => item.company === ticket.customer) ||
+      (relatedDevice?.customer_id ? customers.find((item) => item.id === relatedDevice.customer_id) : null) ||
+      null;
     const technicianName = getTechnicianNameById(ticket.assigned_to);
     const ticketDocuments = getDocumentsForTicket(ticket);
+    const manufacturerName =
+      relatedDevice?.manufacturer || getManufacturerNameById(relatedDevice?.manufacturer_id) || "-";
+    const modelName =
+      relatedDevice?.model || getDeviceModelNameById(relatedDevice?.model_id) || ticket.device || "-";
+    const customerAddress =
+      ticket.service_address ||
+      relatedCustomer?.address ||
+      [relatedCustomer?.street, relatedCustomer?.house_number, relatedCustomer?.postal_code, relatedCustomer?.city]
+        .filter(Boolean)
+        .join(" ") ||
+      relatedDevice?.location ||
+      "-";
+    const companyDisplayName = companyData?.name || DEMO_COMPANY_NAME;
+    const companySubtitle = companyData?.website || DEMO_COMPANY_SUBTITLE;
+    const companyContactLine = [companyData?.phone, companyData?.email, companyData?.website]
+      .filter(Boolean)
+      .join(" · ") || `${DEMO_COMPANY_PHONE} · ${DEMO_COMPANY_EMAIL}`;
 
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -3617,10 +3641,10 @@ export default function Home() {
       ensureSpace(12);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(13);
-      pdf.setTextColor(22, 163, 74);
+      pdf.setTextColor(2, 132, 199);
       pdf.text(title, margin, y);
       y += 3;
-      pdf.setDrawColor(22, 163, 74);
+      pdf.setDrawColor(2, 132, 199);
       pdf.line(margin, y, pageWidth - margin, y);
       y += 7;
       pdf.setTextColor(15, 23, 42);
@@ -3679,26 +3703,28 @@ export default function Home() {
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(20);
-    pdf.setTextColor(56, 189, 248);
-    pdf.text("PRO-EFFEKT", headerTextX, y);
+    pdf.setTextColor(2, 132, 199);
+    pdf.text(companyDisplayName, headerTextX, y);
     pdf.setFontSize(8.5);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Servicebericht / Prüfbericht`, headerTextX, y + 6);
+    pdf.text(`${companySubtitle} · Servicebericht Premium`, headerTextX, y + 6);
+    pdf.text(companyContactLine, headerTextX, y + 11);
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
     pdf.setTextColor(15, 23, 42);
     pdf.text(`Ticket: ${ticket.ticket_number || "-"}`, pageWidth - margin, y, { align: "right" });
     pdf.text(`Datum: ${new Date().toLocaleDateString("de-DE")}`, pageWidth - margin, y + 5, { align: "right" });
-    y += 22;
+    y += 26;
 
     sectionTitle("Kunde & Gerät");
     infoBox([
       ["Auftraggeber", relatedCustomer?.company || ticket.customer || "-", "Kundennummer", relatedCustomer?.customer_number || "-"],
-      ["Einsatzort", ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-", "Ansprechpartner vor Ort", ticket.service_contact_name || relatedCustomer?.contact_person || "-"],
-      ["Einsatzadresse", ticket.service_address || relatedDevice?.location || "-", "Telefon vor Ort", ticket.service_contact_phone || relatedCustomer?.phone || "-"],
-      ["Gerät", ticket.device || relatedDevice?.name || "-", "Seriennummer", relatedDevice?.serial_number || "-"],
-      ["Standort Gerät", relatedDevice?.location || "-", "Techniker", technicianName],
+      ["Einsatzort", ticket.service_location_name || relatedCustomer?.company || ticket.customer || "-", "Ansprechpartner", ticket.service_contact_name || relatedCustomer?.contact_person || "-"],
+      ["Einsatzadresse", customerAddress, "Kontakt", ticket.service_contact_phone || ticket.service_contact_email || relatedCustomer?.phone || relatedCustomer?.email || "-"],
+      ["Hersteller", manufacturerName, "Modell / Gerät", modelName],
+      ["Seriennummer", relatedDevice?.serial_number || "-", "Standort Gerät", relatedDevice?.location || "-"],
+      ["Techniker", technicianName, "Ticketstatus", ticket.status || "-"],
     ]);
 
     sectionTitle("Auftrag");
@@ -3707,7 +3733,7 @@ export default function Home() {
     sectionTitle("Durchgeführte Arbeiten");
     textBox(serviceReport || ticket.service_report || "Keine Arbeiten dokumentiert.", 38);
 
-    sectionTitle("Prüfsiegel / Sicherheitsprüfung-Prüfung");
+    sectionTitle("Prüfsiegel / Sicherheitsprüfung");
     textBox(
       "Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen, Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.",
       20,
@@ -3725,8 +3751,13 @@ export default function Home() {
       18,
     );
 
+    if (serviceInternalNote || ticket.internal_note) {
+      sectionTitle("Interne Notiz");
+      textBox(serviceInternalNote || ticket.internal_note || "-", 18);
+    }
+
     sectionTitle("Kundenbestätigung");
-    textBox("Der Kunde bestätigt die Durchführung der oben dokumentierten Arbeiten.", 16);
+    textBox("Der Kunde bestätigt die Durchführung der oben dokumentierten Arbeiten. Die dokumentierten Leistungen wurden vor Ort erläutert und zur Kenntnis genommen.", 18);
 
     ensureSpace(38);
     const signatureY = y + 12;
@@ -3763,7 +3794,7 @@ export default function Home() {
     const footerY = pageHeight - 9;
     pdf.setFontSize(7);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · ${DEMO_COMPANY_PHONE} · ${DEMO_COMPANY_EMAIL}`, margin, footerY);
+    pdf.text(`${companyDisplayName} · ${companyContactLine}`, margin, footerY);
     pdf.text(`Erstellt: ${new Date().toLocaleString("de-DE")}`, pageWidth - margin, footerY, { align: "right" });
 
     return pdf.output("blob") as Blob;
@@ -3895,12 +3926,27 @@ export default function Home() {
   }
 
   function printServiceReport(ticket: Ticket) {
-    const relatedDevice = devices.find((item) => item.name === ticket.device);
+    const relatedDevice =
+      devices.find((item) => item.name === ticket.device) ||
+      devices.find((item) => String(item.serial_number || "") === String(ticket.device || "")) ||
+      null;
     const relatedCustomer =
       customers.find((item) => item.id === ticket.customer_id) ||
-      customers.find((item) => item.company === ticket.customer);
+      customers.find((item) => item.company === ticket.customer) ||
+      (relatedDevice?.customer_id ? customers.find((item) => item.id === relatedDevice.customer_id) : null) ||
+      null;
     const technicianName = getTechnicianNameById(ticket.assigned_to);
     const ticketDocuments = getDocumentsForTicket(ticket);
+    const manufacturerName = relatedDevice?.manufacturer || getManufacturerNameById(relatedDevice?.manufacturer_id) || "-";
+    const modelName = relatedDevice?.model || getDeviceModelNameById(relatedDevice?.model_id) || ticket.device || "-";
+    const customerAddress =
+      ticket.service_address ||
+      relatedCustomer?.address ||
+      [relatedCustomer?.street, relatedCustomer?.house_number, relatedCustomer?.postal_code, relatedCustomer?.city].filter(Boolean).join(" ") ||
+      relatedDevice?.location ||
+      "-";
+    const companyDisplayName = companyData?.name || DEMO_COMPANY_NAME;
+    const companySubtitle = companyData?.website || DEMO_COMPANY_SUBTITLE;
 
     const reportHtml = `
       <!doctype html>
@@ -3927,8 +3973,9 @@ export default function Home() {
         <body>
           <div class="top">
             <div>
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-              <p class="muted">Pro-Effekt Software Service · Servicebericht / Prüfbericht</p>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">${companyDisplayName}</h1></div>
+              <p class="muted">${companySubtitle} · Servicebericht Premium</p>
+              <span class="badge">Servicebericht / Prüfbericht</span>
             </div>
             <div>
               <div class="label">Ticket</div>
@@ -3989,6 +4036,8 @@ export default function Home() {
                     .join("")
             }
           </div>
+
+          ${serviceInternalNote || ticket.internal_note ? `<h2>Interne Notiz</h2><div class="box report">${serviceInternalNote || ticket.internal_note}</div>` : ""}
 
           <h2>Kundenbestätigung</h2>
           <div class="box">
