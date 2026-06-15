@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.2 · Professional UI Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.3 · Brand Architecture Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -317,6 +317,7 @@ const fallbackDevices = [
   "Matrix Kraftstation",
 ];
 
+const TECHFLOW_LOGO_PATH = "/tech-flow-logo.png";
 const PRO_EFFEKT_LOGO_PATH = "/pro-effekt-logo.png";
 
 const DEMO_COMPANY_NAME = "Pro-Effekt";
@@ -6147,7 +6148,30 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     printWindow.document.close();
   }
 
-  function ProEffektLogo({ dark = false }: { dark?: boolean }) {
+  
+function TechFlowLogo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
+  return (
+    <div className={compact ? "flex items-center gap-3" : "flex items-center gap-4"}>
+      <img
+        src={TECHFLOW_LOGO_PATH}
+        alt="TechFlow"
+        className={compact ? "h-9 w-auto object-contain" : "h-12 w-auto object-contain"}
+      />
+      {!compact && (
+        <div>
+          <p className={dark ? "text-xs font-black uppercase tracking-[0.22em] text-sky-300" : "text-xs font-black uppercase tracking-[0.22em] text-sky-600"}>
+            Service Management Platform
+          </p>
+          <p className={dark ? "text-sm font-bold text-slate-300" : "text-sm font-bold text-slate-500"}>
+            Professionelle Service-, Wartungs- und Kommunikationsplattform
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     const logoSrc = companyData?.logo_url || "/pro-effekt-logo.png";
     const brandName = companyData?.name || "TechFlow";
 
@@ -10208,7 +10232,7 @@ PRO-EFFEKT`,
             <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
               <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Die Pro-Effekt Plattform verarbeitet Kundendaten, Kontaktdaten,
+                Die TechFlow Plattform verarbeitet Kundendaten, Kontaktdaten,
                 Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
                 zur Durchführung von Service-, Wartungs- und Prüfleistungen.
               </p>
@@ -10246,7 +10270,7 @@ PRO-EFFEKT`,
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
                 Ich akzeptiere die Datenschutzerklärung und stimme der Verarbeitung
-                personenbezogener Daten im Rahmen der Pro-Effekt Plattform zu.
+                personenbezogener Daten im Rahmen der TechFlow Plattform zu.
               </span>
             </label>
 
@@ -10258,7 +10282,7 @@ PRO-EFFEKT`,
                 className="mt-1 h-6 w-6 accent-sky-500"
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
-                Ich akzeptiere die Nutzungsbedingungen der Pro-Effekt Plattform.
+                Ich akzeptiere die Nutzungsbedingungen der TechFlow Plattform.
               </span>
             </label>
 
@@ -10293,7 +10317,7 @@ PRO-EFFEKT`,
   }
 
   const portalTitle = isAdmin
-    ? "Admin-Zentrale"
+    ? "TechFlow Admin-Zentrale"
     : isTechnician
       ? "Techniker Portal"
       : "Kundenportal";
@@ -11905,12 +11929,18 @@ PRO-EFFEKT`,
           {activePage === "Dashboard" && (
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-5 flex w-full justify-center overflow-hidden"><ProEffektLogo dark /></div>
+                <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <TechFlowLogo dark />
+                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-right">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Mandant</p>
+                    <p className="mt-1 text-sm font-black text-white">{companyData?.name || "Pro-Effekt"}</p>
+                  </div>
+                </div>
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Admin-Zentrale
                 </p>
                 <h3 className="mt-2 text-4xl font-black">
-                  Pro-Effekt Leitstand
+                  TechFlow Leitstand
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Alle offenen Servicefälle, Einsätze, Sicherheitsprüfung-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
@@ -12475,7 +12505,7 @@ PRO-EFFEKT`,
           {activePage === "Kalender" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -12850,7 +12880,7 @@ PRO-EFFEKT`,
 
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -13618,7 +13648,7 @@ PRO-EFFEKT`,
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -14595,7 +14625,7 @@ PRO-EFFEKT`,
           {activePage === "Auswertungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -16479,7 +16509,7 @@ PRO-EFFEKT`,
           {activePage === "Verträge" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -17408,7 +17438,7 @@ PRO-EFFEKT`,
           {activePage === "Wartungsplanung" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-5">
@@ -18464,12 +18494,12 @@ PRO-EFFEKT`,
           {activePage === "QR-Scan" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                PRO-EFFEKT · Betriebsbereit
+                TechFlow · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <div className="mb-5">
-                  <ProEffektLogo dark />
+                  <TechFlowLogo dark />
                 </div>
 
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
