@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.0.7 · True Reference Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.0.8 · Wider Software Hero No Reload Button · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,9 +6156,9 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
         src={TECHFLOW_LOGO_PATH}
         alt="TechFlow"
         style={{
-          width: "82%",
-          maxWidth: "1420px",
-          minWidth: "900px",
+          width: "94%",
+          maxWidth: "1600px",
+          minWidth: "1120px",
           height: "auto",
           display: "block",
           objectFit: "contain",
@@ -11623,21 +11623,22 @@ PRO-EFFEKT`,
             className="mb-7 hidden border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70 lg:block"
             style={{
               borderRadius: "24px",
-              padding: "18px 28px 16px",
+              padding: "16px 24px 14px",
             }}
           >
             <div
               className="flex w-full flex-col items-center justify-center overflow-hidden text-center"
-              style={{ minHeight: "186px", maxHeight: "210px" }}
+              style={{ minHeight: "190px", maxHeight: "218px" }}
             >
               <TechFlowLogo hero />
               <p
                 className="font-black uppercase text-sky-500"
                 style={{
-                  marginTop: "-6px",
-                  fontSize: "18px",
+                  marginTop: "-10px",
+                  fontSize: "19px",
                   lineHeight: "1",
-                  letterSpacing: "0.46em",
+                  letterSpacing: "0.48em",
+                  whiteSpace: "nowrap",
                 }}
               >
                 Service Management System
@@ -11957,13 +11958,6 @@ PRO-EFFEKT`,
                     <p className="text-sm font-black uppercase tracking-[0.28em] text-sky-300">
                       Admin-Zentrale
                     </p>
-                    <button
-                      type="button"
-                      onClick={loadApplicationData}
-                      className="mt-4 inline-flex items-center rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
-                    >
-                      ↻ Dashboard neu laden
-                    </button>
                   </div>
 
                   <button
