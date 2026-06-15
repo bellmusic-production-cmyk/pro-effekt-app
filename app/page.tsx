@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.0.6 · Reference Exact Header Forced · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.0.7 · True Reference Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,8 +6156,9 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
         src={TECHFLOW_LOGO_PATH}
         alt="TechFlow"
         style={{
-          width: "88%",
-          maxWidth: "1280px",
+          width: "82%",
+          maxWidth: "1420px",
+          minWidth: "900px",
           height: "auto",
           display: "block",
           objectFit: "contain",
@@ -11622,21 +11623,21 @@ PRO-EFFEKT`,
             className="mb-7 hidden border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70 lg:block"
             style={{
               borderRadius: "24px",
-              padding: "22px 34px 20px",
+              padding: "18px 28px 16px",
             }}
           >
             <div
-              className="flex w-full flex-col items-center justify-center text-center"
-              style={{ minHeight: "218px" }}
+              className="flex w-full flex-col items-center justify-center overflow-hidden text-center"
+              style={{ minHeight: "186px", maxHeight: "210px" }}
             >
               <TechFlowLogo hero />
               <p
                 className="font-black uppercase text-sky-500"
                 style={{
-                  marginTop: "-8px",
+                  marginTop: "-6px",
                   fontSize: "18px",
                   lineHeight: "1",
-                  letterSpacing: "0.44em",
+                  letterSpacing: "0.46em",
                 }}
               >
                 Service Management System
