@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.9 · Compact Hero Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.0.0 · Dashboard Visual Redesign · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,7 +6156,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
       alt="TechFlow"
       className={
         hero
-          ? "h-24 w-auto max-w-[860px] object-contain md:h-28 lg:h-32"
+          ? "h-28 w-auto max-w-[980px] object-contain md:h-32 xl:h-36"
           : compact
             ? "h-12 w-auto max-w-[260px] object-contain"
             : "h-16 w-auto max-w-[340px] object-contain"
@@ -11607,10 +11607,10 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white px-8 py-7 shadow-sm shadow-slate-200/70 lg:block">
+          <div className="mb-7 hidden rounded-[26px] border border-slate-200/80 bg-white px-10 py-6 shadow-lg shadow-slate-200/70 lg:block">
             <div className="flex flex-col items-center justify-center text-center">
               <TechFlowLogo hero />
-              <p className="mt-3 text-sm font-black uppercase tracking-[0.36em] text-sky-500">
+              <p className="mt-2 text-lg font-black uppercase tracking-[0.34em] text-sky-500">
                 Service Management System
               </p>
             </div>
@@ -11923,16 +11923,26 @@ PRO-EFFEKT`,
           {activePage === "Dashboard" && (
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-6 flex flex-col items-start gap-4">
-                  <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
-                    Admin-Zentrale
-                  </p>
+                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-[0.28em] text-sky-300">
+                      Admin-Zentrale
+                    </p>
+                    <button
+                      type="button"
+                      onClick={loadApplicationData}
+                      className="mt-4 inline-flex items-center rounded-2xl bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
+                    >
+                      ↻ Dashboard neu laden
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={loadApplicationData}
-                    className="rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
+                    onClick={() => openPage("Einsatz")}
+                    className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400"
                   >
-                    Dashboard neu laden
+                    ▣ Einsatzplanung
                   </button>
                 </div>
 
@@ -11944,17 +11954,9 @@ PRO-EFFEKT`,
                           Übersicht
                         </p>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => openPage("Einsatz")}
-                        className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-black text-white"
-                      >
-                        Einsatzplanung
-                      </button>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="mt-6 grid gap-5 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
