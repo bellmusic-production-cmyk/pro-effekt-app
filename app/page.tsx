@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.7.0 · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.8.0 · Chat-Mailversand Live · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1750,7 +1750,22 @@ export default function Home() {
     alert("Firmenlogo gespeichert.");
   }
 
-  async function loadApplicationData() {
+  
+  async function sendChatNotificationEmail(notificationId: number) {
+    try {
+      await supabase
+        .from("notifications")
+        .update({
+          email_status: "queued",
+          email_last_attempt_at: new Date().toISOString(),
+        })
+        .eq("id", notificationId);
+    } catch (error) {
+      console.error("Chat-Mailversand Fehler:", error);
+    }
+  }
+
+async function loadApplicationData() {
     setAppDataLoaded(false);
 
     await Promise.all([
