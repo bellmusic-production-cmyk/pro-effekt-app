@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.3 · Brand Architecture Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.4 · TechFlow Software Logo Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6149,25 +6149,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
   }
 
   
-function TechFlowLogo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
+function TechFlowLogo({ compact = false }: { dark?: boolean; compact?: boolean }) {
   return (
-    <div className={compact ? "flex items-center gap-3" : "flex items-center gap-4"}>
-      <img
-        src={TECHFLOW_LOGO_PATH}
-        alt="TechFlow"
-        className={compact ? "h-9 w-auto object-contain" : "h-12 w-auto object-contain"}
-      />
-      {!compact && (
-        <div>
-          <p className={dark ? "text-xs font-black uppercase tracking-[0.22em] text-sky-300" : "text-xs font-black uppercase tracking-[0.22em] text-sky-600"}>
-            Service Management Platform
-          </p>
-          <p className={dark ? "text-sm font-bold text-slate-300" : "text-sm font-bold text-slate-500"}>
-            Professionelle Service-, Wartungs- und Kommunikationsplattform
-          </p>
-        </div>
-      )}
-    </div>
+    <img
+      src={TECHFLOW_LOGO_PATH}
+      alt="TechFlow"
+      className={compact ? "h-10 w-auto object-contain" : "h-14 w-auto object-contain"}
+    />
   );
 }
 
@@ -11930,7 +11918,12 @@ PRO-EFFEKT`,
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <TechFlowLogo dark />
+                  <div className="flex flex-col gap-3">
+                    <TechFlowLogo />
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
+                      Service Management Platform
+                    </p>
+                  </div>
                   <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-right">
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Mandant</p>
                     <p className="mt-1 text-sm font-black text-white">{companyData?.name || "Pro-Effekt"}</p>
@@ -18499,7 +18492,7 @@ PRO-EFFEKT`,
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <div className="mb-5">
-                  <TechFlowLogo dark />
+                  <TechFlowLogo />
                 </div>
 
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
