@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.1 · Rollen- und Plattform-Aufräumung · Kommunikationszentrale Live · Resend Live Integration für Ticket-Chat · Chat-Mailversand Live · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.9.2 · Professional UI Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -276,10 +276,10 @@ type UserProfile = {
 
 
 
-/* v4.5.0 Kunden-Terminbestätigung Premium */
+/* v4.5.0 Kunden-Terminbestätigung */
 
 
-/* v4.5.1 Terminbestätigung Live */
+/* v4.5.1 Terminbestätigung */
 
 type CustomerAppointmentLiveAction = {
   ticket_id: number;
@@ -319,14 +319,14 @@ const fallbackDevices = [
 
 const PRO_EFFEKT_LOGO_PATH = "/pro-effekt-logo.png";
 
-const DEMO_COMPANY_NAME = "Pro-Effekt Demo GmbH";
-const DEMO_COMPANY_SUBTITLE = "Demo-Serviceplattform";
-const DEMO_COMPANY_ADDRESS = "Musterstraße 12, 12345 Musterstadt";
+const DEMO_COMPANY_NAME = "Pro-Effekt";
+const DEMO_COMPANY_SUBTITLE = "Serviceplattform";
+const DEMO_COMPANY_ADDRESS = "";
 const DEMO_COMPANY_PHONE = "Tel. 01234 567890";
 const DEMO_COMPANY_FAX = "Fax 01234 567899";
-const DEMO_COMPANY_EMAIL = "demo@pro-effekt.example";
-const DEMO_COMPANY_WEB = "www.pro-effekt-demo.example";
-const DEMO_COMPANY_NOTE = "Demo-Dokument · keine realen Firmen- oder Kontaktdaten";
+const DEMO_COMPANY_EMAIL = "";
+const DEMO_COMPANY_WEB = "";
+const DEMO_COMPANY_NOTE = "Service- und Wartungsdokumentation";
 const DEMO_COMPANY_LINE_HTML = `${DEMO_COMPANY_ADDRESS}<br/>${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}<br/>E-Mail: ${DEMO_COMPANY_EMAIL}, URL: ${DEMO_COMPANY_WEB}<br/>${DEMO_COMPANY_NOTE}`;
 const DEMO_COMPANY_LINE_TEXT = `${DEMO_COMPANY_ADDRESS}   ${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}   E-Mail: ${DEMO_COMPANY_EMAIL}   URL: ${DEMO_COMPANY_WEB}   ${DEMO_COMPANY_NOTE}`;
 
@@ -2221,7 +2221,7 @@ async function loadApplicationData() {
 
   async function loadUserProfile(userId: string): Promise<boolean> {
     // Sicherheitsregel:
-    // Der lokale Fast Role Cache darf die App nur schneller anzeigen, aber niemals Zugriff erlauben.
+    // Der lokale Rollenverwaltung darf die App nur schneller anzeigen, aber niemals Zugriff erlauben.
     // Entscheidend ist immer ein aktiver Datensatz in public.profiles.
     // Wenn Profil, Rolle oder Aktivstatus fehlen, wird die Sitzung beendet.
     const cacheKey = `pro-effekt-user-profile-${userId}`;
@@ -10285,9 +10285,7 @@ PRO-EFFEKT`,
           </button>
 
           <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
-            {DEMO_COMPANY_NAME} · {DEMO_COMPANY_SUBTITLE} · Digitale Service-,
-            Wartungs- und Dokumentationsplattform. Hinweis: Diese technische
-            Einwilligung ersetzt keine individuelle Rechtsberatung.
+            {DEMO_COMPANY_NAME} · {DEMO_COMPANY_SUBTITLE} · Digitale Service-, Wartungs- und Dokumentationsplattform.
           </p>
         </div>
       </main>
@@ -11737,7 +11735,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
                               <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
-                                KI-Servicebericht · v3.3.0
+                                KI-Servicebericht
                               </p>
                               <h5 className="mt-1 text-lg font-black text-slate-900">
                                 Aus Stichpunkten professionellen Bericht erzeugen
@@ -11927,43 +11925,15 @@ PRO-EFFEKT`,
                 </button>
 
                 {isAdmin && (
-                  <div className="mt-6 rounded-[28px] border border-emerald-400/20 bg-white/10 p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
-                      Plattform-Rollen sauber getrennt
-                    </p>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-sm font-black text-white">Admin</p>
-                        <p className="mt-1 text-xs font-bold text-slate-300">
-                          Leitstand, Disposition, Stammdaten, Kommunikation, Verträge, Rechnungen und Einstellungen.
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-sm font-black text-white">Techniker</p>
-                        <p className="mt-1 text-xs font-bold text-slate-300">
-                          Mein Tag, Einsatzliste, QR-Scan, Servicebericht, Abnahmeprotokoll, Dokumente und Teile.
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-sm font-black text-white">Kunde</p>
-                        <p className="mt-1 text-xs font-bold text-slate-300">
-                          Eigenes Portal mit eigenen Tickets, Geräten, Dokumenten, Uploads, Chat und Terminantworten.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {isAdmin && (
                   <div className="mt-6 rounded-[28px] border border-cyan-400/20 bg-white/10 p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-                          Admin-Team-Leitstand · v4.9.1
+                          Service Operations
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">Teamübersicht</h3>
+                        <h3 className="mt-1 text-2xl font-black text-white">Operations-Leitstand</h3>
                         <p className="mt-1 text-sm font-bold text-slate-300">
-                          Gesamtüberblick über alle Techniker, heutigen Einsätze, überfällige Tickets und offene Wartungen.
+                          Zentrale Übersicht über Disposition, offene Einsätze, Wartungen und aktuelle Prioritäten.
                         </p>
                       </div>
 
@@ -11978,11 +11948,11 @@ PRO-EFFEKT`,
 
                     <div className="mt-4 grid gap-3 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute gesamt</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Woche gesamt</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-red-500/20 p-4">
@@ -12063,7 +12033,7 @@ PRO-EFFEKT`,
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
-                      Kundenkommunikation Premium · v4.6.0
+                      Kommunikationsstatus
                     </p>
                     <h3 className="mt-1 text-xl font-black text-slate-900">
                       Ticket-Chat & Rückfragen
@@ -12556,7 +12526,7 @@ PRO-EFFEKT`,
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
-                        Wartungsautomatik · v4.3.0
+                        Wartungsautomatisierung
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
                         Automatischer Erinnerungsmonitor
@@ -12598,7 +12568,7 @@ PRO-EFFEKT`,
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-                        Automatische Wartungsmails · v4.2.0
+                        Automatische Wartungsmails
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
                         {maintenanceMailCandidates.length} Wartungsmail(s) bereit
@@ -12820,13 +12790,13 @@ PRO-EFFEKT`,
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
-                      Kommunikationszentrale Live · v4.9.0
+                      Kommunikationszentrale
                     </p>
                     <h2 className="mt-1 text-2xl font-black text-slate-900">
-                      Mail-Queue, Verlauf und erneuter Versand
+                      Kommunikation & Versandstatus
                     </h2>
                     <p className="mt-1 text-sm font-bold text-slate-600">
-                      Filtere Ausstehend, Gesendet und Fehler. Fehlerhafte Mails können direkt erneut gesendet werden.
+                      Überblick über ausstehende, gesendete und fehlerhafte Nachrichten.
                     </p>
                   </div>
                   <button
@@ -13065,7 +13035,7 @@ PRO-EFFEKT`,
                           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
                               <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
-                                KI-Servicebericht · v3.3.0
+                                KI-Servicebericht
                               </p>
                               <h5 className="mt-1 text-lg font-black text-slate-900">
                                 Aus Stichpunkten professionellen Bericht erzeugen
@@ -13388,7 +13358,7 @@ PRO-EFFEKT`,
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                        Wartungsplaner Premium · v4.0.0
+                        Wartungsplaner Premium
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
                         Automatische Ticketvorschläge aus fälligen Wartungen
@@ -17749,13 +17719,13 @@ PRO-EFFEKT`,
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-700">
-                      Einsatzplanung Premium · v4.4.0
+                      Disposition
                     </p>
                     <h3 className="mt-1 text-xl font-black text-slate-900">
-                      Automatische Planungsvorschläge
+                      Planungsvorschläge
                     </h3>
                     <p className="mt-1 text-sm font-bold text-slate-600">
-                      Offene Einsätze, überfällige Tickets, Wochenübersicht und Wartungen für die Disposition.
+                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen.
                     </p>
                   </div>
                   <button
@@ -18047,7 +18017,7 @@ PRO-EFFEKT`,
             <div className="space-y-5 pb-24">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Mobile Techniker Premium · v3.0.0
+                  Mobile Techniker Premium
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
                   Techniker-Einsatzmodus
@@ -18710,15 +18680,15 @@ PRO-EFFEKT`,
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">
-                        {isAdmin ? "Admin-Ticketzentrale · Teamüberblick" : "Techniker-App Premium · Mein Tag"}
+                        {isAdmin ? "Admin-Ticketzentrale · Teamüberblick" : "Einsatzübersicht"}
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
                         {isAdmin ? "Alle Einsätze & Technikersteuerung" : "Schnelleinsatz-Zentrale"}
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
                         {isAdmin
-                          ? "Admin sieht alle offenen, heutigen und überfälligen Einsätze aller Techniker und kann disponieren."
-                          : "Techniker sieht nur eigene oder freigegebene Einsätze mit Navigation, Anruf, Mail, Statuswechsel und Servicebericht."}
+                          ? "Gesamtüberblick über offene, heutige und überfällige Einsätze mit direkter Disposition."
+                          : "Persönliche Einsatzübersicht mit Navigation, Kontakt, Statuswechsel und Servicebericht."}
                       </p>
                     </div>
                   </div>
