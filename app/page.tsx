@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.1.0 · Professional Portal Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht erfassen PDF Premium · Servicebericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.1.1 · Logical Admin Dashboard Cleanup · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht erfassen PDF Premium · Servicebericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -490,7 +490,7 @@ const abnahmeProtocolQuestions = [
   "Sichtprüfung",
   "Allgemeiner Betrieb des Gerätes",
   "Rahmen / Schweißnähte geprüft",
-  "Schmierung der beweglichen Teile",
+  "Schmierung der beweglichen Ersatzteile",
   "Mechanische Prüfung / Standfestigkeit geprüft",
   "Schraubverbindungen geprüft",
   "Polster / Verkleidung / Sattel / Lenker",
@@ -1265,7 +1265,7 @@ export default function Home() {
         const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         if (documentQuickFilter === "Bald fällig") return diffDays >= 0 && diffDays <= 30;
-        if (documentQuickFilter === "Überfällig") return nextDate.getTime() < today.getTime();
+        if (documentQuickFilter === "Termine oder Wartungen mit überschrittenem Datume Einsätze") return nextDate.getTime() < today.getTime();
 
         return true;
       })();
@@ -1294,7 +1294,7 @@ export default function Home() {
     ).length;
 
     const overdue = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Überfällig",
+      (item) => getInspectionStatus(item.next_check).label === "Termine oder Wartungen mit überschrittenem Datume Einsätze",
     ).length;
 
     const missing = devices.filter(
@@ -1323,7 +1323,7 @@ export default function Home() {
     }
 
     if (days === 0) {
-      return { label: "Heute fällig", className: "bg-slate-100 text-slate-700", days };
+      return { label: "Einsätze heute fällig", className: "bg-slate-100 text-slate-700", days };
     }
 
     if (days <= 7) {
@@ -1572,11 +1572,11 @@ export default function Home() {
   function getEmailStatusClass(status?: string | null) {
     const value = String(status || "pending").toLowerCase();
 
-    if (value === "sent") return "bg-sky-500/15 text-sky-300 border-emerald-500/30";
-    if (value === "failed") return "bg-red-500/15 text-red-300 border-red-500/30";
-    if (value === "queued") return "bg-blue-500/15 text-blue-300 border-blue-500/30";
+    if (value === "sent") return "bg-slate-700/15 text-sky-300 border-emerald-500/30";
+    if (value === "failed") return "bg-rose-600/15 text-red-300 border-red-500/30";
+    if (value === "queued") return "bg-slate-700/15 text-blue-300 border-blue-500/30";
 
-    return "bg-slate-600/15 text-sky-300 border-amber-500/30";
+    return "bg-slate-700/15 text-sky-300 border-amber-500/30";
   }
 
 
@@ -5869,7 +5869,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     if (diffDays < 0) {
       return {
-        label: "Überfällig",
+        label: "Termine oder Wartungen mit überschrittenem Datume Einsätze",
         daysText: `${Math.abs(diffDays)} Tage überfällig`,
         className: "bg-red-100 text-red-700",
       };
@@ -6156,8 +6156,8 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
         src={TECHFLOW_LOGO_PATH}
         alt="TechFlow"
         style={{
-          width: "84%",
-          maxWidth: "1320px",
+          width: "80%",
+          maxWidth: "1280px",
           height: "auto",
           display: "block",
           objectFit: "contain",
@@ -6796,7 +6796,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   async function saveMaintenancePlan() {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker können Wartungen planen.");
+      alert("Nur Admins und Techniker können Wartungen mit anstehendem Fälligkeitsdatum planen.");
       return;
     }
 
@@ -6944,7 +6944,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   async function createTicketFromMaintenancePlan(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker können aus Wartungen Tickets erstellen.");
+      alert("Nur Admins und Techniker können aus Wartungen mit anstehendem Fälligkeitsdatum Tickets erstellen.");
       return;
     }
 
@@ -7845,7 +7845,7 @@ PRO-EFFEKT`,
       .insert(maintenanceRows);
 
     if (error) {
-      alert(`Wartungen konnten nicht erzeugt werden: ${error.message}`);
+      alert(`Wartungen mit anstehendem Fälligkeitsdatum konnten nicht erzeugt werden: ${error.message}`);
       return;
     }
 
@@ -7957,7 +7957,7 @@ PRO-EFFEKT`,
     }
 
     const confirmed = window.confirm(
-      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen bleiben erhalten.",
+      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen mit anstehendem Fälligkeitsdatum bleiben erhalten.",
     );
 
     if (!confirmed) return;
@@ -10134,7 +10134,7 @@ PRO-EFFEKT`,
       : 0;
 
   const overdueInspectionsCount = devices.filter(
-    (item) => getInspectionStatus(item.next_check).label === "Überfällig",
+    (item) => getInspectionStatus(item.next_check).label === "Termine oder Wartungen mit überschrittenem Datume Einsätze",
   ).length;
 
   const soonInspectionsCount = devices.filter(
@@ -10309,7 +10309,7 @@ PRO-EFFEKT`,
           <button
             onClick={acceptLegalAgreement}
             disabled={legalChecking}
-            className="mt-8 w-full rounded-[28px] bg-sky-500 px-8 py-5 text-xl font-black text-black shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.99] disabled:opacity-60"
+            className="mt-8 w-full rounded-[28px] bg-slate-700 px-8 py-5 text-xl font-black text-black shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.99] disabled:opacity-60"
           >
             {legalChecking ? "Wird gespeichert..." : "Akzeptieren & Plattform starten"}
           </button>
@@ -10444,7 +10444,7 @@ PRO-EFFEKT`,
     }
   }
 
-  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Überfällig") {
+  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Termine oder Wartungen mit überschrittenem Datume Einsätze") {
     setActivePage("Dokumente");
     setActiveDocumentCategory("Abnahmeprotokolle");
     setUploadCategory("Abnahmeprotokolle");
@@ -11337,7 +11337,7 @@ PRO-EFFEKT`,
 
               <button
                 onClick={login}
-                className="h-14 w-full rounded-2xl bg-sky-500 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
+                className="h-14 w-full rounded-2xl bg-slate-700 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
               >
                 Einloggen
               </button>
@@ -11359,7 +11359,7 @@ PRO-EFFEKT`,
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-8 rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+            className="mt-8 rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
           >
             Neu laden
           </button>
@@ -11561,7 +11561,7 @@ PRO-EFFEKT`,
                     onClick={() => openPage(item)}
                     className={`flex w-full items-center gap-3 rounded-3xl border px-4 py-3.5 text-left text-[14px] font-extrabold leading-tight transition-all ${
                       activePage === item
-                        ? "border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-950/30"
+                        ? "border-sky-500 bg-slate-700 text-white shadow-lg shadow-sky-950/30"
                         : "border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/5"
                     }`}
                   >
@@ -11592,7 +11592,7 @@ PRO-EFFEKT`,
                         onClick={() => openPage(item)}
                         className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                           activePage === item
-                            ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
+                            ? "bg-slate-700 text-white shadow-lg shadow-sky-950/30"
                             : "text-slate-300 hover:bg-white/5"
                         }`}
                       >
@@ -11623,21 +11623,21 @@ PRO-EFFEKT`,
             className="mb-7 border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70"
             style={{
               borderRadius: "24px",
-              padding: "18px 24px 16px",
+              padding: "16px 24px 14px",
             }}
           >
-            <div className="flex w-full flex-col items-center justify-center overflow-hidden text-center">
-              <div className="w-full">
-                <TechFlowLogo hero />
-              </div>
-
+            <div
+              className="flex w-full flex-col items-center justify-center overflow-hidden text-center"
+              style={{ minHeight: "190px", maxHeight: "220px" }}
+            >
+              <TechFlowLogo hero />
               <p
                 className="font-black uppercase text-sky-500"
                 style={{
-                  marginTop: "10px",
-                  fontSize: "clamp(13px, 1.35vw, 20px)",
+                  marginTop: "8px",
+                  fontSize: "clamp(13px, 1.2vw, 18px)",
                   lineHeight: "1",
-                  letterSpacing: "clamp(0.22em, 0.9vw, 0.42em)",
+                  letterSpacing: "clamp(0.20em, 0.75vw, 0.38em)",
                   whiteSpace: "nowrap",
                   textAlign: "center",
                 }}
@@ -11676,7 +11676,7 @@ PRO-EFFEKT`,
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                className="shrink-0 rounded-2xl border border-sky-500/30 bg-sky-500 px-4 py-3 text-sm font-black text-black shadow-lg shadow-sky-950/30 active:scale-[0.98]"
+                className="shrink-0 rounded-2xl border border-sky-500/30 bg-slate-700 px-4 py-3 text-sm font-black text-black shadow-lg shadow-sky-950/30 active:scale-[0.98]"
                 aria-label="Menü öffnen"
               >
                 ☰ Menü
@@ -11723,7 +11723,7 @@ PRO-EFFEKT`,
                             onClick={() => openPage(item)}
                             className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                               activePage === item
-                                ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
+                                ? "bg-slate-700 text-white shadow-lg shadow-sky-950/30"
                                 : "text-slate-300 hover:bg-white/5"
                             }`}
                           >
@@ -11912,7 +11912,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={() => saveServiceReport(currentTicket)}
-                      className="rounded-3xl bg-sky-500 px-5 py-4 font-black text-white"
+                      className="rounded-3xl bg-slate-700 px-5 py-4 font-black text-white"
                     >
                       Unterschrieben abschließen & archivieren
                     </button>
@@ -11982,19 +11982,19 @@ PRO-EFFEKT`,
 
                     <div className="mt-6 grid gap-5 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Einsätze heute</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Einsätze diese Woche</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-red-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällig</p>
+                      <div className="rounded-2xl bg-rose-600/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Termine oder Wartungen mit überschrittenem Datume Einsätze</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-slate-600/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
+                      <div className="rounded-2xl bg-slate-700/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen mit anstehendem Fälligkeitsdatum</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
                       </div>
                     </div>
@@ -12003,19 +12003,19 @@ PRO-EFFEKT`,
 
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <div className="rounded-2xl bg-white/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Wartungspläne</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Aktive Wartungspläne</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.total}</p>
                   </div>
                   <div className="rounded-2xl bg-orange-500/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute fällig</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Einsätze heute fällig</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueToday}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-600/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">In 7 Tagen</p>
+                  <div className="rounded-2xl bg-slate-700/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">Wartungen in 7 Tagen</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueSoon}</p>
                   </div>
-                  <div className="rounded-2xl bg-red-500/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Überfällig</p>
+                  <div className="rounded-2xl bg-rose-600/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Termine oder Wartungen mit überschrittenem Datume Einsätze</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.overdue}</p>
                   </div>
                 </div>
@@ -12023,7 +12023,7 @@ PRO-EFFEKT`,
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <button
                     onClick={() => openPage("Service-Tickets")}
-                    className="rounded-2xl bg-sky-500 px-4 py-4 text-left font-black text-white"
+                    className="rounded-2xl bg-slate-700 px-4 py-4 text-left font-black text-white"
                   >
                     Ticket erstellen
                     <span className="mt-1 block text-xs font-bold opacity-80">
@@ -12055,9 +12055,9 @@ PRO-EFFEKT`,
                     onClick={() => openPage("Ersatzteile")}
                     className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
                   >
-                    Teile
+                    Ersatzteile
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Lager & Verbrauch
+                      Lager, Bestand und Verbrauch
                     </span>
                   </button>
                 </div>
@@ -12096,7 +12096,7 @@ PRO-EFFEKT`,
                   <StatCard label="Offen" value={ticketStats.open} />
                   <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
                   <StatCard label="Erledigt" value={ticketStats.completed} />
-                  <StatCard label="Heute Einsätze" value={ticketStats.today} />
+                  <StatCard label="Einsätze heute Einsätze" value={ticketStats.today} />
                 </div>
               )}
 
@@ -12259,7 +12259,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {todaysAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Heute keine Einsätze geplant.
+                        Einsätze heute keine Einsätze geplant.
                       </div>
                     ) : (
                       todaysAdminTickets.map((ticket) => {
@@ -12343,11 +12343,11 @@ PRO-EFFEKT`,
 
               <div className="grid gap-6 xl:grid-cols-3">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Überfällige Sicherheitsprüfung/Wartungen</h3>
+                  <h3 className="text-xl font-black">Termine oder Wartungen mit überschrittenem Datume Einsätzee Sicherheitsprüfung/Wartungen mit anstehendem Fälligkeitsdatum</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {overdueAdminMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine überfälligen Sicherheitsprüfung/Wartungen.
+                        Keine überfälligen Sicherheitsprüfung/Wartungen mit anstehendem Fälligkeitsdatum.
                       </div>
                     ) : (
                       overdueAdminMaintenancePlans.slice(0, 5).map((plan) => (
@@ -12375,7 +12375,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {lowStockParts.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine kritischen Teile.
+                        Keine kritischen Ersatzteile.
                       </div>
                     ) : (
                       lowStockParts.slice(0, 5).map((part) => (
@@ -12435,7 +12435,7 @@ PRO-EFFEKT`,
                     </div>
                     <button
                       onClick={() => openAbnahmeDocuments("Alle")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                      className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                     >
                       Abnahme öffnen
                     </button>
@@ -12457,8 +12457,8 @@ PRO-EFFEKT`,
                       <p className="mt-2 text-2xl font-black text-slate-900">{upcomingAcceptanceProtocols.length}</p>
                       <p className="mt-2 text-xs font-black text-yellow-700">Öffnen</p>
                     </button>
-                    <button onClick={() => openAbnahmeDocuments("Überfällig")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Überfällig</p>
+                    <button onClick={() => openAbnahmeDocuments("Termine oder Wartungen mit überschrittenem Datume Einsätze")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Termine oder Wartungen mit überschrittenem Datume Einsätze</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{overdueAcceptanceProtocols.length}</p>
                       <p className="mt-2 text-xs font-black text-red-700">Öffnen</p>
                     </button>
@@ -12589,9 +12589,9 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute fällig" value={maintenanceAutomationStats.dueToday} />
+                    <StatCard label="Einsätze heute fällig" value={maintenanceAutomationStats.dueToday} />
                     <StatCard label="Bereit" value={maintenanceAutomationStats.automationReady} />
-                    <StatCard label="Heute versendet" value={maintenanceAutomationStats.sentToday} />
+                    <StatCard label="Einsätze heute versendet" value={maintenanceAutomationStats.sentToday} />
                     <StatCard label="Fehler" value={maintenanceAutomationStats.failed} />
                   </div>
                 </div>
@@ -12608,7 +12608,7 @@ PRO-EFFEKT`,
                         {maintenanceMailCandidates.length} Wartungsmail(s) bereit
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        Fällige Wartungen können direkt als E-Mail vorgemerkt oder sofort versendet werden.
+                        Wartungen mit anstehendem Fälligkeitsdatum können direkt als E-Mail vorgemerkt oder sofort versendet werden.
                       </p>
                     </div>
                     <button
@@ -12636,7 +12636,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-slate-600 px-4 py-3 text-sm font-black text-white"
+                      className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                     >
                       Zu den Vorschlägen
                     </button>
@@ -12664,7 +12664,7 @@ PRO-EFFEKT`,
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets" value={calendarTickets.length} />
-                <StatCard label="Sicherheitsprüfung/Wartungen" value={calendarMaintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen mit anstehendem Fälligkeitsdatum" value={calendarMaintenancePlans.length} />
                 <StatCard
                   label="Offene Einsätze"
                   value={
@@ -12701,7 +12701,7 @@ PRO-EFFEKT`,
                     </div>
                     <button
                       onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                      className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                     >
                       Tickets
                     </button>
@@ -12755,14 +12755,14 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black">Wartungen</h3>
+                      <h3 className="text-xl font-black">Wartungen mit anstehendem Fälligkeitsdatum</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Sicherheitsprüfung- und Wartungspläne mit Fälligkeit am gewählten Tag.
+                        Sicherheitsprüfung- und Aktive Wartungspläne mit Fälligkeit am gewählten Tag.
                       </p>
                     </div>
                     <button
                       onClick={() => openPage("Abnahmeprotokoll")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                      className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                     >
                       Wartung
                     </button>
@@ -12771,7 +12771,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Sicherheitsprüfung/Wartungen für diesen Tag.
+                        Keine Sicherheitsprüfung/Wartungen mit anstehendem Fälligkeitsdatum für diesen Tag.
                       </div>
                     ) : (
                       calendarMaintenancePlans.map((plan) => {
@@ -12895,7 +12895,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-                Verträge können automatisch Sicherheitsprüfung- und Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
+                Verträge können automatisch Sicherheitsprüfung- und Aktive Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
               </div>
 
               {selectedTicketView && (() => {
@@ -12957,7 +12957,7 @@ PRO-EFFEKT`,
                       <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => startEdit(currentTicket)}
-                          className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                          className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                         >
                           Ticket bearbeiten
                         </button>
@@ -13195,7 +13195,7 @@ PRO-EFFEKT`,
                         <button
                           type="button"
                           onClick={() => saveServiceReport(currentTicket)}
-                          className="rounded-3xl bg-sky-500 px-5 py-4 font-black text-white"
+                          className="rounded-3xl bg-slate-700 px-5 py-4 font-black text-white"
                         >
                           Unterschrieben abschließen & archivieren
                         </button>
@@ -13395,10 +13395,10 @@ PRO-EFFEKT`,
                         Wartungsplaner Premium
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Automatische Ticketvorschläge aus fälligen Wartungen
+                        Automatische Ticketvorschläge aus fälligen Wartungen mit anstehendem Fälligkeitsdatum
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        Fällige, bald fällige und überfällige Wartungen können direkt als Service-Ticket angelegt werden.
+                        Fällige, bald fällige und überfällige Wartungen mit anstehendem Fälligkeitsdatum können direkt als Service-Ticket angelegt werden.
                       </p>
                     </div>
                     <button
@@ -13435,7 +13435,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => createTicketFromMaintenancePlan(plan)}
-                              className="w-full rounded-2xl bg-slate-600 px-4 py-3 text-sm font-black text-white"
+                              className="w-full rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                             >
                               Ticket erstellen
                             </button>
@@ -13517,7 +13517,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={saveNotification}
-                      className="h-14 w-full rounded-2xl bg-sky-500 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
+                      className="h-14 w-full rounded-2xl bg-slate-700 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
                     >
                       {editingNotificationId ? "Änderungen speichern" : "Zur Prüfung rechts speichern"}
                     </button>
@@ -13633,7 +13633,7 @@ PRO-EFFEKT`,
                                 type="button"
                                 onClick={() => sendNotificationEmail(item)}
                                 disabled={(item.email_status || "").toLowerCase() === "sent"}
-                                className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white disabled:bg-slate-300 disabled:text-slate-500"
+                                className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white disabled:bg-slate-300 disabled:text-slate-500"
                               >
                                 E-Mail senden
                               </button>
@@ -13750,7 +13750,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={saveInvoice}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-black text-white"
+                      className="w-full rounded-2xl bg-slate-700 py-4 font-black text-white"
                     >
                       {invoiceType} speichern
                     </button>
@@ -13866,7 +13866,7 @@ PRO-EFFEKT`,
                       }}
                       className={`shrink-0 rounded-2xl px-4 py-3 text-sm font-black transition-all ${
                         activeDocumentCategory === category
-                          ? "bg-sky-500 text-white"
+                          ? "bg-slate-700 text-white"
                           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                       }`}
                     >
@@ -14188,7 +14188,7 @@ PRO-EFFEKT`,
 
                       <div className="flex flex-col justify-end">
                         <label className={`cursor-pointer rounded-2xl px-6 py-4 text-center font-black text-white ${
-                          uploading ? "bg-slate-400" : "bg-sky-500 hover:bg-sky-600"
+                          uploading ? "bg-slate-400" : "bg-slate-700 hover:bg-sky-600"
                         }`}>
                           {uploading ? "Upload läuft..." : "Dokument hochladen"}
 
@@ -14233,7 +14233,7 @@ PRO-EFFEKT`,
                     </p>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Überfällig</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Termine oder Wartungen mit überschrittenem Datume Einsätze</p>
                     <p className="mt-2 text-2xl font-black text-red-700">
                       {filteredDocuments.filter((item) => getDocumentDueMeta(item)?.label.includes("überfällig")).length}
                     </p>
@@ -14640,7 +14640,7 @@ PRO-EFFEKT`,
                   Pro-Effekt Auswertungen
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Kennzahlen für Umsatz, Tickets, Wartungen, Prüfungen, Technikerleistung und Kundenaktivität.
+                  Kennzahlen für Umsatz, Tickets, Wartungen mit anstehendem Fälligkeitsdatum, Prüfungen, Technikerleistung und Kundenaktivität.
                 </p>
               </div>
 
@@ -14821,7 +14821,7 @@ PRO-EFFEKT`,
                         {partUsages.length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
-                        Teileverbräuche
+                        Ersatzteileverbräuche
                       </p>
                     </div>
                   </div>
@@ -15169,7 +15169,7 @@ PRO-EFFEKT`,
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
                         onClick={updateCustomer}
-                        className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                        className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
                       >
                         Kunde speichern
                       </button>
@@ -15184,7 +15184,7 @@ PRO-EFFEKT`,
                   ) : (
                     <button
                       onClick={createCustomer}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                      className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
                     >
                       Kunde hinzufügen
                     </button>
@@ -15351,7 +15351,7 @@ PRO-EFFEKT`,
                                         <button
                                           type="button"
                                           onClick={() => addCustomerDeviceToAbnahmeProtocol(item, deviceItem)}
-                                          className="mt-2 w-full rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-600 transition hover:bg-sky-500 hover:text-white"
+                                          className="mt-2 w-full rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-600 transition hover:bg-slate-700 hover:text-white"
                                         >
                                           In Abnahme übernehmen
                                         </button>
@@ -15508,7 +15508,7 @@ PRO-EFFEKT`,
                         <div className="grid gap-3 md:grid-cols-2">
                           <button
                             onClick={saveManufacturer}
-                            className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                            className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
                           >
                             {editingManufacturer ? "Änderungen speichern" : "Hersteller speichern"}
                           </button>
@@ -15578,7 +15578,7 @@ PRO-EFFEKT`,
                         <div className="grid gap-3 md:grid-cols-2">
                           <button
                             onClick={saveDeviceModel}
-                            className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                            className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
                           >
                             {editingDeviceModel ? "Modell speichern" : "Gerät / Modell hinzufügen"}
                           </button>
@@ -15842,7 +15842,7 @@ PRO-EFFEKT`,
                 <div className="flex w-full flex-col gap-3 xl:w-64">
                   <button
                     onClick={() => createTicketFromDevice(selectedDeviceView)}
-                    className="rounded-2xl bg-sky-500 px-4 py-4 font-bold text-white"
+                    className="rounded-2xl bg-slate-700 px-4 py-4 font-bold text-white"
                   >
                     Ticket erstellen
                   </button>
@@ -15886,7 +15886,7 @@ PRO-EFFEKT`,
                         ))}
                     </select>
 
-                    <label className="block cursor-pointer rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold text-white hover:bg-sky-600">
+                    <label className="block cursor-pointer rounded-2xl bg-slate-700 px-4 py-4 text-center font-bold text-white hover:bg-sky-600">
                       {uploading ? "Upload läuft..." : "Datei auswählen"}
 
                       <input
@@ -16279,7 +16279,7 @@ PRO-EFFEKT`,
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
                         onClick={updateDevice}
-                        className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                        className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
                       >
                         Gerät speichern
                       </button>
@@ -16294,7 +16294,7 @@ PRO-EFFEKT`,
                   ) : (
                     <button
                       onClick={createDevice}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                      className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
                     >
                       Gerät hinzufügen
                     </button>
@@ -16524,7 +16524,7 @@ PRO-EFFEKT`,
                   value={monthlyRecurringRevenue}
                 />
                 <StatCard
-                  label="Auto-Wartungen"
+                  label="Auto-Wartungen mit anstehendem Fälligkeitsdatum"
                   value={contractGeneratedMaintenanceCount}
                 />
               </div>
@@ -16641,7 +16641,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={saveContract}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-black text-white"
+                      className="w-full rounded-2xl bg-slate-700 py-4 font-black text-white"
                     >
                       {editingContractId ? "Vertrag aktualisieren" : "Vertrag speichern"}
                     </button>
@@ -16725,9 +16725,9 @@ PRO-EFFEKT`,
 
                               <button
                                 onClick={() => generateMaintenanceFromContract(item)}
-                                className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                                className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                               >
-                                Wartungen erzeugen
+                                Wartungen mit anstehendem Fälligkeitsdatum erzeugen
                               </button>
 
                               <button
@@ -16997,7 +16997,7 @@ PRO-EFFEKT`,
                                     <span
                                       className={`shrink-0 rounded-full px-3 py-2 text-xs font-black ${
                                         alreadySelected
-                                          ? "bg-sky-500 text-white"
+                                          ? "bg-slate-700 text-white"
                                           : "bg-sky-100 text-sky-600"
                                       }`}
                                     >
@@ -17417,7 +17417,7 @@ PRO-EFFEKT`,
               <div className="grid gap-3 md:grid-cols-3">
                 <button
                   onClick={printAbnahmeProtocol}
-                  className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                  className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
                 >
                   PDF speichern & Druckansicht öffnen
                 </button>
@@ -17446,7 +17446,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-5">
-                <StatCard label="Sicherheitsprüfung/Wartungen gesamt" value={maintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen mit anstehendem Fälligkeitsdatum gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
                   value={maintenancePlans.filter((plan) => (plan.status || "Geplant") === "Geplant").length}
@@ -17469,7 +17469,7 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
                   <p className="mt-2 text-slate-600">
-                    Plane Sicherheitsprüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
+                    Plane Sicherheitsprüfungen und Wartungen mit anstehendem Fälligkeitsdatum zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
                   <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
                     Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht erfassen oder Kundendokumente nachvollzogen werden.
@@ -17594,7 +17594,7 @@ PRO-EFFEKT`,
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <button
                       onClick={saveMaintenancePlan}
-                      className="rounded-2xl bg-sky-500 py-4 font-black text-white"
+                      className="rounded-2xl bg-slate-700 py-4 font-black text-white"
                     >
                       Wartung speichern
                     </button>
@@ -17610,16 +17610,16 @@ PRO-EFFEKT`,
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">
-                  {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "Wartungsübersicht"}
+                  {isTechnician ? "Meine Wartungen mit anstehendem Fälligkeitsdatum" : isCustomer ? "Meine kommenden Wartungen mit anstehendem Fälligkeitsdatum" : "Wartungsübersicht"}
                 </h3>
                 <p className="mt-2 text-slate-600">
-                  Status aller geplanten und laufenden Wartungen.
+                  Status aller geplanten und laufenden Wartungen mit anstehendem Fälligkeitsdatum.
                 </p>
 
                 <div className="mt-6 space-y-4">
                   {assignedMaintenancePlans.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Keine Wartungen vorhanden.
+                      Keine Wartungen mit anstehendem Fälligkeitsdatum vorhanden.
                     </div>
                   ) : (
                     assignedMaintenancePlans.map((plan) => {
@@ -17743,7 +17743,7 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">{plannedDispatchTickets.length}</p>
                   </div>
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
-                    <p className="text-xs font-bold text-slate-300">Überfällig</p>
+                    <p className="text-xs font-bold text-slate-300">Termine oder Wartungen mit überschrittenem Datume Einsätze</p>
                     <p className="text-2xl font-black text-red-300">{overdueDispatchTickets.length}</p>
                   </div>
                 </div>
@@ -17759,7 +17759,7 @@ PRO-EFFEKT`,
                       Planungsvorschläge
                     </h3>
                     <p className="mt-1 text-sm font-bold text-slate-600">
-                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen.
+                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen mit anstehendem Fälligkeitsdatum.
                     </p>
                   </div>
                   <button
@@ -17767,15 +17767,15 @@ PRO-EFFEKT`,
                     onClick={() => setCalendarDate(new Date().toISOString().split("T")[0])}
                     className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white"
                   >
-                    Heute anzeigen
+                    Einsätze heute anzeigen
                   </button>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-4">
-                  <StatCard label="Heute geplant" value={plannedDispatchTickets.length} />
-                  <StatCard label="Diese Woche" value={dispatchPremiumWeekTickets.length} />
+                  <StatCard label="Einsätze heute geplant" value={plannedDispatchTickets.length} />
+                  <StatCard label="Einsätze diese Woche" value={dispatchPremiumWeekTickets.length} />
                   <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                  <StatCard label="Wartungen" value={dispatchPremiumMaintenanceSuggestions.length} />
+                  <StatCard label="Wartungen mit anstehendem Fälligkeitsdatum" value={dispatchPremiumMaintenanceSuggestions.length} />
                 </div>
 
                 {dispatchPremiumMaintenanceSuggestions.length > 0 && (
@@ -17845,7 +17845,7 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Offene Tickets" value={activePlanningTickets.length} />
                 <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                <StatCard label="Heute / Auswahl" value={plannedDispatchTickets.length} />
+                <StatCard label="Einsätze heute / Auswahl" value={plannedDispatchTickets.length} />
                 <StatCard label="Techniker" value={technicians.length} />
               </div>
 
@@ -17940,7 +17940,7 @@ PRO-EFFEKT`,
                       <button
                         type="button"
                         onClick={() => openPage("Kalender")}
-                        className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                        className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                       >
                         Kalender anzeigen
                       </button>
@@ -18024,7 +18024,7 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
-                    <h3 className="text-xl font-black text-slate-900">Überfällige geplante Tickets</h3>
+                    <h3 className="text-xl font-black text-slate-900">Termine oder Wartungen mit überschrittenem Datume Einsätzee geplante Tickets</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
                       Geplante Tickets mit Datum vor heute und nicht abgeschlossen.
                     </p>
@@ -18066,7 +18066,7 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">
                       {technicianTodayTickets.length}
                     </p>
-                    <p className="text-xs font-bold text-slate-300">Heute</p>
+                    <p className="text-xs font-bold text-slate-300">Einsätze heute</p>
                   </div>
 
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
@@ -18088,7 +18088,7 @@ PRO-EFFEKT`,
               {technicianTodayTickets.length === 0 ? (
                 <div className="rounded-[28px] bg-white p-6 shadow-sm">
                   <h3 className="text-xl font-black text-slate-900">
-                    Heute keine geplanten Einsätze
+                    Einsätze heute keine geplanten Einsätze
                   </h3>
                   <p className="mt-2 text-sm font-semibold text-slate-600">
                     Sobald im Ticket ein Datum, eine Uhrzeit und ein Techniker gesetzt sind,
@@ -18159,7 +18159,7 @@ PRO-EFFEKT`,
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-600">
-                                {ticket.service_time || "Heute"}
+                                {ticket.service_time || "Einsätze heute"}
                               </span>
                               <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
                                 {statusIcon(ticket.status)} {ticket.status}
@@ -18198,7 +18198,7 @@ PRO-EFFEKT`,
                                 {contactPhone && (
                                   <a
                                     href={`tel:${contactPhone.replace(/\s+/g, "")}`}
-                                    className="mt-3 inline-flex rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                                    className="mt-3 inline-flex rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                                   >
                                     â˜Ž Anrufen
                                   </a>
@@ -18309,7 +18309,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => updateServiceStatus(ticket.id, "Abgeschlossen")}
-                              className="rounded-3xl bg-sky-500 px-4 py-4 text-center text-sm font-black text-white"
+                              className="rounded-3xl bg-slate-700 px-4 py-4 text-center text-sm font-black text-white"
                             >
                               Abschließen
                             </button>
@@ -18332,7 +18332,7 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gültig" value={inspectionStats.ok} />
                 <StatCard label="Bald fällig" value={inspectionStats.soon} />
-                <StatCard label="Überfällig" value={inspectionStats.overdue} />
+                <StatCard label="Termine oder Wartungen mit überschrittenem Datume Einsätze" value={inspectionStats.overdue} />
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
@@ -18405,7 +18405,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={saveInspectionBadge}
-                      className="mt-4 rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                      className="mt-4 rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
                     >
                       Prüfsiegel speichern
                     </button>
@@ -18479,7 +18479,7 @@ PRO-EFFEKT`,
                               {inspection.label !== "Gültig" && (
                                 <button
                                   onClick={() => createInspectionTicket(item)}
-                                  className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white"
+                                  className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-bold text-white"
                                 >
                                   Ticket erstellen
                                 </button>
@@ -18528,7 +18528,7 @@ PRO-EFFEKT`,
 
                   <button
                     onClick={() => openDeviceFromScanValue(qrManualCode)}
-                    className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                    className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
                   >
                     Gerät öffnen
                   </button>
@@ -18542,7 +18542,7 @@ PRO-EFFEKT`,
                   <button
                     onClick={startQrScanner}
                     disabled={qrScannerActive}
-                    className="rounded-2xl bg-sky-500 px-6 py-5 text-lg font-black text-white disabled:opacity-50"
+                    className="rounded-2xl bg-slate-700 px-6 py-5 text-lg font-black text-white disabled:opacity-50"
                   >
                     QR-Scan starten
                   </button>
@@ -18577,7 +18577,7 @@ PRO-EFFEKT`,
                   value={
                     filteredQrDevices.filter(
                       (item) =>
-                        getInspectionStatus(item.next_check).label === "Überfällig" ||
+                        getInspectionStatus(item.next_check).label === "Termine oder Wartungen mit überschrittenem Datume Einsätze" ||
                         getInspectionStatus(item.next_check).label === "Bald fällig",
                     ).length
                   }
@@ -18663,7 +18663,7 @@ PRO-EFFEKT`,
                               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                                 <button
                                   onClick={() => openDeviceFromQr(item)}
-                                  className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                                  className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
                                 >
                                   Geräteakte öffnen
                                 </button>
@@ -18728,10 +18728,10 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute" value={technicianPremiumTodayTickets.length} />
-                    <StatCard label="Diese Woche" value={technicianPremiumWeekTickets.length} />
-                    <StatCard label="Überfällig" value={technicianPremiumOverdueTickets.length} />
-                    <StatCard label="Fällige Wartungen" value={technicianPremiumMaintenancePlans.length} />
+                    <StatCard label="Einsätze heute" value={technicianPremiumTodayTickets.length} />
+                    <StatCard label="Einsätze diese Woche" value={technicianPremiumWeekTickets.length} />
+                    <StatCard label="Termine oder Wartungen mit überschrittenem Datume Einsätze" value={technicianPremiumOverdueTickets.length} />
+                    <StatCard label="Wartungen mit anstehendem Fälligkeitsdatum" value={technicianPremiumMaintenancePlans.length} />
                   </div>
 
                   <div className="mt-4 grid gap-3 xl:grid-cols-2">
@@ -18764,7 +18764,7 @@ PRO-EFFEKT`,
                                 <a href={`mailto:${contact.email}?subject=${encodeURIComponent(ticket.ticket_number + " · " + ticket.issue)}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Mail</a>
                               )}
                               <button type="button" onClick={() => openNavigationForTicketPremium(ticket)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">Navigation</button>
-                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white">Akte</button>
+                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-white">Akte</button>
                             </div>
 
                             <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -18785,7 +18785,7 @@ PRO-EFFEKT`,
                               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                                 {checklist.map((item) => (
                                   <div key={item.label} className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-sky-500 text-white" : "bg-slate-200 text-slate-500"}`}>
+                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-500"}`}>
                                       {item.done ? "✓" : "–"}
                                     </span>
                                     {item.label}
@@ -18820,7 +18820,7 @@ PRO-EFFEKT`,
                   <button
                     type="button"
                     onClick={() => setMobileTicketFormOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                    className="flex w-full items-center justify-between rounded-2xl bg-slate-700 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
                     <span>{editingTicket ? "Ticket bearbeiten" : "Ticket erstellen erstellen"}</span>
                     <span>{mobileTicketFormOpen || editingTicket ? "â–²" : "⌄"}</span>
@@ -19020,7 +19020,7 @@ PRO-EFFEKT`,
                               <button
                                 type="button"
                                 onClick={() => setTicketTypeDropdownOpen(false)}
-                                className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white"
+                                className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-white"
                               >
                                 Fertig
                               </button>
@@ -19293,7 +19293,7 @@ PRO-EFFEKT`,
                       <div className="grid gap-3 md:grid-cols-2">
                         <button
                           onClick={updateTicket}
-                          className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                          className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
                         >
                           Änderungen speichern
                         </button>
@@ -19308,7 +19308,7 @@ PRO-EFFEKT`,
                     ) : (
                       <button
                         onClick={createTicket}
-                        className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                        className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
                       >
                         Ticket speichern
                       </button>
@@ -19320,7 +19320,7 @@ PRO-EFFEKT`,
                   <button
                     type="button"
                     onClick={() => setMobileTicketListOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                    className="flex w-full items-center justify-between rounded-2xl bg-slate-700 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
                     <span>Ticketliste</span>
                     <span>{mobileTicketListOpen ? "â–²" : "⌄"}</span>
@@ -19798,7 +19798,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={customerCreateDeviceTicketAndRequest}
-                      className="w-full rounded-2xl bg-sky-500 py-5 text-lg font-black text-white"
+                      className="w-full rounded-2xl bg-slate-700 py-5 text-lg font-black text-white"
                     >
                       Gerät & Anfrage speichern
                     </button>
@@ -19843,11 +19843,11 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                    <h3 className="text-xl font-black">Meine Wartungen</h3>
+                    <h3 className="text-xl font-black">Meine Wartungen mit anstehendem Fälligkeitsdatum</h3>
                     <div className="mt-4 space-y-3">
                       {assignedMaintenancePlans.length === 0 ? (
                         <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
-                          Keine kommenden Wartungen vorhanden.
+                          Keine kommenden Wartungen mit anstehendem Fälligkeitsdatum vorhanden.
                         </div>
                       ) : (
                         assignedMaintenancePlans.map((plan) => (
@@ -20077,7 +20077,7 @@ PRO-EFFEKT`,
                       <div className="grid gap-3 md:grid-cols-2">
                         <button
                           onClick={saveServicePart}
-                          className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                          className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
                         >
                           {editingPart
                             ? "Ersatzteil speichern"
@@ -20101,7 +20101,7 @@ PRO-EFFEKT`,
                 >
                   <h3 className="text-xl font-black">Verbrauch buchen</h3>
                   <p className="mt-2 text-slate-600">
-                    Techniker und Admin können Teile einem Gerät, Ticket oder
+                    Techniker und Admin können Ersatzteile einem Gerät, Ticket oder
                     Einsatzhinweis zuordnen.
                   </p>
 
@@ -20165,7 +20165,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={consumeServicePart}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                      className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
                     >
                       Verbrauch buchen
                     </button>
@@ -20179,7 +20179,7 @@ PRO-EFFEKT`,
                   {serviceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch keine Ersatzteile angelegt. Admins können oben erste
-                      Teile erfassen.
+                      Ersatzteile erfassen.
                     </div>
                   ) : (
                     serviceParts.map((part) => {
