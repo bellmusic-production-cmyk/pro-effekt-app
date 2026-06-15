@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.5.1 · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v4.5.2 · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung Live · Kunden-Terminbestätigung Premium · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte Premium · Kundenportal Upload Live · Kundenportal Upload Premium · Servicebericht PDF Premium · KI-Serviceberichte · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -830,6 +830,9 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTicketFormOpen, setMobileTicketFormOpen] = useState(false);
   const [mobileTicketListOpen, setMobileTicketListOpen] = useState(false);
+
+  const [appointmentResponseNoteByTicket, setAppointmentResponseNoteByTicket] = useState<Record<number, string>>({});
+  const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
 
   useEffect(() => {
     checkSession();
@@ -5184,6 +5187,115 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     await loadTickets();
     alert("Ticket wurde storniert.");
+  }
+
+  function canCustomerRespondToAppointment(ticket: Ticket) {
+    return (
+      isCustomer &&
+      isOwnCustomerTicket(ticket) &&
+      Boolean(ticket.service_date) &&
+      !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || "")
+    );
+  }
+
+  async function customerRespondToAppointment(ticket: Ticket, action: "confirm" | "reschedule") {
+    if (!canCustomerRespondToAppointment(ticket)) {
+      alert("Für dieses Ticket kann aktuell keine Terminantwort gesendet werden.");
+      return;
+    }
+
+    const note = (appointmentResponseNoteByTicket[ticket.id] || "").trim();
+    const requestedDate = (appointmentResponseDateByTicket[ticket.id] || "").trim();
+
+    if (action === "reschedule" && !requestedDate && !note) {
+      alert("Bitte Wunschdatum oder kurze Notiz für die Verschiebung eintragen.");
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const customerName = profileCustomer?.company || userProfile?.company || "Kunde";
+
+    const nextStatus = action === "confirm" ? "Termin vereinbart" : "Wartet auf Kundenfreigabe";
+    const nextServiceStatus = action === "confirm" ? "Kunde hat Termin bestätigt" : "Kunde bittet um Terminverschiebung";
+    const responseText =
+      action === "confirm"
+        ? `Termin vom Kunden bestätigt: ${ticket.service_date}${ticket.service_time ? ` ${ticket.service_time}` : ""}`
+        : `Terminverschiebung angefragt${requestedDate ? ` · Wunschdatum: ${requestedDate}` : ""}${note ? ` · Notiz: ${note}` : ""}`;
+
+    const updatePayload = {
+      status: nextStatus,
+      service_status: nextServiceStatus,
+      customer_approval_name: customerName,
+      customer_approval_at: now,
+      internal_note: [ticket.internal_note || "", responseText].filter(Boolean).join("\n"),
+    };
+
+    const { error } = await supabase
+      .from("tickets")
+      .update(updatePayload)
+      .eq("id", ticket.id)
+      .eq("customer_id", userProfile?.customer_id || -1);
+
+    if (error) {
+      alert(`Terminantwort konnte nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    const relatedDevice = devices.find(
+      (item) => item.name === ticket.device || item.customer_id === userProfile?.customer_id,
+    );
+
+    await createDeviceHistory(
+      relatedDevice?.id || null,
+      action === "confirm" ? "Termin vom Kunden bestätigt" : "Terminverschiebung vom Kunden angefragt",
+      `${ticket.ticket_number} · ${responseText}`,
+      "Kundenportal",
+    );
+
+    const adminRecipient = companyData?.email || "admin@techflow.local";
+
+    await supabase.from("notifications").insert([
+      {
+        type: action === "confirm" ? "Termin bestätigt" : "Terminverschiebung angefragt",
+        recipient: adminRecipient,
+        subject:
+          action === "confirm"
+            ? `Termin bestätigt · ${ticket.ticket_number}`
+            : `Terminverschiebung angefragt · ${ticket.ticket_number}`,
+        message: [
+          `Ticket: ${ticket.ticket_number}`,
+          `Kunde: ${customerName}`,
+          `Gerät: ${ticket.device || "-"}`,
+          `Termin: ${ticket.service_date || "-"}${ticket.service_time ? ` ${ticket.service_time}` : ""}`,
+          requestedDate ? `Wunschdatum: ${requestedDate}` : "",
+          note ? `Notiz: ${note}` : "",
+        ].filter(Boolean).join("\n"),
+        related_ticket_id: ticket.id,
+        status: "Geplant",
+        email_status: "pending",
+        email_template: "Terminantwort Kunde",
+        email_error: null,
+      },
+    ]);
+
+    setAppointmentResponseNoteByTicket((prev) => ({ ...prev, [ticket.id]: "" }));
+    setAppointmentResponseDateByTicket((prev) => ({ ...prev, [ticket.id]: "" }));
+
+    setTickets((prev) =>
+      prev.map((item) =>
+        item.id === ticket.id
+          ? {
+              ...item,
+              ...updatePayload,
+            }
+          : item,
+      ),
+    );
+
+    await loadTickets();
+    await loadNotifications();
+
+    alert(action === "confirm" ? "Termin wurde bestätigt." : "Terminverschiebung wurde angefragt.");
   }
 
   function ticketServiceTypeText(ticket: Ticket) {
@@ -19174,6 +19286,67 @@ PRO-EFFEKT`,
                             >
                               {ticket.status}
                             </span>
+
+                            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                                Terminbestätigung
+                              </p>
+                              <p className="mt-2 text-sm font-bold text-slate-700">
+                                {ticket.service_date
+                                  ? `${ticket.service_date}${ticket.service_time ? ` · ${ticket.service_time}` : ""}`
+                                  : "Noch kein Termin geplant"}
+                              </p>
+
+                              {canCustomerRespondToAppointment(ticket) ? (
+                                <div className="mt-3 space-y-3">
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <input
+                                      type="date"
+                                      value={appointmentResponseDateByTicket[ticket.id] || ""}
+                                      onChange={(e) =>
+                                        setAppointmentResponseDateByTicket((prev) => ({
+                                          ...prev,
+                                          [ticket.id]: e.target.value,
+                                        }))
+                                      }
+                                      className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
+                                    />
+                                    <input
+                                      value={appointmentResponseNoteByTicket[ticket.id] || ""}
+                                      onChange={(e) =>
+                                        setAppointmentResponseNoteByTicket((prev) => ({
+                                          ...prev,
+                                          [ticket.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="Notiz / Uhrzeitwunsch"
+                                      className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
+                                    />
+                                  </div>
+
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => customerRespondToAppointment(ticket, "confirm")}
+                                      className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
+                                    >
+                                      Termin bestätigen
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => customerRespondToAppointment(ticket, "reschedule")}
+                                      className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-black text-orange-700"
+                                    >
+                                      Verschieben anfragen
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-2 text-xs font-bold text-slate-500">
+                                  Terminantwort möglich, sobald ein offener Termin geplant ist.
+                                </p>
+                              )}
+                            </div>
                           </div>
                         ))
                       )}
