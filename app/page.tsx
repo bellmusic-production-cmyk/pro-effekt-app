@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.2.0 · Resend Mailversand · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.2.1 · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6688,14 +6688,25 @@ PRO-EFFEKT`,
       ),
     );
 
-    const { data, error } = await supabase.functions.invoke("send-notification-email", {
+    const { data, error } = await supabase.functions.invoke("resend-email", {
       body: {
-        notificationId: notificationItem.id,
         to: notificationItem.recipient,
         subject: notificationItem.subject,
-        message: notificationItem.message,
-        template: notificationItem.email_template || "Standard",
-        type: notificationItem.type,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#0f172a">
+            <div style="border:1px solid #e2e8f0;border-radius:18px;padding:24px;background:#ffffff">
+              <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0284c7;font-weight:700">
+                TechFlow · ${notificationItem.type}
+              </p>
+              <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2">${notificationItem.subject}</h1>
+              <div style="font-size:15px;line-height:1.6;color:#334155">
+                ${String(notificationItem.message || "").replace(/\n/g, "<br/>")}
+              </div>
+              <hr style="border:0;border-top:1px solid #e2e8f0;margin:24px 0" />
+              <p style="font-size:12px;color:#64748b;margin:0">Vorlage: ${notificationItem.email_template || "Standard"}</p>
+            </div>
+          </div>
+        `,
       },
     });
 
@@ -6721,9 +6732,10 @@ PRO-EFFEKT`,
       return;
     }
 
-    const nextStatus = data?.success ? "sent" : "failed";
-    const nextLabel = data?.success ? "Gesendet" : "Fehler";
-    const nextError = data?.error || null;
+    const mailWasAccepted = Boolean(data?.id || data?.success);
+    const nextStatus = mailWasAccepted ? "sent" : "failed";
+    const nextLabel = mailWasAccepted ? "Gesendet" : "Fehler";
+    const nextError = data?.error || data?.message || null;
 
     setNotifications((prev) =>
       prev.map((item) =>
@@ -6741,7 +6753,7 @@ PRO-EFFEKT`,
 
     await loadNotifications();
 
-    if (data?.success) {
+    if (mailWasAccepted) {
       alert("E-Mail wurde gesendet.");
     } else {
       alert(`E-Mail konnte nicht gesendet werden: ${nextError || "Unbekannter Fehler"}`);
