@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v3.2.2 · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
+// TechFlow App v3.2.3 · Kommunikation UX Fix · Mail-Protokollierung · Resend Live Integration · Kundenportal Final · Mobile Techniker Premium FIXED · E-Mail Premium · Dashboard Premium · Dokumente Premium · Company Branding + Wartungserinnerungen · Secure Auth · Fast Role Cache · keine Sprachsteuerung
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -725,6 +725,9 @@ export default function Home() {
   const [notificationTicketId, setNotificationTicketId] = useState("");
   const [notificationEmailTemplate, setNotificationEmailTemplate] = useState("Standard");
   const [notificationEmailStatus, setNotificationEmailStatus] = useState("pending");
+  const [editingNotificationId, setEditingNotificationId] = useState<number | null>(null);
+  const [notificationPage, setNotificationPage] = useState(1);
+  const notificationPageSize = 20;
 
   const [contractCustomerId, setContractCustomerId] = useState("");
   const [contractTitle, setContractTitle] = useState("");
@@ -1254,6 +1257,14 @@ export default function Home() {
       failed: notifications.filter((item) => (item.email_status || item.status || "").toLowerCase() === "failed").length,
     };
   }, [notifications]);
+
+
+  const notificationTotalPages = Math.max(1, Math.ceil(notifications.length / notificationPageSize));
+
+  const visibleNotifications = useMemo(() => {
+    const startIndex = (notificationPage - 1) * notificationPageSize;
+    return notifications.slice(startIndex, startIndex + notificationPageSize);
+  }, [notifications, notificationPage]);
 
   function getEmailStatusLabel(status?: string | null) {
     const value = String(status || "pending").toLowerCase();
@@ -6653,6 +6664,9 @@ PRO-EFFEKT`,
     setNotificationSubject("");
     setNotificationMessage("");
     setNotificationTicketId("");
+    setNotificationEmailTemplate("Standard");
+    setNotificationEmailStatus("pending");
+    setEditingNotificationId(null);
   }
 
   async function saveNotification() {
@@ -6672,11 +6686,14 @@ PRO-EFFEKT`,
       status: "Geplant",
       email_status: notificationEmailStatus || "pending",
       email_template: notificationEmailTemplate || "Standard",
+      email_error: null,
     };
 
-    const { error } = await supabase
-      .from("notifications")
-      .insert([payload]);
+    const request = editingNotificationId
+      ? supabase.from("notifications").update(payload).eq("id", editingNotificationId)
+      : supabase.from("notifications").insert([payload]);
+
+    const { error } = await request;
 
     if (error) {
       alert(`Benachrichtigung konnte nicht gespeichert werden: ${error.message}`);
@@ -6684,11 +6701,45 @@ PRO-EFFEKT`,
     }
 
     await loadNotifications();
+    setNotificationPage(1);
     resetNotificationForm();
 
-    alert("Benachrichtigung gespeichert.");
+    alert(editingNotificationId ? "Benachrichtigung aktualisiert." : "Benachrichtigung gespeichert und rechts zur Prüfung bereitgestellt.");
   }
 
+  function editNotification(item: NotificationItem) {
+    setEditingNotificationId(item.id);
+    setNotificationType(item.type || "Einsatzbestätigung");
+    setNotificationRecipient(item.recipient || "");
+    setNotificationSubject(item.subject || "");
+    setNotificationMessage(item.message || "");
+    setNotificationTicketId(item.related_ticket_id ? String(item.related_ticket_id) : "");
+    setNotificationEmailTemplate(item.email_template || "Standard");
+    setNotificationEmailStatus(item.email_status || "pending");
+  }
+
+  async function deleteNotification(notificationId: number) {
+    const confirmed = window.confirm("Diese Benachrichtigung wirklich löschen?");
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", notificationId);
+
+    if (error) {
+      alert(`Benachrichtigung konnte nicht gelöscht werden: ${error.message}`);
+      return;
+    }
+
+    setNotifications((prev) => prev.filter((item) => item.id !== notificationId));
+
+    if (editingNotificationId === notificationId) {
+      resetNotificationForm();
+    }
+
+    alert("Benachrichtigung gelöscht.");
+  }
 
   async function sendNotificationEmail(notificationItem: NotificationItem) {
     if (!notificationItem.recipient || !notificationItem.subject) {
@@ -10652,6 +10703,34 @@ PRO-EFFEKT`,
                       })
                     )}
                   </div>
+
+                  {notifications.length > notificationPageSize && (
+                    <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setNotificationPage((page) => Math.max(1, page - 1))}
+                        disabled={notificationPage <= 1}
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 disabled:opacity-40"
+                      >
+                        Zurück
+                      </button>
+
+                      <div className="text-center text-sm font-black text-slate-600">
+                        Zeige {Math.min(notifications.length, (notificationPage - 1) * notificationPageSize + 1)}
+                        –{Math.min(notifications.length, notificationPage * notificationPageSize)}
+                        von {notifications.length}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setNotificationPage((page) => Math.min(notificationTotalPages, page + 1))}
+                        disabled={notificationPage >= notificationTotalPages}
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 disabled:opacity-40"
+                      >
+                        Weiter
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -11486,16 +11565,32 @@ PRO-EFFEKT`,
                     />
 
                     <button
+                      type="button"
                       onClick={saveNotification}
-                      className="fe-login-button h-14 w-full rounded-2xl bg-[var(--pe-blue)] text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:opacity-90 active:scale-[0.99]"
+                      className="h-14 w-full rounded-2xl bg-sky-500 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
                     >
-                      Benachrichtigung speichern
+                      {editingNotificationId ? "Änderungen speichern" : "Zur Prüfung rechts speichern"}
                     </button>
+
+                    {editingNotificationId && (
+                      <button
+                        type="button"
+                        onClick={resetNotificationForm}
+                        className="h-12 w-full rounded-2xl border border-slate-300 bg-white text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Bearbeitung abbrechen
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Kommunikationszentrale</h3>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-xl font-black">Kommunikationszentrale</h3>
+                    <div className="rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-600">
+                      Seite {notificationPage} / {notificationTotalPages} · {notifications.length} Einträge
+                    </div>
+                  </div>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {notifications.length === 0 ? (
@@ -11503,7 +11598,7 @@ PRO-EFFEKT`,
                         Noch keine Benachrichtigungen vorhanden.
                       </div>
                     ) : (
-                      notifications.map((item) => (
+                      visibleNotifications.map((item) => (
                         <div
                           key={item.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -11565,6 +11660,24 @@ PRO-EFFEKT`,
                                 <option>Gesendet</option>
                                 <option>Fehler</option>
                               </select>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => editNotification(item)}
+                                  className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                                >
+                                  Bearbeiten
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => deleteNotification(item.id)}
+                                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700"
+                                >
+                                  Löschen
+                                </button>
+                              </div>
 
                               <button
                                 type="button"
