@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.0.3 · Full Width Software Logo Header · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.0.4 · Slim Wide Software Hero · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6156,7 +6156,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
       alt="TechFlow"
       className={
         hero
-          ? "block w-[96%] max-w-none h-auto object-contain mx-auto"
+          ? "block w-[92%] max-w-[1500px] h-auto object-contain mx-auto"
           : compact
             ? "h-12 w-auto max-w-[260px] object-contain"
             : "h-16 w-auto max-w-[340px] object-contain"
@@ -11607,12 +11607,12 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="mb-7 hidden rounded-[26px] border border-slate-200/80 bg-white px-5 py-5 shadow-lg shadow-slate-200/70 lg:block">
-            <div className="flex w-full flex-col items-center justify-center text-center">
+          <div className="mb-7 hidden rounded-[26px] border border-slate-200/80 bg-white px-6 py-4 shadow-lg shadow-slate-200/70 lg:block">
+            <div className="flex min-h-[220px] w-full flex-col items-center justify-center text-center">
               <div className="w-full">
                 <TechFlowLogo hero />
               </div>
-              <p className="mt-1 text-xl font-black uppercase tracking-[0.42em] text-sky-500">
+              <p className="-mt-1 text-lg font-black uppercase tracking-[0.42em] text-sky-500">
                 Service Management System
               </p>
             </div>
