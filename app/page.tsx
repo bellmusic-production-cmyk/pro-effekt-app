@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TechFlow App v4.9.6 · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.9.6 · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -317,7 +317,7 @@ const fallbackDevices = [
   "Matrix Kraftstation",
 ];
 
-const TECHFLOW_LOGO_PATH = "/tech-flow-logo.png";
+const SOFTWARE_LOGO_PATH = "/trybun-logo.png";
 const PRO_EFFEKT_LOGO_PATH = "/pro-effekt-logo.png";
 
 const DEMO_COMPANY_NAME = "Pro-Effekt";
@@ -1855,7 +1855,7 @@ export default function Home() {
           <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#0f172a">
             <div style="border:1px solid #e2e8f0;border-radius:18px;padding:24px;background:#ffffff">
               <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0284c7;font-weight:700">
-                TechFlow · Ticket-Chat
+                TRYBUN · Ticket-Chat
               </p>
               <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2">${notificationItem.subject}</h1>
               <div style="font-size:15px;line-height:1.6;color:#334155">
@@ -2622,7 +2622,7 @@ async function loadApplicationData() {
 
   function getChatNotificationRecipient(ticket: Ticket) {
     if (userProfile?.role === "customer") {
-      return companyData?.email || getTechnicianEmailByTicket(ticket) || "service@techflow.local";
+      return companyData?.email || getTechnicianEmailByTicket(ticket) || "service@trybun.local";
     }
 
     return getCustomerPrimaryEmailByTicket(ticket);
@@ -5745,7 +5745,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       "Kundenportal",
     );
 
-    const adminRecipient = companyData?.email || "admin@techflow.local";
+    const adminRecipient = companyData?.email || "admin@trybun.local";
 
     await supabase.from("notifications").insert([
       {
@@ -6149,11 +6149,11 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
   }
 
   
-function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compact?: boolean; hero?: boolean }) {
+function SoftwareLogo({ compact = false, hero = false }: { dark?: boolean; compact?: boolean; hero?: boolean }) {
   return (
     <img
-      src={TECHFLOW_LOGO_PATH}
-      alt="TechFlow"
+      src={SOFTWARE_LOGO_PATH}
+      alt="TRYBUN"
       className={
         hero
           ? "h-24 w-auto max-w-[520px] object-contain md:h-28"
@@ -6167,7 +6167,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
 
 function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     const logoSrc = companyData?.logo_url || "/pro-effekt-logo.png";
-    const brandName = companyData?.name || "TechFlow";
+    const brandName = companyData?.name || "TRYBUN";
 
     return (
       <div className="flex w-full flex-col items-center justify-center text-center">
@@ -8102,7 +8102,7 @@ PRO-EFFEKT`,
           <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#0f172a">
             <div style="border:1px solid #e2e8f0;border-radius:18px;padding:24px;background:#ffffff">
               <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0284c7;font-weight:700">
-                TechFlow · ${notificationItem.type}
+                TRYBUN · ${notificationItem.type}
               </p>
               <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2">${notificationItem.subject}</h1>
               <div style="font-size:15px;line-height:1.6;color:#334155">
@@ -10254,7 +10254,7 @@ PRO-EFFEKT`,
             <section className="rounded-[28px] border border-sky-500/15 bg-[#0f1e2e] p-5">
               <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                Die TechFlow Plattform verarbeitet Kundendaten, Kontaktdaten,
+                Die TRYBUN Plattform verarbeitet Kundendaten, Kontaktdaten,
                 Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
                 zur Durchführung von Service-, Wartungs- und Prüfleistungen.
               </p>
@@ -10292,7 +10292,7 @@ PRO-EFFEKT`,
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
                 Ich akzeptiere die Datenschutzerklärung und stimme der Verarbeitung
-                personenbezogener Daten im Rahmen der TechFlow Plattform zu.
+                personenbezogener Daten im Rahmen der TRYBUN Plattform zu.
               </span>
             </label>
 
@@ -10304,7 +10304,7 @@ PRO-EFFEKT`,
                 className="mt-1 h-6 w-6 accent-sky-500"
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
-                Ich akzeptiere die Nutzungsbedingungen der TechFlow Plattform.
+                Ich akzeptiere die Nutzungsbedingungen der TRYBUN Plattform.
               </span>
             </label>
 
@@ -11638,8 +11638,8 @@ PRO-EFFEKT`,
           <div className="fixed left-80 right-0 top-0 z-[60] hidden border-b border-slate-200/70 bg-white/95 px-8 py-3 shadow-md shadow-slate-300/40 backdrop-blur-xl lg:block">
             <div className="flex h-[132px] w-full items-center justify-center overflow-hidden">
               <img
-                src={TECHFLOW_LOGO_PATH}
-                alt="TechFlow Software"
+                src={SOFTWARE_LOGO_PATH}
+                alt="TRYBUN Software"
                 className="h-full w-[98%] max-w-none scale-[3.4] object-contain"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
@@ -11653,8 +11653,8 @@ PRO-EFFEKT`,
             <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-3xl bg-white">
                 <img
-                  src={TECHFLOW_LOGO_PATH}
-                  alt="TechFlow Software"
+                  src={SOFTWARE_LOGO_PATH}
+                  alt="TRYBUN Software"
                   className="h-[64px] w-full max-w-none scale-[2.8] object-contain"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
@@ -12706,7 +12706,7 @@ PRO-EFFEKT`,
           {activePage === "Kalender" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -13081,7 +13081,7 @@ PRO-EFFEKT`,
 
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -13849,7 +13849,7 @@ PRO-EFFEKT`,
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -14671,7 +14671,7 @@ PRO-EFFEKT`,
           {activePage === "Einstellungen" && isAdmin && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow White-Label · Firmeneinstellungen
+                TRYBUN White-Label · Firmeneinstellungen
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -14705,7 +14705,7 @@ PRO-EFFEKT`,
                       </div>
                     )}
                     <h4 className="mt-5 text-2xl font-black text-slate-900">
-                      {companyNameInput || "TechFlow"}
+                      {companyNameInput || "TRYBUN"}
                     </h4>
                     <p className="mt-2 text-sm font-bold text-slate-500">
                       {companyAddressInput || "Adresse noch nicht hinterlegt"}
@@ -14826,7 +14826,7 @@ PRO-EFFEKT`,
           {activePage === "Auswertungen" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -16710,7 +16710,7 @@ PRO-EFFEKT`,
           {activePage === "Verträge" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -17639,7 +17639,7 @@ PRO-EFFEKT`,
           {activePage === "Wartungsplanung" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="grid gap-4 md:grid-cols-5">
@@ -18695,12 +18695,12 @@ PRO-EFFEKT`,
           {activePage === "QR-Scan" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TechFlow · Betriebsbereit
+                TRYBUN · Betriebsbereit
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <div className="mb-5">
-                  <TechFlowLogo />
+                  <SoftwareLogo />
                 </div>
 
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
