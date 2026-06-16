@@ -11927,67 +11927,94 @@ PRO-EFFEKT`,
 
           {activePage === "Dashboard" && (
             <div className="space-y-6">
-<div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-6 flex flex-col items-start gap-3">
-                  <TechFlowLogo hero />
-                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
-                    Service Management Platform
-                  </p>
-                </div>
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Admin-Zentrale
-                </p>
-                <h3 className="mt-2 text-4xl font-black">
-                  Operations-Leitstand
-                </h3>
-                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Alle offenen Servicefälle, Einsätze, Sicherheitsprüfung-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
-                </p>
+<div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/70 sm:p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-500">
+                      Serviceportal
+                    </p>
+                    <h3 className="mt-2 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                      Operations-Leitstand
+                    </h3>
+                    <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                      Zentrale Übersicht über offene Servicefälle, heutige Einsätze, Wartungen, Prüfungen und aktuelle Prioritäten.
+                    </p>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={loadApplicationData}
-                  className="mt-4 rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
-                >
-                  Dashboard neu laden
-                </button>
+                  <button
+                    type="button"
+                    onClick={loadApplicationData}
+                    className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.98]"
+                  >
+                    Dashboard neu laden
+                  </button>
+                </div>
+
+                {!appDataLoaded ? (
+                  <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm font-black text-slate-500">
+                    Dashboard-Daten werden vollständig geladen …
+                  </div>
+                ) : (
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{isCustomer ? "Meine Tickets" : "Gesamt Tickets"}</p>
+                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.total}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">Offen</p>
+                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.open}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">In Bearbeitung</p>
+                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.inProgress}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600">Erledigt</p>
+                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.completed}</p>
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:col-span-2 xl:col-span-1">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-indigo-600">Heute Einsätze</p>
+                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.today}</p>
+                    </div>
+                  </div>
+                )}
 
                 {isAdmin && (
-                  <div className="mt-6 rounded-[28px] border border-cyan-400/20 bg-white/10 p-5">
+                  <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
                           Service Operations
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">Operations-Leitstand</h3>
+                        <h3 className="mt-1 text-2xl font-black text-white">Disposition & Wartungen</h3>
                         <p className="mt-1 text-sm font-bold text-slate-300">
-                          Zentrale Übersicht über Disposition, offene Einsätze, Wartungen und aktuelle Prioritäten.
+                          Übersicht über heutige Einsätze, Wochenplanung, überfällige Vorgänge und fällige Wartungen.
                         </p>
                       </div>
 
                       <button
                         type="button"
                         onClick={() => openPage("Einsatz")}
-                        className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-black text-white"
+                        className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-400 active:scale-[0.98]"
                       >
                         Einsatzplanung öffnen
                       </button>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-4">
-                      <div className="rounded-2xl bg-white/10 p-4">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                      <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-white/10 p-4">
+                      <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-red-500/20 p-4">
+                      <div className="rounded-2xl border border-red-300/20 bg-red-500/20 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällig</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-amber-500/20 p-4">
+                      <div className="rounded-2xl border border-amber-300/20 bg-amber-500/20 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
                       </div>
@@ -11995,62 +12022,43 @@ PRO-EFFEKT`,
                   </div>
                 )}
 
-                <div className="mt-6 grid gap-3 md:grid-cols-4">
-                  <div className="rounded-2xl bg-white/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Wartungspläne</p>
-                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.total}</p>
-                  </div>
-                  <div className="rounded-2xl bg-orange-500/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute fällig</p>
-                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueToday}</p>
-                  </div>
-                  <div className="rounded-2xl bg-amber-500/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">In 7 Tagen</p>
-                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueSoon}</p>
-                  </div>
-                  <div className="rounded-2xl bg-red-500/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Überfällig</p>
-                    <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.overdue}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid gap-3 md:grid-cols-4">
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <button
                     onClick={() => openPage("Service-Tickets")}
-                    className="rounded-2xl bg-sky-500 px-4 py-4 text-left font-black text-white"
+                    className="min-h-[76px] rounded-3xl bg-sky-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:bg-sky-400 active:scale-[0.98]"
                   >
                     Neues Ticket
-                    <span className="mt-1 block text-xs font-bold opacity-80">
+                    <span className="mt-1 block text-xs font-bold opacity-85">
                       Servicefall anlegen
                     </span>
                   </button>
 
                   <button
                     onClick={() => openPage("Abnahmeprotokoll")}
-                    className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
+                    className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
                   >
                     Abnahmeprotokoll
-                    <span className="mt-1 block text-xs font-bold opacity-80">
+                    <span className="mt-1 block text-xs font-bold text-slate-500">
                       Wartung + DGUV / Sicherheitsprüfung
                     </span>
                   </button>
 
                   <button
                     onClick={() => openPage("Einsatz")}
-                    className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
+                    className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
                   >
                     Einsätze
-                    <span className="mt-1 block text-xs font-bold opacity-80">
+                    <span className="mt-1 block text-xs font-bold text-slate-500">
                       Techniker-Workflow
                     </span>
                   </button>
 
                   <button
                     onClick={() => openPage("Ersatzteile")}
-                    className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
+                    className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
                   >
                     Teile
-                    <span className="mt-1 block text-xs font-bold opacity-80">
+                    <span className="mt-1 block text-xs font-bold text-slate-500">
                       Lager & Verbrauch
                     </span>
                   </button>
@@ -12080,19 +12088,7 @@ PRO-EFFEKT`,
                 </div>
               </div>
 
-              {!appDataLoaded ? (
-                <div className="rounded-[24px] bg-white p-6 text-sm font-black text-slate-500 shadow-sm">
-                  Dashboard-Daten werden vollständig geladen …
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-5">
-                  <StatCard label={isCustomer ? "Meine Tickets" : "Gesamt Tickets"} value={ticketStats.total} />
-                  <StatCard label="Offen" value={ticketStats.open} />
-                  <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
-                  <StatCard label="Erledigt" value={ticketStats.completed} />
-                  <StatCard label="Heute Einsätze" value={ticketStats.today} />
-                </div>
-              )}
+
 
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
