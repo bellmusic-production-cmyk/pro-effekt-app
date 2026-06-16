@@ -1678,11 +1678,15 @@ export default function Home() {
     }
 
     try {
-      const { data: member, error: memberError } = await supabase
+      // Wichtig: Ein Benutzer kann in mehreren Mandanten/Firmen stehen.
+      // maybeSingle() ist hier falsch, weil es bei mehreren company_members einen Fehler liefert
+      // und dadurch companyData leer bleibt. Wir laden alle Mitgliedschaften und nehmen
+      // bevorzugt den neuesten aktiven Mandanten. Bei dir ist das Pro-Effekt.
+      const { data: memberships, error: memberError } = await supabase
         .from("company_members")
-        .select("company_id")
+        .select("company_id, role, created_at")
         .eq("user_id", userId)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
       if (memberError) {
         console.error("Company Member konnte nicht geladen werden:", memberError.message);
@@ -1690,16 +1694,20 @@ export default function Home() {
         return null;
       }
 
-      if (!member?.company_id) {
+      const companyIds = (memberships || [])
+        .map((member: any) => member.company_id)
+        .filter(Boolean);
+
+      if (companyIds.length === 0) {
         setCompanyData(null);
         return null;
       }
 
-      const { data: company, error: companyError } = await supabase
+      const { data: companiesResult, error: companyError } = await supabase
         .from("companies")
         .select("*")
-        .eq("id", member.company_id)
-        .maybeSingle();
+        .in("id", companyIds)
+        .eq("is_active", true);
 
       if (companyError) {
         console.error("Company konnte nicht geladen werden:", companyError.message);
@@ -1707,8 +1715,21 @@ export default function Home() {
         return null;
       }
 
-      setCompanyData((company || null) as CompanyData | null);
-      return (company || null) as CompanyData | null;
+      const companiesList = (companiesResult || []) as CompanyData[];
+
+      if (companiesList.length === 0) {
+        setCompanyData(null);
+        return null;
+      }
+
+      const preferredCompany =
+        companiesList.find((company) => company.slug === "pro-effekt") ||
+        companiesList.find((company) => company.name === "Pro-Effekt") ||
+        companiesList.find((company) => company.id === companyIds[0]) ||
+        companiesList[0];
+
+      setCompanyData(preferredCompany);
+      return preferredCompany;
     } catch (error) {
       console.error("Company-Ladevorgang fehlgeschlagen:", error);
       setCompanyData(null);
@@ -1722,7 +1743,9 @@ export default function Home() {
       return;
     }
 
-    if (!companyData?.id) {
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
       alert("Keine Firma geladen. Bitte Seite neu laden.");
       return;
     }
@@ -1749,7 +1772,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from("companies")
       .update(payload)
-      .eq("id", companyData.id)
+      .eq("id", currentCompany.id)
       .select("*")
       .maybeSingle();
 
@@ -1760,7 +1783,7 @@ export default function Home() {
       return;
     }
 
-    setCompanyData((data || { ...companyData, ...payload }) as CompanyData);
+    setCompanyData((data || { ...currentCompany, ...payload }) as CompanyData);
     alert("Firmeneinstellungen gespeichert.");
   }
 
@@ -1774,7 +1797,9 @@ export default function Home() {
       return;
     }
 
-    if (!companyData?.id) {
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
       alert("Keine Firma geladen. Bitte Seite neu laden.");
       event.target.value = "";
       return;
@@ -1793,7 +1818,7 @@ export default function Home() {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `company-${companyData.id}/logo-${Date.now()}-${safeName}`;
+    const filePath = `company-${currentCompany.id}/logo-${Date.now()}-${safeName}`;
 
     const uploadResult = await supabase.storage
       .from("company-assets")
@@ -1815,7 +1840,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from("companies")
       .update({ logo_url: logoUrl })
-      .eq("id", companyData.id)
+      .eq("id", currentCompany.id)
       .select("*")
       .maybeSingle();
 
@@ -1828,7 +1853,7 @@ export default function Home() {
       return;
     }
 
-    setCompanyData((data || { ...companyData, logo_url: logoUrl }) as CompanyData);
+    setCompanyData((data || { ...currentCompany, logo_url: logoUrl }) as CompanyData);
     setCompanyLogoUrlInput(logoUrl);
     alert("Firmenlogo gespeichert.");
   }
@@ -2874,7 +2899,9 @@ async function loadApplicationData() {
       return;
     }
 
-    if (!companyData?.id) {
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
       alert("Keine Firma geladen. Bitte Seite neu laden und erneut versuchen.");
       return;
     }
@@ -2905,7 +2932,7 @@ async function loadApplicationData() {
         full_name: cleanedName || cleanedEmail,
         role: newUserRole,
         customer_id: newUserRole === "customer" ? Number(newUserCustomerId) : null,
-        company_id: companyData.id,
+        company_id: currentCompany.id,
       },
     });
 
