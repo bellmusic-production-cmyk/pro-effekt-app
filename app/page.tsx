@@ -11501,24 +11501,44 @@ PRO-EFFEKT`,
           }
         `}</style>
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
-        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-[#07111d] p-7 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
-          <div className="flex flex-col items-center">
-            <h1 className="whitespace-nowrap text-center text-xl font-black tracking-[0.18em] text-sky-500">
-              PRO-EFFEKT
-            </h1>
+        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-[#07111d] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-sky-400/20 bg-[#0b1726]">
+                <img
+                  src="/pro-effekt-logo.png"
+                  alt="Pro-Effekt Logo"
+                  className="h-10 w-10 object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              </div>
 
-            <img
-              src="/pro-effekt-logo.png"
-              alt="Pro-Effekt Logo"
-              className="mt-4 h-auto w-[58px] max-w-[58px] object-contain opacity-95"
-            />
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-black uppercase tracking-[0.22em] text-sky-400">
+                  PRO-EFFEKT
+                </p>
+                <p className="mt-1 truncate text-sm font-extrabold text-white">
+                  Serviceportal
+                </p>
+                <p className="mt-1 truncate text-[11px] font-semibold text-slate-500">
+                  {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
+                </p>
+              </div>
+            </div>
 
-            <p className="mt-7 max-w-full break-words text-center text-[13px] font-medium leading-5 text-slate-400">
-              {session.user.email}
-            </p>
+            <div className="mt-5 rounded-2xl border border-white/10 bg-[#0b1726]/80 px-4 py-3">
+              <p className="truncate text-[12px] font-semibold leading-5 text-slate-400">
+                {userProfile?.full_name || session.user.email}
+              </p>
+              <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
+                {session.user.email}
+              </p>
+            </div>
           </div>
 
-          <nav className="mt-7 space-y-2.5">
+          <nav className="mt-5 flex-1 space-y-2 overflow-y-auto pr-1">
             {navGroups.map((group) => {
               const groupIsOpen = group.items.includes(activePage);
 
@@ -11528,14 +11548,16 @@ PRO-EFFEKT`,
                   <button
                     key={group.title}
                     onClick={() => openPage(item)}
-                    className={`flex w-full items-center gap-3 rounded-3xl border px-4 py-3.5 text-left text-[14px] font-extrabold leading-tight transition-all ${
+                    className={`group flex w-full items-center justify-between gap-3 rounded-[24px] border px-4 py-3 text-left text-[14px] font-extrabold leading-tight transition-all ${
                       activePage === item
-                        ? "border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-950/30"
-                        : "border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/5"
+                        ? "border-sky-400/70 bg-sky-500 text-white shadow-lg shadow-sky-950/30"
+                        : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-sky-400/30 hover:bg-white/[0.07] hover:text-white"
                     }`}
                   >
-                    {group.icon ? <span>{group.icon}</span> : null}
                     <span>{navItemLabel(item)}</span>
+                    <span className={`h-2 w-2 rounded-full ${
+                      activePage === item ? "bg-white" : "bg-slate-700 group-hover:bg-sky-400"
+                    }`} />
                   </button>
                 );
               }
@@ -11544,31 +11566,28 @@ PRO-EFFEKT`,
                 <details
                   key={group.title}
                   open={groupIsOpen}
-                  className="group rounded-3xl border border-white/10 bg-white/[0.03]"
+                  className="group rounded-[24px] border border-white/10 bg-white/[0.035] transition hover:border-sky-400/20 hover:bg-white/[0.055]"
                 >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-3xl px-4 py-3.5 text-[14px] font-extrabold leading-tight text-slate-200 transition hover:bg-white/5">
-                    <span className="flex items-center gap-3">
-                      {group.icon ? <span>{group.icon}</span> : null}
-                      <span>{group.title}</span>
-                    </span>
-                    <span className="text-xs text-slate-500 transition group-open:rotate-180">⌄</span>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[24px] px-4 py-3 text-[14px] font-extrabold leading-tight text-slate-200 transition">
+                    <span>{group.title}</span>
+                    <span className="text-xs text-slate-500 transition group-open:rotate-180 group-hover:text-sky-400">⌄</span>
                   </summary>
 
-                  <div className="space-y-2 px-2 pb-3">
+                  <div className="space-y-1.5 px-2 pb-3">
                     {group.items.map((item) => (
                       <button
                         key={item}
                         onClick={() => openPage(item)}
-                        className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
+                        className={`w-full rounded-[18px] px-4 py-3 text-left text-[13px] font-bold leading-tight transition-all ${
                           activePage === item
                             ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
-                            : "text-slate-300 hover:bg-white/5"
+                            : "text-slate-400 hover:bg-white/5 hover:text-white"
                         }`}
                       >
                         {navItemLabel(item)}
                         {item === "Geräte" && (
-                          <span className="mt-1 block text-[11px] font-bold text-slate-400">
-                            Hersteller · Gerätetyp · Modell
+                          <span className="mt-1 block text-[10px] font-bold text-slate-500">
+                            Hersteller · Typ · Modell
                           </span>
                         )}
                       </button>
@@ -11581,7 +11600,7 @@ PRO-EFFEKT`,
 
           <button
             onClick={logout}
-            className="mt-8 rounded-2xl bg-white/10 py-3 font-bold text-white transition-all hover:bg-white/20"
+            className="mt-5 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-extrabold text-slate-300 transition-all hover:bg-white/10 hover:text-white"
           >
             Logout
           </button>
