@@ -11589,11 +11589,11 @@ PRO-EFFEKT`,
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
           <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white px-8 py-4 shadow-sm shadow-slate-200/70 lg:block">
-            <div className="flex h-[132px] items-center justify-center overflow-hidden">
+            <div className="flex h-[132px] w-full items-center justify-center overflow-hidden">
               <img
                 src={TECHFLOW_LOGO_PATH}
                 alt="TechFlow Software"
-                className="h-[118px] w-auto max-w-[760px] object-contain"
+                className="h-full w-[98%] max-w-none object-contain"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
@@ -11607,7 +11607,7 @@ PRO-EFFEKT`,
                 <img
                   src={TECHFLOW_LOGO_PATH}
                   alt="TechFlow Software"
-                  className="h-[64px] w-auto max-w-[220px] object-contain"
+                  className="h-[64px] w-full max-w-none object-contain"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
                   }}
