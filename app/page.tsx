@@ -11962,10 +11962,10 @@ PRO-EFFEKT`,
                       Serviceportal
                     </p>
                     <h3 className="mt-2 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                      Operations-Leitstand
+                      Leitstand
                     </h3>
                     <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                      Zentrale Übersicht über Servicefälle, Reparaturen, heutige Einsätze, Wartungen, Prüfungen, Ersatzteile und aktuelle Prioritäten.
+                      Alle wichtigen Informationen auf einen Blick: offene Tickets, Reparaturen, Wartungen, Prüfungen, Ersatzteile und Kommunikation.
                     </p>
                   </div>
 
@@ -11983,40 +11983,65 @@ PRO-EFFEKT`,
                     Dashboard-Daten werden vollständig geladen …
                   </div>
                 ) : (
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{isCustomer ? "Meine Tickets" : "Gesamt Tickets"}</p>
-                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.total}</p>
+                  <div className="mt-6 space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-300">Offene Tickets</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em]">{ticketStats.active}</p>
+                        <p className="mt-1 text-xs font-bold text-slate-300">Gesamt sichtbar: {ticketStats.total}</p>
+                      </div>
+                      <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-700">Überfällige Wartungen</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{maintenancePremiumStats.overdue}</p>
+                        <p className="mt-1 text-xs font-bold text-orange-700">Heute fällig: {maintenancePremiumStats.dueToday}</p>
+                      </div>
+                      <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-red-700">Überfällige Prüfungen</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{inspectionStats.overdue}</p>
+                        <p className="mt-1 text-xs font-bold text-red-700">Bald fällig: {inspectionStats.soon}</p>
+                      </div>
+                      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">Ungelesene Nachrichten</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketChatUnreadCount}</p>
+                        <p className="mt-1 text-xs font-bold text-emerald-700">E-Mail-Fehler: {emailStatusStats.failed}</p>
+                      </div>
                     </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">Offen</p>
-                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.open}</p>
-                    </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-600">In Bearbeitung</p>
-                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.inProgress}</p>
-                    </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600">Erledigt</p>
-                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.completed}</p>
-                    </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:col-span-2 xl:col-span-1">
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-indigo-600">Heute Einsätze</p>
-                      <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.today}</p>
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{isCustomer ? "Meine Tickets" : "Gesamt Tickets"}</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.total}</p>
+                      </div>
+                      <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">Offen</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.open}</p>
+                      </div>
+                      <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-600">In Bearbeitung</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.inProgress}</p>
+                      </div>
+                      <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600">Erledigt</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.completed}</p>
+                      </div>
+                      <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:col-span-2 xl:col-span-1">
+                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-600">Heute Einsätze</p>
+                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.today}</p>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {isAdmin && (
-                  <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white">
+                  <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
-                          Service Operations
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">
+                          Prioritäten
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">Disposition, Reparaturen & Wartungen</h3>
-                        <p className="mt-1 text-sm font-bold text-slate-300">
-                          Übersicht über Einsätze, offene Reparaturen, fällige Wartungen, Prüfungen, Ersatzteile und Kommunikation.
+                        <h3 className="mt-1 text-2xl font-black text-slate-950">Servicezentrale im Überblick</h3>
+                        <p className="mt-1 text-sm font-bold text-slate-500">
+                          Sofort sehen, wo gehandelt werden muss und welche Bereiche aktuell stabil laufen.
                         </p>
                       </div>
 
@@ -12030,35 +12055,35 @@ PRO-EFFEKT`,
                     </div>
 
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                      <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Service & Einsätze</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
-                        <p className="mt-1 text-[11px] font-bold text-slate-300">Heute · Woche {technicianPremiumWeekTickets.length}</p>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">Service & Einsätze</p>
+                        <p className="mt-2 text-3xl font-black text-slate-950">{technicianPremiumTodayTickets.length}</p>
+                        <p className="mt-1 text-[11px] font-bold text-slate-500">Heute · Woche {technicianPremiumWeekTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl border border-orange-300/20 bg-orange-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-200">Reparaturen</p>
-                        <p className="mt-2 text-3xl font-black text-white">{repairDashboardStats.active}</p>
-                        <p className="mt-1 text-[11px] font-bold text-orange-100">Wartet Ersatzteile {repairDashboardStats.waitingParts}</p>
+                      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-700">Reparaturen</p>
+                        <p className="mt-2 text-3xl font-black text-slate-950">{repairDashboardStats.active}</p>
+                        <p className="mt-1 text-[11px] font-bold text-orange-700">Wartet Ersatzteile {repairDashboardStats.waitingParts}</p>
                       </div>
-                      <div className="rounded-2xl border border-amber-300/20 bg-amber-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
-                        <p className="mt-1 text-[11px] font-bold text-amber-100">Fällig oder bald fällig</p>
+                      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-700">Wartungen</p>
+                        <p className="mt-2 text-3xl font-black text-slate-950">{technicianPremiumMaintenancePlans.length}</p>
+                        <p className="mt-1 text-[11px] font-bold text-orange-700">Fällig oder bald fällig</p>
                       </div>
-                      <div className="rounded-2xl border border-red-300/20 bg-red-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Prüfungen</p>
-                        <p className="mt-2 text-3xl font-black text-white">{inspectionStats.overdue}</p>
-                        <p className="mt-1 text-[11px] font-bold text-red-100">Überfällig · bald {inspectionStats.soon}</p>
+                      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-700">Prüfungen</p>
+                        <p className="mt-2 text-3xl font-black text-slate-950">{inspectionStats.overdue}</p>
+                        <p className="mt-1 text-[11px] font-bold text-red-700">Überfällig · bald {inspectionStats.soon}</p>
                       </div>
-                      <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">Ersatzteile</p>
-                        <p className="mt-2 text-3xl font-black text-white">{lowStockParts.length}</p>
-                        <p className="mt-1 text-[11px] font-bold text-cyan-100">Unter Mindestbestand</p>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-700">Ersatzteile</p>
+                        <p className="mt-2 text-3xl font-black text-slate-950">{lowStockParts.length}</p>
+                        <p className="mt-1 text-[11px] font-bold text-slate-600">Unter Mindestbestand</p>
                       </div>
-                      <div className="rounded-2xl border border-indigo-300/20 bg-indigo-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-200">Kommunikation</p>
-                        <p className="mt-2 text-3xl font-black text-white">{ticketChatUnreadCount}</p>
-                        <p className="mt-1 text-[11px] font-bold text-indigo-100">Ungelesen · Fehler {emailStatusStats.failed}</p>
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Kommunikation</p>
+                        <p className="mt-2 text-3xl font-black text-slate-950">{ticketChatUnreadCount}</p>
+                        <p className="mt-1 text-[11px] font-bold text-emerald-700">Ungelesen · Fehler {emailStatusStats.failed}</p>
                       </div>
                     </div>
                   </div>
