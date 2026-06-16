@@ -11955,181 +11955,302 @@ PRO-EFFEKT`,
 
           {activePage === "Dashboard" && (
             <div className="space-y-6">
-<div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/70 sm:p-6">
+<div className="overflow-hidden rounded-[32px] border border-slate-800 bg-slate-950 p-4 text-white shadow-xl shadow-slate-950/20 sm:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-500">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-400">
                       Serviceportal
                     </p>
-                    <h3 className="mt-2 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                    <h3 className="mt-2 flex items-center gap-3 text-3xl font-black leading-tight tracking-[-0.04em] text-white sm:text-4xl">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500/15 text-xl">
+                        ◔
+                      </span>
                       Leitstand
                     </h3>
-                    <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                      Alle wichtigen Informationen auf einen Blick: offene Tickets, Reparaturen, Wartungen, Prüfungen, Ersatzteile und Kommunikation.
+                    <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
+                      Alle wichtigen Informationen auf einen Blick: Tickets, Reparaturen, Wartungen, Prüfungen, Ersatzteile und Kommunikation.
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={loadApplicationData}
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 active:scale-[0.98]"
-                  >
-                    Dashboard neu laden
-                  </button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <div className="rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-xs font-bold text-slate-300">
+                      Letzte Aktualisierung: jetzt
+                    </div>
+                    <button
+                      type="button"
+                      onClick={loadApplicationData}
+                      className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.98]"
+                    >
+                      Dashboard neu laden
+                    </button>
+                  </div>
                 </div>
 
                 {!appDataLoaded ? (
-                  <div className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm font-black text-slate-500">
+                  <div className="mt-5 rounded-3xl border border-slate-700 bg-slate-900 p-5 text-sm font-black text-slate-300">
                     Dashboard-Daten werden vollständig geladen …
                   </div>
                 ) : (
-                  <div className="mt-6 space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-300">Offene Tickets</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em]">{ticketStats.active}</p>
-                        <p className="mt-1 text-xs font-bold text-slate-300">Gesamt sichtbar: {ticketStats.total}</p>
-                      </div>
-                      <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5 shadow-sm">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-700">Überfällige Wartungen</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{maintenancePremiumStats.overdue}</p>
-                        <p className="mt-1 text-xs font-bold text-orange-700">Heute fällig: {maintenancePremiumStats.dueToday}</p>
-                      </div>
-                      <div className="rounded-3xl border border-red-200 bg-red-50 p-5 shadow-sm">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-red-700">Überfällige Prüfungen</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{inspectionStats.overdue}</p>
-                        <p className="mt-1 text-xs font-bold text-red-700">Bald fällig: {inspectionStats.soon}</p>
-                      </div>
-                      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">Ungelesene Nachrichten</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketChatUnreadCount}</p>
-                        <p className="mt-1 text-xs font-bold text-emerald-700">E-Mail-Fehler: {emailStatusStats.failed}</p>
-                      </div>
-                    </div>
-
+                  <div className="mt-6 space-y-5">
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{isCustomer ? "Meine Tickets" : "Gesamt Tickets"}</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.total}</p>
+                      <div className="min-h-[118px] rounded-3xl border border-sky-500/45 bg-slate-900/90 p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-xl">🎫</span>
+                          <div className="min-w-0">
+                            <p className="break-words text-[11px] font-black uppercase tracking-[0.14em] text-sky-300">Gesamt Tickets</p>
+                            <p className="mt-2 text-4xl font-black tracking-[-0.04em] text-white">{ticketStats.total}</p>
+                            <p className="mt-1 text-xs font-bold text-slate-400">Alle Ticketarten</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">Offen</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.open}</p>
+
+                      <div className="min-h-[118px] rounded-3xl border border-sky-500/45 bg-slate-900/90 p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-xl">📋</span>
+                          <div className="min-w-0">
+                            <p className="break-words text-[11px] font-black uppercase tracking-[0.14em] text-sky-300">Offen</p>
+                            <p className="mt-2 text-4xl font-black tracking-[-0.04em] text-white">{ticketStats.open}</p>
+                            <p className="mt-1 text-xs font-bold text-slate-400">Benötigen Bearbeitung</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-orange-600">In Bearbeitung</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.inProgress}</p>
+
+                      <div className="min-h-[118px] rounded-3xl border border-orange-500/45 bg-slate-900/90 p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-400/50 bg-orange-500/15 text-xl">⚙️</span>
+                          <div className="min-w-0">
+                            <p className="break-words text-[11px] font-black uppercase tracking-[0.14em] text-orange-300">In Bearbeitung</p>
+                            <p className="mt-2 text-4xl font-black tracking-[-0.04em] text-white">{ticketStats.inProgress}</p>
+                            <p className="mt-1 text-xs font-bold text-slate-400">Aktuell in Arbeit</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-3xl border border-slate-200 bg-white p-5">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-600">Erledigt</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.completed}</p>
+
+                      <div className="min-h-[118px] rounded-3xl border border-emerald-500/45 bg-slate-900/90 p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/50 bg-emerald-500/15 text-xl">✓</span>
+                          <div className="min-w-0">
+                            <p className="break-words text-[11px] font-black uppercase tracking-[0.14em] text-emerald-300">Erledigt</p>
+                            <p className="mt-2 text-4xl font-black tracking-[-0.04em] text-white">{ticketStats.completed}</p>
+                            <p className="mt-1 text-xs font-bold text-slate-400">Abgeschlossen</p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:col-span-2 xl:col-span-1">
-                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-600">Heute Einsätze</p>
-                        <p className="mt-3 text-4xl font-black tracking-[-0.04em] text-slate-950">{ticketStats.today}</p>
+
+                      <div className="min-h-[118px] rounded-3xl border border-violet-500/45 bg-slate-900/90 p-4 shadow-sm sm:col-span-2 xl:col-span-1">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-violet-400/50 bg-violet-500/15 text-xl">📅</span>
+                          <div className="min-w-0">
+                            <p className="break-words text-[11px] font-black uppercase tracking-[0.14em] text-violet-300">Heute Einsätze</p>
+                            <p className="mt-2 text-4xl font-black tracking-[-0.04em] text-white">{ticketStats.today}</p>
+                            <p className="mt-1 text-xs font-bold text-slate-400">Geplant für heute</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
 
-                {isAdmin && (
-                  <div className="mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">
-                          Prioritäten
-                        </p>
-                        <h3 className="mt-1 text-2xl font-black text-slate-950">Servicezentrale im Überblick</h3>
-                        <p className="mt-1 text-sm font-bold text-slate-500">
-                          Sofort sehen, wo gehandelt werden muss und welche Bereiche aktuell stabil laufen.
-                        </p>
+                    {isAdmin && (
+                      <div className="rounded-[28px] border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-400">
+                              Prioritäten
+                            </p>
+                            <h3 className="mt-1 text-2xl font-black uppercase tracking-[-0.03em] text-white">Servicezentrale im Überblick</h3>
+                            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
+                              Sofort sehen, wo gehandelt werden muss und welche Bereiche aktuell stabil laufen.
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Einsatz")}
+                            className="rounded-2xl border border-sky-400/40 bg-sky-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.98]"
+                          >
+                            📅 Einsatzplanung öffnen
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                          <button
+                            type="button"
+                            onClick={() => openPage("Einsatz")}
+                            className="min-h-[170px] rounded-3xl border border-sky-500/45 bg-sky-950/20 p-4 text-left transition hover:bg-sky-950/35 active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-lg">🚚</span>
+                              <p className="break-words text-[12px] font-black uppercase tracking-[0.12em] text-sky-300">Service & Einsätze</p>
+                            </div>
+                            <p className="mt-4 text-4xl font-black tracking-[-0.04em] text-white">{technicianPremiumTodayTickets.length}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-slate-300">Heute: {technicianPremiumTodayTickets.length} · Woche: {technicianPremiumWeekTickets.length}</p>
+                            <p className="mt-4 text-sm font-black text-sky-300">Öffnen →</p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Service-Tickets")}
+                            className="min-h-[170px] rounded-3xl border border-orange-500/45 bg-orange-950/20 p-4 text-left transition hover:bg-orange-950/35 active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-400/50 bg-orange-500/15 text-lg">🔧</span>
+                              <p className="break-words text-[12px] font-black uppercase tracking-[0.12em] text-orange-300">Reparaturen</p>
+                            </div>
+                            <p className="mt-4 text-4xl font-black tracking-[-0.04em] text-white">{repairDashboardStats.active}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-slate-300">Wartet Ersatzteile: {repairDashboardStats.waitingParts}</p>
+                            <p className="mt-4 text-sm font-black text-orange-300">Öffnen →</p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Kalender")}
+                            className="min-h-[170px] rounded-3xl border border-amber-500/45 bg-amber-950/20 p-4 text-left transition hover:bg-amber-950/35 active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-400/50 bg-amber-500/15 text-lg">⚙️</span>
+                              <p className="break-words text-[12px] font-black uppercase tracking-[0.12em] text-amber-300">Wartungen</p>
+                            </div>
+                            <p className="mt-4 text-4xl font-black tracking-[-0.04em] text-white">{technicianPremiumMaintenancePlans.length}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-slate-300">Fällig oder bald fällig</p>
+                            <p className="mt-4 text-sm font-black text-amber-300">Öffnen →</p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Abnahmeprotokoll")}
+                            className="min-h-[170px] rounded-3xl border border-red-500/45 bg-red-950/20 p-4 text-left transition hover:bg-red-950/35 active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-red-400/50 bg-red-500/15 text-lg">🛡️</span>
+                              <p className="break-words text-[12px] font-black uppercase tracking-[0.12em] text-red-300">Prüfungen</p>
+                            </div>
+                            <p className="mt-4 text-4xl font-black tracking-[-0.04em] text-white">{inspectionStats.overdue}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-slate-300">Überfällig: {inspectionStats.overdue} · Bald: {inspectionStats.soon}</p>
+                            <p className="mt-4 text-sm font-black text-red-300">Öffnen →</p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Ersatzteile")}
+                            className="min-h-[170px] rounded-3xl border border-cyan-500/45 bg-cyan-950/20 p-4 text-left transition hover:bg-cyan-950/35 active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/50 bg-cyan-500/15 text-lg">📦</span>
+                              <p className="break-words text-[12px] font-black uppercase tracking-[0.12em] text-cyan-300">Ersatzteile</p>
+                            </div>
+                            <p className="mt-4 text-4xl font-black tracking-[-0.04em] text-white">{lowStockParts.length}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-slate-300">Unter Mindestbestand</p>
+                            <p className="mt-4 text-sm font-black text-cyan-300">Öffnen →</p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Benachrichtigungen")}
+                            className="min-h-[170px] rounded-3xl border border-emerald-500/45 bg-emerald-950/20 p-4 text-left transition hover:bg-emerald-950/35 active:scale-[0.98]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/50 bg-emerald-500/15 text-lg">💬</span>
+                              <p className="break-words text-[12px] font-black uppercase tracking-[0.12em] text-emerald-300">Kommunikation</p>
+                            </div>
+                            <p className="mt-4 text-4xl font-black tracking-[-0.04em] text-white">{ticketChatUnreadCount}</p>
+                            <p className="mt-2 text-xs font-bold leading-5 text-slate-300">Ungelesen: {ticketChatUnreadCount} · Fehler: {emailStatusStats.failed}</p>
+                            <p className="mt-4 text-sm font-black text-emerald-300">Öffnen →</p>
+                          </button>
+                        </div>
                       </div>
+                    )}
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                      <button
+                        onClick={() => openPage("Service-Tickets")}
+                        className="min-h-[116px] rounded-3xl border border-sky-400/45 bg-sky-600 px-5 py-4 text-left font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-500 active:scale-[0.98]"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-xl">＋</span>
+                        <span className="mt-3 block">Neues Ticket</span>
+                        <span className="mt-1 block text-xs font-bold opacity-85">Servicefall anlegen</span>
+                      </button>
 
                       <button
-                        type="button"
-                        onClick={() => openPage("Einsatz")}
-                        className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-sky-400 active:scale-[0.98]"
+                        onClick={() => openPage("Abnahmeprotokoll")}
+                        className="min-h-[116px] rounded-3xl border border-slate-700 bg-slate-900 px-5 py-4 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
                       >
-                        Einsatzplanung öffnen
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">🧾</span>
+                        <span className="mt-3 block">Abnahmeprotokoll</span>
+                        <span className="mt-1 block text-xs font-bold text-slate-300">Wartung + DGUV / Sicherheitsprüfung</span>
+                      </button>
+
+                      <button
+                        onClick={() => openPage("Einsatz")}
+                        className="min-h-[116px] rounded-3xl border border-slate-700 bg-slate-900 px-5 py-4 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">📍</span>
+                        <span className="mt-3 block">Einsätze</span>
+                        <span className="mt-1 block text-xs font-bold text-slate-300">Techniker-Workflow</span>
+                      </button>
+
+                      <button
+                        onClick={() => openPage("Ersatzteile")}
+                        className="min-h-[116px] rounded-3xl border border-slate-700 bg-slate-900 px-5 py-4 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">📦</span>
+                        <span className="mt-3 block">Ersatzteile</span>
+                        <span className="mt-1 block text-xs font-bold text-slate-300">Lager & Verbrauch</span>
+                      </button>
+
+                      <button
+                        onClick={() => openPage("Auswertungen")}
+                        className="min-h-[116px] rounded-3xl border border-slate-700 bg-slate-900 px-5 py-4 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">📊</span>
+                        <span className="mt-3 block">Berichte</span>
+                        <span className="mt-1 block text-xs font-bold text-slate-300">Auswertungen & Statistiken</span>
+                      </button>
+
+                      <button
+                        onClick={() => openPage("Benachrichtigungen")}
+                        className="min-h-[116px] rounded-3xl border border-slate-700 bg-slate-900 px-5 py-4 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">✉️</span>
+                        <span className="mt-3 block">Kommunikation</span>
+                        <span className="mt-1 block text-xs font-bold text-slate-300">Nachrichten & Benachrichtigungen</span>
                       </button>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">Service & Einsätze</p>
-                        <p className="mt-2 text-3xl font-black text-slate-950">{technicianPremiumTodayTickets.length}</p>
-                        <p className="mt-1 text-[11px] font-bold text-slate-500">Heute · Woche {technicianPremiumWeekTickets.length}</p>
+                    <div className="grid gap-3 rounded-3xl border border-slate-800 bg-slate-900/60 p-4 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/15 text-xl text-red-300">⚠️</span>
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-red-300">Kritisch</p>
+                          <p className="text-2xl font-black text-white">{inspectionStats.overdue + maintenancePremiumStats.overdue}</p>
+                          <p className="text-xs font-bold text-slate-400">Sofort handeln</p>
+                        </div>
                       </div>
-                      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-700">Reparaturen</p>
-                        <p className="mt-2 text-3xl font-black text-slate-950">{repairDashboardStats.active}</p>
-                        <p className="mt-1 text-[11px] font-bold text-orange-700">Wartet Ersatzteile {repairDashboardStats.waitingParts}</p>
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500/15 text-xl text-orange-300">!</span>
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-orange-300">Achtung</p>
+                          <p className="text-2xl font-black text-white">{maintenancePremiumStats.dueSoon + inspectionStats.soon}</p>
+                          <p className="text-xs font-bold text-slate-400">Demnächst fällig</p>
+                        </div>
                       </div>
-                      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-700">Wartungen</p>
-                        <p className="mt-2 text-3xl font-black text-slate-950">{technicianPremiumMaintenancePlans.length}</p>
-                        <p className="mt-1 text-[11px] font-bold text-orange-700">Fällig oder bald fällig</p>
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-xl text-emerald-300">✓</span>
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-300">Stabil</p>
+                          <p className="text-2xl font-black text-white">{ticketStats.completed}</p>
+                          <p className="text-xs font-bold text-slate-400">Abgeschlossen</p>
+                        </div>
                       </div>
-                      <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-700">Prüfungen</p>
-                        <p className="mt-2 text-3xl font-black text-slate-950">{inspectionStats.overdue}</p>
-                        <p className="mt-1 text-[11px] font-bold text-red-700">Überfällig · bald {inspectionStats.soon}</p>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-700">Ersatzteile</p>
-                        <p className="mt-2 text-3xl font-black text-slate-950">{lowStockParts.length}</p>
-                        <p className="mt-1 text-[11px] font-bold text-slate-600">Unter Mindestbestand</p>
-                      </div>
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Kommunikation</p>
-                        <p className="mt-2 text-3xl font-black text-slate-950">{ticketChatUnreadCount}</p>
-                        <p className="mt-1 text-[11px] font-bold text-emerald-700">Ungelesen · Fehler {emailStatusStats.failed}</p>
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-500/15 text-xl text-sky-300">i</span>
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-300">Information</p>
+                          <p className="text-2xl font-black text-white">{emailStatusStats.failed}</p>
+                          <p className="text-xs font-bold text-slate-400">E-Mail-Fehler</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <button
-                    onClick={() => openPage("Service-Tickets")}
-                    className="min-h-[76px] rounded-3xl bg-sky-500 px-5 py-4 text-left font-black text-white shadow-sm transition hover:bg-sky-400 active:scale-[0.98]"
-                  >
-                    Neues Ticket
-                    <span className="mt-1 block text-xs font-bold opacity-85">
-                      Servicefall anlegen
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => openPage("Abnahmeprotokoll")}
-                    className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
-                  >
-                    Abnahmeprotokoll
-                    <span className="mt-1 block text-xs font-bold text-slate-500">
-                      Wartung + DGUV / Sicherheitsprüfung
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => openPage("Einsatz")}
-                    className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
-                  >
-                    Einsätze
-                    <span className="mt-1 block text-xs font-bold text-slate-500">
-                      Techniker-Workflow
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => openPage("Ersatzteile")}
-                    className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
-                  >
-                    Ersatzteile
-                    <span className="mt-1 block text-xs font-bold text-slate-500">
-                      Lager & Verbrauch
-                    </span>
-                  </button>
-                </div>
               </div>
 
               <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
