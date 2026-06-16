@@ -569,6 +569,11 @@ export default function Home() {
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
+  const [newUserFullName, setNewUserFullName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("technician");
+  const [newUserCustomerId, setNewUserCustomerId] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [companyNameInput, setCompanyNameInput] = useState("");
@@ -2861,6 +2866,70 @@ async function loadApplicationData() {
       console.error("Benutzer-Ladevorgang übersprungen:", error);
       setUserProfiles(fallbackProfiles);
     }
+  }
+
+  async function createUserFromManagement() {
+    if (!isAdmin) {
+      alert("Nur Admins können Benutzer anlegen.");
+      return;
+    }
+
+    if (!companyData?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
+    const cleanedEmail = newUserEmail.trim().toLowerCase();
+    const cleanedName = newUserFullName.trim();
+
+    if (!cleanedEmail) {
+      alert("Bitte eine E-Mail-Adresse eintragen.");
+      return;
+    }
+
+    if (!cleanedEmail.includes("@")) {
+      alert("Bitte eine gültige E-Mail-Adresse eintragen.");
+      return;
+    }
+
+    if (newUserRole === "customer" && !newUserCustomerId) {
+      alert("Bitte für Kundenportal-Nutzer einen Kunden zuordnen.");
+      return;
+    }
+
+    setCreatingUser(true);
+
+    const { data, error } = await supabase.functions.invoke("create-user", {
+      body: {
+        email: cleanedEmail,
+        full_name: cleanedName || cleanedEmail,
+        role: newUserRole,
+        customer_id: newUserRole === "customer" ? Number(newUserCustomerId) : null,
+        company_id: companyData.id,
+      },
+    });
+
+    setCreatingUser(false);
+
+    if (error) {
+      alert(`Benutzer konnte nicht angelegt werden: ${error.message}`);
+      return;
+    }
+
+    if (data?.error) {
+      alert(`Benutzer konnte nicht angelegt werden: ${data.error}`);
+      return;
+    }
+
+    setNewUserFullName("");
+    setNewUserEmail("");
+    setNewUserRole("technician");
+    setNewUserCustomerId("");
+
+    await loadUserProfiles();
+    await loadTechnicians();
+
+    alert("Benutzer wurde erfolgreich angelegt.");
   }
 
   async function loadTechnicians() {
@@ -14785,6 +14854,100 @@ PRO-EFFEKT`,
                   >
                     Benutzer neu laden
                   </button>
+                </div>
+
+                <div className="mt-6 rounded-[28px] border border-sky-400/20 bg-sky-500/10 p-5">
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
+                      Benutzer anlegen · Phase 2
+                    </p>
+                    <h4 className="text-xl font-black text-white">
+                      Neuen Zugang vorbereiten
+                    </h4>
+                    <p className="max-w-3xl text-sm font-semibold leading-6 text-slate-300">
+                      Der Admin legt hier echte Supabase-Auth-Benutzer an. Rollen und Kundenportal-Zuordnung werden direkt in TRYBUN gespeichert.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_1.1fr_0.8fr_1fr_auto] lg:items-end">
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        Name
+                      </span>
+                      <input
+                        value={newUserFullName}
+                        onChange={(event) => setNewUserFullName(event.target.value)}
+                        placeholder="z.B. Max Mustermann"
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        E-Mail
+                      </span>
+                      <input
+                        value={newUserEmail}
+                        onChange={(event) => setNewUserEmail(event.target.value)}
+                        placeholder="name@firma.de"
+                        type="email"
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        Rolle
+                      </span>
+                      <select
+                        value={newUserRole}
+                        onChange={(event) => {
+                          const nextRole = event.target.value as "admin" | "technician" | "customer";
+                          setNewUserRole(nextRole);
+                          if (nextRole !== "customer") setNewUserCustomerId("");
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400"
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="technician">Techniker</option>
+                        <option value="customer">Kunde</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        Kunde
+                      </span>
+                      <select
+                        value={newUserCustomerId}
+                        onChange={(event) => setNewUserCustomerId(event.target.value)}
+                        disabled={newUserRole !== "customer"}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400 disabled:bg-slate-200 disabled:text-slate-500"
+                      >
+                        <option value="">
+                          {newUserRole === "customer" ? "Kunde auswählen" : "Nur für Kundenrolle"}
+                        </option>
+                        {customers.map((customerItem) => (
+                          <option key={customerItem.id} value={customerItem.id}>
+                            {getCustomerLabel(customerItem)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={createUserFromManagement}
+                      disabled={creatingUser}
+                      className="rounded-2xl bg-sky-400 px-6 py-3 text-sm font-black text-slate-950 shadow-sm hover:bg-sky-300 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-200"
+                    >
+                      {creatingUser ? "Wird angelegt..." : "+ Benutzer anlegen"}
+                    </button>
+                  </div>
+
+                  <p className="mt-4 text-xs font-semibold leading-5 text-slate-400">
+                    Hinweis: Passwörter und automatische Einladungs-E-Mails bauen wir im nächsten Schritt aus. Aktuell wird der Benutzer sicher in Auth, profiles und company_members angelegt.
+                  </p>
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
