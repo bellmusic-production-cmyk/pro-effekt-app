@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.1.4 · Premium Compact Brand Dashboard · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Bericht erfassen PDF Premium · Bericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.1.6 · Premium Header Placement Fix · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Bericht erfassen PDF Premium · Bericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1265,7 +1265,7 @@ export default function Home() {
         const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         if (documentQuickFilter === "Bald fällig") return diffDays >= 0 && diffDays <= 30;
-        if (documentQuickFilter === "Überfällige Vorgängee Einsätze") return nextDate.getTime() < today.getTime();
+        if (documentQuickFilter === "Frist überschrittene Einsätze") return nextDate.getTime() < today.getTime();
 
         return true;
       })();
@@ -1294,7 +1294,7 @@ export default function Home() {
     ).length;
 
     const overdue = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Überfällige Vorgängee Einsätze",
+      (item) => getInspectionStatus(item.next_check).label === "Frist überschrittene Einsätze",
     ).length;
 
     const missing = devices.filter(
@@ -1323,7 +1323,7 @@ export default function Home() {
     }
 
     if (days === 0) {
-      return { label: "Heute terminierte Einsätze fällig", className: "bg-slate-100 text-slate-700", days };
+      return { label: "Heute geplant fällig", className: "bg-slate-100 text-slate-700", days };
     }
 
     if (days <= 7) {
@@ -1572,8 +1572,8 @@ export default function Home() {
   function getEmailStatusClass(status?: string | null) {
     const value = String(status || "pending").toLowerCase();
 
-    if (value === "sent") return "bg-slate-700/15 text-sky-300 border-emerald-500/30";
-    if (value === "failed") return "bg-slate-700/15 text-rose-300 border-red-500/30";
+    if (value === "sent") return "bg-sky-700/15 text-sky-300 border-emerald-500/30";
+    if (value === "failed") return "bg-sky-700/15 text-rose-300 border-red-500/30";
     if (value === "queued") return "bg-slate-700/15 text-blue-300 border-blue-500/30";
 
     return "bg-slate-700/15 text-sky-300 border-amber-500/30";
@@ -5869,7 +5869,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     if (diffDays < 0) {
       return {
-        label: "Überfällige Vorgängee Einsätze",
+        label: "Frist überschrittene Einsätze",
         daysText: `${Math.abs(diffDays)} Tage überfällig`,
         className: "bg-red-100 text-red-700",
       };
@@ -6156,7 +6156,7 @@ function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compa
         src={TECHFLOW_LOGO_PATH}
         alt="TechFlow"
         style={{
-          width: "78%",
+          width: "76%",
           maxWidth: "1180px",
           height: "auto",
           display: "block",
@@ -6186,7 +6186,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
         <img
           src={logoSrc}
           alt={`${brandName} Logo`}
-          className="h-auto w-full max-w-[120px] object-contain mx-auto drop-shadow-md"
+          className="h-auto w-full max-w-[180px] object-contain mx-auto drop-shadow-md"
           onError={(event) => {
             event.currentTarget.style.display = "none";
           }}
@@ -6796,7 +6796,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   async function saveMaintenancePlan() {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker können Wartungen mit Fälligkeit planen.");
+      alert("Nur Admins und Techniker können Wartungen fällig planen.");
       return;
     }
 
@@ -6944,7 +6944,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   async function createTicketFromMaintenancePlan(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker können aus Wartungen mit Fälligkeit Tickets erstellen.");
+      alert("Nur Admins und Techniker können aus Wartungen fällig Tickets erstellen.");
       return;
     }
 
@@ -7845,7 +7845,7 @@ PRO-EFFEKT`,
       .insert(maintenanceRows);
 
     if (error) {
-      alert(`Wartungen mit Fälligkeit konnten nicht erzeugt werden: ${error.message}`);
+      alert(`Wartungen fällig konnten nicht erzeugt werden: ${error.message}`);
       return;
     }
 
@@ -7957,7 +7957,7 @@ PRO-EFFEKT`,
     }
 
     const confirmed = window.confirm(
-      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen mit Fälligkeit bleiben erhalten.",
+      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen fällig bleiben erhalten.",
     );
 
     if (!confirmed) return;
@@ -10134,7 +10134,7 @@ PRO-EFFEKT`,
       : 0;
 
   const overdueInspectionsCount = devices.filter(
-    (item) => getInspectionStatus(item.next_check).label === "Überfällige Vorgängee Einsätze",
+    (item) => getInspectionStatus(item.next_check).label === "Frist überschrittene Einsätze",
   ).length;
 
   const soonInspectionsCount = devices.filter(
@@ -10214,7 +10214,7 @@ PRO-EFFEKT`,
             <img
               src="/pro-effekt-logo.png"
               alt="Pro-Effekt"
-              className="h-auto w-full max-w-[120px] object-contain mx-auto"
+              className="h-auto w-full max-w-[180px] object-contain mx-auto"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
               }}
@@ -10444,7 +10444,7 @@ PRO-EFFEKT`,
     }
   }
 
-  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Überfällige Vorgängee Einsätze") {
+  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Frist überschrittene Einsätze") {
     setActivePage("Dokumente");
     setActiveDocumentCategory("Abnahmeprotokolle");
     setUploadCategory("Abnahmeprotokolle");
@@ -11303,7 +11303,7 @@ PRO-EFFEKT`,
               <img
                 src="/pro-effekt-logo.png"
                 alt="Pro-Effekt Logo"
-                className="mx-auto mt-5 h-auto w-full max-w-[120px] object-contain drop-shadow-md"
+                className="mx-auto mt-5 h-auto w-full max-w-[180px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
@@ -11956,7 +11956,7 @@ PRO-EFFEKT`,
 
                     <div className="mt-6 grid gap-5 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute terminierte Einsätze</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute geplant</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-white/10 p-4">
@@ -11964,11 +11964,11 @@ PRO-EFFEKT`,
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-slate-700/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällige Vorgängee Einsätze</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Frist überschrittene Einsätze</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-slate-700/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen mit Fälligkeit</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen fällig</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
                       </div>
                     </div>
@@ -11981,7 +11981,7 @@ PRO-EFFEKT`,
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.total}</p>
                   </div>
                   <div className="rounded-2xl bg-slate-700/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute terminierte Einsätze fällig</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute geplant fällig</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueToday}</p>
                   </div>
                   <div className="rounded-2xl bg-slate-700/20 p-4">
@@ -11989,7 +11989,7 @@ PRO-EFFEKT`,
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueSoon}</p>
                   </div>
                   <div className="rounded-2xl bg-slate-700/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Überfällige Vorgängee Einsätze</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Frist überschrittene Einsätze</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.overdue}</p>
                   </div>
                 </div>
@@ -12031,38 +12031,13 @@ PRO-EFFEKT`,
                   >
                     Ersatzteile
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Bestand und Verbrauch
+                      Bestand & Verbrauch
                     </span>
                   </button>
                 </div>
               </div>
 
-              <div
-            className="mb-5 border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70"
-            style={{
-              borderRadius: "24px",
-              padding: "20px",
-            }}
-          >
-            <div className="flex w-full flex-col items-center justify-center text-center">
-              <TechFlowLogo hero />
-              <p
-                className="font-black uppercase text-sky-500"
-                style={{
-                  marginTop: "12px",
-                  fontSize: "clamp(13px, 1.15vw, 18px)",
-                  lineHeight: "1",
-                  letterSpacing: "clamp(0.18em, 0.65vw, 0.36em)",
-                  whiteSpace: "nowrap",
-                  textAlign: "center",
-                }}
-              >
-                Service - Management - System
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
+    <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">
@@ -12095,7 +12070,7 @@ PRO-EFFEKT`,
                   <StatCard label="Offen" value={ticketStats.open} />
                   <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
                   <StatCard label="Erledigt" value={ticketStats.completed} />
-                  <StatCard label="Heute terminierte Einsätze Einsätze" value={ticketStats.today} />
+                  <StatCard label="Heute geplant Einsätze" value={ticketStats.today} />
                 </div>
               )}
 
@@ -12258,7 +12233,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {todaysAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Heute terminierte Einsätze keine Einsätze geplant.
+                        Heute geplant keine Einsätze geplant.
                       </div>
                     ) : (
                       todaysAdminTickets.map((ticket) => {
@@ -12342,11 +12317,11 @@ PRO-EFFEKT`,
 
               <div className="grid gap-6 xl:grid-cols-3">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Überfällige Vorgängee Einsätzee Sicherheitsprüfung/Wartungen mit Fälligkeit</h3>
+                  <h3 className="text-xl font-black">Frist überschrittene Einsätzee Sicherheitsprüfung/Wartungen fällig</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {overdueAdminMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine überfälligen Sicherheitsprüfung/Wartungen mit Fälligkeit.
+                        Keine überfälligen Sicherheitsprüfung/Wartungen fällig.
                       </div>
                     ) : (
                       overdueAdminMaintenancePlans.slice(0, 5).map((plan) => (
@@ -12456,8 +12431,8 @@ PRO-EFFEKT`,
                       <p className="mt-2 text-2xl font-black text-slate-900">{upcomingAcceptanceProtocols.length}</p>
                       <p className="mt-2 text-xs font-black text-yellow-700">Öffnen</p>
                     </button>
-                    <button onClick={() => openAbnahmeDocuments("Überfällige Vorgängee Einsätze")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Überfällige Vorgängee Einsätze</p>
+                    <button onClick={() => openAbnahmeDocuments("Frist überschrittene Einsätze")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Frist überschrittene Einsätze</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{overdueAcceptanceProtocols.length}</p>
                       <p className="mt-2 text-xs font-black text-red-700">Öffnen</p>
                     </button>
@@ -12511,7 +12486,32 @@ PRO-EFFEKT`,
                 TechFlow · Betriebsbereit
               </div>
 
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div
+            className="mb-5 border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70"
+            style={{
+              borderRadius: "24px",
+              padding: "14px 20px 12px",
+            }}
+          >
+            <div className="flex w-full flex-col items-center justify-center text-center">
+              <TechFlowLogo hero />
+              <p
+                className="font-black uppercase text-sky-500"
+                style={{
+                  marginTop: "8px",
+                  fontSize: "clamp(12px, 1vw, 16px)",
+                  lineHeight: "1",
+                  letterSpacing: "clamp(0.16em, 0.55vw, 0.30em)",
+                  whiteSpace: "nowrap",
+                  textAlign: "center",
+                }}
+              >
+                Service - Management - System
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
                   Disposition
                 </p>
@@ -12588,9 +12588,9 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute terminierte Einsätze fällig" value={maintenanceAutomationStats.dueToday} />
+                    <StatCard label="Heute geplant fällig" value={maintenanceAutomationStats.dueToday} />
                     <StatCard label="Bereit" value={maintenanceAutomationStats.automationReady} />
-                    <StatCard label="Heute terminierte Einsätze versendet" value={maintenanceAutomationStats.sentToday} />
+                    <StatCard label="Heute geplant versendet" value={maintenanceAutomationStats.sentToday} />
                     <StatCard label="Fehler" value={maintenanceAutomationStats.failed} />
                   </div>
                 </div>
@@ -12607,7 +12607,7 @@ PRO-EFFEKT`,
                         {maintenanceMailCandidates.length} Wartungsmail(s) bereit
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        Wartungen mit Fälligkeit können direkt als E-Mail vorgemerkt oder sofort versendet werden.
+                        Wartungen fällig können direkt als E-Mail vorgemerkt oder sofort versendet werden.
                       </p>
                     </div>
                     <button
@@ -12663,7 +12663,7 @@ PRO-EFFEKT`,
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets" value={calendarTickets.length} />
-                <StatCard label="Sicherheitsprüfung/Wartungen mit Fälligkeit" value={calendarMaintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen fällig" value={calendarMaintenancePlans.length} />
                 <StatCard
                   label="Offene Einsätze"
                   value={
@@ -12754,7 +12754,7 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black">Wartungen mit Fälligkeit</h3>
+                      <h3 className="text-xl font-black">Wartungen fällig</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
                         Sicherheitsprüfung- und Aktive Wartungspläne mit Fälligkeit am gewählten Tag.
                       </p>
@@ -12770,7 +12770,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Sicherheitsprüfung/Wartungen mit Fälligkeit für diesen Tag.
+                        Keine Sicherheitsprüfung/Wartungen fällig für diesen Tag.
                       </div>
                     ) : (
                       calendarMaintenancePlans.map((plan) => {
@@ -13394,10 +13394,10 @@ PRO-EFFEKT`,
                         Wartungsplaner Premium
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Automatische Ticketvorschläge aus fälligen Wartungen mit Fälligkeit
+                        Automatische Ticketvorschläge aus fälligen Wartungen fällig
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        Fällige, bald fällige und überfällige Wartungen mit Fälligkeit können direkt als Service-Ticket angelegt werden.
+                        Fällige, bald fällige und überfällige Wartungen fällig können direkt als Service-Ticket angelegt werden.
                       </p>
                     </div>
                     <button
@@ -13434,7 +13434,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => createTicketFromMaintenancePlan(plan)}
-                              className="w-full rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
+                              className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                             >
                               Neuer Servicefall
                             </button>
@@ -13632,7 +13632,7 @@ PRO-EFFEKT`,
                                 type="button"
                                 onClick={() => sendNotificationEmail(item)}
                                 disabled={(item.email_status || "").toLowerCase() === "sent"}
-                                className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white disabled:bg-slate-300 disabled:text-slate-500"
+                                className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white disabled:bg-slate-300 disabled:text-slate-500"
                               >
                                 E-Mail senden
                               </button>
@@ -14232,7 +14232,7 @@ PRO-EFFEKT`,
                     </p>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Überfällige Vorgängee Einsätze</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Frist überschrittene Einsätze</p>
                     <p className="mt-2 text-2xl font-black text-red-700">
                       {filteredDocuments.filter((item) => getDocumentDueMeta(item)?.label.includes("überfällig")).length}
                     </p>
@@ -14639,7 +14639,7 @@ PRO-EFFEKT`,
                   Pro-Effekt Auswertungen
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Kennzahlen für Umsatz, Tickets, Wartungen mit Fälligkeit, Prüfungen, Technikerleistung und Kundenaktivität.
+                  Kennzahlen für Umsatz, Tickets, Wartungen fällig, Prüfungen, Technikerleistung und Kundenaktivität.
                 </p>
               </div>
 
@@ -16523,7 +16523,7 @@ PRO-EFFEKT`,
                   value={monthlyRecurringRevenue}
                 />
                 <StatCard
-                  label="Auto-Wartungen mit Fälligkeit"
+                  label="Auto-Wartungen fällig"
                   value={contractGeneratedMaintenanceCount}
                 />
               </div>
@@ -16726,7 +16726,7 @@ PRO-EFFEKT`,
                                 onClick={() => generateMaintenanceFromContract(item)}
                                 className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                               >
-                                Wartungen mit Fälligkeit erzeugen
+                                Wartungen fällig erzeugen
                               </button>
 
                               <button
@@ -17445,7 +17445,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-5">
-                <StatCard label="Sicherheitsprüfung/Wartungen mit Fälligkeit gesamt" value={maintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen fällig gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
                   value={maintenancePlans.filter((plan) => (plan.status || "Geplant") === "Geplant").length}
@@ -17468,7 +17468,7 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
                   <p className="mt-2 text-slate-600">
-                    Plane Sicherheitsprüfungen und Wartungen mit Fälligkeit zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
+                    Plane Sicherheitsprüfungen und Wartungen fällig zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
                   <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
                     Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Bericht erfassen oder Kundendokumente nachvollzogen werden.
@@ -17609,16 +17609,16 @@ PRO-EFFEKT`,
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">
-                  {isTechnician ? "Meine Wartungen mit Fälligkeit" : isCustomer ? "Meine kommenden Wartungen mit Fälligkeit" : "Wartungsübersicht"}
+                  {isTechnician ? "Meine Wartungen fällig" : isCustomer ? "Meine kommenden Wartungen fällig" : "Wartungsübersicht"}
                 </h3>
                 <p className="mt-2 text-slate-600">
-                  Status aller geplanten und laufenden Wartungen mit Fälligkeit.
+                  Status aller geplanten und laufenden Wartungen fällig.
                 </p>
 
                 <div className="mt-6 space-y-4">
                   {assignedMaintenancePlans.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Keine Wartungen mit Fälligkeit vorhanden.
+                      Keine Wartungen fällig vorhanden.
                     </div>
                   ) : (
                     assignedMaintenancePlans.map((plan) => {
@@ -17742,7 +17742,7 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">{plannedDispatchTickets.length}</p>
                   </div>
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
-                    <p className="text-xs font-bold text-slate-300">Überfällige Vorgängee Einsätze</p>
+                    <p className="text-xs font-bold text-slate-300">Frist überschrittene Einsätze</p>
                     <p className="text-2xl font-black text-rose-300">{overdueDispatchTickets.length}</p>
                   </div>
                 </div>
@@ -17758,7 +17758,7 @@ PRO-EFFEKT`,
                       Planungsvorschläge
                     </h3>
                     <p className="mt-1 text-sm font-bold text-slate-600">
-                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen mit Fälligkeit.
+                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen fällig.
                     </p>
                   </div>
                   <button
@@ -17766,15 +17766,15 @@ PRO-EFFEKT`,
                     onClick={() => setCalendarDate(new Date().toISOString().split("T")[0])}
                     className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white"
                   >
-                    Heute terminierte Einsätze anzeigen
+                    Heute geplant anzeigen
                   </button>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-4">
-                  <StatCard label="Heute terminierte Einsätze geplant" value={plannedDispatchTickets.length} />
+                  <StatCard label="Heute geplant geplant" value={plannedDispatchTickets.length} />
                   <StatCard label="Einsätze diese Woche" value={dispatchPremiumWeekTickets.length} />
                   <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                  <StatCard label="Wartungen mit Fälligkeit" value={dispatchPremiumMaintenanceSuggestions.length} />
+                  <StatCard label="Wartungen fällig" value={dispatchPremiumMaintenanceSuggestions.length} />
                 </div>
 
                 {dispatchPremiumMaintenanceSuggestions.length > 0 && (
@@ -17844,7 +17844,7 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Offene Tickets" value={activePlanningTickets.length} />
                 <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                <StatCard label="Heute terminierte Einsätze / Auswahl" value={plannedDispatchTickets.length} />
+                <StatCard label="Heute geplant / Auswahl" value={plannedDispatchTickets.length} />
                 <StatCard label="Techniker" value={technicians.length} />
               </div>
 
@@ -18023,7 +18023,7 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
-                    <h3 className="text-xl font-black text-slate-900">Überfällige Vorgängee Einsätzee geplante Tickets</h3>
+                    <h3 className="text-xl font-black text-slate-900">Frist überschrittene Einsätzee geplante Tickets</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
                       Geplante Tickets mit Datum vor heute und nicht abgeschlossen.
                     </p>
@@ -18065,7 +18065,7 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">
                       {technicianTodayTickets.length}
                     </p>
-                    <p className="text-xs font-bold text-slate-300">Heute terminierte Einsätze</p>
+                    <p className="text-xs font-bold text-slate-300">Heute geplant</p>
                   </div>
 
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
@@ -18087,7 +18087,7 @@ PRO-EFFEKT`,
               {technicianTodayTickets.length === 0 ? (
                 <div className="rounded-[28px] bg-white p-6 shadow-sm">
                   <h3 className="text-xl font-black text-slate-900">
-                    Heute terminierte Einsätze keine geplanten Einsätze
+                    Heute geplant keine geplanten Einsätze
                   </h3>
                   <p className="mt-2 text-sm font-semibold text-slate-600">
                     Sobald im Ticket ein Datum, eine Uhrzeit und ein Techniker gesetzt sind,
@@ -18158,7 +18158,7 @@ PRO-EFFEKT`,
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-600">
-                                {ticket.service_time || "Heute terminierte Einsätze"}
+                                {ticket.service_time || "Heute geplant"}
                               </span>
                               <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
                                 {statusIcon(ticket.status)} {ticket.status}
@@ -18197,7 +18197,7 @@ PRO-EFFEKT`,
                                 {contactPhone && (
                                   <a
                                     href={`tel:${contactPhone.replace(/\s+/g, "")}`}
-                                    className="mt-3 inline-flex rounded-2xl bg-slate-700 px-4 py-3 text-sm font-black text-white"
+                                    className="mt-3 inline-flex rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                                   >
                                     â˜Ž Anrufen
                                   </a>
@@ -18331,7 +18331,7 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gültig" value={inspectionStats.ok} />
                 <StatCard label="Bald fällig" value={inspectionStats.soon} />
-                <StatCard label="Überfällige Vorgängee Einsätze" value={inspectionStats.overdue} />
+                <StatCard label="Frist überschrittene Einsätze" value={inspectionStats.overdue} />
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
@@ -18576,7 +18576,7 @@ PRO-EFFEKT`,
                   value={
                     filteredQrDevices.filter(
                       (item) =>
-                        getInspectionStatus(item.next_check).label === "Überfällige Vorgängee Einsätze" ||
+                        getInspectionStatus(item.next_check).label === "Frist überschrittene Einsätze" ||
                         getInspectionStatus(item.next_check).label === "Bald fällig",
                     ).length
                   }
@@ -18727,10 +18727,10 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute terminierte Einsätze" value={technicianPremiumTodayTickets.length} />
+                    <StatCard label="Heute geplant" value={technicianPremiumTodayTickets.length} />
                     <StatCard label="Einsätze diese Woche" value={technicianPremiumWeekTickets.length} />
-                    <StatCard label="Überfällige Vorgängee Einsätze" value={technicianPremiumOverdueTickets.length} />
-                    <StatCard label="Wartungen mit Fälligkeit" value={technicianPremiumMaintenancePlans.length} />
+                    <StatCard label="Frist überschrittene Einsätze" value={technicianPremiumOverdueTickets.length} />
+                    <StatCard label="Wartungen fällig" value={technicianPremiumMaintenancePlans.length} />
                   </div>
 
                   <div className="mt-4 grid gap-3 xl:grid-cols-2">
@@ -19842,11 +19842,11 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                    <h3 className="text-xl font-black">Meine Wartungen mit Fälligkeit</h3>
+                    <h3 className="text-xl font-black">Meine Wartungen fällig</h3>
                     <div className="mt-4 space-y-3">
                       {assignedMaintenancePlans.length === 0 ? (
                         <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
-                          Keine kommenden Wartungen mit Fälligkeit vorhanden.
+                          Keine kommenden Wartungen fällig vorhanden.
                         </div>
                       ) : (
                         assignedMaintenancePlans.map((plan) => (
