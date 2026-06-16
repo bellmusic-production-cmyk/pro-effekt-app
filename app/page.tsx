@@ -1,7 +1,7 @@
-﻿"use client";
-// removed duplicate use client directive
+﻿
+"use client";
 
-// TechFlow App v5.1.6 · Premium Header Placement Fix · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Bericht erfassen PDF Premium · Bericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v4.9.6 · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -432,7 +432,7 @@ const modelOverviewLimit = 40;
 const documentCategories = [
   "Alle",
   "Abnahmeprotokolle",
-  "Bericht erfassene",
+  "Serviceberichte",
   "Prüfberichte",
   "Sicherheitsprüfungen",
   "Wartungsprotokolle",
@@ -463,7 +463,7 @@ const customerUploadDocumentCategories = [
 
 const customerVisibleDocumentCategories = [
   "Alle",
-  "Bericht erfassene",
+  "Serviceberichte",
   "Abnahmeprotokolle",
   "Prüfberichte",
   "Sicherheitsprüfungen",
@@ -490,7 +490,7 @@ const abnahmeProtocolQuestions = [
   "Sichtprüfung",
   "Allgemeiner Betrieb des Gerätes",
   "Rahmen / Schweißnähte geprüft",
-  "Schmierung der beweglichen Ersatzteile",
+  "Schmierung der beweglichen Teile",
   "Mechanische Prüfung / Standfestigkeit geprüft",
   "Schraubverbindungen geprüft",
   "Polster / Verkleidung / Sattel / Lenker",
@@ -1265,7 +1265,7 @@ export default function Home() {
         const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         if (documentQuickFilter === "Bald fällig") return diffDays >= 0 && diffDays <= 30;
-        if (documentQuickFilter === "Frist überschrittene Einsätze") return nextDate.getTime() < today.getTime();
+        if (documentQuickFilter === "Überfällig") return nextDate.getTime() < today.getTime();
 
         return true;
       })();
@@ -1294,7 +1294,7 @@ export default function Home() {
     ).length;
 
     const overdue = devices.filter(
-      (item) => getInspectionStatus(item.next_check).label === "Frist überschrittene Einsätze",
+      (item) => getInspectionStatus(item.next_check).label === "Überfällig",
     ).length;
 
     const missing = devices.filter(
@@ -1323,7 +1323,7 @@ export default function Home() {
     }
 
     if (days === 0) {
-      return { label: "Heute geplant fällig", className: "bg-slate-100 text-slate-700", days };
+      return { label: "Heute fällig", className: "bg-orange-100 text-orange-700", days };
     }
 
     if (days <= 7) {
@@ -1461,7 +1461,7 @@ export default function Home() {
       { label: "Ankunft bestätigt", done: ["Vor Ort", "In Bearbeitung", "Abgeschlossen"].includes(ticket.status) },
       { label: "Sichtprüfung / Funktionstest", done: ["In Bearbeitung", "Abgeschlossen"].includes(ticket.status) },
       { label: "Fotos / Nachweise vorhanden", done: documentsCount > 0 },
-      { label: "Bericht erfassen erstellt", done: hasReport },
+      { label: "Servicebericht erstellt", done: hasReport },
       { label: "Unterschrift vorhanden", done: hasSignatures },
       { label: "Einsatz abgeschlossen", done: ticket.status === "Abgeschlossen" },
     ];
@@ -1572,11 +1572,11 @@ export default function Home() {
   function getEmailStatusClass(status?: string | null) {
     const value = String(status || "pending").toLowerCase();
 
-    if (value === "sent") return "bg-sky-700/15 text-sky-300 border-emerald-500/30";
-    if (value === "failed") return "bg-sky-700/15 text-rose-300 border-red-500/30";
-    if (value === "queued") return "bg-slate-700/15 text-blue-300 border-blue-500/30";
+    if (value === "sent") return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+    if (value === "failed") return "bg-red-500/15 text-red-300 border-red-500/30";
+    if (value === "queued") return "bg-blue-500/15 text-blue-300 border-blue-500/30";
 
-    return "bg-slate-700/15 text-sky-300 border-amber-500/30";
+    return "bg-amber-500/15 text-amber-300 border-amber-500/30";
   }
 
 
@@ -3731,7 +3731,7 @@ async function loadApplicationData() {
 
   function startEdit(ticket: Ticket) {
     if (isCustomer) {
-      alert("Kunden können Tickets nach dem Absenden nicht bearbeiten. Bitte bei Änderungen eine Nachricht/Dokumentation ergänzen oder ein neues Neuer Servicefall.");
+      alert("Kunden können Tickets nach dem Absenden nicht bearbeiten. Bitte bei Änderungen eine Nachricht/Dokumentation ergänzen oder ein neues Ticket erstellen.");
       return;
     }
 
@@ -4223,7 +4223,7 @@ async function loadApplicationData() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Bericht erfassen ${ticket.ticket_number || ""}</title>
+          <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number || ""}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { margin: 0; color: #0284c7; letter-spacing: 1px; }
@@ -4241,7 +4241,7 @@ async function loadApplicationData() {
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatisch archivierter Bericht erfassen</p>
+          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatisch archivierter Servicebericht</p>
 
           <h2>Kunde & Gerät</h2>
           <div class="box grid">
@@ -4451,7 +4451,7 @@ async function loadApplicationData() {
     pdf.text(companyDisplayName, headerTextX, y);
     pdf.setFontSize(8.5);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`${companySubtitle} · Bericht erfassen Premium`, headerTextX, y + 6);
+    pdf.text(`${companySubtitle} · Servicebericht Premium`, headerTextX, y + 6);
     pdf.text(companyContactLine, headerTextX, y + 11);
 
     pdf.setFont("helvetica", "bold");
@@ -4548,8 +4548,8 @@ async function loadApplicationData() {
     const relatedDevice = devices.find((item) => item.name === ticket.device);
     const customerId = ticket.customer_id || relatedDevice?.customer_id || null;
     const pdfBlob = await createServiceReportPdfBlob(ticket);
-    const fileName = `Bericht erfassen-${ticket.ticket_number || ticket.id}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    const filePath = `Bericht erfassene/${Date.now()}-${fileName}`;
+    const fileName = `Servicebericht-${ticket.ticket_number || ticket.id}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filePath = `Serviceberichte/${Date.now()}-${fileName}`;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -4559,7 +4559,7 @@ async function loadApplicationData() {
       });
 
     if (uploadResult.error) {
-      console.error("Bericht erfassen konnte nicht archiviert werden:", uploadResult.error.message);
+      console.error("Servicebericht konnte nicht archiviert werden:", uploadResult.error.message);
       return null;
     }
 
@@ -4569,7 +4569,7 @@ async function loadApplicationData() {
         {
           file_name: fileName,
           file_path: filePath,
-          category: "Bericht erfassene",
+          category: "Serviceberichte",
           file_size: pdfBlob.size,
           device_id: relatedDevice?.id || null,
           ticket_id: ticket.id,
@@ -4580,13 +4580,13 @@ async function loadApplicationData() {
       .single();
 
     if (insertResult.error) {
-      console.error("Bericht erfassen-PDF wurde hochgeladen, aber nicht gelistet:", insertResult.error.message);
+      console.error("Servicebericht-PDF wurde hochgeladen, aber nicht gelistet:", insertResult.error.message);
       return null;
     }
 
     await createDeviceHistory(
       relatedDevice?.id || null,
-      "Bericht erfassen automatisch als PDF archiviert",
+      "Servicebericht automatisch als PDF archiviert",
       `${ticket.ticket_number || "Ticket"} · ${fileName}`,
       "PDF",
     );
@@ -4598,7 +4598,7 @@ async function loadApplicationData() {
 
   async function saveServiceReport(ticket: Ticket) {
     if (!technicianSignature && !ticket.technician_signature) {
-      alert("Bitte zuerst die Techniker-Signatur im Bericht erfassen erfassen.");
+      alert("Bitte zuerst die Techniker-Signatur im Servicebericht erfassen.");
       return;
     }
 
@@ -4608,7 +4608,7 @@ async function loadApplicationData() {
     }
 
     if (!customerSignature && !ticket.customer_signature) {
-      alert("Bitte zuerst die Kunden-Signatur im Bericht erfassen erfassen.");
+      alert("Bitte zuerst die Kunden-Signatur im Servicebericht erfassen.");
       return;
     }
 
@@ -4632,13 +4632,13 @@ async function loadApplicationData() {
       .eq("id", ticket.id);
 
     if (error) {
-      alert(`Bericht erfassen konnte nicht gespeichert werden: ${error.message}`);
+      alert(`Servicebericht konnte nicht gespeichert werden: ${error.message}`);
       return;
     }
 
     await createDeviceHistory(
       null,
-      "Bericht erfassen abgeschlossen",
+      "Servicebericht abgeschlossen",
       `${ticket.ticket_number || "Ticket"} · Prüfsiegel: ${serviceBadgeNumber || "keins"}`,
       "Service",
     );
@@ -4663,9 +4663,9 @@ async function loadApplicationData() {
     await loadDocuments();
 
     if (archivedDocument) {
-      alert("Bericht erfassen gespeichert, unterschrieben und als PDF archiviert.");
+      alert("Servicebericht gespeichert, unterschrieben und als PDF archiviert.");
     } else {
-      alert("Bericht erfassen gespeichert. Automatische PDF-Archivierung bitte prüfen.");
+      alert("Servicebericht gespeichert. Automatische PDF-Archivierung bitte prüfen.");
     }
   }
 
@@ -4697,7 +4697,7 @@ async function loadApplicationData() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Bericht erfassen ${ticket.ticket_number}</title>
+          <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { margin: 0; color: #38bdf8; letter-spacing: 4px; }
@@ -4718,8 +4718,8 @@ async function loadApplicationData() {
           <div class="top">
             <div>
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">${companyDisplayName}</h1></div>
-              <p class="muted">${companySubtitle} · Bericht erfassen Premium</p>
-              <span class="badge">Bericht erfassen / Prüfbericht</span>
+              <p class="muted">${companySubtitle} · Servicebericht Premium</p>
+              <span class="badge">Servicebericht / Prüfbericht</span>
             </div>
             <div>
               <div class="label">Ticket</div>
@@ -4831,7 +4831,7 @@ async function loadApplicationData() {
 
     createDeviceHistory(
       relatedDevice?.id || null,
-      "PDF-Bericht erfassen erstellt",
+      "PDF-Servicebericht erstellt",
       `${ticket.ticket_number || "Ticket"} · ${ticket.issue || ""}`,
       "PDF",
     );
@@ -4839,7 +4839,7 @@ async function loadApplicationData() {
 
   function openServiceReportSigning(ticket: Ticket) {
     if (isCustomer) {
-      alert("PDF / Signatur, Bericht erfassen, Sicherheitsprüfung und Abnahme sind nur für Techniker und Admin vorgesehen.");
+      alert("PDF / Signatur, Servicebericht, Sicherheitsprüfung und Abnahme sind nur für Techniker und Admin vorgesehen.");
       return;
     }
 
@@ -4873,7 +4873,7 @@ async function loadApplicationData() {
     const ticket = serviceSigningTicket || selectedTicketView;
 
     if (!ticket) {
-      alert("Bitte zuerst ein Ticket für den Bericht erfassen öffnen.");
+      alert("Bitte zuerst ein Ticket für den Servicebericht öffnen.");
       return;
     }
 
@@ -4914,7 +4914,7 @@ async function loadApplicationData() {
         ? notes.map((line) => `- ${line}`).join("\n")
         : `- ${ticket.issue || "Serviceeinsatz durchgeführt"}\n- ${ticket.description || "Gerät geprüft und Funktionskontrolle durchgeführt"}`;
 
-    const nextReport = `Bericht erfassen
+    const nextReport = `Servicebericht
 
 Datum: ${today}
 Kunde: ${customerName}
@@ -5627,7 +5627,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     if (statusValue === "Wartet auf Ersatzteil" || statusValue === "Wartet auf Ersatzteile")
       return "bg-purple-100 text-purple-700";
     if (statusValue === "Wartet auf Kundenfreigabe")
-      return "bg-slate-100 text-slate-700";
+      return "bg-orange-100 text-orange-700";
     if (statusValue === "Dringend")
       return "bg-red-100 text-red-700";
     return "bg-sky-100 text-sky-600";
@@ -5869,7 +5869,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     if (diffDays < 0) {
       return {
-        label: "Frist überschrittene Einsätze",
+        label: "Überfällig",
         daysText: `${Math.abs(diffDays)} Tage überfällig`,
         className: "bg-red-100 text-red-700",
       };
@@ -6150,29 +6150,17 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
   
 function TechFlowLogo({ compact = false, hero = false }: { dark?: boolean; compact?: boolean; hero?: boolean }) {
-  if (hero) {
-    return (
-      <img
-        src={TECHFLOW_LOGO_PATH}
-        alt="TechFlow"
-        style={{
-          width: "76%",
-          maxWidth: "1180px",
-          height: "auto",
-          display: "block",
-          objectFit: "contain",
-          marginLeft: "auto",
-          marginRight: "auto",
-        }}
-      />
-    );
-  }
-
   return (
     <img
       src={TECHFLOW_LOGO_PATH}
       alt="TechFlow"
-      className={compact ? "h-10 w-auto max-w-[220px] object-contain" : "h-14 w-auto max-w-[300px] object-contain"}
+      className={
+        hero
+          ? "h-24 w-auto max-w-[520px] object-contain md:h-28"
+          : compact
+            ? "h-12 w-auto max-w-[260px] object-contain"
+            : "h-16 w-auto max-w-[340px] object-contain"
+      }
     />
   );
 }
@@ -6186,14 +6174,14 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
         <img
           src={logoSrc}
           alt={`${brandName} Logo`}
-          className="h-auto w-full max-w-[180px] object-contain mx-auto drop-shadow-md"
+          className="h-auto w-full max-w-[120px] object-contain mx-auto drop-shadow-md"
           onError={(event) => {
             event.currentTarget.style.display = "none";
           }}
         />
 
         <p
-          className={`mt-4 text-sm font-black uppercase tracking-[0.22em] ${
+          className={`mt-4 text-sm font-black uppercase tracking-[0.28em] ${
             dark ? "text-[var(--pe-blue)]" : "text-sky-500"
           }`}
         >
@@ -6205,7 +6193,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
             dark ? "text-sky-400" : "text-sky-500"
           }`}
         >
-          Service Management System
+          Service Management Platform
         </p>
       </div>
     );
@@ -6427,7 +6415,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     if (diffDays <= reminderDays) {
       return {
         label: "Erinnerung fällig",
-        className: "bg-slate-100 text-slate-700",
+        className: "bg-orange-100 text-orange-700",
         detail: `${diffDays} Tage bis Termin · Schwelle: ${reminderDays} Tage${sentInfo}`,
       };
     }
@@ -6796,7 +6784,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   async function saveMaintenancePlan() {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker können Wartungen fällig planen.");
+      alert("Nur Admins und Techniker können Wartungen planen.");
       return;
     }
 
@@ -6944,7 +6932,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   async function createTicketFromMaintenancePlan(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
-      alert("Nur Admins und Techniker können aus Wartungen fällig Tickets erstellen.");
+      alert("Nur Admins und Techniker können aus Wartungen Tickets erstellen.");
       return;
     }
 
@@ -6977,7 +6965,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
     if (existingTicket) {
       const confirmed = window.confirm(
-        `Zu diesem Wartungsplan gibt es vermutlich schon ein Ticket (${existingTicket.ticket_number}). Trotzdem ein neues Neuer Servicefall?`,
+        `Zu diesem Wartungsplan gibt es vermutlich schon ein Ticket (${existingTicket.ticket_number}). Trotzdem ein neues Ticket erstellen?`,
       );
 
       if (!confirmed) return;
@@ -7845,7 +7833,7 @@ PRO-EFFEKT`,
       .insert(maintenanceRows);
 
     if (error) {
-      alert(`Wartungen fällig konnten nicht erzeugt werden: ${error.message}`);
+      alert(`Wartungen konnten nicht erzeugt werden: ${error.message}`);
       return;
     }
 
@@ -7957,7 +7945,7 @@ PRO-EFFEKT`,
     }
 
     const confirmed = window.confirm(
-      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen fällig bleiben erhalten.",
+      "Diesen Vertrag wirklich löschen? Bereits erzeugte Wartungen bleiben erhalten.",
     );
 
     if (!confirmed) return;
@@ -9811,7 +9799,7 @@ PRO-EFFEKT`,
   );
 
   const recentServiceReports = documents
-    .filter((documentItem) => documentItem.category === "Bericht erfassene")
+    .filter((documentItem) => documentItem.category === "Serviceberichte")
     .slice(0, 5);
 
   const acceptanceProtocolDocuments = documents.filter(
@@ -10134,7 +10122,7 @@ PRO-EFFEKT`,
       : 0;
 
   const overdueInspectionsCount = devices.filter(
-    (item) => getInspectionStatus(item.next_check).label === "Frist überschrittene Einsätze",
+    (item) => getInspectionStatus(item.next_check).label === "Überfällig",
   ).length;
 
   const soonInspectionsCount = devices.filter(
@@ -10214,14 +10202,14 @@ PRO-EFFEKT`,
             <img
               src="/pro-effekt-logo.png"
               alt="Pro-Effekt"
-              className="h-auto w-full max-w-[180px] object-contain mx-auto"
+              className="h-auto w-full max-w-[120px] object-contain mx-auto"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
               }}
             />
 
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
+              <p className="text-sm font-black uppercase tracking-[0.28em] text-sky-400">
                 PRO-EFFEKT
               </p>
               <h1 className="mt-2 text-3xl font-black md:text-5xl">
@@ -10239,7 +10227,7 @@ PRO-EFFEKT`,
               <h2 className="text-xl font-black text-sky-400">Datenschutz</h2>
               <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
                 Die TechFlow Plattform verarbeitet Kundendaten, Kontaktdaten,
-                Gerätedaten, Tickets, Dokumente, Bericht erfassene und Prüfprotokolle
+                Gerätedaten, Tickets, Dokumente, Serviceberichte und Prüfprotokolle
                 zur Durchführung von Service-, Wartungs- und Prüfleistungen.
               </p>
             </section>
@@ -10301,7 +10289,7 @@ PRO-EFFEKT`,
               />
               <span className="text-sm font-semibold leading-7 text-slate-200 md:text-base">
                 Ich stimme der digitalen Speicherung von Signaturen,
-                Prüfprotokollen, Bericht erfassenen und Dokumentationen zu.
+                Prüfprotokollen, Serviceberichten und Dokumentationen zu.
               </span>
             </label>
           </div>
@@ -10309,7 +10297,7 @@ PRO-EFFEKT`,
           <button
             onClick={acceptLegalAgreement}
             disabled={legalChecking}
-            className="mt-8 w-full rounded-[28px] bg-slate-700 px-8 py-5 text-xl font-black text-black shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.99] disabled:opacity-60"
+            className="mt-8 w-full rounded-[28px] bg-sky-500 px-8 py-5 text-xl font-black text-black shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.99] disabled:opacity-60"
           >
             {legalChecking ? "Wird gespeichert..." : "Akzeptieren & Plattform starten"}
           </button>
@@ -10329,10 +10317,10 @@ PRO-EFFEKT`,
       : "Kundenportal";
 
   const portalSubtitle = isAdmin
-    ? ""
+    ? "Vollzugriff auf Kunden, Geräte, Tickets, Sicherheitsprüfung-Wartung, Einsatz, Teile, Dokumente und Berichte."
     : isTechnician
-      ? ""
-      : "";
+      ? "Einsatzbereich für Tickets, Geräte, Sicherheitsprüfungen, Fotos und Serviceberichte."
+      : "Eigene Geräte, Tickets und Dokumente im Überblick.";
 
   const primaryActionLabel = isAdmin
     ? "Verwaltung öffnen"
@@ -10444,7 +10432,7 @@ PRO-EFFEKT`,
     }
   }
 
-  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Frist überschrittene Einsätze") {
+  function openAbnahmeDocuments(filter: "Alle" | "Dieser Monat" | "Bald fällig" | "Überfällig") {
     setActivePage("Dokumente");
     setActiveDocumentCategory("Abnahmeprotokolle");
     setUploadCategory("Abnahmeprotokolle");
@@ -10778,7 +10766,7 @@ PRO-EFFEKT`,
   const filteredDeviceDirectory = (() => {
     const search = deviceDirectorySearchNormalized;
 
-    // Ohne Suchbegriff wird nur die saubere Katalog-/Asset-Status angezeigt.
+    // Ohne Suchbegriff wird nur die saubere Katalog-/Asset-Übersicht angezeigt.
     if (!isDeviceDirectorySearchReady) return [];
 
     return devices
@@ -11271,7 +11259,7 @@ PRO-EFFEKT`,
     "Alle",
     "Lieferscheine",
     "Rechnungen",
-    "Bericht erfassene",
+    "Serviceberichte",
     "Abnahmeprotokolle",
     "Fotos",
     "Verträge",
@@ -11303,7 +11291,7 @@ PRO-EFFEKT`,
               <img
                 src="/pro-effekt-logo.png"
                 alt="Pro-Effekt Logo"
-                className="mx-auto mt-5 h-auto w-full max-w-[180px] object-contain drop-shadow-md"
+                className="mx-auto mt-5 h-auto w-full max-w-[120px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
@@ -11337,7 +11325,7 @@ PRO-EFFEKT`,
 
               <button
                 onClick={login}
-                className="h-14 w-full rounded-2xl bg-slate-700 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
+                className="h-14 w-full rounded-2xl bg-sky-500 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
               >
                 Einloggen
               </button>
@@ -11359,7 +11347,7 @@ PRO-EFFEKT`,
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-8 rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
+            className="mt-8 rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
           >
             Neu laden
           </button>
@@ -11534,7 +11522,7 @@ PRO-EFFEKT`,
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
         <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-[#07111d] p-7 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
           <div className="flex flex-col items-center">
-            <h1 className="whitespace-nowrap text-center text-xl font-black tracking-[0.14em] text-sky-500">
+            <h1 className="whitespace-nowrap text-center text-xl font-black tracking-[0.18em] text-sky-500">
               PRO-EFFEKT
             </h1>
 
@@ -11561,7 +11549,7 @@ PRO-EFFEKT`,
                     onClick={() => openPage(item)}
                     className={`flex w-full items-center gap-3 rounded-3xl border px-4 py-3.5 text-left text-[14px] font-extrabold leading-tight transition-all ${
                       activePage === item
-                        ? "border-sky-500 bg-slate-700 text-white shadow-lg shadow-sky-950/30"
+                        ? "border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-950/30"
                         : "border-white/10 bg-white/[0.03] text-slate-200 hover:bg-white/5"
                     }`}
                   >
@@ -11592,7 +11580,7 @@ PRO-EFFEKT`,
                         onClick={() => openPage(item)}
                         className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                           activePage === item
-                            ? "bg-slate-700 text-white shadow-lg shadow-sky-950/30"
+                            ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
                             : "text-slate-300 hover:bg-white/5"
                         }`}
                       >
@@ -11619,7 +11607,20 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-
+          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-sm shadow-slate-200/70 lg:block">
+            <div className="flex flex-col items-center text-center">
+              <TechFlowLogo hero />
+              <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-sky-500">
+                Service Management Platform
+              </p>
+              <h2 className="mt-3 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 lg:text-4xl">
+                {portalTitle}
+              </h2>
+              <p className="mt-3 max-w-4xl text-[15px] font-semibold leading-6 text-slate-500">
+                {portalSubtitle}
+              </p>
+            </div>
+          </div>
 
           <div className="sticky top-0 z-40 -mx-3 mb-5 border-b border-[var(--pe-blue)]/20 bg-[var(--pe-black)] px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-lg sm:-mx-5 sm:px-4 lg:hidden">
             <div className="flex min-w-0 items-center justify-between gap-3">
@@ -11634,7 +11635,7 @@ PRO-EFFEKT`,
                     }}
                   />
                   <div className="min-w-0">
-                    <p className="truncate text-[11px] font-black uppercase tracking-[0.14em] text-[var(--pe-blue)]">
+                    <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-[var(--pe-blue)]">
                       PRO-EFFEKT
                     </p>
                     <p className="truncate text-xs font-semibold text-slate-300">
@@ -11650,7 +11651,7 @@ PRO-EFFEKT`,
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                className="shrink-0 rounded-2xl border border-sky-500/30 bg-slate-700 px-4 py-3 text-sm font-black text-black shadow-lg shadow-sky-950/30 active:scale-[0.98]"
+                className="shrink-0 rounded-2xl border border-sky-500/30 bg-sky-500 px-4 py-3 text-sm font-black text-black shadow-lg shadow-sky-950/30 active:scale-[0.98]"
                 aria-label="Menü öffnen"
               >
                 ☰ Menü
@@ -11697,7 +11698,7 @@ PRO-EFFEKT`,
                             onClick={() => openPage(item)}
                             className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                               activePage === item
-                                ? "bg-slate-700 text-white shadow-lg shadow-sky-950/30"
+                                ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
                                 : "text-slate-300 hover:bg-white/5"
                             }`}
                           >
@@ -11730,11 +11731,11 @@ PRO-EFFEKT`,
                 <div className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl sm:h-[92vh] sm:rounded-[32px]">
                   <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
                     <div className="min-w-0">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-500">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
                         PDF / Signatur
                       </p>
                       <h3 className="truncate text-xl font-black text-slate-900">
-                        {currentTicket.ticket_number} · Bericht erfassen unterschreiben
+                        {currentTicket.ticket_number} · Servicebericht unterschreiben
                       </h3>
                     </div>
 
@@ -11750,15 +11751,15 @@ PRO-EFFEKT`,
                   <div className="flex-1 overflow-y-auto p-4">
                     <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5">
                       <p className="text-sm font-bold text-slate-600">
-                        Techniker und Kunde können direkt am Handy, Tablet oder Notebook unterschreiben. Danach wird der Bericht erfassen archiviert und das Ticket abgeschlossen.
+                        Techniker und Kunde können direkt am Handy, Tablet oder Notebook unterschreiben. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <div className="rounded-3xl border border-purple-200 bg-purple-50 p-4 md:col-span-2">
                           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
-                              <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-500">
-                                KI-Bericht erfassen
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
+                                KI-Servicebericht
                               </p>
                               <h5 className="mt-1 text-lg font-black text-slate-900">
                                 Aus Stichpunkten professionellen Bericht erzeugen
@@ -11799,7 +11800,7 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
-                          placeholder="Durchgeführte Arbeiten / Bericht erfassen"
+                          placeholder="Durchgeführte Arbeiten / Servicebericht"
                           className="min-h-[150px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
 
@@ -11886,7 +11887,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={() => saveServiceReport(currentTicket)}
-                      className="rounded-3xl bg-slate-700 px-5 py-4 font-black text-white"
+                      className="rounded-3xl bg-sky-500 px-5 py-4 font-black text-white"
                     >
                       Unterschrieben abschließen & archivieren
                     </button>
@@ -11928,47 +11929,67 @@ PRO-EFFEKT`,
           {activePage === "Dashboard" && (
             <div className="space-y-6">
 <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-300">
-                      Admin-Zentrale
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => openPage("Einsatz")}
-                    className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400"
-                  >
-                    ▣ Einsatzplanung
-                  </button>
+                <div className="mb-6 flex flex-col items-start gap-3">
+                  <TechFlowLogo hero />
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-300">
+                    Service Management Platform
+                  </p>
                 </div>
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
+                  Admin-Zentrale
+                </p>
+                <h3 className="mt-2 text-4xl font-black">
+                  Operations-Leitstand
+                </h3>
+                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                  Alle offenen Servicefälle, Einsätze, Sicherheitsprüfung-Wartungen, Prüfungen, Teile und Berichte auf einen Blick.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={loadApplicationData}
+                  className="mt-4 rounded-full bg-white/10 px-4 py-2 text-sm font-black text-white transition hover:bg-white/20"
+                >
+                  Dashboard neu laden
+                </button>
 
                 {isAdmin && (
                   <div className="mt-6 rounded-[28px] border border-cyan-400/20 bg-white/10 p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-300">
-                          Status
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                          Service Operations
+                        </p>
+                        <h3 className="mt-1 text-2xl font-black text-white">Operations-Leitstand</h3>
+                        <p className="mt-1 text-sm font-bold text-slate-300">
+                          Zentrale Übersicht über Disposition, offene Einsätze, Wartungen und aktuelle Prioritäten.
                         </p>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openPage("Einsatz")}
+                        className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-black text-white"
+                      >
+                        Einsatzplanung öffnen
+                      </button>
                     </div>
 
-                    <div className="mt-6 grid gap-5 md:grid-cols-4">
+                    <div className="mt-4 grid gap-3 md:grid-cols-4">
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute geplant</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
                       </div>
                       <div className="rounded-2xl bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Einsätze diese Woche</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-slate-700/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Frist überschrittene Einsätze</p>
+                      <div className="rounded-2xl bg-red-500/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällig</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl bg-slate-700/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen fällig</p>
+                      <div className="rounded-2xl bg-amber-500/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
                       </div>
                     </div>
@@ -11977,19 +11998,19 @@ PRO-EFFEKT`,
 
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <div className="rounded-2xl bg-white/10 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Aktive Wartungspläne</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Wartungspläne</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.total}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-700/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute geplant fällig</p>
+                  <div className="rounded-2xl bg-orange-500/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-200">Heute fällig</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueToday}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-700/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">Wartungen in 7 Tagen</p>
+                  <div className="rounded-2xl bg-amber-500/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-200">In 7 Tagen</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.dueSoon}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-700/20 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Frist überschrittene Einsätze</p>
+                  <div className="rounded-2xl bg-red-500/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-200">Überfällig</p>
                     <p className="mt-2 text-3xl font-black text-white">{maintenancePremiumStats.overdue}</p>
                   </div>
                 </div>
@@ -11997,11 +12018,11 @@ PRO-EFFEKT`,
                 <div className="mt-6 grid gap-3 md:grid-cols-4">
                   <button
                     onClick={() => openPage("Service-Tickets")}
-                    className="rounded-2xl bg-slate-700 px-4 py-4 text-left font-black text-white"
+                    className="rounded-2xl bg-sky-500 px-4 py-4 text-left font-black text-white"
                   >
-                    Neuer Servicefall
+                    Neues Ticket
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Ticket anlegen
+                      Servicefall anlegen
                     </span>
                   </button>
 
@@ -12029,18 +12050,18 @@ PRO-EFFEKT`,
                     onClick={() => openPage("Ersatzteile")}
                     className="rounded-2xl bg-white/10 px-4 py-4 text-left font-black text-white"
                   >
-                    Ersatzteile
+                    Teile
                     <span className="mt-1 block text-xs font-bold opacity-80">
-                      Bestand & Verbrauch
+                      Lager & Verbrauch
                     </span>
                   </button>
                 </div>
               </div>
 
-    <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
+              <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
                       Kommunikationsstatus
                     </p>
                     <h3 className="mt-1 text-xl font-black text-slate-900">
@@ -12070,7 +12091,7 @@ PRO-EFFEKT`,
                   <StatCard label="Offen" value={ticketStats.open} />
                   <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
                   <StatCard label="Erledigt" value={ticketStats.completed} />
-                  <StatCard label="Heute geplant Einsätze" value={ticketStats.today} />
+                  <StatCard label="Heute Einsätze" value={ticketStats.today} />
                 </div>
               )}
 
@@ -12233,7 +12254,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {todaysAdminTickets.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Heute geplant keine Einsätze geplant.
+                        Heute keine Einsätze geplant.
                       </div>
                     ) : (
                       todaysAdminTickets.map((ticket) => {
@@ -12317,11 +12338,11 @@ PRO-EFFEKT`,
 
               <div className="grid gap-6 xl:grid-cols-3">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Frist überschrittene Einsätzee Sicherheitsprüfung/Wartungen fällig</h3>
+                  <h3 className="text-xl font-black">Überfällige Sicherheitsprüfung/Wartungen</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {overdueAdminMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine überfälligen Sicherheitsprüfung/Wartungen fällig.
+                        Keine überfälligen Sicherheitsprüfung/Wartungen.
                       </div>
                     ) : (
                       overdueAdminMaintenancePlans.slice(0, 5).map((plan) => (
@@ -12349,7 +12370,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {lowStockParts.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine kritischen Ersatzteile.
+                        Keine kritischen Teile.
                       </div>
                     ) : (
                       lowStockParts.slice(0, 5).map((part) => (
@@ -12368,11 +12389,11 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Letzte Bericht erfassene</h3>
+                  <h3 className="text-xl font-black">Letzte Serviceberichte</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {recentServiceReports.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Noch keine Bericht erfassene archiviert.
+                        Noch keine Serviceberichte archiviert.
                       </div>
                     ) : (
                       recentServiceReports.map((doc) => (
@@ -12404,7 +12425,7 @@ PRO-EFFEKT`,
                     <div>
                       <h3 className="text-xl font-black">Abnahmeprotokolle / Prüffristen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Status aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
+                        Übersicht aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
                       </p>
                     </div>
                     <button
@@ -12431,8 +12452,8 @@ PRO-EFFEKT`,
                       <p className="mt-2 text-2xl font-black text-slate-900">{upcomingAcceptanceProtocols.length}</p>
                       <p className="mt-2 text-xs font-black text-yellow-700">Öffnen</p>
                     </button>
-                    <button onClick={() => openAbnahmeDocuments("Frist überschrittene Einsätze")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Frist überschrittene Einsätze</p>
+                    <button onClick={() => openAbnahmeDocuments("Überfällig")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Überfällig</p>
                       <p className="mt-2 text-2xl font-black text-slate-900">{overdueAcceptanceProtocols.length}</p>
                       <p className="mt-2 text-xs font-black text-red-700">Öffnen</p>
                     </button>
@@ -12486,33 +12507,8 @@ PRO-EFFEKT`,
                 TechFlow · Betriebsbereit
               </div>
 
-              <div
-            className="mb-5 border border-slate-200/80 bg-white shadow-lg shadow-slate-200/70"
-            style={{
-              borderRadius: "24px",
-              padding: "14px 20px 12px",
-            }}
-          >
-            <div className="flex w-full flex-col items-center justify-center text-center">
-              <TechFlowLogo hero />
-              <p
-                className="font-black uppercase text-sky-500"
-                style={{
-                  marginTop: "8px",
-                  fontSize: "clamp(12px, 1vw, 16px)",
-                  lineHeight: "1",
-                  letterSpacing: "clamp(0.16em, 0.55vw, 0.30em)",
-                  whiteSpace: "nowrap",
-                  textAlign: "center",
-                }}
-              >
-                Service - Management - System
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Disposition
                 </p>
                 <h3 className="mt-2 text-4xl font-black">
@@ -12558,7 +12554,7 @@ PRO-EFFEKT`,
                 <div className="rounded-[28px] border border-violet-200 bg-violet-50 p-5 shadow-sm">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-700">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
                         Wartungsautomatisierung
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
@@ -12588,9 +12584,9 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute geplant fällig" value={maintenanceAutomationStats.dueToday} />
+                    <StatCard label="Heute fällig" value={maintenanceAutomationStats.dueToday} />
                     <StatCard label="Bereit" value={maintenanceAutomationStats.automationReady} />
-                    <StatCard label="Heute geplant versendet" value={maintenanceAutomationStats.sentToday} />
+                    <StatCard label="Heute versendet" value={maintenanceAutomationStats.sentToday} />
                     <StatCard label="Fehler" value={maintenanceAutomationStats.failed} />
                   </div>
                 </div>
@@ -12600,14 +12596,14 @@ PRO-EFFEKT`,
                 <div className="rounded-[28px] border border-blue-200 bg-blue-50 p-5 shadow-sm">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-700">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
                         Automatische Wartungsmails
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
                         {maintenanceMailCandidates.length} Wartungsmail(s) bereit
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        Wartungen fällig können direkt als E-Mail vorgemerkt oder sofort versendet werden.
+                        Fällige Wartungen können direkt als E-Mail vorgemerkt oder sofort versendet werden.
                       </p>
                     </div>
                     <button
@@ -12625,7 +12621,7 @@ PRO-EFFEKT`,
                 <div className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-sm">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-600">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">
                         Wartungsplaner Premium
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
@@ -12635,7 +12631,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                      className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
                     >
                       Zu den Vorschlägen
                     </button>
@@ -12663,7 +12659,7 @@ PRO-EFFEKT`,
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Tickets" value={calendarTickets.length} />
-                <StatCard label="Sicherheitsprüfung/Wartungen fällig" value={calendarMaintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen" value={calendarMaintenancePlans.length} />
                 <StatCard
                   label="Offene Einsätze"
                   value={
@@ -12754,9 +12750,9 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black">Wartungen fällig</h3>
+                      <h3 className="text-xl font-black">Wartungen</h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Sicherheitsprüfung- und Aktive Wartungspläne mit Fälligkeit am gewählten Tag.
+                        Sicherheitsprüfung- und Wartungspläne mit Fälligkeit am gewählten Tag.
                       </p>
                     </div>
                     <button
@@ -12770,7 +12766,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {calendarMaintenancePlans.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Sicherheitsprüfung/Wartungen fällig für diesen Tag.
+                        Keine Sicherheitsprüfung/Wartungen für diesen Tag.
                       </div>
                     ) : (
                       calendarMaintenancePlans.map((plan) => {
@@ -12822,7 +12818,7 @@ PRO-EFFEKT`,
               <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
                       Kommunikationszentrale
                     </p>
                     <h2 className="mt-1 text-2xl font-black text-slate-900">
@@ -12894,7 +12890,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
-                Verträge können automatisch Sicherheitsprüfung- und Aktive Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
+                Verträge können automatisch Sicherheitsprüfung- und Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
               </div>
 
               {selectedTicketView && (() => {
@@ -12942,7 +12938,7 @@ PRO-EFFEKT`,
                   <div className="mb-6 rounded-[28px] border-2 border-sky-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-500">
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
                           Ticket-Akte · alles auf einen Blick
                         </p>
                         <h3 className="mt-2 text-2xl font-black text-slate-900">
@@ -13057,18 +13053,18 @@ PRO-EFFEKT`,
 
                     <div className="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5">
                       <h4 className="text-xl font-black text-sky-700">
-                        Bericht erfassen unterschreiben
+                        Servicebericht unterschreiben
                       </h4>
                       <p className="mt-2 text-sm font-bold text-slate-600">
-                        Hier unterschreiben Techniker und Kunde direkt am Handy oder Tablet. Danach wird der Bericht erfassen archiviert und das Ticket abgeschlossen.
+                        Hier unterschreiben Techniker und Kunde direkt am Handy oder Tablet. Danach wird der Servicebericht archiviert und das Ticket abgeschlossen.
                       </p>
 
                       <div className="mt-4 grid gap-3 md:grid-cols-2">
                         <div className="rounded-3xl border border-purple-200 bg-purple-50 p-4 md:col-span-2">
                           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                             <div>
-                              <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-500">
-                                KI-Bericht erfassen
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-purple-500">
+                                KI-Servicebericht
                               </p>
                               <h5 className="mt-1 text-lg font-black text-slate-900">
                                 Aus Stichpunkten professionellen Bericht erzeugen
@@ -13109,7 +13105,7 @@ PRO-EFFEKT`,
                         <textarea
                           value={serviceReport}
                           onChange={(event) => setServiceReport(event.target.value)}
-                          placeholder="Durchgeführte Arbeiten / Bericht erfassen"
+                          placeholder="Durchgeführte Arbeiten / Servicebericht"
                           className="min-h-[140px] rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold md:col-span-2"
                         />
 
@@ -13194,7 +13190,7 @@ PRO-EFFEKT`,
                         <button
                           type="button"
                           onClick={() => saveServiceReport(currentTicket)}
-                          className="rounded-3xl bg-slate-700 px-5 py-4 font-black text-white"
+                          className="rounded-3xl bg-sky-500 px-5 py-4 font-black text-white"
                         >
                           Unterschrieben abschließen & archivieren
                         </button>
@@ -13390,14 +13386,14 @@ PRO-EFFEKT`,
                 <div className="mb-6 rounded-[28px] border border-amber-200 bg-amber-50 p-5 shadow-sm">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
                         Wartungsplaner Premium
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Automatische Ticketvorschläge aus fälligen Wartungen fällig
+                        Automatische Ticketvorschläge aus fälligen Wartungen
                       </h3>
                       <p className="mt-1 text-sm font-bold text-slate-600">
-                        Fällige, bald fällige und überfällige Wartungen fällig können direkt als Service-Ticket angelegt werden.
+                        Fällige, bald fällige und überfällige Wartungen können direkt als Service-Ticket angelegt werden.
                       </p>
                     </div>
                     <button
@@ -13434,9 +13430,9 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => createTicketFromMaintenancePlan(plan)}
-                              className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                              className="w-full rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
                             >
-                              Neuer Servicefall
+                              Ticket erstellen
                             </button>
                             <div className="grid grid-cols-2 gap-2">
                               <button
@@ -13516,7 +13512,7 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={saveNotification}
-                      className="h-14 w-full rounded-2xl bg-slate-700 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
+                      className="h-14 w-full rounded-2xl bg-sky-500 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99]"
                     >
                       {editingNotificationId ? "Änderungen speichern" : "Zur Prüfung rechts speichern"}
                     </button>
@@ -13749,7 +13745,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={saveInvoice}
-                      className="w-full rounded-2xl bg-slate-700 py-4 font-black text-white"
+                      className="w-full rounded-2xl bg-sky-500 py-4 font-black text-white"
                     >
                       {invoiceType} speichern
                     </button>
@@ -13865,7 +13861,7 @@ PRO-EFFEKT`,
                       }}
                       className={`shrink-0 rounded-2xl px-4 py-3 text-sm font-black transition-all ${
                         activeDocumentCategory === category
-                          ? "bg-slate-700 text-white"
+                          ? "bg-sky-500 text-white"
                           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                       }`}
                     >
@@ -14187,7 +14183,7 @@ PRO-EFFEKT`,
 
                       <div className="flex flex-col justify-end">
                         <label className={`cursor-pointer rounded-2xl px-6 py-4 text-center font-black text-white ${
-                          uploading ? "bg-slate-400" : "bg-slate-700 hover:bg-sky-600"
+                          uploading ? "bg-slate-400" : "bg-sky-500 hover:bg-sky-600"
                         }`}>
                           {uploading ? "Upload läuft..." : "Dokument hochladen"}
 
@@ -14232,7 +14228,7 @@ PRO-EFFEKT`,
                     </p>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Frist überschrittene Einsätze</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Überfällig</p>
                     <p className="mt-2 text-2xl font-black text-red-700">
                       {filteredDocuments.filter((item) => getDocumentDueMeta(item)?.label.includes("überfällig")).length}
                     </p>
@@ -14477,7 +14473,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Mandanten-Branding
                 </p>
                 <h3 className="mt-2 text-4xl font-black">
@@ -14632,14 +14628,14 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Business Dashboard
                 </p>
                 <h3 className="mt-2 text-4xl font-black">
                   Pro-Effekt Auswertungen
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Kennzahlen für Umsatz, Tickets, Wartungen fällig, Prüfungen, Technikerleistung und Kundenaktivität.
+                  Kennzahlen für Umsatz, Tickets, Wartungen, Prüfungen, Technikerleistung und Kundenaktivität.
                 </p>
               </div>
 
@@ -14804,11 +14800,11 @@ PRO-EFFEKT`,
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Bericht erfassene</h3>
+                  <h3 className="text-xl font-black">Serviceberichte</h3>
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     <div className="rounded-2xl bg-slate-50 p-4">
                       <p className="text-4xl font-black">
-                        {visibleDocuments.filter((item) => item.category === "Bericht erfassene").length}
+                        {visibleDocuments.filter((item) => item.category === "Serviceberichte").length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
                         archivierte Berichte
@@ -14820,7 +14816,7 @@ PRO-EFFEKT`,
                         {partUsages.length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
-                        Ersatzteileverbräuche
+                        Teileverbräuche
                       </p>
                     </div>
                   </div>
@@ -15168,7 +15164,7 @@ PRO-EFFEKT`,
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
                         onClick={updateCustomer}
-                        className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                        className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
                       >
                         Kunde speichern
                       </button>
@@ -15183,7 +15179,7 @@ PRO-EFFEKT`,
                   ) : (
                     <button
                       onClick={createCustomer}
-                      className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
                     >
                       Kunde hinzufügen
                     </button>
@@ -15249,7 +15245,7 @@ PRO-EFFEKT`,
                             Kundenliste bereit
                           </p>
                           <p className="mt-2 max-w-3xl text-base font-semibold leading-7 text-slate-500">
-                            Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Statussgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
+                            Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Übersichtsgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
                             Nutze oben Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
                           </p>
                         </div>
@@ -15350,7 +15346,7 @@ PRO-EFFEKT`,
                                         <button
                                           type="button"
                                           onClick={() => addCustomerDeviceToAbnahmeProtocol(item, deviceItem)}
-                                          className="mt-2 w-full rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-600 transition hover:bg-slate-700 hover:text-white"
+                                          className="mt-2 w-full rounded-xl bg-sky-100 px-3 py-2 text-xs font-black text-sky-600 transition hover:bg-sky-500 hover:text-white"
                                         >
                                           In Abnahme übernehmen
                                         </button>
@@ -15421,7 +15417,7 @@ PRO-EFFEKT`,
                     {activePage === "Geräte" && !selectedDeviceView && (isAdmin || isTechnician) && (
             <div className="space-y-6">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
@@ -15507,7 +15503,7 @@ PRO-EFFEKT`,
                         <div className="grid gap-3 md:grid-cols-2">
                           <button
                             onClick={saveManufacturer}
-                            className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
+                            className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                           >
                             {editingManufacturer ? "Änderungen speichern" : "Hersteller speichern"}
                           </button>
@@ -15577,7 +15573,7 @@ PRO-EFFEKT`,
                         <div className="grid gap-3 md:grid-cols-2">
                           <button
                             onClick={saveDeviceModel}
-                            className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
+                            className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                           >
                             {editingDeviceModel ? "Modell speichern" : "Gerät / Modell hinzufügen"}
                           </button>
@@ -15622,7 +15618,7 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                    <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                    <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
                       Hersteller auswählen
                     </label>
                     <select
@@ -15841,9 +15837,9 @@ PRO-EFFEKT`,
                 <div className="flex w-full flex-col gap-3 xl:w-64">
                   <button
                     onClick={() => createTicketFromDevice(selectedDeviceView)}
-                    className="rounded-2xl bg-slate-700 px-4 py-4 font-bold text-white"
+                    className="rounded-2xl bg-sky-500 px-4 py-4 font-bold text-white"
                   >
-                    Neuer Servicefall
+                    Ticket erstellen
                   </button>
 
                   <button
@@ -15885,7 +15881,7 @@ PRO-EFFEKT`,
                         ))}
                     </select>
 
-                    <label className="block cursor-pointer rounded-2xl bg-slate-700 px-4 py-4 text-center font-bold text-white hover:bg-sky-600">
+                    <label className="block cursor-pointer rounded-2xl bg-sky-500 px-4 py-4 text-center font-bold text-white hover:bg-sky-600">
                       {uploading ? "Upload läuft..." : "Datei auswählen"}
 
                       <input
@@ -16089,7 +16085,7 @@ PRO-EFFEKT`,
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
-                                  className="w-full rounded-2xl bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-700 md:text-sm"
+                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
                                 >
                                   Stornieren
                                 </button>
@@ -16278,7 +16274,7 @@ PRO-EFFEKT`,
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
                         onClick={updateDevice}
-                        className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                        className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
                       >
                         Gerät speichern
                       </button>
@@ -16293,7 +16289,7 @@ PRO-EFFEKT`,
                   ) : (
                     <button
                       onClick={createDevice}
-                      className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
                     >
                       Gerät hinzufügen
                     </button>
@@ -16523,7 +16519,7 @@ PRO-EFFEKT`,
                   value={monthlyRecurringRevenue}
                 />
                 <StatCard
-                  label="Auto-Wartungen fällig"
+                  label="Auto-Wartungen"
                   value={contractGeneratedMaintenanceCount}
                 />
               </div>
@@ -16640,7 +16636,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={saveContract}
-                      className="w-full rounded-2xl bg-slate-700 py-4 font-black text-white"
+                      className="w-full rounded-2xl bg-sky-500 py-4 font-black text-white"
                     >
                       {editingContractId ? "Vertrag aktualisieren" : "Vertrag speichern"}
                     </button>
@@ -16726,7 +16722,7 @@ PRO-EFFEKT`,
                                 onClick={() => generateMaintenanceFromContract(item)}
                                 className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                               >
-                                Wartungen fällig erzeugen
+                                Wartungen erzeugen
                               </button>
 
                               <button
@@ -16749,7 +16745,7 @@ PRO-EFFEKT`,
           {activePage === "Abnahmeprotokoll" && (
             <div className="space-y-6">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Digitales Prüfprotokoll
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
@@ -16996,7 +16992,7 @@ PRO-EFFEKT`,
                                     <span
                                       className={`shrink-0 rounded-full px-3 py-2 text-xs font-black ${
                                         alreadySelected
-                                          ? "bg-slate-700 text-white"
+                                          ? "bg-sky-500 text-white"
                                           : "bg-sky-100 text-sky-600"
                                       }`}
                                     >
@@ -17416,7 +17412,7 @@ PRO-EFFEKT`,
               <div className="grid gap-3 md:grid-cols-3">
                 <button
                   onClick={printAbnahmeProtocol}
-                  className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
+                  className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                 >
                   PDF speichern & Druckansicht öffnen
                 </button>
@@ -17445,7 +17441,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="grid gap-4 md:grid-cols-5">
-                <StatCard label="Sicherheitsprüfung/Wartungen fällig gesamt" value={maintenancePlans.length} />
+                <StatCard label="Sicherheitsprüfung/Wartungen gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
                   value={maintenancePlans.filter((plan) => (plan.status || "Geplant") === "Geplant").length}
@@ -17468,10 +17464,10 @@ PRO-EFFEKT`,
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
                   <p className="mt-2 text-slate-600">
-                    Plane Sicherheitsprüfungen und Wartungen fällig zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
+                    Plane Sicherheitsprüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
                   <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                    Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Bericht erfassen oder Kundendokumente nachvollzogen werden.
+                    Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht oder Kundendokumente nachvollzogen werden.
                   </div>
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -17593,7 +17589,7 @@ PRO-EFFEKT`,
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <button
                       onClick={saveMaintenancePlan}
-                      className="rounded-2xl bg-slate-700 py-4 font-black text-white"
+                      className="rounded-2xl bg-sky-500 py-4 font-black text-white"
                     >
                       Wartung speichern
                     </button>
@@ -17609,16 +17605,16 @@ PRO-EFFEKT`,
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">
-                  {isTechnician ? "Meine Wartungen fällig" : isCustomer ? "Meine kommenden Wartungen fällig" : "Wartungsübersicht"}
+                  {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "Wartungsübersicht"}
                 </h3>
                 <p className="mt-2 text-slate-600">
-                  Status aller geplanten und laufenden Wartungen fällig.
+                  Übersicht aller geplanten und laufenden Wartungen.
                 </p>
 
                 <div className="mt-6 space-y-4">
                   {assignedMaintenancePlans.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Keine Wartungen fällig vorhanden.
+                      Keine Wartungen vorhanden.
                     </div>
                   ) : (
                     assignedMaintenancePlans.map((plan) => {
@@ -17716,7 +17712,7 @@ PRO-EFFEKT`,
             isAdmin ? (
             <div className="space-y-6 pb-24">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Einsatzplanung
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
@@ -17742,8 +17738,8 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">{plannedDispatchTickets.length}</p>
                   </div>
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
-                    <p className="text-xs font-bold text-slate-300">Frist überschrittene Einsätze</p>
-                    <p className="text-2xl font-black text-rose-300">{overdueDispatchTickets.length}</p>
+                    <p className="text-xs font-bold text-slate-300">Überfällig</p>
+                    <p className="text-2xl font-black text-red-300">{overdueDispatchTickets.length}</p>
                   </div>
                 </div>
               </div>
@@ -17751,14 +17747,14 @@ PRO-EFFEKT`,
               <div className="rounded-[28px] border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-700">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-700">
                       Disposition
                     </p>
                     <h3 className="mt-1 text-xl font-black text-slate-900">
                       Planungsvorschläge
                     </h3>
                     <p className="mt-1 text-sm font-bold text-slate-600">
-                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen fällig.
+                      Offene Einsätze, überfällige Tickets, Wochenübersicht und fällige Wartungen.
                     </p>
                   </div>
                   <button
@@ -17766,15 +17762,15 @@ PRO-EFFEKT`,
                     onClick={() => setCalendarDate(new Date().toISOString().split("T")[0])}
                     className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-black text-white"
                   >
-                    Heute geplant anzeigen
+                    Heute anzeigen
                   </button>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-4">
-                  <StatCard label="Heute geplant geplant" value={plannedDispatchTickets.length} />
-                  <StatCard label="Einsätze diese Woche" value={dispatchPremiumWeekTickets.length} />
+                  <StatCard label="Heute geplant" value={plannedDispatchTickets.length} />
+                  <StatCard label="Diese Woche" value={dispatchPremiumWeekTickets.length} />
                   <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                  <StatCard label="Wartungen fällig" value={dispatchPremiumMaintenanceSuggestions.length} />
+                  <StatCard label="Wartungen" value={dispatchPremiumMaintenanceSuggestions.length} />
                 </div>
 
                 {dispatchPremiumMaintenanceSuggestions.length > 0 && (
@@ -17812,7 +17808,7 @@ PRO-EFFEKT`,
                 <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Schnellplanung</p>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Schnellplanung</p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">Ungeplante Einsätze mit Techniker-Vorschlag</h3>
                     </div>
                   </div>
@@ -17844,7 +17840,7 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Offene Tickets" value={activePlanningTickets.length} />
                 <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                <StatCard label="Heute geplant / Auswahl" value={plannedDispatchTickets.length} />
+                <StatCard label="Heute / Auswahl" value={plannedDispatchTickets.length} />
                 <StatCard label="Techniker" value={technicians.length} />
               </div>
 
@@ -18023,7 +18019,7 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
-                    <h3 className="text-xl font-black text-slate-900">Frist überschrittene Einsätzee geplante Tickets</h3>
+                    <h3 className="text-xl font-black text-slate-900">Überfällige geplante Tickets</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
                       Geplante Tickets mit Datum vor heute und nicht abgeschlossen.
                     </p>
@@ -18049,7 +18045,7 @@ PRO-EFFEKT`,
             ) : (
             <div className="space-y-5 pb-24">
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Mobile Techniker Premium
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
@@ -18057,7 +18053,7 @@ PRO-EFFEKT`,
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Hier sieht der Techniker nur das, was vor Ort gebraucht wird:
-                  heutige Einsätze, Anfahrt, Ansprechpartner, Gerät, Starten und Bericht erfassen.
+                  heutige Einsätze, Anfahrt, Ansprechpartner, Gerät, Starten und Servicebericht.
                 </p>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -18065,7 +18061,7 @@ PRO-EFFEKT`,
                     <p className="text-2xl font-black text-sky-400">
                       {technicianTodayTickets.length}
                     </p>
-                    <p className="text-xs font-bold text-slate-300">Heute geplant</p>
+                    <p className="text-xs font-bold text-slate-300">Heute</p>
                   </div>
 
                   <div className="rounded-2xl bg-white/10 px-5 py-4">
@@ -18087,7 +18083,7 @@ PRO-EFFEKT`,
               {technicianTodayTickets.length === 0 ? (
                 <div className="rounded-[28px] bg-white p-6 shadow-sm">
                   <h3 className="text-xl font-black text-slate-900">
-                    Heute geplant keine geplanten Einsätze
+                    Heute keine geplanten Einsätze
                   </h3>
                   <p className="mt-2 text-sm font-semibold text-slate-600">
                     Sobald im Ticket ein Datum, eine Uhrzeit und ein Techniker gesetzt sind,
@@ -18158,7 +18154,7 @@ PRO-EFFEKT`,
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-600">
-                                {ticket.service_time || "Heute geplant"}
+                                {ticket.service_time || "Heute"}
                               </span>
                               <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
                                 {statusIcon(ticket.status)} {ticket.status}
@@ -18271,7 +18267,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => updateServiceStatus(ticket.id, "Pause")}
-                              className="rounded-3xl bg-orange-50 px-4 py-4 text-center text-sm font-black text-slate-700"
+                              className="rounded-3xl bg-orange-50 px-4 py-4 text-center text-sm font-black text-orange-700"
                             >
                               Pause
                             </button>
@@ -18308,7 +18304,7 @@ PRO-EFFEKT`,
                             <button
                               type="button"
                               onClick={() => updateServiceStatus(ticket.id, "Abgeschlossen")}
-                              className="rounded-3xl bg-slate-700 px-4 py-4 text-center text-sm font-black text-white"
+                              className="rounded-3xl bg-sky-500 px-4 py-4 text-center text-sm font-black text-white"
                             >
                               Abschließen
                             </button>
@@ -18331,7 +18327,7 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gültig" value={inspectionStats.ok} />
                 <StatCard label="Bald fällig" value={inspectionStats.soon} />
-                <StatCard label="Frist überschrittene Einsätze" value={inspectionStats.overdue} />
+                <StatCard label="Überfällig" value={inspectionStats.overdue} />
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
@@ -18404,7 +18400,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={saveInspectionBadge}
-                      className="mt-4 rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
+                      className="mt-4 rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                     >
                       Prüfsiegel speichern
                     </button>
@@ -18478,9 +18474,9 @@ PRO-EFFEKT`,
                               {inspection.label !== "Gültig" && (
                                 <button
                                   onClick={() => createInspectionTicket(item)}
-                                  className="rounded-2xl bg-slate-700 px-4 py-3 text-sm font-bold text-white"
+                                  className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white"
                                 >
-                                  Neuer Servicefall
+                                  Ticket erstellen
                                 </button>
                               )}
                             </div>
@@ -18505,7 +18501,7 @@ PRO-EFFEKT`,
                   <TechFlowLogo />
                 </div>
 
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-sky-400">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Geräte-Scan
                 </p>
 
@@ -18527,7 +18523,7 @@ PRO-EFFEKT`,
 
                   <button
                     onClick={() => openDeviceFromScanValue(qrManualCode)}
-                    className="rounded-2xl bg-slate-700 px-6 py-4 font-black text-white"
+                    className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                   >
                     Gerät öffnen
                   </button>
@@ -18541,7 +18537,7 @@ PRO-EFFEKT`,
                   <button
                     onClick={startQrScanner}
                     disabled={qrScannerActive}
-                    className="rounded-2xl bg-slate-700 px-6 py-5 text-lg font-black text-white disabled:opacity-50"
+                    className="rounded-2xl bg-sky-500 px-6 py-5 text-lg font-black text-white disabled:opacity-50"
                   >
                     QR-Scan starten
                   </button>
@@ -18576,7 +18572,7 @@ PRO-EFFEKT`,
                   value={
                     filteredQrDevices.filter(
                       (item) =>
-                        getInspectionStatus(item.next_check).label === "Frist überschrittene Einsätze" ||
+                        getInspectionStatus(item.next_check).label === "Überfällig" ||
                         getInspectionStatus(item.next_check).label === "Bald fällig",
                     ).length
                   }
@@ -18712,7 +18708,7 @@ PRO-EFFEKT`,
                 <div className="mb-6 rounded-[28px] border border-sky-200 bg-sky-50 p-5 shadow-sm">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-700">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">
                         {isAdmin ? "Admin-Ticketzentrale · Teamüberblick" : "Einsatzübersicht"}
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
@@ -18721,16 +18717,16 @@ PRO-EFFEKT`,
                       <p className="mt-1 text-sm font-bold text-slate-600">
                         {isAdmin
                           ? "Gesamtüberblick über offene, heutige und überfällige Einsätze mit direkter Disposition."
-                          : "Persönliche Einsatzübersicht mit Navigation, Kontakt, Statuswechsel und Bericht erfassen."}
+                          : "Persönliche Einsatzübersicht mit Navigation, Kontakt, Statuswechsel und Servicebericht."}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute geplant" value={technicianPremiumTodayTickets.length} />
-                    <StatCard label="Einsätze diese Woche" value={technicianPremiumWeekTickets.length} />
-                    <StatCard label="Frist überschrittene Einsätze" value={technicianPremiumOverdueTickets.length} />
-                    <StatCard label="Wartungen fällig" value={technicianPremiumMaintenancePlans.length} />
+                    <StatCard label="Heute" value={technicianPremiumTodayTickets.length} />
+                    <StatCard label="Diese Woche" value={technicianPremiumWeekTickets.length} />
+                    <StatCard label="Überfällig" value={technicianPremiumOverdueTickets.length} />
+                    <StatCard label="Fällige Wartungen" value={technicianPremiumMaintenancePlans.length} />
                   </div>
 
                   <div className="mt-4 grid gap-3 xl:grid-cols-2">
@@ -18763,7 +18759,7 @@ PRO-EFFEKT`,
                                 <a href={`mailto:${contact.email}?subject=${encodeURIComponent(ticket.ticket_number + " · " + ticket.issue)}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Mail</a>
                               )}
                               <button type="button" onClick={() => openNavigationForTicketPremium(ticket)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">Navigation</button>
-                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-white">Akte</button>
+                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white">Akte</button>
                             </div>
 
                             <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -18784,7 +18780,7 @@ PRO-EFFEKT`,
                               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                                 {checklist.map((item) => (
                                   <div key={item.label} className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-500"}`}>
+                                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
                                       {item.done ? "✓" : "–"}
                                     </span>
                                     {item.label}
@@ -18801,7 +18797,7 @@ PRO-EFFEKT`,
                               }}
                               className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
                             >
-                              Bericht erfassen / Signatur öffnen
+                              Servicebericht / Signatur öffnen
                             </button>
                           </div>
                         );
@@ -18819,9 +18815,9 @@ PRO-EFFEKT`,
                   <button
                     type="button"
                     onClick={() => setMobileTicketFormOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-2xl bg-slate-700 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                    className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
-                    <span>{editingTicket ? "Ticket bearbeiten" : "Neuer Servicefall erstellen"}</span>
+                    <span>{editingTicket ? "Ticket bearbeiten" : "Neues Ticket erstellen"}</span>
                     <span>{mobileTicketFormOpen || editingTicket ? "â–²" : "⌄"}</span>
                   </button>
 
@@ -19019,7 +19015,7 @@ PRO-EFFEKT`,
                               <button
                                 type="button"
                                 onClick={() => setTicketTypeDropdownOpen(false)}
-                                className="rounded-xl bg-slate-700 px-3 py-2 text-xs font-black text-white"
+                                className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white"
                               >
                                 Fertig
                               </button>
@@ -19196,7 +19192,7 @@ PRO-EFFEKT`,
                         </div>
                       )}
 
-                      <div className="my-3 text-center text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                      <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
                         oder freien Gerätenamen eintragen (optional)
                       </div>
 
@@ -19292,7 +19288,7 @@ PRO-EFFEKT`,
                       <div className="grid gap-3 md:grid-cols-2">
                         <button
                           onClick={updateTicket}
-                          className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                          className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
                         >
                           Änderungen speichern
                         </button>
@@ -19307,7 +19303,7 @@ PRO-EFFEKT`,
                     ) : (
                       <button
                         onClick={createTicket}
-                        className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                        className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
                       >
                         Ticket speichern
                       </button>
@@ -19319,7 +19315,7 @@ PRO-EFFEKT`,
                   <button
                     type="button"
                     onClick={() => setMobileTicketListOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-2xl bg-slate-700 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                    className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
                     <span>Ticketliste</span>
                     <span>{mobileTicketListOpen ? "â–²" : "⌄"}</span>
@@ -19639,7 +19635,7 @@ PRO-EFFEKT`,
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
-                                  className="w-full rounded-2xl bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-700 md:text-sm"
+                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
                                 >
                                   Stornieren
                                 </button>
@@ -19669,7 +19665,7 @@ PRO-EFFEKT`,
           {activePage === "Kundenportal" && (
             <div className="space-y-6">
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.14em] text-sky-500">
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-sky-500">
                   Kundenportal
                 </p>
                 <h3 className="mt-2 text-xl font-black leading-tight">
@@ -19797,7 +19793,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={customerCreateDeviceTicketAndRequest}
-                      className="w-full rounded-2xl bg-slate-700 py-5 text-lg font-black text-white"
+                      className="w-full rounded-2xl bg-sky-500 py-5 text-lg font-black text-white"
                     >
                       Gerät & Anfrage speichern
                     </button>
@@ -19842,11 +19838,11 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                    <h3 className="text-xl font-black">Meine Wartungen fällig</h3>
+                    <h3 className="text-xl font-black">Meine Wartungen</h3>
                     <div className="mt-4 space-y-3">
                       {assignedMaintenancePlans.length === 0 ? (
                         <div className="rounded-2xl bg-slate-100 p-4 text-base text-slate-600">
-                          Keine kommenden Wartungen fällig vorhanden.
+                          Keine kommenden Wartungen vorhanden.
                         </div>
                       ) : (
                         assignedMaintenancePlans.map((plan) => (
@@ -19948,7 +19944,7 @@ PRO-EFFEKT`,
                                     <button
                                       type="button"
                                       onClick={() => customerRespondToAppointment(ticket, "reschedule")}
-                                      className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700"
+                                      className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-black text-orange-700"
                                     >
                                       Verschieben anfragen
                                     </button>
@@ -20076,7 +20072,7 @@ PRO-EFFEKT`,
                       <div className="grid gap-3 md:grid-cols-2">
                         <button
                           onClick={saveServicePart}
-                          className="rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                          className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
                         >
                           {editingPart
                             ? "Ersatzteil speichern"
@@ -20100,7 +20096,7 @@ PRO-EFFEKT`,
                 >
                   <h3 className="text-xl font-black">Verbrauch buchen</h3>
                   <p className="mt-2 text-slate-600">
-                    Techniker und Admin können Ersatzteile einem Gerät, Ticket oder
+                    Techniker und Admin können Teile einem Gerät, Ticket oder
                     Einsatzhinweis zuordnen.
                   </p>
 
@@ -20164,7 +20160,7 @@ PRO-EFFEKT`,
 
                     <button
                       onClick={consumeServicePart}
-                      className="w-full rounded-2xl bg-slate-700 py-4 font-bold text-white"
+                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
                     >
                       Verbrauch buchen
                     </button>
@@ -20178,7 +20174,7 @@ PRO-EFFEKT`,
                   {serviceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch keine Ersatzteile angelegt. Admins können oben erste
-                      Ersatzteile erfassen.
+                      Teile erfassen.
                     </div>
                   ) : (
                     serviceParts.map((part) => {
