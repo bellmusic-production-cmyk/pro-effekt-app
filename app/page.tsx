@@ -12351,7 +12351,7 @@ PRO-EFFEKT`,
                                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                                   <div className="rounded-2xl bg-slate-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                      ðŸ¢ Auftraggeber
+                                      Auftraggeber
                                     </p>
                                     <p className="mt-1 break-words text-sm font-black text-slate-900">
                                       {ticket.customer || "Nicht zugeordnet"}
@@ -12366,7 +12366,7 @@ PRO-EFFEKT`,
                                   {hasDifferentServiceLocation(ticket, meta.billingCustomer) && (
                                     <div className="rounded-2xl bg-sky-50 p-3">
                                       <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">
-                                        ðŸ“ Einsatzort
+                                        Einsatzort
                                       </p>
                                       <p className="mt-1 break-words text-sm font-black text-slate-900">
                                         {meta.serviceLocation}
@@ -12393,7 +12393,7 @@ PRO-EFFEKT`,
 
                                   <div className="rounded-2xl bg-slate-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                      ðŸ‘¨ Techniker / Termin
+                                      Techniker / Termin
                                     </p>
                                     <p className="mt-1 break-words text-sm font-black text-slate-900">
                                       {meta.technicianName}
@@ -12406,7 +12406,7 @@ PRO-EFFEKT`,
 
                                 <div className="mt-3 rounded-2xl bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                    ðŸ“‹ Leistung
+                                    Leistung
                                   </p>
                                   <p className="mt-1 break-words text-sm font-black text-slate-900">
                                     {meta.serviceType}
@@ -14445,7 +14445,7 @@ PRO-EFFEKT`,
                         onClick={() => setDocumentQuickFilter("Alle")}
                         className="rounded-2xl bg-sky-100 px-4 py-2 text-sm font-black text-sky-600"
                       >
-                        Filter: {documentQuickFilter} Ã—
+                        Filter: {documentQuickFilter} ×
                       </button>
                     )}
                   </div>
@@ -15236,7 +15236,7 @@ PRO-EFFEKT`,
                                   }
                                   className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-sky-900 transition hover:bg-red-100 hover:text-red-700"
                                 >
-                                  Ã—
+                                  ×
                                 </button>
                               </div>
                             </div>
@@ -15262,7 +15262,7 @@ PRO-EFFEKT`,
                                     onClick={() => removeCustomerLibraryDraft(draft.key)}
                                     className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-sky-900 transition hover:bg-red-100 hover:text-red-700"
                                   >
-                                    Ã—
+                                    ×
                                   </button>
                                 </div>
 
@@ -17103,7 +17103,7 @@ PRO-EFFEKT`,
                                   Bibliotheksmodell · keine Seriennummer · keine Kundenzuordnung
                                 </p>
                                 <p className="mt-2 text-xs font-black text-sky-600">
-                                  {abnahmeSelectedDeviceIds.includes(String(deviceItem.id)) ? "âœ“ Ausgewählt" : "+ Zum Protokoll hinzufügen"}
+                                  {abnahmeSelectedDeviceIds.includes(String(deviceItem.id)) ? "✓ Ausgewählt" : "+ Zum Protokoll hinzufügen"}
                                 </p>
                               </button>
                             ))
@@ -17154,7 +17154,7 @@ PRO-EFFEKT`,
                               {getDevicesForCustomer(Number(abnahmeCustomerId)).length} Gerät(e)
                             </span>
                             <span className="rounded-full bg-white px-3 py-2 text-sm font-black text-sky-600">
-                              {abnahmeCustomerDevicesOpen ? "â–²" : "⌄"}
+                              {abnahmeCustomerDevicesOpen ? "▲" : "⌄"}
                             </span>
                           </div>
                         </button>
@@ -17198,7 +17198,7 @@ PRO-EFFEKT`,
                                           : "bg-sky-100 text-sky-600"
                                       }`}
                                     >
-                                      {alreadySelected ? "âœ“" : "+"}
+                                      {alreadySelected ? "✓" : "+"}
                                     </span>
                                   </div>
                                 </button>
@@ -18397,7 +18397,7 @@ PRO-EFFEKT`,
                                     href={`tel:${contactPhone.replace(/\s+/g, "")}`}
                                     className="mt-3 inline-flex rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
                                   >
-                                    â˜Ž Anrufen
+                                    Anrufen
                                   </a>
                                 )}
                               </div>
@@ -18438,7 +18438,7 @@ PRO-EFFEKT`,
                                 rel="noreferrer"
                                 className="rounded-3xl bg-slate-900 px-4 py-4 text-center text-sm font-black text-white"
                               >
-                                ðŸ“ Navigation
+                                Navigation
                               </a>
                             )}
 
@@ -19020,7 +19020,7 @@ PRO-EFFEKT`,
                     className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
                     <span>{editingTicket ? "Ticket bearbeiten" : "Neues Ticket erstellen"}</span>
-                    <span>{mobileTicketFormOpen || editingTicket ? "â–²" : "⌄"}</span>
+                    <span>{mobileTicketFormOpen || editingTicket ? "▲" : "⌄"}</span>
                   </button>
 
                   <h3 className="hidden text-xl font-black md:block">
@@ -19180,7 +19180,7 @@ PRO-EFFEKT`,
                             {getTicketTypeLabel()}
                           </span>
                           <span className="ml-3 text-slate-500">
-                            {ticketTypeDropdownOpen ? "â–²" : "⌄"}
+                            {ticketTypeDropdownOpen ? "▲" : "⌄"}
                           </span>
                         </button>
 
@@ -19201,7 +19201,7 @@ PRO-EFFEKT`,
                                   }`}
                                 >
                                   <span>{typeName}</span>
-                                  <span>{checked ? "âœ“" : ""}</span>
+                                  <span>{checked ? "✓" : ""}</span>
                                 </button>
                               );
                             })}
@@ -19350,7 +19350,7 @@ PRO-EFFEKT`,
                                     {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
                                   </p>
                                   <p className="mt-1 text-xs font-black text-sky-600">
-                                    {selected ? "âœ“ Ausgewählt" : "+ Kundengerät zum Ticket hinzufügen"}
+                                    {selected ? "✓ Ausgewählt" : "+ Kundengerät zum Ticket hinzufügen"}
                                   </p>
                                 </button>
                               );
@@ -19385,7 +19385,7 @@ PRO-EFFEKT`,
                                     {getManufacturerNameById(modelItem.manufacturer_id)} · {getDeviceModelTypeName(modelItem) || "Kategorie offen"}
                                   </p>
                                   <p className="mt-1 text-xs font-black text-sky-600">
-                                    {selected ? "âœ“ Ausgewählt" : "+ Bibliotheksmodell zum Ticket hinzufügen"}
+                                    {selected ? "✓ Ausgewählt" : "+ Bibliotheksmodell zum Ticket hinzufügen"}
                                   </p>
                                 </button>
                               );
@@ -19520,7 +19520,7 @@ PRO-EFFEKT`,
                     className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
                   >
                     <span>Ticketliste</span>
-                    <span>{mobileTicketListOpen ? "â–²" : "⌄"}</span>
+                    <span>{mobileTicketListOpen ? "▲" : "⌄"}</span>
                   </button>
 
                   <h3 className="hidden text-xl font-black md:block">Ticketliste</h3>
@@ -19622,7 +19622,7 @@ PRO-EFFEKT`,
                               <div className="mt-4 grid gap-3 md:grid-cols-2">
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                    ðŸ¢ Auftraggeber
+                                    Auftraggeber
                                   </p>
                                   <h4 className="mt-1 break-words text-lg font-black leading-tight text-slate-900">
                                     {ticket.customer || "Auftraggeber nicht zugeordnet"}
@@ -19637,7 +19637,7 @@ PRO-EFFEKT`,
                                 {hasDifferentServiceLocation(ticket, billingCustomer) && (
                                   <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">
-                                      ðŸ“ Einsatzort
+                                      Einsatzort
                                     </p>
                                     <h4 className="mt-1 break-words text-lg font-black leading-tight text-slate-900">
                                       {serviceLocation}
@@ -19670,7 +19670,7 @@ PRO-EFFEKT`,
 
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                    ðŸ‘¨ Techniker / Termin
+                                    Techniker / Termin
                                   </p>
                                   <p className="mt-1 break-words text-sm font-black text-slate-900">
                                     {getTechnicianNameById(ticket.assigned_to)}
@@ -19686,7 +19686,7 @@ PRO-EFFEKT`,
 
                               <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
                                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                  ðŸ“‹ Leistung
+                                  Leistung
                                 </p>
                                 <p className="mt-1 break-words text-sm font-black text-slate-900">
                                   {ticketServiceTypeText(ticket)}
