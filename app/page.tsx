@@ -1,7 +1,7 @@
 ﻿"use client";
 // removed duplicate use client directive
 
-// TechFlow App v5.1.8 · Syntax Fix · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Bericht erfassen PDF Premium · Bericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TechFlow App v5.2.0 · Final JSX Structure Fix · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Bericht erfassen PDF Premium · Bericht erfassene · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -12522,7 +12522,7 @@ PRO-EFFEKT`,
                     </p>
                   </div>
                 </div>
-              </div>
+              
 
               {!isCustomer && (
                 <div className="rounded-[28px] border border-violet-200 bg-violet-50 p-5 shadow-sm">
@@ -20263,12 +20263,15 @@ PRO-EFFEKT`,
                   )}
                 </div>
               </div>
-                </div>
-              )}
-            <div className="hidden" />
-          </main>
-        );
-      }
+            </div>
+          )}
+
+          <div className="hidden" />
+        </section>
+      </div>
+    </main>
+  );
+}
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
