@@ -11635,7 +11635,7 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="fixed left-[22rem] right-8 top-4 z-[60] hidden rounded-[32px] border border-slate-200/70 bg-white/95 px-8 py-4 shadow-lg shadow-slate-300/50 backdrop-blur-xl xl:left-[22.5rem] xl:right-10 lg:block">
+          <div className="fixed left-80 right-0 top-0 z-[60] hidden border-b border-slate-200/70 bg-white/95 px-8 py-3 shadow-md shadow-slate-300/40 backdrop-blur-xl lg:block">
             <div className="flex h-[132px] w-full items-center justify-center overflow-hidden">
               <img
                 src={TECHFLOW_LOGO_PATH}
@@ -11647,7 +11647,7 @@ PRO-EFFEKT`,
               />
             </div>
           </div>
-          <div className="mb-6 hidden h-[180px] lg:block" aria-hidden="true" />
+          <div className="mb-6 hidden h-[156px] lg:block" aria-hidden="true" />
 
           <div className="fixed left-0 right-0 top-0 z-[60] border-b border-slate-200/70 bg-white/95 px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-md shadow-slate-200/70 backdrop-blur-xl sm:px-4 lg:hidden">
             <div className="flex min-w-0 items-center justify-between gap-3">
