@@ -10310,23 +10310,6 @@ PRO-EFFEKT`,
     );
   }
 
-  const portalTitle = isAdmin
-    ? "Admin-Zentrale"
-    : isTechnician
-      ? "Techniker Portal"
-      : "Kundenportal";
-
-  const portalSubtitle = isAdmin
-    ? "Vollzugriff auf Kunden, Geräte, Tickets, Sicherheitsprüfung-Wartung, Einsatz, Teile, Dokumente und Berichte."
-    : isTechnician
-      ? "Einsatzbereich für Tickets, Geräte, Sicherheitsprüfungen, Fotos und Serviceberichte."
-      : "Eigene Geräte, Tickets und Dokumente im Überblick.";
-
-  const primaryActionLabel = isAdmin
-    ? "Verwaltung öffnen"
-    : isTechnician
-      ? "Einsatz öffnen"
-      : "Portal öffnen";
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
@@ -10402,8 +10385,6 @@ PRO-EFFEKT`,
 
     return labels[item] || item;
   }
-
-  const pageTitle = navItemLabel(activePage);
 
   function openPage(item: string) {
     setActivePage(item);
@@ -11607,51 +11588,36 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-sm shadow-slate-200/70 lg:block">
-            <div className="flex flex-col items-center text-center">
-              <TechFlowLogo hero />
-              <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-sky-500">
-                Service Management Platform
-              </p>
-              <h2 className="mt-3 text-3xl font-black leading-tight tracking-[-0.04em] text-slate-950 lg:text-4xl">
-                {portalTitle}
-              </h2>
-              <p className="mt-3 max-w-4xl text-[15px] font-semibold leading-6 text-slate-500">
-                {portalSubtitle}
-              </p>
+          <div className="mb-6 hidden rounded-[32px] border border-slate-200/70 bg-white px-8 py-4 shadow-sm shadow-slate-200/70 lg:block">
+            <div className="flex h-[132px] items-center justify-center overflow-hidden">
+              <img
+                src={TECHFLOW_LOGO_PATH}
+                alt="TechFlow Software"
+                className="h-[118px] w-auto max-w-[760px] object-contain"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
             </div>
           </div>
 
-          <div className="sticky top-0 z-40 -mx-3 mb-5 border-b border-[var(--pe-blue)]/20 bg-[var(--pe-black)] px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-lg sm:-mx-5 sm:px-4 lg:hidden">
+          <div className="sticky top-0 z-40 -mx-3 mb-5 border-b border-slate-200/70 bg-white px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-sm sm:-mx-5 sm:px-4 lg:hidden">
             <div className="flex min-w-0 items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <img
-                    src="/pro-effekt-logo.png"
-                    alt="Pro-Effekt Logo"
-                    className="h-9 w-auto max-w-[96px] shrink-0 object-contain"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-[11px] font-black uppercase tracking-[0.18em] text-[var(--pe-blue)]">
-                      PRO-EFFEKT
-                    </p>
-                    <p className="truncate text-xs font-semibold text-slate-300">
-                      {session.user.email}
-                    </p>
-                  </div>
-                </div>
-                <h2 className="mt-2 max-w-[220px] truncate text-xl font-black leading-tight text-white">
-                  {pageTitle}
-                </h2>
+              <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-3xl bg-white">
+                <img
+                  src={TECHFLOW_LOGO_PATH}
+                  alt="TechFlow Software"
+                  className="h-[64px] w-auto max-w-[220px] object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
               </div>
 
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                className="shrink-0 rounded-2xl border border-sky-500/30 bg-sky-500 px-4 py-3 text-sm font-black text-black shadow-lg shadow-sky-950/30 active:scale-[0.98]"
+                className="shrink-0 rounded-2xl border border-sky-200 bg-sky-500 px-4 py-3 text-sm font-black text-white shadow-sm active:scale-[0.98]"
                 aria-label="Menü öffnen"
               >
                 ☰ Menü
