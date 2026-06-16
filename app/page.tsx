@@ -11593,7 +11593,7 @@ PRO-EFFEKT`,
               <img
                 src={TECHFLOW_LOGO_PATH}
                 alt="TechFlow Software"
-                className="h-full w-[98%] max-w-none object-contain"
+                className="h-full w-[98%] max-w-none scale-[3.4] object-contain"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
@@ -11607,7 +11607,7 @@ PRO-EFFEKT`,
                 <img
                   src={TECHFLOW_LOGO_PATH}
                   alt="TechFlow Software"
-                  className="h-[64px] w-full max-w-none object-contain"
+                  className="h-[64px] w-full max-w-none scale-[2.8] object-contain"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
                   }}
