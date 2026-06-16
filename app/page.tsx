@@ -9798,6 +9798,34 @@ PRO-EFFEKT`,
     (part) => Number(part.stock || 0) <= Number(part.min_stock || 0),
   );
 
+  const repairDashboardStats = (() => {
+    const repairTickets = visibleRoleTickets.filter((ticket) => {
+      const content = [ticket.issue, ticket.description, ticket.service_report]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return content.includes("reparatur") || content.includes("defekt");
+    });
+
+    const activeRepairTickets = repairTickets.filter(
+      (ticket) => !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+    );
+
+    return {
+      total: repairTickets.length,
+      active: activeRepairTickets.length,
+      open: activeRepairTickets.filter((ticket) => ["Offen", "Zugewiesen"].includes(ticket.status || "")).length,
+      inProgress: activeRepairTickets.filter((ticket) => ["Unterwegs", "Vor Ort", "In Bearbeitung"].includes(ticket.status || "")).length,
+      waitingParts: activeRepairTickets.filter((ticket) =>
+        ["Wartet auf Ersatzteil", "Wartet auf Ersatzteile"].includes(ticket.status || ""),
+      ).length,
+      waitingCustomerApproval: activeRepairTickets.filter(
+        (ticket) => ticket.status === "Wartet auf Kundenfreigabe",
+      ).length,
+    };
+  })();
+
   const recentServiceReports = documents
     .filter((documentItem) => documentItem.category === "Serviceberichte")
     .slice(0, 5);
@@ -11937,7 +11965,7 @@ PRO-EFFEKT`,
                       Operations-Leitstand
                     </h3>
                     <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                      Zentrale Übersicht über offene Servicefälle, heutige Einsätze, Wartungen, Prüfungen und aktuelle Prioritäten.
+                      Zentrale Übersicht über Servicefälle, Reparaturen, heutige Einsätze, Wartungen, Prüfungen, Ersatzteile und aktuelle Prioritäten.
                     </p>
                   </div>
 
@@ -11986,9 +12014,9 @@ PRO-EFFEKT`,
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
                           Service Operations
                         </p>
-                        <h3 className="mt-1 text-2xl font-black text-white">Disposition & Wartungen</h3>
+                        <h3 className="mt-1 text-2xl font-black text-white">Disposition, Reparaturen & Wartungen</h3>
                         <p className="mt-1 text-sm font-bold text-slate-300">
-                          Übersicht über heutige Einsätze, Wochenplanung, überfällige Vorgänge und fällige Wartungen.
+                          Übersicht über Einsätze, offene Reparaturen, fällige Wartungen, Prüfungen, Ersatzteile und Kommunikation.
                         </p>
                       </div>
 
@@ -12001,22 +12029,36 @@ PRO-EFFEKT`,
                       </button>
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                       <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Heute</p>
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Service & Einsätze</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumTodayTickets.length}</p>
+                        <p className="mt-1 text-[11px] font-bold text-slate-300">Heute · Woche {technicianPremiumWeekTickets.length}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-300">Diese Woche</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumWeekTickets.length}</p>
-                      </div>
-                      <div className="rounded-2xl border border-red-300/20 bg-red-500/20 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Überfällig</p>
-                        <p className="mt-2 text-3xl font-black text-white">{technicianPremiumOverdueTickets.length}</p>
+                      <div className="rounded-2xl border border-orange-300/20 bg-orange-500/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-orange-200">Reparaturen</p>
+                        <p className="mt-2 text-3xl font-black text-white">{repairDashboardStats.active}</p>
+                        <p className="mt-1 text-[11px] font-bold text-orange-100">Wartet Ersatzteile {repairDashboardStats.waitingParts}</p>
                       </div>
                       <div className="rounded-2xl border border-amber-300/20 bg-amber-500/20 p-4">
                         <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-200">Wartungen</p>
                         <p className="mt-2 text-3xl font-black text-white">{technicianPremiumMaintenancePlans.length}</p>
+                        <p className="mt-1 text-[11px] font-bold text-amber-100">Fällig oder bald fällig</p>
+                      </div>
+                      <div className="rounded-2xl border border-red-300/20 bg-red-500/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-red-200">Prüfungen</p>
+                        <p className="mt-2 text-3xl font-black text-white">{inspectionStats.overdue}</p>
+                        <p className="mt-1 text-[11px] font-bold text-red-100">Überfällig · bald {inspectionStats.soon}</p>
+                      </div>
+                      <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">Ersatzteile</p>
+                        <p className="mt-2 text-3xl font-black text-white">{lowStockParts.length}</p>
+                        <p className="mt-1 text-[11px] font-bold text-cyan-100">Unter Mindestbestand</p>
+                      </div>
+                      <div className="rounded-2xl border border-indigo-300/20 bg-indigo-500/20 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-200">Kommunikation</p>
+                        <p className="mt-2 text-3xl font-black text-white">{ticketChatUnreadCount}</p>
+                        <p className="mt-1 text-[11px] font-bold text-indigo-100">Ungelesen · Fehler {emailStatusStats.failed}</p>
                       </div>
                     </div>
                   </div>
@@ -12057,7 +12099,7 @@ PRO-EFFEKT`,
                     onClick={() => openPage("Ersatzteile")}
                     className="min-h-[76px] rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-left font-black text-slate-950 transition hover:bg-slate-100 active:scale-[0.98]"
                   >
-                    Teile
+                    Ersatzteile
                     <span className="mt-1 block text-xs font-bold text-slate-500">
                       Lager & Verbrauch
                     </span>
@@ -12365,7 +12407,7 @@ PRO-EFFEKT`,
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {lowStockParts.length === 0 ? (
                       <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine kritischen Teile.
+                        Keine kritischen Ersatzteile.
                       </div>
                     ) : (
                       lowStockParts.slice(0, 5).map((part) => (
@@ -14811,7 +14853,7 @@ PRO-EFFEKT`,
                         {partUsages.length}
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-500">
-                        Teileverbräuche
+                        Ersatzteilverbräuche
                       </p>
                     </div>
                   </div>
@@ -20091,7 +20133,7 @@ PRO-EFFEKT`,
                 >
                   <h3 className="text-xl font-black">Verbrauch buchen</h3>
                   <p className="mt-2 text-slate-600">
-                    Techniker und Admin können Teile einem Gerät, Ticket oder
+                    Techniker und Admin können Ersatzteile einem Gerät, Ticket oder
                     Einsatzhinweis zuordnen.
                   </p>
 
@@ -20169,7 +20211,7 @@ PRO-EFFEKT`,
                   {serviceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch keine Ersatzteile angelegt. Admins können oben erste
-                      Teile erfassen.
+                      Ersatzteile erfassen.
                     </div>
                   ) : (
                     serviceParts.map((part) => {
