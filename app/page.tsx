@@ -12265,23 +12265,28 @@ PRO-EFFEKT`,
                 )}
               </div>
 
-              <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">
-                      Kommunikationsstatus
-                    </p>
-                    <h3 className="mt-1 text-xl font-black text-slate-900">
-                      Ticket-Chat & Rückfragen
-                    </h3>
-                    <p className="mt-1 text-sm font-bold text-slate-600">
-                      Ungelesene Nachrichten: {ticketChatUnreadCount} · Kommunikationszentrale wird bei neuen Chatnachrichten automatisch befüllt.
-                    </p>
+              <div className="rounded-[28px] border border-cyan-500/35 bg-slate-950 p-5 text-white shadow-lg shadow-slate-950/15">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/50 bg-cyan-500/15 text-xl">
+                      💬
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-300">
+                        Kommunikationsstatus
+                      </p>
+                      <h3 className="mt-1 text-xl font-black tracking-[-0.03em] text-white">
+                        Ticket-Chat & Rückfragen
+                      </h3>
+                      <p className="mt-1 max-w-3xl text-sm font-bold leading-6 text-slate-300">
+                        Ungelesene Nachrichten: {ticketChatUnreadCount} · neue Chatnachrichten werden automatisch in der Kommunikationszentrale sichtbar.
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => openPage("Service-Tickets")}
-                    className="rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-black text-white"
+                    className="inline-flex min-h-[46px] items-center justify-center rounded-2xl border border-cyan-400/40 bg-cyan-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-cyan-950/25 transition hover:bg-cyan-400 active:scale-[0.98]"
                   >
                     Chats öffnen
                   </button>
