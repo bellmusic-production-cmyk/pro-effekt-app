@@ -11504,11 +11504,11 @@ PRO-EFFEKT`,
         <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-[#07111d] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
           <div className="rounded-[30px] border border-white/10 bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-sky-400/20 bg-[#0b1726]">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[26px] border border-sky-400/20 bg-[#0b1726]">
                 <img
                   src="/pro-effekt-logo.png"
                   alt="Pro-Effekt Logo"
-                  className="h-10 w-10 object-contain"
+                  className="h-16 w-16 object-contain"
                   onError={(event) => {
                     event.currentTarget.style.display = "none";
                   }}
@@ -11651,13 +11651,27 @@ PRO-EFFEKT`,
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4 pt-[env(safe-area-inset-top)]">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-400">PRO-EFFEKT</p>
-                    <h3 className="mt-1 text-2xl font-black">Menü</h3>
-                    <p className="mt-1 truncate text-xs font-semibold text-slate-400">{userProfile?.full_name || session.user.email}</p>
-                    <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                      {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
+                    <div className="mt-3 flex h-24 w-full items-center justify-center overflow-hidden rounded-[28px] border border-sky-400/15 bg-[#0b1726] px-4">
+                      <img
+                        src="/pro-effekt-logo.png"
+                        alt="Pro-Effekt Logo"
+                        className="h-full w-full max-w-none scale-[1.35] object-contain"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    </div>
+                    <p className="mt-3 text-center text-[11px] font-black uppercase tracking-[0.24em] text-sky-400">
+                      Serviceportal
                     </p>
+                    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                      <p className="truncate text-sm font-extrabold text-white">{userProfile?.full_name || session.user.email}</p>
+                      <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                        {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
