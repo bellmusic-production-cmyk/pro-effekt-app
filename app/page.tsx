@@ -568,6 +568,7 @@ export default function Home() {
   const [ticketChatFiles, setTicketChatFiles] = useState<Record<number, File | null>>({});
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
+  const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [companyNameInput, setCompanyNameInput] = useState("");
@@ -1550,6 +1551,27 @@ export default function Home() {
     };
   }, [notifications.length, communicationFilteredNotifications.length, emailStatusStats]);
 
+  const userManagementStats = useMemo(() => {
+    return {
+      total: userProfiles.length,
+      admins: userProfiles.filter((profile) => profile.role === "admin").length,
+      technicians: userProfiles.filter((profile) => profile.role === "technician").length,
+      customers: userProfiles.filter((profile) => profile.role === "customer").length,
+      active: userProfiles.filter((profile) => profile.is_active !== false).length,
+      inactive: userProfiles.filter((profile) => profile.is_active === false).length,
+    };
+  }, [userProfiles]);
+
+  const userManagementProfiles = useMemo(() => {
+    return [...userProfiles].sort((a, b) => {
+      const roleOrder: Record<string, number> = { admin: 0, technician: 1, customer: 2 };
+      const roleDiff = (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9);
+      if (roleDiff !== 0) return roleDiff;
+
+      return getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de");
+    });
+  }, [userProfiles, customers]);
+
   const notificationTotalPages = Math.max(1, Math.ceil(communicationFilteredNotifications.length / notificationPageSize));
 
   const visibleNotifications = useMemo(() => {
@@ -1967,6 +1989,7 @@ async function loadApplicationData() {
       loadTicketChatMessages(),
       loadContracts(),
       loadTechnicians(),
+      loadUserProfiles(),
     ]);
 
     setAppDataLoaded(true);
@@ -1998,6 +2021,7 @@ async function loadApplicationData() {
     setTicketChatFiles({});
     setContracts([]);
     setTechnicians([]);
+    setUserProfiles([]);
     setUserProfile(null);
     setCompanyData(null);
     setProfileLoading(false);
@@ -2808,6 +2832,37 @@ async function loadApplicationData() {
     setContracts((data || []) as ServiceContract[]);
   }
 
+  async function loadUserProfiles() {
+    // Benutzerverwaltung Premium v1:
+    // Dieser Bereich lädt vorhandene Profile nur lesend.
+    // Keine Auth-User werden erzeugt, keine Einladungen versendet und keine Rollen automatisch geändert.
+    const fallbackProfiles: UserProfile[] = [];
+
+    try {
+      const timeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Benutzer-Ladevorgang Timeout")), 3500);
+      });
+
+      const profilesRequest = supabase
+        .from("profiles")
+        .select("id, full_name, role, company, customer_id, is_active, created_at")
+        .order("created_at", { ascending: false });
+
+      const result: any = await Promise.race([profilesRequest, timeout]);
+
+      if (result?.error) {
+        console.error("Benutzerprofile konnten nicht geladen werden:", result.error.message);
+        setUserProfiles(fallbackProfiles);
+        return;
+      }
+
+      setUserProfiles((result?.data || []) as UserProfile[]);
+    } catch (error) {
+      console.error("Benutzer-Ladevorgang übersprungen:", error);
+      setUserProfiles(fallbackProfiles);
+    }
+  }
+
   async function loadTechnicians() {
     // Sicherer Restore:
     // Techniker werden wieder aus public.profiles geladen.
@@ -2892,6 +2947,29 @@ async function loadApplicationData() {
     if (!technicianId) return "Nicht zugewiesen";
     const technician = technicians.find((item) => item.id === technicianId);
     return technician?.full_name || technician?.company || "Techniker";
+  }
+
+  function getUserRoleLabel(role?: string | null) {
+    if (role === "admin") return "Admin";
+    if (role === "technician") return "Techniker";
+    if (role === "customer") return "Kunde";
+    return "Unbekannt";
+  }
+
+  function getUserRoleClass(role?: string | null) {
+    if (role === "admin") return "border-sky-400/40 bg-sky-500/15 text-sky-100";
+    if (role === "technician") return "border-emerald-400/40 bg-emerald-500/15 text-emerald-100";
+    if (role === "customer") return "border-amber-400/40 bg-amber-500/15 text-amber-100";
+    return "border-slate-400/40 bg-slate-500/15 text-slate-100";
+  }
+
+  function getUserDisplayName(profile: UserProfile) {
+    return profile.full_name || profile.company || `Benutzer ${String(profile.id || "").slice(0, 8)}`;
+  }
+
+  function getCustomerForUserProfile(profile: UserProfile) {
+    if (!profile.customer_id) return null;
+    return customers.find((customerItem) => customerItem.id === profile.customer_id) || null;
   }
 
   async function updateTicketAssignment(
@@ -14684,6 +14762,144 @@ PRO-EFFEKT`,
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Logo, Firmenfarbe und Kontaktdaten werden später für Dashboard, Login, PDF-Dokumente und Kundenportal verwendet.
                 </p>
+              </div>
+
+              <div className="rounded-[32px] border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-400">
+                      Benutzerverwaltung Premium · Phase 1
+                    </p>
+                    <h3 className="mt-2 text-2xl font-black tracking-[-0.03em]">
+                      Rollen, Zugänge und Portal-Zuordnung im Überblick
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
+                      Diese Übersicht ist bewusst zunächst nur lesend. TRYBUN zeigt vorhandene Profile, Rollen, Aktivstatus und Kundenverknüpfung, ohne Auth-Zugänge, Einladungen oder Passwörter automatisch zu verändern.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={loadUserProfiles}
+                    className="rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-3 text-sm font-black text-sky-100 hover:bg-sky-500/25"
+                  >
+                    Benutzer neu laden
+                  </button>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Gesamt</p>
+                    <p className="mt-2 text-3xl font-black">{userManagementStats.total}</p>
+                  </div>
+                  <div className="rounded-3xl border border-sky-400/20 bg-sky-500/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-300">Admins</p>
+                    <p className="mt-2 text-3xl font-black">{userManagementStats.admins}</p>
+                  </div>
+                  <div className="rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-300">Techniker</p>
+                    <p className="mt-2 text-3xl font-black">{userManagementStats.technicians}</p>
+                  </div>
+                  <div className="rounded-3xl border border-amber-400/20 bg-amber-500/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-300">Kundenportal</p>
+                    <p className="mt-2 text-3xl font-black">{userManagementStats.customers}</p>
+                  </div>
+                  <div className="rounded-3xl border border-lime-400/20 bg-lime-500/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-lime-300">Aktiv</p>
+                    <p className="mt-2 text-3xl font-black">{userManagementStats.active}</p>
+                  </div>
+                  <div className="rounded-3xl border border-red-400/20 bg-red-500/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-red-300">Gesperrt</p>
+                    <p className="mt-2 text-3xl font-black">{userManagementStats.inactive}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 overflow-hidden rounded-[28px] border border-white/10 bg-[#0b1624]">
+                  <div className="hidden grid-cols-[1.4fr_0.8fr_1fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400 lg:grid">
+                    <span>Benutzer</span>
+                    <span>Rolle</span>
+                    <span>Portal / Kunde</span>
+                    <span>Status</span>
+                  </div>
+
+                  <div className="divide-y divide-white/10">
+                    {userManagementProfiles.length === 0 ? (
+                      <div className="p-5 text-sm font-semibold text-slate-400">
+                        Keine Benutzerprofile geladen. Prüfe RLS/Profiles oder lade die Benutzer erneut.
+                      </div>
+                    ) : (
+                      userManagementProfiles.map((profile) => {
+                        const linkedCustomer = getCustomerForUserProfile(profile);
+
+                        return (
+                          <div
+                            key={profile.id}
+                            className="grid gap-3 px-5 py-4 text-sm lg:grid-cols-[1.4fr_0.8fr_1fr_0.8fr] lg:items-center"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-black text-white">
+                                {getUserDisplayName(profile)}
+                              </p>
+                              <p className="mt-1 truncate text-xs font-semibold text-slate-400">
+                                ID: {String(profile.id || "").slice(0, 12)}
+                              </p>
+                            </div>
+
+                            <div>
+                              <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${getUserRoleClass(profile.role)}`}>
+                                {getUserRoleLabel(profile.role)}
+                              </span>
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="truncate font-bold text-slate-200">
+                                {linkedCustomer?.company || profile.company || "Nicht zugeordnet"}
+                              </p>
+                              {linkedCustomer?.email && (
+                                <p className="mt-1 truncate text-xs font-semibold text-slate-400">
+                                  {linkedCustomer.email}
+                                </p>
+                              )}
+                            </div>
+
+                            <div>
+                              <span
+                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${
+                                  profile.is_active === false
+                                    ? "border-red-400/40 bg-red-500/15 text-red-100"
+                                    : "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                                }`}
+                              >
+                                {profile.is_active === false ? "Gesperrt" : "Aktiv"}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-black text-white">Nächster Schritt</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                      Benutzer bearbeiten: Rolle, Aktivstatus und Kundenverknüpfung gezielt ändern.
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-black text-white">Danach</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                      Einladung per E-Mail und Passwort-Reset sauber an Supabase Auth anbinden.
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm font-black text-white">Später</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                      CSV-/Excel-Import für Kunden, Geräte und Portalbenutzer.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
