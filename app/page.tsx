@@ -11454,28 +11454,28 @@ PRO-EFFEKT`,
           <div className="w-full max-w-md rounded-[36px] border border-sky-500/25 bg-[#07111d] p-7 text-white shadow-2xl shadow-black/50">
             <div className="text-center">
               <p className="text-2xl font-black uppercase tracking-[0.35em] text-sky-500">
-                PRO-EFFEKT
+                TRYBUN
               </p>
 
               <p className="mt-1 text-xs font-bold uppercase tracking-[0.22em] text-sky-400">
-                Serviceplattform
+                Service Management System
               </p>
 
               <img
-                src="/pro-effekt-logo.png"
-                alt="Pro-Effekt Logo"
-                className="mx-auto mt-5 h-auto w-full max-w-[120px] object-contain drop-shadow-md"
+                src={SOFTWARE_LOGO_PATH}
+                alt="TRYBUN Logo"
+                className="mx-auto mt-5 h-auto w-full max-w-[180px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
               />
 
               <h2 className="mt-8 text-5xl font-black tracking-tight text-white">
-                Business Portal
+                Service Portal
               </h2>
 
               <p className="mx-auto mt-5 max-w-sm text-base font-semibold leading-relaxed text-slate-300">
-                Service-Tickets, Reparatur & Wartung, Sicherheitsprüfungen und Kundenanfragen sicher verwalten.
+                Service, Wartung und Kundenkommunikation zentral verwalten.
               </p>
             </div>
 
