@@ -5448,8 +5448,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     }
 
     const isPrivateCustomer = customerType === "Privatkunde";
+    const liveCustomerCompany =
+      typeof document !== "undefined"
+        ? (document.getElementById("customer-company-input") as HTMLInputElement | null)?.value
+        : "";
+
     const normalizedCustomerCompany = (
-      customerCompany || customerCompanyInputRef.current?.value || ""
+      liveCustomerCompany || customerCompanyInputRef.current?.value || customerCompany || ""
     ).trim();
     const privateCustomerName = `${customerFirstName} ${customerLastName}`.trim();
     const customerDisplayName = isPrivateCustomer
@@ -5528,8 +5533,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     if (!editingCustomer) return;
 
     const isPrivateCustomer = customerType === "Privatkunde";
+    const liveCustomerCompany =
+      typeof document !== "undefined"
+        ? (document.getElementById("customer-company-input") as HTMLInputElement | null)?.value
+        : "";
+
     const normalizedCustomerCompany = (
-      customerCompany || customerCompanyInputRef.current?.value || ""
+      liveCustomerCompany || customerCompanyInputRef.current?.value || customerCompany || ""
     ).trim();
     const privateCustomerName = `${customerFirstName} ${customerLastName}`.trim();
     const customerDisplayName = isPrivateCustomer
@@ -15448,6 +15458,8 @@ PRO-EFFEKT`,
                   </div>
 
                   <input
+                    id="customer-company-input"
+                    name="customer_company"
                     ref={customerCompanyInputRef}
                     value={customerCompany}
                     onChange={(e) => setCustomerCompany(e.target.value)}
@@ -15757,8 +15769,9 @@ PRO-EFFEKT`,
                   {editingCustomer ? (
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
+                        type="button"
                         onClick={updateCustomer}
-                        className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                        className="cursor-pointer rounded-2xl bg-sky-500 py-4 font-bold text-white"
                       >
                         Kunde speichern
                       </button>
@@ -15772,8 +15785,9 @@ PRO-EFFEKT`,
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={createCustomer}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                      className="w-full cursor-pointer rounded-2xl bg-sky-500 py-4 font-bold text-white"
                     >
                       Kunde hinzufügen
                     </button>
