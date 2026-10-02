@@ -11456,13 +11456,13 @@ PRO-EFFEKT`,
               <img
                 src={SOFTWARE_LOGO_PATH}
                 alt="TRYBUN Logo"
-                className="mx-auto h-auto w-full max-w-[420px] object-contain drop-shadow-md"
+                className="mx-auto h-auto w-full max-w-[560px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
               />
 
-              <h2 className="mt-10 text-3xl font-black tracking-tight text-white">
+              <h2 className="mt-6 text-3xl font-black tracking-tight text-white">
                 Service Portal
               </h2>
             </div>
