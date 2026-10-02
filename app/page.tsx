@@ -569,6 +569,7 @@ export default function Home() {
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
+  const [userCompanyNames, setUserCompanyNames] = useState<Record<string, string>>({});
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("technician");
@@ -2877,10 +2878,74 @@ async function loadApplicationData() {
         return;
       }
 
-      setUserProfiles((result?.data || []) as UserProfile[]);
+      const loadedProfiles = (result?.data || []) as UserProfile[];
+      setUserProfiles(loadedProfiles);
+
+      const profileIds = loadedProfiles.map((profile) => profile.id).filter(Boolean);
+
+      if (profileIds.length === 0) {
+        setUserCompanyNames({});
+        return;
+      }
+
+      const { data: memberships, error: membershipsError } = await supabase
+        .from("company_members")
+        .select("user_id, company_id, role, created_at")
+        .in("user_id", profileIds)
+        .order("created_at", { ascending: false });
+
+      if (membershipsError) {
+        console.error("Firmenzuordnungen konnten nicht geladen werden:", membershipsError.message);
+        setUserCompanyNames({});
+        return;
+      }
+
+      const companyIds = Array.from(
+        new Set(
+          (memberships || [])
+            .map((membership: any) => Number(membership.company_id))
+            .filter((companyId: number) => Number.isFinite(companyId) && companyId > 0),
+        ),
+      );
+
+      if (companyIds.length === 0) {
+        setUserCompanyNames({});
+        return;
+      }
+
+      const { data: companiesResult, error: companiesError } = await supabase
+        .from("companies")
+        .select("id, name")
+        .in("id", companyIds);
+
+      if (companiesError) {
+        console.error("Firmennamen konnten nicht geladen werden:", companiesError.message);
+        setUserCompanyNames({});
+        return;
+      }
+
+      const companyNameById = new Map<number, string>(
+        (companiesResult || []).map((company: any) => [
+          Number(company.id),
+          String(company.name || "").trim(),
+        ]),
+      );
+
+      const nextUserCompanyNames: Record<string, string> = {};
+
+      (memberships || []).forEach((membership: any) => {
+        const userId = String(membership.user_id || "");
+        if (!userId || nextUserCompanyNames[userId]) return;
+
+        const companyName = companyNameById.get(Number(membership.company_id));
+        if (companyName) nextUserCompanyNames[userId] = companyName;
+      });
+
+      setUserCompanyNames(nextUserCompanyNames);
     } catch (error) {
       console.error("Benutzer-Ladevorgang übersprungen:", error);
       setUserProfiles(fallbackProfiles);
+      setUserCompanyNames({});
     }
   }
 
@@ -15003,7 +15068,7 @@ PRO-EFFEKT`,
                   <div className="hidden grid-cols-[1.4fr_0.8fr_1fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400 lg:grid">
                     <span>Benutzer</span>
                     <span>Rolle</span>
-                    <span>Portal / Kunde</span>
+                    <span>Firma / Kundenzuordnung</span>
                     <span>Status</span>
                   </div>
 
@@ -15038,13 +15103,17 @@ PRO-EFFEKT`,
 
                             <div className="min-w-0">
                               <p className="truncate font-bold text-slate-200">
-                                {linkedCustomer?.company || profile.company || "Nicht zugeordnet"}
+                                {profile.role === "customer"
+                                  ? linkedCustomer?.company || userCompanyNames[profile.id] || profile.company || "Nicht zugeordnet"
+                                  : userCompanyNames[profile.id] || profile.company || "Nicht zugeordnet"}
                               </p>
-                              {linkedCustomer?.email && (
-                                <p className="mt-1 truncate text-xs font-semibold text-slate-400">
-                                  {linkedCustomer.email}
-                                </p>
-                              )}
+                              <p className="mt-1 truncate text-xs font-semibold text-slate-400">
+                                {profile.role === "customer"
+                                  ? linkedCustomer?.email || "Kundenportal"
+                                  : `${getUserRoleLabel(profile.role)} · ${
+                                      userCompanyNames[profile.id] || profile.company || "keine Firma"
+                                    }`}
+                              </p>
                             </div>
 
                             <div>
