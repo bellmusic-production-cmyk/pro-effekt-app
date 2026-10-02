@@ -718,6 +718,7 @@ export default function Home() {
 
 
   const [customerCompany, setCustomerCompany] = useState("");
+  const customerCompanyInputRef = useRef<HTMLInputElement | null>(null);
   const [customerType, setCustomerType] = useState("B2B");
   const [customerContact, setCustomerContact] = useState("");
   const [customerFirstName, setCustomerFirstName] = useState("");
@@ -5447,10 +5448,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     }
 
     const isPrivateCustomer = customerType === "Privatkunde";
+    const normalizedCustomerCompany = (
+      customerCompany || customerCompanyInputRef.current?.value || ""
+    ).trim();
     const privateCustomerName = `${customerFirstName} ${customerLastName}`.trim();
     const customerDisplayName = isPrivateCustomer
       ? privateCustomerName || customerContact.trim()
-      : customerCompany.trim();
+      : normalizedCustomerCompany;
 
     if (!customerDisplayName) {
       alert(
@@ -5468,7 +5472,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
           customer_number: customerNumber.trim() || null,
           supplier_number: customerSupplierNumber.trim() || null,
           customer_type: customerType,
-          company: isPrivateCustomer ? null : customerCompany.trim(),
+          company: isPrivateCustomer ? null : normalizedCustomerCompany,
           contact_person: customerContact || privateCustomerName || null,
           first_name: customerFirstName.trim() || null,
           last_name: customerLastName.trim() || null,
@@ -5524,10 +5528,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     if (!editingCustomer) return;
 
     const isPrivateCustomer = customerType === "Privatkunde";
+    const normalizedCustomerCompany = (
+      customerCompany || customerCompanyInputRef.current?.value || ""
+    ).trim();
     const privateCustomerName = `${customerFirstName} ${customerLastName}`.trim();
     const customerDisplayName = isPrivateCustomer
       ? privateCustomerName || customerContact.trim()
-      : customerCompany.trim();
+      : normalizedCustomerCompany;
 
     if (!customerDisplayName) {
       alert(
@@ -5542,7 +5549,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       .from("customers")
       .update({
         customer_type: customerType,
-        company: isPrivateCustomer ? null : customerCompany.trim(),
+        company: isPrivateCustomer ? null : normalizedCustomerCompany,
         contact_person: customerContact || privateCustomerName || null,
         first_name: customerFirstName.trim() || null,
         last_name: customerLastName.trim() || null,
@@ -15441,6 +15448,7 @@ PRO-EFFEKT`,
                   </div>
 
                   <input
+                    ref={customerCompanyInputRef}
                     value={customerCompany}
                     onChange={(e) => setCustomerCompany(e.target.value)}
                     placeholder={customerType === "Privatkunde" ? "Firma optional" : "Firma / Studio"}
