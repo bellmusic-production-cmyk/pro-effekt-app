@@ -936,14 +936,6 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (session?.user?.id) {
-      loadCompany();
-    } else {
-      setCompanyData(null);
-    }
-  }, [session?.user?.id]);
-
-  useEffect(() => {
     if (userProfile?.role === "admin" || userProfile?.role === "technician") {
       loadManufacturers();
       loadDeviceModels();
@@ -954,7 +946,7 @@ export default function Home() {
     if (!session?.user?.id || !activePage) return;
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(`pro-effekt-active-page-${session.user.id}`, activePage);
+      window.localStorage.setItem(`trybun-active-page-${session.user.id}`, activePage);
     }
   }, [activePage, session?.user?.id]);
 
@@ -1679,9 +1671,9 @@ export default function Home() {
 
     try {
       // Wichtig: Ein Benutzer kann in mehreren Mandanten/Firmen stehen.
-      // maybeSingle() ist hier falsch, weil es bei mehreren company_members einen Fehler liefert
-      // und dadurch companyData leer bleibt. Wir laden alle Mitgliedschaften und nehmen
-      // bevorzugt den neuesten aktiven Mandanten. Bei dir ist das Pro-Effekt.
+      // maybeSingle() ist hier falsch, weil es bei mehreren company_members einen Fehler liefert.
+      // Wir laden alle Mitgliedschaften und verwenden den neuesten aktiven Mandanten,
+      // ohne eine bestimmte Firma im TRYBUN-Code fest zu verdrahten.
       const { data: memberships, error: memberError } = await supabase
         .from("company_members")
         .select("company_id, role, created_at")
@@ -1723,8 +1715,6 @@ export default function Home() {
       }
 
       const preferredCompany =
-        companiesList.find((company) => company.slug === "pro-effekt") ||
-        companiesList.find((company) => company.name === "Pro-Effekt") ||
         companiesList.find((company) => company.id === companyIds[0]) ||
         companiesList[0];
 
@@ -2072,9 +2062,9 @@ async function loadApplicationData() {
         if (!key) continue;
 
         if (
-          key.startsWith("pro-effekt-user-profile-") ||
-          key.startsWith("pro-effekt-legal-accepted-") ||
-          key.startsWith("pro-effekt-active-page-") ||
+          key.startsWith("trybun-user-profile-") ||
+          key.startsWith("trybun-legal-accepted-") ||
+          key.startsWith("trybun-active-page-") ||
           (userId && key.includes(userId))
         ) {
           keysToRemove.push(key);
@@ -2106,7 +2096,7 @@ async function loadApplicationData() {
       return;
     }
 
-    const localKey = `pro-effekt-legal-accepted-${userId}`;
+    const localKey = `trybun-legal-accepted-${userId}`;
 
     if (typeof window !== "undefined") {
       const localValue = window.localStorage.getItem(localKey);
@@ -2150,7 +2140,7 @@ async function loadApplicationData() {
     setLegalChecking(true);
 
     const userId = session.user.id;
-    const localKey = `pro-effekt-legal-accepted-${userId}`;
+    const localKey = `trybun-legal-accepted-${userId}`;
 
     const payload = {
       user_id: userId,
@@ -2255,9 +2245,9 @@ async function loadApplicationData() {
           if (!key) continue;
 
           if (
-            key.startsWith("pro-effekt-user-profile-") ||
-            key.startsWith("pro-effekt-legal-accepted-") ||
-            key.startsWith("pro-effekt-active-page-") ||
+            key.startsWith("trybun-user-profile-") ||
+            key.startsWith("trybun-legal-accepted-") ||
+            key.startsWith("trybun-active-page-") ||
             (currentUserId && key.includes(currentUserId))
           ) {
             keysToRemove.push(key);
@@ -2279,7 +2269,7 @@ async function loadApplicationData() {
     // Der lokale Rollenverwaltung darf die App nur schneller anzeigen, aber niemals Zugriff erlauben.
     // Entscheidend ist immer ein aktiver Datensatz in public.profiles.
     // Wenn Profil, Rolle oder Aktivstatus fehlen, wird die Sitzung beendet.
-    const cacheKey = `pro-effekt-user-profile-${userId}`;
+    const cacheKey = `trybun-user-profile-${userId}`;
 
     function readCachedProfile() {
       if (typeof window === "undefined") return null;
@@ -3164,7 +3154,7 @@ async function loadApplicationData() {
     const finalTicketId = selectedUploadTicket?.id || null;
 
     if (isCustomer && !userProfile?.customer_id) {
-      alert("Dein Kundenkonto ist noch keinem Kunden zugeordnet. Bitte Pro-Effekt kontaktieren.");
+      alert("Dein Kundenkonto ist noch keinem Kunden zugeordnet. Bitte deinen zuständigen Administrator kontaktieren.");
       event.target.value = "";
       return;
     }
@@ -5292,7 +5282,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       category: modelCategory.trim() || null,
       type: cleanedModelType,
       device_type: cleanedModelType,
-      source: "Pro-Effekt App",
+      source: "TRYBUN App",
       note: modelNote.trim() || null,
     };
 
@@ -6423,7 +6413,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
       await new Promise((resolve) => setTimeout(resolve, 400));
 
-      const readerElement = document.getElementById("pro-effekt-qr-reader");
+      const readerElement = document.getElementById("trybun-qr-reader");
 
       if (!readerElement) {
         setQrScanStatus("Scanner-Feld wurde noch nicht geladen. Bitte erneut QR-Scan starten.");
@@ -6441,7 +6431,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
         }
       }
 
-      const scanner = new Html5Qrcode("pro-effekt-qr-reader");
+      const scanner = new Html5Qrcode("trybun-qr-reader");
       qrScannerRef.current = scanner;
 
       setQrScanStatus("Kamera-Berechtigung wird angefragt...");
@@ -9731,7 +9721,7 @@ PRO-EFFEKT`,
         </head>
         <body>
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p>Pro-Effekt Software Service · ${item.type}</p>
+          <p>TRYBUN Software Service · ${item.type}</p>
 
           <h2>${item.type} ${item.number}</h2>
           <div class="box grid">
@@ -10597,7 +10587,7 @@ PRO-EFFEKT`,
     }
 
     if (typeof window !== "undefined" && session?.user?.id) {
-      window.localStorage.setItem(`pro-effekt-active-page-${session.user.id}`, item);
+      window.localStorage.setItem(`trybun-active-page-${session.user.id}`, item);
     }
 
     resetTicketForm();
@@ -10625,7 +10615,7 @@ PRO-EFFEKT`,
     setDocumentDeviceFilter("Alle");
 
     if (typeof window !== "undefined" && session?.user?.id) {
-      window.localStorage.setItem(`pro-effekt-active-page-${session.user.id}`, "Geräte");
+      window.localStorage.setItem(`trybun-active-page-${session.user.id}`, "Geräte");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -11565,9 +11555,9 @@ PRO-EFFEKT`,
   }
 
   return (
-    <main className="pro-effekt-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
+    <main className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
         <style>{`
-          .pro-effekt-premium-ui {
+          .trybun-premium-ui {
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             text-rendering: optimizeLegibility;
             -webkit-font-smoothing: antialiased;
@@ -11575,31 +11565,31 @@ PRO-EFFEKT`,
             font-variant-numeric: tabular-nums;
           }
 
-          .pro-effekt-premium-ui * {
+          .trybun-premium-ui * {
             box-sizing: border-box;
           }
 
-          .pro-effekt-premium-ui h1,
-          .pro-effekt-premium-ui h2,
-          .pro-effekt-premium-ui h3,
-          .pro-effekt-premium-ui .fe-login-brand {
+          .trybun-premium-ui h1,
+          .trybun-premium-ui h2,
+          .trybun-premium-ui h3,
+          .trybun-premium-ui .fe-login-brand {
             letter-spacing: -0.035em;
             line-height: 1.08;
           }
 
-          .pro-effekt-premium-ui p,
-          .pro-effekt-premium-ui label,
-          .pro-effekt-premium-ui span,
-          .pro-effekt-premium-ui button,
-          .pro-effekt-premium-ui summary,
-          .pro-effekt-premium-ui input,
-          .pro-effekt-premium-ui select,
-          .pro-effekt-premium-ui textarea {
+          .trybun-premium-ui p,
+          .trybun-premium-ui label,
+          .trybun-premium-ui span,
+          .trybun-premium-ui button,
+          .trybun-premium-ui summary,
+          .trybun-premium-ui input,
+          .trybun-premium-ui select,
+          .trybun-premium-ui textarea {
             -webkit-font-smoothing: antialiased;
           }
 
-          .pro-effekt-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-          .pro-effekt-premium-ui select {
+          .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+          .trybun-premium-ui select {
             min-height: 50px !important;
             line-height: 1.35 !important;
             padding-top: 0.82rem !important;
@@ -11610,7 +11600,7 @@ PRO-EFFEKT`,
             overflow: visible;
           }
 
-          .pro-effekt-premium-ui textarea {
+          .trybun-premium-ui textarea {
             min-height: 118px !important;
             line-height: 1.55 !important;
             padding-top: 0.95rem !important;
@@ -11620,84 +11610,84 @@ PRO-EFFEKT`,
             letter-spacing: -0.01em;
           }
 
-          .pro-effekt-premium-ui select {
+          .trybun-premium-ui select {
             padding-right: 2.75rem !important;
             white-space: nowrap;
             text-overflow: ellipsis;
             appearance: auto;
           }
 
-          .pro-effekt-premium-ui option {
+          .trybun-premium-ui option {
             color: #0f172a;
             background: #ffffff;
             font-size: 15px;
             font-weight: 600;
           }
 
-          .pro-effekt-premium-ui button,
-          .pro-effekt-premium-ui summary {
+          .trybun-premium-ui button,
+          .trybun-premium-ui summary {
             line-height: 1.2;
             letter-spacing: -0.012em;
           }
 
-          .pro-effekt-premium-ui aside button,
-          .pro-effekt-premium-ui aside summary {
+          .trybun-premium-ui aside button,
+          .trybun-premium-ui aside summary {
             min-height: 52px;
           }
 
-          .pro-effekt-premium-ui aside nav button,
-          .pro-effekt-premium-ui aside nav summary {
+          .trybun-premium-ui aside nav button,
+          .trybun-premium-ui aside nav summary {
             font-size: 14px;
           }
 
-          .pro-effekt-premium-ui aside nav span {
+          .trybun-premium-ui aside nav span {
             line-height: 1.25;
           }
 
-          .pro-effekt-premium-ui table {
+          .trybun-premium-ui table {
             font-size: 14px;
             line-height: 1.45;
           }
 
-          .pro-effekt-premium-ui th,
-          .pro-effekt-premium-ui td {
+          .trybun-premium-ui th,
+          .trybun-premium-ui td {
             vertical-align: middle;
           }
 
-          .pro-effekt-premium-ui .premium-readability,
-          .pro-effekt-premium-ui .premium-readability * {
+          .trybun-premium-ui .premium-readability,
+          .trybun-premium-ui .premium-readability * {
             overflow-wrap: anywhere;
           }
 
           @media (min-width: 1024px) {
-            .pro-effekt-premium-ui {
+            .trybun-premium-ui {
               letter-spacing: -0.006em;
             }
 
-            .pro-effekt-premium-ui main,
-            .pro-effekt-premium-ui section {
+            .trybun-premium-ui main,
+            .trybun-premium-ui section {
               scroll-behavior: smooth;
             }
 
-            .pro-effekt-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-            .pro-effekt-premium-ui select {
+            .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+            .trybun-premium-ui select {
               min-height: 52px !important;
               font-size: 15px !important;
             }
 
-            .pro-effekt-premium-ui textarea {
+            .trybun-premium-ui textarea {
               font-size: 15px !important;
             }
           }
 
           @media (max-width: 767px) {
-            .pro-effekt-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-            .pro-effekt-premium-ui select {
+            .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+            .trybun-premium-ui select {
               min-height: 48px !important;
               font-size: 14px !important;
             }
 
-            .pro-effekt-premium-ui textarea {
+            .trybun-premium-ui textarea {
               font-size: 14px !important;
             }
           }
@@ -15240,7 +15230,7 @@ PRO-EFFEKT`,
                   Business Dashboard
                 </p>
                 <h3 className="mt-2 text-4xl font-black">
-                  Pro-Effekt Auswertungen
+                  TRYBUN Auswertungen
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Kennzahlen für Umsatz, Tickets, Wartungen, Prüfungen, Technikerleistung und Kundenaktivität.
@@ -19162,7 +19152,7 @@ PRO-EFFEKT`,
                 {qrScannerActive && (
                   <div className="mt-5 overflow-hidden rounded-3xl border border-white/10 bg-black p-3">
                     <div
-                      id="pro-effekt-qr-reader"
+                      id="trybun-qr-reader"
                       className="min-h-[320px] w-full overflow-hidden rounded-2xl bg-black"
                     />
                   </div>
@@ -20906,4 +20896,3 @@ function StatCard({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-
