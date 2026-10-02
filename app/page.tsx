@@ -11453,22 +11453,18 @@ PRO-EFFEKT`,
         <div className="flex min-h-screen min-h-[100dvh] items-center justify-center px-5 py-8">
           <div className="w-full max-w-md rounded-[36px] border border-sky-500/25 bg-[#07111d] p-7 text-white shadow-2xl shadow-black/50">
             <div className="text-center">
-              <p className="text-2xl font-black uppercase tracking-[0.35em] text-sky-500">
-                TRYBUN
-              </p>
-
-              <p className="mt-1 text-xs font-bold uppercase tracking-[0.22em] text-sky-400">
-                Service Management System
-              </p>
-
               <img
                 src={SOFTWARE_LOGO_PATH}
                 alt="TRYBUN Logo"
-                className="mx-auto mt-5 h-auto w-full max-w-[180px] object-contain drop-shadow-md"
+                className="mx-auto h-auto w-full max-w-[220px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
               />
+
+              <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-sky-400">
+                Service Management System
+              </p>
 
               <h2 className="mt-8 text-5xl font-black tracking-tight text-white">
                 Service Portal
