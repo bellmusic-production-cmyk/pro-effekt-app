@@ -11456,23 +11456,15 @@ PRO-EFFEKT`,
               <img
                 src={SOFTWARE_LOGO_PATH}
                 alt="TRYBUN Logo"
-                className="mx-auto h-auto w-full max-w-[340px] object-contain drop-shadow-md"
+                className="mx-auto h-auto w-full max-w-[420px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
               />
 
-              <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-sky-400">
-                Service Management System
-              </p>
-
-              <h2 className="mt-8 text-5xl font-black tracking-tight text-white">
+              <h2 className="mt-10 text-3xl font-black tracking-tight text-white">
                 Service Portal
               </h2>
-
-              <p className="mx-auto mt-5 max-w-sm text-base font-semibold leading-relaxed text-slate-300">
-                Service, Wartung und Kundenkommunikation zentral verwalten.
-              </p>
             </div>
 
             <div className="mt-8 space-y-4">
