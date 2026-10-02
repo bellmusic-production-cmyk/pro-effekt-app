@@ -11456,7 +11456,7 @@ PRO-EFFEKT`,
               <img
                 src={SOFTWARE_LOGO_PATH}
                 alt="TRYBUN Logo"
-                className="mx-auto h-auto w-full max-w-[220px] object-contain drop-shadow-md"
+                className="mx-auto h-auto w-full max-w-[340px] object-contain drop-shadow-md"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}
