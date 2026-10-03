@@ -1513,6 +1513,12 @@ export default function Home() {
     });
   }, [technicianPremiumTickets]);
 
+  // Alle noch aktiven Tickets mit einem Einsatztermin. Anders als "Heute" zeigt diese
+  // Zahl damit auch einen bereits geplanten Termin in der Zukunft (z. B. T-7187).
+  const technicianPremiumPlannedTickets = useMemo(() => {
+    return technicianPremiumTickets.filter((ticket) => Boolean(ticket.service_date));
+  }, [technicianPremiumTickets]);
+
   const technicianPremiumMaintenancePlans = useMemo(() => {
     return maintenanceTicketSuggestions.filter((plan) => {
       if (userProfile?.role === "technician") return !plan.assigned_to || plan.assigned_to === userProfile?.id;
@@ -10366,6 +10372,19 @@ PRO-EFFEKT`,
     (part) => Number(part.stock || 0) <= Number(part.min_stock || 0),
   );
 
+  // Leitstand: Ersatzteilverwendung und Lagerwarnung sind zwei verschiedene Dinge.
+  // Eine Verwendung an einem offenen Ticket soll im Überblick sichtbar sein, auch wenn
+  // der Lagerbestand des verwendeten Teils weiterhin über dem Mindestbestand liegt.
+  const activeTicketIds = new Set(openAdminTickets.map((ticket) => ticket.id));
+  const activeTicketPartUsages = partUsages.filter(
+    (usage) => usage.ticket_id != null && activeTicketIds.has(Number(usage.ticket_id)),
+  );
+  const activeTicketsWithPartsCount = new Set(
+    activeTicketPartUsages
+      .map((usage) => usage.ticket_id)
+      .filter((ticketId): ticketId is number => ticketId != null),
+  ).size;
+
   const repairDashboardStats = (() => {
     const repairTickets = visibleRoleTickets.filter((ticket) => {
       const content = [ticket.issue, ticket.description, ticket.service_report]
@@ -12692,12 +12711,12 @@ PRO-EFFEKT`,
                             <div className="flex items-start gap-3">
                               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-lg">🚚</span>
                               <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-sky-300">Service & Einsätze</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Heute und kommende Woche</p>
+                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-sky-300">Geplante Einsätze</p>
+                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Alle aktiven Tickets mit Termin</p>
                               </div>
                             </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{technicianPremiumTodayTickets.length}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Heute: {technicianPremiumTodayTickets.length} · Woche: {technicianPremiumWeekTickets.length}</p>
+                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{technicianPremiumPlannedTickets.length}</p>
+                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Heute: {technicianPremiumTodayTickets.length} · Nächste 7 Tage: {technicianPremiumWeekTickets.length}</p>
                           </button>
 
                           <button
@@ -12757,11 +12776,11 @@ PRO-EFFEKT`,
                               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/50 bg-cyan-500/15 text-lg">📦</span>
                               <div className="min-w-0">
                                 <p className="text-[13px] font-black uppercase tracking-[0.08em] text-cyan-300">Ersatzteile</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Lager und Mindestbestand</p>
+                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Verwendung in offenen Tickets</p>
                               </div>
                             </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{lowStockParts.length}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Unter Mindestbestand</p>
+                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{activeTicketPartUsages.length}</p>
+                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Offene Tickets mit Teilen: {activeTicketsWithPartsCount} · Unter Mindestbestand: {lowStockParts.length}</p>
                           </button>
 
                           <button
