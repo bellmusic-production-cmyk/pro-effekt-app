@@ -17703,12 +17703,70 @@ PRO-EFFEKT`,
                     <div className="grid gap-3 md:grid-cols-2">
                       <label className="space-y-2">
                         <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Vertragsbeginn</span>
-                        <input value={contractStartDate} onChange={(e) => setContractStartDate(e.target.value)} type="date" min="2000-01-01" max="2100-12-31" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                        <input
+                          value={contractStartDate}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setContractStartDate(value);
+
+                            if (value) {
+                              const year = Number(value.slice(0, 4));
+                              if (year < 2000 || year > 2100) {
+                                window.setTimeout(() => {
+                                  alert("Bitte beim Vertragsbeginn ein Jahr zwischen 2000 und 2100 eingeben.");
+                                  setContractStartDate("");
+                                }, 0);
+                              }
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            if (!value) return;
+                            const year = Number(value.slice(0, 4));
+                            if (year < 2000 || year > 2100) {
+                              alert("Bitte beim Vertragsbeginn ein Jahr zwischen 2000 und 2100 eingeben.");
+                              setContractStartDate("");
+                            }
+                          }}
+                          type="date"
+                          min="2000-01-01"
+                          max="2100-12-31"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                        />
                       </label>
 
                       <label className="space-y-2">
                         <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Vertragsende</span>
-                        <input value={contractEndDate} onChange={(e) => setContractEndDate(e.target.value)} type="date" min={contractStartDate || "2000-01-01"} max="2100-12-31" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                        <input
+                          value={contractEndDate}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setContractEndDate(value);
+
+                            if (value) {
+                              const year = Number(value.slice(0, 4));
+                              if (year < 2000 || year > 2100) {
+                                window.setTimeout(() => {
+                                  alert("Bitte beim Vertragsende ein Jahr zwischen 2000 und 2100 eingeben.");
+                                  setContractEndDate("");
+                                }, 0);
+                              }
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            if (!value) return;
+                            const year = Number(value.slice(0, 4));
+                            if (year < 2000 || year > 2100) {
+                              alert("Bitte beim Vertragsende ein Jahr zwischen 2000 und 2100 eingeben.");
+                              setContractEndDate("");
+                            }
+                          }}
+                          type="date"
+                          min={contractStartDate || "2000-01-01"}
+                          max="2100-12-31"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                        />
                       </label>
                     </div>
 
