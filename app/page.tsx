@@ -873,19 +873,73 @@ export default function Home() {
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    const initialUrl = typeof window !== "undefined" ? window.location.href : "";
-    const openedFromPasswordLink =
-      /(?:[?#&]type=invite(?:&|$))/i.test(initialUrl) ||
-      /(?:[?#&]type=recovery(?:&|$))/i.test(initialUrl);
+    let cancelled = false;
 
-    if (openedFromPasswordLink) {
-      setPasswordSetupMode(true);
+    async function initializeAuth() {
+      const initialUrl = typeof window !== "undefined" ? window.location.href : "";
+      const url = typeof window !== "undefined" ? new URL(window.location.href) : null;
+      const hashParams =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.hash.replace(/^#/, ""))
+          : new URLSearchParams();
+
+      const queryType = url?.searchParams.get("type") || "";
+      const hashType = hashParams.get("type") || "";
+      const authType = queryType || hashType;
+      const tokenHash = url?.searchParams.get("token_hash") || "";
+
+      const openedFromPasswordLink =
+        authType === "invite" ||
+        authType === "recovery" ||
+        /(?:[?#&]type=invite(?:&|$))/i.test(initialUrl) ||
+        /(?:[?#&]type=recovery(?:&|$))/i.test(initialUrl);
+
+      if (openedFromPasswordLink && !cancelled) {
+        setPasswordSetupMode(true);
+      }
+
+      // Zuverlässiger Recovery-Ablauf für die TRYBUN-Mailvorlage:
+      // /?token_hash={{ .TokenHash }}&type=recovery
+      // Damit sind wir nicht davon abhängig, ob Supabase beim Redirect nur ?code=...
+      // zurückliefert und das PASSWORD_RECOVERY-Event im Browser sichtbar bleibt.
+      if (authType === "recovery" && tokenHash) {
+        const { data: recoveryData, error: recoveryError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery",
+        });
+
+        if (cancelled) return;
+
+        if (recoveryError) {
+          console.error("Passwort-Recovery-Link konnte nicht bestätigt werden:", recoveryError.message);
+          setPasswordSetupMode(false);
+          setSession(null);
+          setAuthLoading(false);
+          setProfileLoading(false);
+          alert("Der Link zum Zurücksetzen des Passworts ist ungültig oder abgelaufen. Bitte fordere eine neue Passwort-E-Mail an.");
+          return;
+        }
+
+        if (recoveryData.session) {
+          setSession(recoveryData.session);
+          setAuthLoading(false);
+          setPasswordSetupMode(true);
+
+          // Token aus der sichtbaren URL entfernen, ohne die Recovery-Sitzung zu verlieren.
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+      }
+
+      await checkSession();
     }
 
-    checkSession();
+    initializeAuth();
 
     const { data } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        if (cancelled) return;
+
         setSession(currentSession);
         setAuthLoading(false);
 
@@ -910,6 +964,7 @@ export default function Home() {
     );
 
     return () => {
+      cancelled = true;
       data.subscription.unsubscribe();
     };
   }, []);
@@ -2206,7 +2261,7 @@ async function loadApplicationData() {
 
   async function finishPasswordSetup() {
     if (!session) {
-      alert("Die Einladungssitzung ist nicht mehr gültig. Bitte die Einladung erneut öffnen.");
+      alert("Die Passwort-Sitzung ist nicht mehr gültig. Bitte den Einladungs- oder Passwort-Link erneut öffnen.");
       return;
     }
 
