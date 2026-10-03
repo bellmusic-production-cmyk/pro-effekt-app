@@ -1719,6 +1719,27 @@ export default function Home() {
     }
   }
 
+  function formatServiceDate(value?: string | null) {
+    if (!value) return "";
+    const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return String(value);
+    return `${match[3]}.${match[2]}.${match[1]}`;
+  }
+
+  function formatServiceTime(value?: string | null) {
+    if (!value) return "";
+    const match = String(value).match(/^(\d{2}):(\d{2})/);
+    if (!match) return String(value);
+    return `${match[1]}:${match[2]} Uhr`;
+  }
+
+  function formatServiceAppointment(date?: string | null, time?: string | null) {
+    if (!date) return "Kein Termin geplant";
+    const formattedDate = formatServiceDate(date);
+    const formattedTime = formatServiceTime(time);
+    return formattedTime ? `${formattedDate} · ${formattedTime}` : formattedDate;
+  }
+
   function isCustomerPortalDocument(documentItem: DocumentItem) {
     return String(documentItem.file_path || "").includes("kundenportal/");
   }
@@ -3379,7 +3400,9 @@ async function loadApplicationData() {
     }
 
     if (serviceDate && !isValidAppDate(serviceDate)) {
-      alert("Bitte ein gültiges Einsatzdatum zwischen 01.01.2000 und 31.12.2100 eingeben.");
+      // Während der Eingabe eines nativen Datumsfelds entstehen kurzzeitig
+      // unvollständige Jahreswerte. Diese werden nicht gespeichert, aber auch
+      // nicht mit störenden Zwischenmeldungen quittiert.
       return;
     }
 
@@ -6350,9 +6373,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       technicianName: getTechnicianNameById(ticket.assigned_to),
       serviceType: ticketServiceTypeText(ticket),
       subject: ticketSubjectText(ticket),
-      appointment: ticket.service_date
-        ? `${ticket.service_date}${ticket.service_time ? ` · ${ticket.service_time}` : ""}`
-        : "Kein Termin geplant",
+      appointment: formatServiceAppointment(ticket.service_date, ticket.service_time),
     };
   }
 
@@ -13831,7 +13852,7 @@ PRO-EFFEKT`,
                           Techniker: {getTechnicianNameById(currentTicket.assigned_to)}
                         </p>
                         <p className="mt-1 text-sm font-bold text-slate-600">
-                          Termin: {currentTicket.service_date || "Nicht geplant"}{currentTicket.service_time ? ` · ${currentTicket.service_time}` : ""}
+                          Termin: {currentTicket.service_date ? formatServiceAppointment(currentTicket.service_date, currentTicket.service_time) : "Nicht geplant"}
                         </p>
                       </div>
 
@@ -19159,7 +19180,7 @@ PRO-EFFEKT`,
                       ) : (
                         overdueDispatchTickets.slice(0, 8).map((ticket) => (
                           <button key={ticket.id} type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-2xl border border-red-100 bg-red-50 p-4 text-left">
-                            <p className="text-xs font-black text-red-700">{ticket.service_date} · {ticket.service_time || "ohne Uhrzeit"}</p>
+                            <p className="text-xs font-black text-red-700">{formatServiceDate(ticket.service_date)} · {ticket.service_time ? formatServiceTime(ticket.service_time) : "ohne Uhrzeit"}</p>
                             <p className="mt-1 font-black text-slate-900">{ticket.ticket_number} · {ticket.customer}</p>
                             <p className="mt-1 text-sm font-semibold text-slate-600">{ticket.status}</p>
                           </button>
@@ -19235,7 +19256,7 @@ PRO-EFFEKT`,
                               className="w-full rounded-2xl bg-white p-3 text-left shadow-sm"
                             >
                               <p className="text-xs font-black text-sky-600">
-                                {ticket.service_date || "ohne Datum"} {ticket.service_time || ""}
+                                {ticket.service_date ? formatServiceDate(ticket.service_date) : "ohne Datum"} {ticket.service_time ? formatServiceTime(ticket.service_time) : ""}
                               </p>
                               <p className="mt-1 font-black text-slate-900">
                                 {meta.serviceLocation || ticket.customer || ticket.ticket_number}
@@ -19871,7 +19892,7 @@ PRO-EFFEKT`,
                               <div className="min-w-0">
                                 <p className="truncate font-black text-slate-900">{ticket.ticket_number} · {ticket.issue}</p>
                                 <p className="mt-1 text-xs font-bold text-slate-500">
-                                  {ticket.customer} · {ticket.service_date || "ohne Termin"} {ticket.service_time ? `· ${ticket.service_time}` : ""}
+                                  {ticket.customer} · {ticket.service_date ? formatServiceDate(ticket.service_date) : "ohne Termin"} {ticket.service_time ? `· ${formatServiceTime(ticket.service_time)}` : ""}
                                 </p>
                               </div>
                               <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
@@ -20602,9 +20623,7 @@ PRO-EFFEKT`,
                                     {getTechnicianNameById(ticket.assigned_to)}
                                   </p>
                                   <p className="mt-1 break-words text-xs font-bold text-slate-600">
-                                    {ticket.service_date
-                                      ? `${ticket.service_date}${ticket.service_time ? ` · ${ticket.service_time}` : ""}`
-                                      : "Kein Termin geplant"}
+                                    {formatServiceAppointment(ticket.service_date, ticket.service_time)}
                                     {ticket.service_status ? ` · ${ticket.service_status}` : ""}
                                   </p>
                                 </div>
@@ -20659,8 +20678,6 @@ PRO-EFFEKT`,
 
                                     <input
                                       type="date"
-                                      min={APP_DATE_MIN}
-                                      max={APP_DATE_MAX}
                                       value={ticket.service_date || ""}
                                       onChange={(e) =>
                                         updateTicketAssignment(
@@ -20689,7 +20706,7 @@ PRO-EFFEKT`,
                                   </div>
                                 ) : (
                                   <p className="mt-2 break-words text-sm font-bold text-slate-700">
-                                    {getTechnicianNameById(ticket.assigned_to)} · {ticket.service_date || "kein Termin"}
+                                    {getTechnicianNameById(ticket.assigned_to)} · {ticket.service_date ? formatServiceAppointment(ticket.service_date, ticket.service_time) : "kein Termin"}
                                   </p>
                                 )}
                               </div>
@@ -21032,7 +21049,7 @@ PRO-EFFEKT`,
                               </p>
                               <p className="mt-2 text-sm font-bold text-slate-700">
                                 {ticket.service_date
-                                  ? `${ticket.service_date}${ticket.service_time ? ` · ${ticket.service_time}` : ""}`
+                                  ? formatServiceAppointment(ticket.service_date, ticket.service_time)
                                   : "Noch kein Termin geplant"}
                               </p>
 
