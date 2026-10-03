@@ -1289,7 +1289,13 @@ export default function Home() {
 
     return {
       total: sourceTickets.length,
-      open: sourceTickets.filter((ticket) => ticket.status === "Offen").length,
+      // "Offen" bedeutet in der Übersicht: Ticket ist noch nicht beendet.
+      // Dadurch zählen auch bereits zugewiesene bzw. laufende Tickets als offen,
+      // genau wie in Kalender und Einsatzplanung.
+      open: sourceTickets.filter(
+        (ticket) =>
+          !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+      ).length,
       assigned: sourceTickets.filter((ticket) => ticket.status === "Zugewiesen").length,
       inProgress: sourceTickets.filter((ticket) => ticket.status === "In Bearbeitung").length,
       waitingParts: sourceTickets.filter((ticket) => ticket.status === "Wartet auf Ersatzteile").length,
