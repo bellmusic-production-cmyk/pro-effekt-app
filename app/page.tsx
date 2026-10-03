@@ -64,6 +64,7 @@ type Device = {
 
 type Customer = {
   id: number;
+  company_id?: number | null;
   company: string | null;
   customer_type?: string | null;
   contact_person: string | null;
@@ -575,6 +576,12 @@ export default function Home() {
   const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("technician");
   const [newUserCustomerId, setNewUserCustomerId] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
+  const [customerSaving, setCustomerSaving] = useState(false);
+  const customerSavingRef = useRef(false);
+  const [passwordSetupMode, setPasswordSetupMode] = useState(false);
+  const [newAccountPassword, setNewAccountPassword] = useState("");
+  const [newAccountPasswordRepeat, setNewAccountPasswordRepeat] = useState("");
+  const [passwordSetupSaving, setPasswordSetupSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [companyNameInput, setCompanyNameInput] = useState("");
@@ -865,12 +872,25 @@ export default function Home() {
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
 
   useEffect(() => {
+    const initialUrl = typeof window !== "undefined" ? window.location.href : "";
+    const openedFromPasswordLink =
+      /(?:[?#&]type=invite(?:&|$))/i.test(initialUrl) ||
+      /(?:[?#&]type=recovery(?:&|$))/i.test(initialUrl);
+
+    if (openedFromPasswordLink) {
+      setPasswordSetupMode(true);
+    }
+
     checkSession();
 
     const { data } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
+      async (event, currentSession) => {
         setSession(currentSession);
         setAuthLoading(false);
+
+        if (event === "PASSWORD_RECOVERY") {
+          setPasswordSetupMode(true);
+        }
 
         if (currentSession) {
           setAppDataLoaded(false);
@@ -2183,6 +2203,46 @@ async function loadApplicationData() {
     }
   }
 
+  async function finishPasswordSetup() {
+    if (!session) {
+      alert("Die Einladungssitzung ist nicht mehr gültig. Bitte die Einladung erneut öffnen.");
+      return;
+    }
+
+    if (newAccountPassword.length < 8) {
+      alert("Das Passwort muss mindestens 8 Zeichen lang sein.");
+      return;
+    }
+
+    if (newAccountPassword !== newAccountPasswordRepeat) {
+      alert("Die beiden Passwörter stimmen nicht überein.");
+      return;
+    }
+
+    setPasswordSetupSaving(true);
+
+    const { error } = await supabase.auth.updateUser({
+      password: newAccountPassword,
+    });
+
+    setPasswordSetupSaving(false);
+
+    if (error) {
+      alert(`Passwort konnte nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    setNewAccountPassword("");
+    setNewAccountPasswordRepeat("");
+    setPasswordSetupMode(false);
+
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    alert("Passwort erfolgreich festgelegt. Dein TRYBUN-Zugang ist jetzt aktiv.");
+  }
+
   async function login() {
     if (!email || !password) {
       alert("Bitte E-Mail und Passwort eingeben.");
@@ -3012,7 +3072,11 @@ async function loadApplicationData() {
     await loadUserProfiles();
     await loadTechnicians();
 
-    alert("Benutzer wurde erfolgreich angelegt.");
+    alert(
+      data?.invitation_sent
+        ? "Kundeneinladung wurde erfolgreich versendet."
+        : "Benutzer wurde erfolgreich angelegt.",
+    );
   }
 
   async function loadTechnicians() {
@@ -5512,6 +5576,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    if (customerSavingRef.current) return;
+
+    if (!companyData?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
     const isPrivateCustomer = customerType === "Privatkunde";
     const liveCustomerCompany =
       typeof document !== "undefined"
@@ -5535,10 +5606,14 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    customerSavingRef.current = true;
+    setCustomerSaving(true);
+
     const { data, error } = await supabase
       .from("customers")
       .insert([
         {
+          company_id: companyData.id,
           customer_number: customerNumber.trim() || null,
           supplier_number: customerSupplierNumber.trim() || null,
           customer_type: customerType,
@@ -5571,7 +5646,9 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       .single();
 
     if (error || !data) {
-      alert("Kunde konnte nicht gespeichert werden.");
+      customerSavingRef.current = false;
+      setCustomerSaving(false);
+      alert(`Kunde konnte nicht gespeichert werden.${error?.message ? ` ${error.message}` : ""}`);
       return;
     }
 
@@ -5587,6 +5664,10 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     resetCustomerForm();
     await loadCustomers();
     await loadDevices();
+
+    customerSavingRef.current = false;
+    setCustomerSaving(false);
+    alert("Kunde erfolgreich hinzugefügt.");
   }
 
   async function updateCustomer() {
@@ -11529,6 +11610,60 @@ PRO-EFFEKT`,
     );
   }
 
+  if (passwordSetupMode && session) {
+    return (
+      <main className="min-h-screen bg-[#07111d] text-white">
+        <div className="flex min-h-screen min-h-[100dvh] items-center justify-center px-5 py-8">
+          <div className="w-full max-w-md rounded-[36px] border border-sky-500/25 bg-[#07111d] p-7 text-white shadow-2xl shadow-black/50">
+            <div className="text-center">
+              <img
+                src={SOFTWARE_LOGO_PATH}
+                alt="TRYBUN Logo"
+                className="mx-auto h-auto w-full max-w-[560px] object-contain drop-shadow-md"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+              <h2 className="mt-6 text-3xl font-black tracking-tight text-white">
+                Passwort festlegen
+              </h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
+                Lege jetzt dein persönliches Passwort für den TRYBUN-Zugang fest.
+              </p>
+            </div>
+
+            <div className="mt-8 space-y-4">
+              <input
+                value={newAccountPassword}
+                onChange={(event) => setNewAccountPassword(event.target.value)}
+                placeholder="Neues Passwort (mindestens 8 Zeichen)"
+                type="password"
+                autoComplete="new-password"
+                className="h-14 w-full rounded-2xl border border-sky-500/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-500"
+              />
+              <input
+                value={newAccountPasswordRepeat}
+                onChange={(event) => setNewAccountPasswordRepeat(event.target.value)}
+                placeholder="Passwort wiederholen"
+                type="password"
+                autoComplete="new-password"
+                className="h-14 w-full rounded-2xl border border-sky-500/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-500"
+              />
+              <button
+                type="button"
+                onClick={finishPasswordSetup}
+                disabled={passwordSetupSaving}
+                className="h-14 w-full rounded-2xl bg-sky-500 text-lg font-black text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-slate-600"
+              >
+                {passwordSetupSaving ? "Wird gespeichert..." : "Zugang aktivieren"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (!session) {
     return (
       <main className="min-h-screen bg-[#07111d] text-white">
@@ -15028,12 +15163,18 @@ PRO-EFFEKT`,
                       disabled={creatingUser}
                       className="rounded-2xl bg-sky-400 px-6 py-3 text-sm font-black text-slate-950 shadow-sm hover:bg-sky-300 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-200"
                     >
-                      {creatingUser ? "Wird angelegt..." : "+ Benutzer anlegen"}
+                      {creatingUser
+                        ? newUserRole === "customer"
+                          ? "Einladung wird gesendet..."
+                          : "Wird angelegt..."
+                        : newUserRole === "customer"
+                          ? "Kundeneinladung senden"
+                          : "+ Benutzer anlegen"}
                     </button>
                   </div>
 
                   <p className="mt-4 text-xs font-semibold leading-5 text-slate-400">
-                    Hinweis: Passwörter und automatische Einladungs-E-Mails bauen wir im nächsten Schritt aus. Aktuell wird der Benutzer sicher in Auth, profiles und company_members angelegt.
+                    Kunden erhalten ihren Portalzugang nur nach ausdrücklicher Einladung und legen ihr Passwort selbst fest. Admins und Techniker werden weiterhin als interne Firmenbenutzer angelegt.
                   </p>
                 </div>
 
@@ -15856,9 +15997,10 @@ PRO-EFFEKT`,
                     <button
                       type="button"
                       onClick={createCustomer}
-                      className="w-full cursor-pointer rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                      disabled={customerSaving}
+                      className="w-full cursor-pointer rounded-2xl bg-sky-500 py-4 font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
                     >
-                      Kunde hinzufügen
+                      {customerSaving ? "Kunde wird gespeichert..." : "Kunde hinzufügen"}
                     </button>
                   )}
                 </div>
