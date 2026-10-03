@@ -937,7 +937,7 @@ export default function Home() {
     initializeAuth();
 
     const { data } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         if (cancelled) return;
 
         setSession(currentSession);
@@ -949,11 +949,21 @@ export default function Home() {
 
         if (currentSession) {
           setAppDataLoaded(false);
-          const profileIsValid = await loadUserProfile(currentSession.user.id);
 
-          if (profileIsValid) {
-            loadApplicationData();
-          }
+          // Keine weiteren Supabase-Aufrufe direkt innerhalb des
+          // Auth-Callbacks awaiten. USER_UPDATED beim Passwortwechsel
+          // kann sonst den ursprünglichen Auth-Aufruf blockieren.
+          window.setTimeout(() => {
+            void (async () => {
+              if (cancelled) return;
+
+              const profileIsValid = await loadUserProfile(currentSession.user.id);
+
+              if (!cancelled && profileIsValid) {
+                await loadApplicationData();
+              }
+            })();
+          }, 0);
         } else {
           setUserProfile(null);
           setCompanyData(null);
@@ -2275,28 +2285,51 @@ async function loadApplicationData() {
       return;
     }
 
-    setPasswordSetupSaving(true);
-
-    const { error } = await supabase.auth.updateUser({
-      password: newAccountPassword,
-    });
-
-    setPasswordSetupSaving(false);
-
-    if (error) {
-      alert(`Passwort konnte nicht gespeichert werden: ${error.message}`);
+    if (passwordSetupSaving) {
       return;
     }
 
-    setNewAccountPassword("");
-    setNewAccountPasswordRepeat("");
-    setPasswordSetupMode(false);
+    setPasswordSetupSaving(true);
 
-    if (typeof window !== "undefined") {
-      window.history.replaceState({}, document.title, window.location.pathname);
+    try {
+      const updatePassword = supabase.auth.updateUser({
+        password: newAccountPassword,
+      });
+
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(
+          () => reject(new Error("Das Speichern des Passworts hat zu lange gedauert.")),
+          15000,
+        );
+      });
+
+      const { error } = await Promise.race([updatePassword, timeout]);
+
+      if (error) {
+        alert(`Passwort konnte nicht gespeichert werden: ${error.message}`);
+        return;
+      }
+
+      setNewAccountPassword("");
+      setNewAccountPasswordRepeat("");
+      setPasswordSetupMode(false);
+
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      alert("Passwort erfolgreich festgelegt. Dein TRYBUN-Zugang ist jetzt aktiv.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unbekannter Fehler beim Speichern des Passworts.";
+
+      console.error("Passwort konnte nicht gespeichert werden:", error);
+      alert(`Passwort konnte nicht gespeichert werden: ${message}`);
+    } finally {
+      setPasswordSetupSaving(false);
     }
-
-    alert("Passwort erfolgreich festgelegt. Dein TRYBUN-Zugang ist jetzt aktiv.");
   }
 
   async function login() {
