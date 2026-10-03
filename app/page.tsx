@@ -576,6 +576,7 @@ export default function Home() {
   const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("technician");
   const [newUserCustomerId, setNewUserCustomerId] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
+  const [portalInvitingCustomerId, setPortalInvitingCustomerId] = useState<number | null>(null);
   const [customerSaving, setCustomerSaving] = useState(false);
   const customerSavingRef = useRef(false);
   const [passwordSetupMode, setPasswordSetupMode] = useState(false);
@@ -3077,6 +3078,77 @@ async function loadApplicationData() {
         ? "Kundeneinladung wurde erfolgreich versendet."
         : "Benutzer wurde erfolgreich angelegt.",
     );
+  }
+
+  async function inviteCustomerToPortal(customerItem: Customer) {
+    if (!isAdmin) {
+      alert("Nur Admins können Portalzugänge einladen.");
+      return;
+    }
+
+    const customerId = Number(customerItem.id);
+    const existingPortalProfile = userProfiles.find(
+      (profile) => profile.role === "customer" && Number(profile.customer_id) === customerId,
+    );
+
+    if (existingPortalProfile) {
+      alert("Für diesen Kunden besteht bereits ein Portalzugang.");
+      return;
+    }
+
+    const cleanedEmail = String(customerItem.email || "").trim().toLowerCase();
+    if (!cleanedEmail || !cleanedEmail.includes("@")) {
+      alert("Für die Portal-Einladung muss beim Kunden eine gültige E-Mail-Adresse hinterlegt sein.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Die Firmenzuordnung konnte nicht geladen werden. Bitte erneut versuchen.");
+      return;
+    }
+
+    const customerName =
+      getCustomerDisplayName(customerItem) ||
+      String(customerItem.company || "").trim() ||
+      cleanedEmail;
+
+    if (!confirm(`Portalzugang für ${customerName} an ${cleanedEmail} einladen?`)) {
+      return;
+    }
+
+    setPortalInvitingCustomerId(customerId);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: {
+          email: cleanedEmail,
+          full_name: customerName,
+          role: "customer",
+          customer_id: customerId,
+          company_id: currentCompany.id,
+        },
+      });
+
+      if (error) {
+        alert(`Portalzugang konnte nicht eingeladen werden: ${error.message}`);
+        return;
+      }
+
+      if (data?.error) {
+        alert(`Portalzugang konnte nicht eingeladen werden: ${data.error}`);
+        return;
+      }
+
+      await loadUserProfiles();
+      alert(
+        data?.invitation_sent
+          ? "Kundeneinladung wurde erfolgreich versendet."
+          : "Portalzugang wurde erfolgreich angelegt.",
+      );
+    } finally {
+      setPortalInvitingCustomerId(null);
+    }
   }
 
   async function loadTechnicians() {
@@ -16127,6 +16199,46 @@ PRO-EFFEKT`,
                                 <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Dokumente</p>
                               </div>
                             </div>
+
+                            {isAdmin && (() => {
+                              const portalProfile = userProfiles.find(
+                                (profile) =>
+                                  profile.role === "customer" &&
+                                  Number(profile.customer_id) === Number(item.id),
+                              );
+                              const portalInviteRunning = portalInvitingCustomerId === Number(item.id);
+
+                              return (
+                                <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+                                        Portalzugang
+                                      </p>
+                                      <p className="mt-1 break-words text-sm font-black text-slate-900">
+                                        {portalProfile ? "Portalzugang vorhanden" : "Kein Portalzugang eingerichtet"}
+                                      </p>
+                                      <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                        {portalProfile
+                                          ? `Zugeordnet: ${portalProfile.full_name || "Kundenportal-Nutzer"}`
+                                          : `Einladung an: ${item.email || "Keine E-Mail hinterlegt"}`}
+                                      </p>
+                                    </div>
+
+                                    {!portalProfile && (
+                                      <button
+                                        type="button"
+                                        onClick={() => inviteCustomerToPortal(item)}
+                                        disabled={portalInviteRunning || !item.email}
+                                        className="shrink-0 rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                                      >
+                                        {portalInviteRunning ? "Einladung läuft..." : "Portalzugang einladen"}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             <div className="mt-4 rounded-2xl border border-sky-100 bg-white p-4">
                               <div className="flex items-center justify-between gap-3">
