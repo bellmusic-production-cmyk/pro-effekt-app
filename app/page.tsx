@@ -5578,8 +5578,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     if (customerSavingRef.current) return;
 
-    if (!companyData?.id) {
-      alert("Keine Firma geladen. Bitte Seite neu laden und erneut versuchen.");
+    // Die Mandantenfirma darf nicht nur vom React-State abhängen.
+    // Falls companyData beim Klick noch nicht gesetzt ist, laden wir die
+    // Firmenzuordnung des angemeldeten Benutzers direkt erneut aus Supabase.
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden. Bitte erneut versuchen.");
       return;
     }
 
@@ -5613,7 +5618,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       .from("customers")
       .insert([
         {
-          company_id: companyData.id,
+          company_id: currentCompany.id,
           customer_number: customerNumber.trim() || null,
           supplier_number: customerSupplierNumber.trim() || null,
           customer_type: customerType,
