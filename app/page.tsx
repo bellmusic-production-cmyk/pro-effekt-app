@@ -313,9 +313,9 @@ type CompanyData = {
 };
 
 const fallbackDevices = [
-  "Life Fitness Laufband T5",
-  "Technogym Crosstrainer",
-  "Matrix Kraftstation",
+  "Gerät 1",
+  "Gerät 2",
+  "Gerät 3",
 ];
 
 const SOFTWARE_LOGO_PATH = "/trybun-logo.png";
@@ -4729,7 +4729,7 @@ async function loadApplicationData() {
           <h2>Prüfsiegel / Sicherheitsprüfung</h2>
           <div class="box">
             Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
-            Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
+            Unfallrisiken zu reduzieren und den sicheren Betrieb der Geräte nachvollziehbar zu dokumentieren.
           </div>
           <div class="box grid">
             <div><div class="label">Prüfsiegelnummer</div><div class="value">${serviceBadgeNumber || ticket.inspection_badge_number || "-"}</div></div>
@@ -4933,7 +4933,7 @@ async function loadApplicationData() {
 
     sectionTitle("Prüfsiegel / Sicherheitsprüfung");
     textBox(
-      "Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen, Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.",
+      "Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen, Unfallrisiken zu reduzieren und den sicheren Betrieb der Geräte nachvollziehbar zu dokumentieren.",
       20,
     );
     infoBox([
@@ -5212,7 +5212,7 @@ async function loadApplicationData() {
           <h2>Prüfsiegel / Sicherheitsprüfung-Prüfung</h2>
           <div class="box">
             Sicherheitsprüfung- und Sicherheitsprüfungen helfen, technische Mängel frühzeitig zu erkennen,
-            Unfallrisiken zu reduzieren und den sicheren Betrieb der Fitnessgeräte nachvollziehbar zu dokumentieren.
+            Unfallrisiken zu reduzieren und den sicheren Betrieb der Geräte nachvollziehbar zu dokumentieren.
           </div>
           <div class="box grid">
             <div><div class="label">Prüfsiegelnummer</div><div class="value">${ticket.inspection_badge_number || serviceBadgeNumber || "-"}</div></div>
@@ -8380,6 +8380,47 @@ PRO-EFFEKT`,
       return;
     }
 
+    const isValidContractDate = (value: string) => {
+      if (!value) return true;
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+
+      const [year, month, day] = value.split("-").map(Number);
+      if (year < 2000 || year > 2100) return false;
+
+      const parsed = new Date(`${value}T00:00:00`);
+      return (
+        !Number.isNaN(parsed.getTime()) &&
+        parsed.getFullYear() === year &&
+        parsed.getMonth() + 1 === month &&
+        parsed.getDate() === day
+      );
+    };
+
+    if (!isValidContractDate(contractStartDate) || !isValidContractDate(contractEndDate)) {
+      alert("Bitte ein gültiges Vertragsdatum mit einem Jahr zwischen 2000 und 2100 eingeben.");
+      return;
+    }
+
+    if (contractStartDate && contractEndDate && contractEndDate < contractStartDate) {
+      alert("Das Vertragsende darf nicht vor dem Vertragsbeginn liegen.");
+      return;
+    }
+
+    if (Number(contractSlaHours || 0) < 0) {
+      alert("Die SLA-Reaktionszeit darf nicht negativ sein.");
+      return;
+    }
+
+    if (Number(contractMonthlyAmount || 0) < 0) {
+      alert("Die Monatspauschale darf nicht negativ sein.");
+      return;
+    }
+
+    if (Number(contractMaintenanceInterval || 0) < 1) {
+      alert("Das Wartungsintervall muss mindestens 1 Monat betragen.");
+      return;
+    }
+
     const payload = {
       customer_id: Number(contractCustomerId),
       title: contractTitle.trim(),
@@ -9287,7 +9328,7 @@ PRO-EFFEKT`,
                 <img src="/pro-effekt-logo.png" class="logo" onerror="this.style.display='none'" />
               </div>
               <div>
-                <h1>Abnahmeprotokoll Reparatur & Wartung für Sport-Fitness – Kraft & Medizin Geräte</h1>
+                <h1>Abnahmeprotokoll Reparatur & Wartung für technische Geräte und Anlagen</h1>
               </div>
               <div class="small" style="text-align:right;">
                 Seite <span class="line short">${abnahmePage}</span> von
@@ -9513,7 +9554,7 @@ PRO-EFFEKT`,
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(11);
     pdf.text(
-      "Abnahmeprotokoll Reparatur & Wartung für Sport-Fitness – Kraft & Medizin Geräte",
+      "Abnahmeprotokoll Reparatur & Wartung für technische Geräte und Anlagen",
       pageWidth / 2,
       y,
       { align: "center" },
@@ -12336,7 +12377,7 @@ PRO-EFFEKT`,
                           <textarea
                             value={serviceAiNotes}
                             onChange={(event) => setServiceAiNotes(event.target.value)}
-                            placeholder={"Stichpunkte, z. B.\nLaufband geprüft\nRiemen nachgestellt\nGeräusch beseitigt\nKunde eingewiesen"}
+                            placeholder={"Stichpunkte, z. B.\nGerät geprüft\nBauteil nachgestellt\nFehler beseitigt\nKunde eingewiesen"}
                             className="mt-4 min-h-[120px] w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 font-semibold outline-none focus:border-purple-400"
                           />
 
@@ -13814,7 +13855,7 @@ PRO-EFFEKT`,
                           <textarea
                             value={serviceAiNotes}
                             onChange={(event) => setServiceAiNotes(event.target.value)}
-                            placeholder={"Stichpunkte, z. B.\nLaufband geprüft\nRiemen nachgestellt\nGeräusch beseitigt\nKunde eingewiesen"}
+                            placeholder={"Stichpunkte, z. B.\nGerät geprüft\nBauteil nachgestellt\nFehler beseitigt\nKunde eingewiesen"}
                             className="mt-4 min-h-[120px] w-full rounded-2xl border border-purple-200 bg-white px-4 py-3 font-semibold outline-none focus:border-purple-400"
                           />
 
@@ -16075,7 +16116,7 @@ PRO-EFFEKT`,
                     <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
                       {customerDeviceAssignSearch.trim().length < 2 ? (
                         <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Mindestens 2 Zeichen eingeben, z. B. Gym80, Laufband, Chest Press oder Run Forma.
+                          Mindestens 2 Zeichen eingeben, z. B. Hersteller, Gerätekategorie oder Modell.
                         </div>
                       ) : customerDeviceAssignResults.length === 0 ? (
                         <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
@@ -16581,7 +16622,7 @@ PRO-EFFEKT`,
                           <input
                             value={modelType}
                             onChange={(e) => setModelType(e.target.value)}
-                            placeholder="Gerätetyp, z. B. Laufband, Crosstrainer, Beinpresse"
+                            placeholder="Gerätetyp, z. B. Steuerung, Pumpe, Anlage"
                             className="rounded-2xl border border-slate-300 px-5 py-4"
                           />
                         </div>
@@ -16636,7 +16677,7 @@ PRO-EFFEKT`,
                     <input
                       value={deviceModelDirectorySearch}
                       onChange={(e) => setDeviceModelDirectorySearch(e.target.value)}
-                      placeholder="Kategorie oder Modell suchen, z. B. Laufband, Crosstrainer, Run Forma"
+                      placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                     />
                   </div>
@@ -17606,48 +17647,32 @@ PRO-EFFEKT`,
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-3">
-                      <input
-                        value={contractSlaHours}
-                        onChange={(e) => setContractSlaHours(e.target.value)}
-                        type="number"
-                        placeholder="SLA Stunden"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <label className="space-y-2">
+                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">SLA-Reaktionszeit (Stunden)</span>
+                        <input value={contractSlaHours} onChange={(e) => setContractSlaHours(e.target.value)} type="number" min="0" placeholder="z. B. 24" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      </label>
 
-                      <input
-                        value={contractMonthlyAmount}
-                        onChange={(e) => setContractMonthlyAmount(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        placeholder="Monatspauschale €"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <label className="space-y-2">
+                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Monatspauschale (€)</span>
+                        <input value={contractMonthlyAmount} onChange={(e) => setContractMonthlyAmount(e.target.value)} type="number" min="0" step="0.01" placeholder="z. B. 49,90" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      </label>
 
-                      <input
-                        value={contractMaintenanceInterval}
-                        onChange={(e) =>
-                          setContractMaintenanceInterval(e.target.value)
-                        }
-                        type="number"
-                        placeholder="Intervall Monate"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <label className="space-y-2">
+                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Wartungsintervall (Monate)</span>
+                        <input value={contractMaintenanceInterval} onChange={(e) => setContractMaintenanceInterval(e.target.value)} type="number" min="1" placeholder="z. B. 6" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      </label>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        value={contractStartDate}
-                        onChange={(e) => setContractStartDate(e.target.value)}
-                        type="date"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <label className="space-y-2">
+                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Vertragsbeginn</span>
+                        <input value={contractStartDate} onChange={(e) => setContractStartDate(e.target.value)} type="date" min="2000-01-01" max="2100-12-31" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      </label>
 
-                      <input
-                        value={contractEndDate}
-                        onChange={(e) => setContractEndDate(e.target.value)}
-                        type="date"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <label className="space-y-2">
+                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Vertragsende</span>
+                        <input value={contractEndDate} onChange={(e) => setContractEndDate(e.target.value)} type="date" min={contractStartDate || "2000-01-01"} max="2100-12-31" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      </label>
                     </div>
 
                     <textarea
@@ -17883,7 +17908,7 @@ PRO-EFFEKT`,
                         <input
                           value={abnahmeDeviceSearch}
                           onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
-                          placeholder="Hersteller, Kategorie oder Modell suchen (z. B. Gym80, Laufband, Sygnum)"
+                          placeholder="Hersteller, Kategorie oder Modell suchen"
                           className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-sky-500"
                         />
                         <p className="mt-2 text-xs font-bold text-slate-500">
@@ -20229,7 +20254,7 @@ PRO-EFFEKT`,
                           setSelectedTicketModelIds([]);
                           setTicketDeviceSearch("");
                         }}
-                        placeholder="Optional: z. B. unbekanntes Laufband, Seriennummer, Standort"
+                        placeholder="Optional: unbekanntes Gerät, Seriennummer oder Standort"
                         className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                         autoComplete="off"
                         inputMode="text"
@@ -20765,7 +20790,7 @@ PRO-EFFEKT`,
                     <input
                       value={customerDeviceName}
                       onChange={(e) => setCustomerDeviceName(e.target.value)}
-                      placeholder="Gerätename, z. B. Laufband, Crosstrainer, Kraftstation"
+                      placeholder="Gerätename, z. B. Anlage, Steuerung, Pumpe"
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                     />
 
@@ -21050,33 +21075,23 @@ PRO-EFFEKT`,
                       <input
                         value={partCategory}
                         onChange={(e) => setPartCategory(e.target.value)}
-                        placeholder="Kategorie, z. B. Laufband, Elektronik"
+                        placeholder="Kategorie, z. B. Mechanik, Elektronik, Verschleißteil"
                         className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                       />
 
                       <div className="grid gap-3 md:grid-cols-3">
-                        <input
-                          value={partStock}
-                          onChange={(e) => setPartStock(e.target.value)}
-                          type="number"
-                          min="0"
-                          placeholder="Bestand"
-                          className="rounded-2xl border border-slate-300 px-5 py-3"
-                        />
-                        <input
-                          value={partMinStock}
-                          onChange={(e) => setPartMinStock(e.target.value)}
-                          type="number"
-                          min="0"
-                          placeholder="Mindestbestand"
-                          className="rounded-2xl border border-slate-300 px-5 py-3"
-                        />
-                        <input
-                          value={partUnit}
-                          onChange={(e) => setPartUnit(e.target.value)}
-                          placeholder="Einheit"
-                          className="rounded-2xl border border-slate-300 px-5 py-3"
-                        />
+                        <label className="space-y-2">
+                          <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Bestand</span>
+                          <input value={partStock} onChange={(e) => setPartStock(e.target.value)} type="number" min="0" placeholder="z. B. 200" className="w-full rounded-2xl border border-slate-300 px-5 py-3" />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Mindestbestand</span>
+                          <input value={partMinStock} onChange={(e) => setPartMinStock(e.target.value)} type="number" min="0" placeholder="z. B. 20" className="w-full rounded-2xl border border-slate-300 px-5 py-3" />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Einheit</span>
+                          <input value={partUnit} onChange={(e) => setPartUnit(e.target.value)} placeholder="z. B. Stück" className="w-full rounded-2xl border border-slate-300 px-5 py-3" />
+                        </label>
                       </div>
 
                       <input
