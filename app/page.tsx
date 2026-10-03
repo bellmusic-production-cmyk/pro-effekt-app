@@ -20631,7 +20631,7 @@ PRO-EFFEKT`,
                                 </p>
 
                                 {isAdmin ? (
-                                  <div className="mt-3 grid min-w-0 gap-2 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)]">
+                                  <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
                                     <select
                                       value={ticket.assigned_to || ""}
                                       onChange={(e) =>
@@ -20642,7 +20642,7 @@ PRO-EFFEKT`,
                                           ticket.service_time || null,
                                         )
                                       }
-                                      className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold sm:col-span-2"
                                     >
                                       <option value="">Nicht zugewiesen</option>
                                       {technicians.map((technician) => (
@@ -20670,7 +20670,7 @@ PRO-EFFEKT`,
                                           ticket.service_time || null,
                                         )
                                       }
-                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-3 py-3 text-sm font-bold"
                                     />
 
                                     <input
@@ -20684,7 +20684,7 @@ PRO-EFFEKT`,
                                           e.target.value || null,
                                         )
                                       }
-                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-3 py-3 text-sm font-bold"
                                     />
                                   </div>
                                 ) : (
