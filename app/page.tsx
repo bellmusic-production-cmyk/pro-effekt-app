@@ -16053,6 +16053,46 @@ PRO-EFFEKT`,
                     </div>
                   </div>
 
+                  {editingCustomer && isAdmin && (() => {
+                    const portalProfile = userProfiles.find(
+                      (profile) =>
+                        profile.role === "customer" &&
+                        Number(profile.customer_id) === Number(editingCustomer.id),
+                    );
+                    const portalInviteRunning =
+                      portalInvitingCustomerId === Number(editingCustomer.id);
+
+                    return (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                          Kundenportal
+                        </p>
+                        <h3 className="mt-1 text-xl font-black text-slate-950">Portalzugang</h3>
+                        <p className="mt-2 text-sm font-bold text-slate-700">
+                          Status: {portalProfile ? "Portalzugang vorhanden" : "Kein Portalzugang"}
+                        </p>
+                        <p className="mt-1 break-words text-sm font-semibold text-slate-600">
+                          {portalProfile
+                            ? `Zugeordnet: ${portalProfile.full_name || "Kundenportal-Nutzer"}`
+                            : `Einladung an: ${editingCustomer.email || "Keine E-Mail hinterlegt"}`}
+                        </p>
+
+                        {!portalProfile && (
+                          <button
+                            type="button"
+                            onClick={() => inviteCustomerToPortal(editingCustomer)}
+                            disabled={portalInviteRunning || !editingCustomer.email}
+                            className="mt-4 w-full cursor-pointer rounded-2xl bg-emerald-600 px-5 py-4 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                          >
+                            {portalInviteRunning
+                              ? "Einladung wird versendet..."
+                              : "Einladung zum Kundenportal senden"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {editingCustomer ? (
                     <div className="grid gap-3 md:grid-cols-2">
                       <button
@@ -16199,46 +16239,6 @@ PRO-EFFEKT`,
                                 <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Dokumente</p>
                               </div>
                             </div>
-
-                            {isAdmin && (() => {
-                              const portalProfile = userProfiles.find(
-                                (profile) =>
-                                  profile.role === "customer" &&
-                                  Number(profile.customer_id) === Number(item.id),
-                              );
-                              const portalInviteRunning = portalInvitingCustomerId === Number(item.id);
-
-                              return (
-                                <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
-                                        Portalzugang
-                                      </p>
-                                      <p className="mt-1 break-words text-sm font-black text-slate-900">
-                                        {portalProfile ? "Portalzugang vorhanden" : "Kein Portalzugang eingerichtet"}
-                                      </p>
-                                      <p className="mt-1 break-words text-xs font-bold text-slate-600">
-                                        {portalProfile
-                                          ? `Zugeordnet: ${portalProfile.full_name || "Kundenportal-Nutzer"}`
-                                          : `Einladung an: ${item.email || "Keine E-Mail hinterlegt"}`}
-                                      </p>
-                                    </div>
-
-                                    {!portalProfile && (
-                                      <button
-                                        type="button"
-                                        onClick={() => inviteCustomerToPortal(item)}
-                                        disabled={portalInviteRunning || !item.email}
-                                        className="shrink-0 rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                                      >
-                                        {portalInviteRunning ? "Einladung läuft..." : "Portalzugang einladen"}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })()}
 
                             <div className="mt-4 rounded-2xl border border-sky-100 bg-white p-4">
                               <div className="flex items-center justify-between gap-3">
