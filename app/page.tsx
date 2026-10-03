@@ -329,6 +329,25 @@ const DEMO_COMPANY_FAX = "Fax 01234 567899";
 const DEMO_COMPANY_EMAIL = "";
 const DEMO_COMPANY_WEB = "";
 const DEMO_COMPANY_NOTE = "Service- und Wartungsdokumentation";
+
+const APP_DATE_MIN = "2000-01-01";
+const APP_DATE_MAX = "2100-12-31";
+
+function isValidAppDate(value?: string | null) {
+  if (!value) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 2000 || year > 2100) return false;
+
+  const parsed = new Date(`${value}T00:00:00`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.getFullYear() === year &&
+    parsed.getMonth() + 1 === month &&
+    parsed.getDate() === day
+  );
+}
 const DEMO_COMPANY_LINE_HTML = `${DEMO_COMPANY_ADDRESS}<br/>${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}<br/>E-Mail: ${DEMO_COMPANY_EMAIL}, URL: ${DEMO_COMPANY_WEB}<br/>${DEMO_COMPANY_NOTE}`;
 const DEMO_COMPANY_LINE_TEXT = `${DEMO_COMPANY_ADDRESS}   ${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}   E-Mail: ${DEMO_COMPANY_EMAIL}   URL: ${DEMO_COMPANY_WEB}   ${DEMO_COMPANY_NOTE}`;
 
@@ -3356,6 +3375,11 @@ async function loadApplicationData() {
   ) {
     if (!canPlanDispatch) {
       alert("Nur Admins können Tickets disponieren und Techniker zuweisen.");
+      return;
+    }
+
+    if (serviceDate && !isValidAppDate(serviceDate)) {
+      alert("Bitte ein gültiges Einsatzdatum zwischen 01.01.2000 und 31.12.2100 eingeben.");
       return;
     }
 
@@ -8380,23 +8404,7 @@ PRO-EFFEKT`,
       return;
     }
 
-    const isValidContractDate = (value: string) => {
-      if (!value) return true;
-      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
-
-      const [year, month, day] = value.split("-").map(Number);
-      if (year < 2000 || year > 2100) return false;
-
-      const parsed = new Date(`${value}T00:00:00`);
-      return (
-        !Number.isNaN(parsed.getTime()) &&
-        parsed.getFullYear() === year &&
-        parsed.getMonth() + 1 === month &&
-        parsed.getDate() === day
-      );
-    };
-
-    if (!isValidContractDate(contractStartDate) || !isValidContractDate(contractEndDate)) {
+    if (!isValidAppDate(contractStartDate) || !isValidAppDate(contractEndDate)) {
       alert("Bitte ein gültiges Vertragsdatum mit einem Jahr zwischen 2000 und 2100 eingeben.");
       return;
     }
@@ -17711,124 +17719,34 @@ PRO-EFFEKT`,
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <label className="space-y-2">
+                      <label className="min-w-0 space-y-2">
                         <span className="block text-xs font-black uppercase tracking-wider text-slate-600">
                           Vertragsbeginn
                         </span>
                         <input
-                          value={
-                            contractStartDate
-                              ? contractStartDate.split("-").reverse().join(".")
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
-                            const display =
-                              digits.length <= 2
-                                ? digits
-                                : digits.length <= 4
-                                  ? `${digits.slice(0, 2)}.${digits.slice(2)}`
-                                  : `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
-
-                            if (digits.length === 8) {
-                              const day = Number(digits.slice(0, 2));
-                              const month = Number(digits.slice(2, 4));
-                              const year = Number(digits.slice(4, 8));
-                              const candidate = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                              const parsed = new Date(`${candidate}T00:00:00`);
-                              const valid =
-                                year >= 2000 &&
-                                year <= 2100 &&
-                                !Number.isNaN(parsed.getTime()) &&
-                                parsed.getFullYear() === year &&
-                                parsed.getMonth() + 1 === month &&
-                                parsed.getDate() === day;
-
-                              if (!valid) {
-                                alert("Bitte ein gültiges Vertragsbeginn-Datum zwischen 01.01.2000 und 31.12.2100 eingeben.");
-                                setContractStartDate("");
-                                return;
-                              }
-
-                              setContractStartDate(candidate);
-                              return;
-                            }
-
-                            setContractStartDate(display);
-                          }}
-                          onBlur={() => {
-                            if (contractStartDate && !/^\d{4}-\d{2}-\d{2}$/.test(contractStartDate)) {
-                              alert("Bitte Vertragsbeginn vollständig im Format TT.MM.JJJJ eingeben.");
-                              setContractStartDate("");
-                            }
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={10}
-                          placeholder="TT.MM.JJJJ"
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          value={contractStartDate}
+                          onChange={(e) => setContractStartDate(e.target.value)}
+                          type="date"
+                          min={APP_DATE_MIN}
+                          max={APP_DATE_MAX}
+                          className="w-full min-w-0 rounded-2xl border border-slate-300 px-5 py-4"
                         />
                         <span className="block text-xs font-semibold text-slate-500">
                           Zulässig: 01.01.2000 bis 31.12.2100
                         </span>
                       </label>
 
-                      <label className="space-y-2">
+                      <label className="min-w-0 space-y-2">
                         <span className="block text-xs font-black uppercase tracking-wider text-slate-600">
                           Vertragsende
                         </span>
                         <input
-                          value={
-                            contractEndDate
-                              ? contractEndDate.split("-").reverse().join(".")
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
-                            const display =
-                              digits.length <= 2
-                                ? digits
-                                : digits.length <= 4
-                                  ? `${digits.slice(0, 2)}.${digits.slice(2)}`
-                                  : `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
-
-                            if (digits.length === 8) {
-                              const day = Number(digits.slice(0, 2));
-                              const month = Number(digits.slice(2, 4));
-                              const year = Number(digits.slice(4, 8));
-                              const candidate = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                              const parsed = new Date(`${candidate}T00:00:00`);
-                              const valid =
-                                year >= 2000 &&
-                                year <= 2100 &&
-                                !Number.isNaN(parsed.getTime()) &&
-                                parsed.getFullYear() === year &&
-                                parsed.getMonth() + 1 === month &&
-                                parsed.getDate() === day;
-
-                              if (!valid) {
-                                alert("Bitte ein gültiges Vertragsende-Datum zwischen 01.01.2000 und 31.12.2100 eingeben.");
-                                setContractEndDate("");
-                                return;
-                              }
-
-                              setContractEndDate(candidate);
-                              return;
-                            }
-
-                            setContractEndDate(display);
-                          }}
-                          onBlur={() => {
-                            if (contractEndDate && !/^\d{4}-\d{2}-\d{2}$/.test(contractEndDate)) {
-                              alert("Bitte Vertragsende vollständig im Format TT.MM.JJJJ eingeben.");
-                              setContractEndDate("");
-                            }
-                          }}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={10}
-                          placeholder="TT.MM.JJJJ"
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          value={contractEndDate}
+                          onChange={(e) => setContractEndDate(e.target.value)}
+                          type="date"
+                          min={APP_DATE_MIN}
+                          max={APP_DATE_MAX}
+                          className="w-full min-w-0 rounded-2xl border border-slate-300 px-5 py-4"
                         />
                         <span className="block text-xs font-semibold text-slate-500">
                           Zulässig: 01.01.2000 bis 31.12.2100
@@ -20713,7 +20631,7 @@ PRO-EFFEKT`,
                                 </p>
 
                                 {isAdmin ? (
-                                  <div className="mt-3 grid gap-2 md:grid-cols-[1.3fr_1fr_0.8fr]">
+                                  <div className="mt-3 grid min-w-0 gap-2 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)]">
                                     <select
                                       value={ticket.assigned_to || ""}
                                       onChange={(e) =>
@@ -20741,6 +20659,8 @@ PRO-EFFEKT`,
 
                                     <input
                                       type="date"
+                                      min={APP_DATE_MIN}
+                                      max={APP_DATE_MAX}
                                       value={ticket.service_date || ""}
                                       onChange={(e) =>
                                         updateTicketAssignment(
@@ -20750,7 +20670,7 @@ PRO-EFFEKT`,
                                           ticket.service_time || null,
                                         )
                                       }
-                                      className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
                                     />
 
                                     <input
@@ -20764,7 +20684,7 @@ PRO-EFFEKT`,
                                           e.target.value || null,
                                         )
                                       }
-                                      className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                                      className="w-full min-w-0 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
                                     />
                                   </div>
                                 ) : (
