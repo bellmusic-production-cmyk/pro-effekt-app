@@ -17646,20 +17646,57 @@ PRO-EFFEKT`,
                       </select>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <label className="space-y-2">
-                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">SLA-Reaktionszeit (Stunden)</span>
-                        <input value={contractSlaHours} onChange={(e) => setContractSlaHours(e.target.value)} type="number" min="0" placeholder="z. B. 24" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="min-w-0 space-y-2">
+                        <span className="block text-sm font-black text-slate-700">
+                          Reaktionszeit
+                        </span>
+                        <span className="block min-h-[2.5rem] text-xs font-semibold leading-5 text-slate-500">
+                          In Stunden, z. B. 24
+                        </span>
+                        <input
+                          value={contractSlaHours}
+                          onChange={(e) => setContractSlaHours(e.target.value)}
+                          type="number"
+                          min="0"
+                          placeholder="24"
+                          className="w-full min-w-0 rounded-2xl border border-slate-300 px-5 py-4"
+                        />
                       </label>
 
-                      <label className="space-y-2">
-                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Monatspauschale (€)</span>
-                        <input value={contractMonthlyAmount} onChange={(e) => setContractMonthlyAmount(e.target.value)} type="number" min="0" step="0.01" placeholder="z. B. 49,90" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      <label className="min-w-0 space-y-2">
+                        <span className="block text-sm font-black text-slate-700">
+                          Monatspauschale
+                        </span>
+                        <span className="block min-h-[2.5rem] text-xs font-semibold leading-5 text-slate-500">
+                          In Euro, z. B. 49,90
+                        </span>
+                        <input
+                          value={contractMonthlyAmount}
+                          onChange={(e) => setContractMonthlyAmount(e.target.value)}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="49,90"
+                          className="w-full min-w-0 rounded-2xl border border-slate-300 px-5 py-4"
+                        />
                       </label>
 
-                      <label className="space-y-2">
-                        <span className="block text-xs font-black uppercase tracking-wider text-slate-600">Wartungsintervall (Monate)</span>
-                        <input value={contractMaintenanceInterval} onChange={(e) => setContractMaintenanceInterval(e.target.value)} type="number" min="1" placeholder="z. B. 6" className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                      <label className="min-w-0 space-y-2">
+                        <span className="block text-sm font-black text-slate-700">
+                          Wartungsintervall
+                        </span>
+                        <span className="block min-h-[2.5rem] text-xs font-semibold leading-5 text-slate-500">
+                          In Monaten, z. B. 6
+                        </span>
+                        <input
+                          value={contractMaintenanceInterval}
+                          onChange={(e) => setContractMaintenanceInterval(e.target.value)}
+                          type="number"
+                          min="1"
+                          placeholder="6"
+                          className="w-full min-w-0 rounded-2xl border border-slate-300 px-5 py-4"
+                        />
                       </label>
                     </div>
 
