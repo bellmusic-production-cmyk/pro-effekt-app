@@ -613,16 +613,16 @@ type CustomerImportPreviewRow = {
 };
 
 const customerImportFields: Array<{ key: CustomerImportField; label: string; aliases: string[] }> = [
-  { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "kd nr", "kdnr", "debitor", "debitor nr", "debitor nummer", "debitorennummer", "customer number", "customer_number"] },
+  { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "kd nr", "kdnr", "debitor", "debitor nr", "debitor nummer", "debitorennummer", "debitor-nr.", "debitor nr.", "customer number", "customer_number"] },
   { key: "supplier_number", label: "Lieferantennummer", aliases: ["lieferantennummer", "lieferanten nr", "supplier number", "supplier_number"] },
   { key: "customer_type", label: "Kundentyp", aliases: ["kundentyp", "kundenart", "customer type", "customer_type"] },
   { key: "company", label: "Firma", aliases: ["firma", "firmenname", "firmenbezeichnung", "unternehmen", "unternehmensname", "betrieb", "company", "company name"] },
   { key: "contact_person", label: "Ansprechpartner", aliases: ["ansprechpartner", "ansprechp", "ansprechp.", "kontaktperson", "kontakt", "contact person", "contact_person"] },
   { key: "first_name", label: "Vorname", aliases: ["vorname", "first name", "firstname", "first_name"] },
   { key: "last_name", label: "Nachname", aliases: ["nachname", "last name", "lastname", "last_name"] },
-  { key: "email", label: "E-Mail", aliases: ["e-mail", "email", "mail"] },
+  { key: "email", label: "E-Mail", aliases: ["e-mail", "email", "mail", "e-mail-adresse", "email adresse", "emailadresse"] },
   { key: "email_2", label: "E-Mail 2", aliases: ["e-mail 2", "email 2", "zweite email", "email_2"] },
-  { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "telefon nr", "tel nr", "phone", "tel"] },
+  { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "telefon nr", "telefon-nr.", "telefon nr.", "telefonnummer", "tel nr", "phone", "tel"] },
   { key: "phone_2", label: "Telefon 2", aliases: ["telefon 2", "phone 2", "tel 2", "phone_2"] },
   { key: "address", label: "Adresse komplett", aliases: ["adresse", "anschrift", "address"] },
   { key: "street", label: "Straße", aliases: ["straße", "strasse", "street"] },
@@ -649,8 +649,11 @@ function normalizeImportHeader(value: string) {
   return value
     .toLowerCase()
     .trim()
-    .replace(/[._/\\-]+/g, " ")
-    .replace(/\s+/g, " ");
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "");
 }
 
 export default function Home() {
