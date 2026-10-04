@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.37 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.38 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -13038,16 +13038,20 @@ PRO-EFFEKT`,
   const filteredQrDevices = (() => {
     const search = qrSearchTerm.toLowerCase().trim();
 
-    const matchedDevices = qrBaseDevices.filter((item) => {
-      if (!search) return true;
-      return getQrDeviceSearchText(item).includes(search);
-    });
+    const matchedDevices = qrBaseDevices
+      .filter((item) => {
+        if (!search) return true;
+        return getQrDeviceSearchText(item).includes(search);
+      })
+      .sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "de", { sensitivity: "base" }),
+      );
 
     if (!search) {
-      return matchedDevices.slice(0, 12);
+      return matchedDevices.slice(0, 4);
     }
 
-    return matchedDevices.slice(0, 40);
+    return matchedDevices.slice(0, 12);
   })();
 
   const qrMatchedDeviceCount = (() => {
@@ -22596,8 +22600,10 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
 
                 <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-600">
                   {qrSearchTerm.trim()
-                    ? `${qrMatchedDeviceCount} Treffer gefunden. Maximal 40 werden angezeigt.`
-                    : `${qrMatchedDeviceCount} Geräte vorhanden. Die ersten ${filteredQrDevices.length} werden als Vorschau angezeigt.`}
+                    ? qrMatchedDeviceCount > 12
+                      ? `${qrMatchedDeviceCount} Treffer gefunden. Die ersten 12 werden angezeigt – bitte Suche verfeinern.`
+                      : `${qrMatchedDeviceCount} Treffer gefunden.`
+                    : `${qrMatchedDeviceCount} Geräte vorhanden. Die ersten ${filteredQrDevices.length} werden alphabetisch als Vorschau angezeigt.`}
                 </div>
 
                 <div className="mt-6 grid gap-4 xl:grid-cols-2">
