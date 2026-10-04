@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.33 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.34 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11900,6 +11900,14 @@ PRO-EFFEKT`,
     }
 
     const summary = `${created} Geräte neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu · ${modelsCreated} Modelle neu${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+
+    if (errors.length === 0) {
+      setDeviceImportFileName("");
+      setDeviceImportHeaders([]);
+      setDeviceImportRows([]);
+      setDeviceImportMapping(emptyDeviceImportMapping());
+    }
+
     setDeviceImportMessage(summary);
     if (errors.length) alert(`Geräteimport abgeschlossen: ${summary}\n\n${errors.slice(0, 8).join("\n")}${errors.length > 8 ? "\n…" : ""}`);
     else alert(`Geräteimport erfolgreich abgeschlossen.\n${summary}`);
@@ -12086,6 +12094,14 @@ PRO-EFFEKT`,
     await Promise.all([loadManufacturers(), loadDeviceModels()]);
     setManufacturerImportBusy(false);
     const summary = `Hersteller: ${manufacturersCreated} neu · ${manufacturersUpdated} aktualisiert · ${manufacturersSkipped} übersprungen | Modelle: ${modelsCreated} neu · ${modelsUpdated} aktualisiert · ${modelsSkipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+
+    if (errors.length === 0) {
+      setManufacturerImportFileName("");
+      setManufacturerImportHeaders([]);
+      setManufacturerImportRows([]);
+      setManufacturerImportMapping(emptyGenericMapping(manufacturerImportFields));
+    }
+
     setManufacturerImportMessage(summary);
     alert(`Hersteller- & Modellimport abgeschlossen.\n${summary}${errors.length ? `\n\n${errors.slice(0, 8).join("\n")}` : ""}`);
   }
@@ -12166,6 +12182,14 @@ PRO-EFFEKT`,
 
     setSupplierImportBusy(false);
     const summary = `${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+
+    if (errors.length === 0) {
+      setSupplierImportFileName("");
+      setSupplierImportHeaders([]);
+      setSupplierImportRows([]);
+      setSupplierImportMapping(emptyGenericMapping(supplierImportFields));
+    }
+
     setSupplierImportMessage(summary);
     alert(`Lieferantenimport abgeschlossen.\n${summary}${errors.length ? `\n\n${errors.slice(0, 8).join("\n")}` : ""}`);
   }
@@ -12184,7 +12208,7 @@ PRO-EFFEKT`,
     const [{data:mans,error:me},{data:mods,error:moe}]=await Promise.all([supabase.from("manufacturers").select("*").eq("company_id",currentCompany.id),supabase.from("device_models").select("*").eq("company_id",currentCompany.id)]);if(me||moe){setModelImportBusy(false);alert("Hersteller- und Modelldaten konnten nicht geladen werden. Bitte versuche es erneut.");return;}
     const manMap=new Map<string,Manufacturer>();(mans||[]).forEach((m:any)=>manMap.set(normalizeMasterKey(m.name),m));const modelMap=new Map<string,DeviceModel>();(mods||[]).forEach((m:any)=>modelMap.set(`${m.manufacturer_id||0}::${normalizeMasterKey(getDeviceModelDisplayName(m))}`,m));
     for(const item of rows)try{let man=manMap.get(normalizeMasterKey(item.manufacturer))||null;if(!man){const {data,error}=await supabase.from("manufacturers").insert([{company_id:currentCompany.id,name:item.manufacturer}]).select("*").single();if(error)throw error;man=data as Manufacturer;manMap.set(normalizeMasterKey(item.manufacturer),man);manufacturersCreated++;}const key=`${man.id}::${normalizeMasterKey(item.name)}`;const found=modelMap.get(key);const type=importValue(item.row,modelImportMapping,"type")||"Sonstiges";const payload={company_id:currentCompany.id,manufacturer_id:man.id,name:item.name,model:item.name,category:importValue(item.row,modelImportMapping,"category")||null,type,device_type:type,source:"TRYBUN Stammdatenimport",note:importValue(item.row,modelImportMapping,"note")||null};if(found&&modelImportDuplicateMode==="skip"){skipped++;continue;}if(found){const {error}=await supabase.from("device_models").update(payload).eq("id",found.id).eq("company_id",currentCompany.id);if(error)throw error;updated++;}else{const {data,error}=await supabase.from("device_models").insert([payload]).select("*").single();if(error)throw error;modelMap.set(key,data as DeviceModel);created++;}}catch(error:any){errors.push(`Zeile ${item.rowNumber}: konnte nicht importiert werden.`)}
-    await Promise.all([loadManufacturers(),loadDeviceModels()]);setModelImportBusy(false);const summary=`${created} Modelle neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu${errors.length?` · ${errors.length} Fehler`:""}`;setModelImportMessage(summary);alert(`Modellimport abgeschlossen.\n${summary}${errors.length?`\n\n${errors.slice(0,8).join("\n")}`:""}`);
+    await Promise.all([loadManufacturers(),loadDeviceModels()]);setModelImportBusy(false);const summary=`${created} Modelle neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu${errors.length?` · ${errors.length} Fehler`:""}`;if(errors.length===0){setModelImportFileName("");setModelImportHeaders([]);setModelImportRows([]);setModelImportMapping(emptyGenericMapping(modelImportFields));}setModelImportMessage(summary);alert(`Modellimport abgeschlossen.\n${summary}${errors.length?`\n\n${errors.slice(0,8).join("\n")}`:""}`);
   }
 
   async function handleSparePartImportFile(event: ChangeEvent<HTMLInputElement>) {
@@ -12308,6 +12332,14 @@ PRO-EFFEKT`,
     await loadServiceParts();
     setSparePartImportBusy(false);
     const summary = `${created} Ersatzteile neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu · ${suppliersCreated} Lieferanten neu${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+
+    if (errors.length === 0) {
+      setSparePartImportFileName("");
+      setSparePartImportHeaders([]);
+      setSparePartImportRows([]);
+      setSparePartImportMapping(emptyGenericMapping(sparePartImportFields));
+    }
+
     setSparePartImportMessage(summary);
     alert(`Ersatzteilimport abgeschlossen.\n${summary}${errors.length ? `\n\n${errors.slice(0, 8).join("\n")}` : ""}`);
   }
