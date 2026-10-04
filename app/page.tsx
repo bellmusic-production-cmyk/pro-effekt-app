@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.20 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.21 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -958,6 +958,9 @@ export default function Home() {
   const [priority, setPriority] = useState("Mittel");
 
   const [deviceName, setDeviceName] = useState("");
+  const [deviceCustomerId, setDeviceCustomerId] = useState("");
+  const [deviceCustomerSearch, setDeviceCustomerSearch] = useState("");
+  const [deviceCustomerTypeFilter, setDeviceCustomerTypeFilter] = useState("Alle");
   const [deviceManufacturer, setDeviceManufacturer] = useState("");
   const [deviceManufacturerId, setDeviceManufacturerId] = useState("");
   const [deviceModelId, setDeviceModelId] = useState("");
@@ -4596,6 +4599,9 @@ async function loadApplicationData() {
   function resetDeviceForm() {
     setEditingDevice(null);
     setDeviceName("");
+    setDeviceCustomerId("");
+    setDeviceCustomerSearch("");
+    setDeviceCustomerTypeFilter("Alle");
     setDeviceManufacturer("");
     setDeviceManufacturerId("");
     setDeviceModelId("");
@@ -4692,6 +4698,12 @@ async function loadApplicationData() {
     setActivePage("Geräte");
     setEditingDevice(item);
     setDeviceName(item.name || "");
+    setDeviceCustomerId(item.customer_id ? String(item.customer_id) : "");
+    const linkedCustomer = item.customer_id
+      ? customers.find((customerItem) => customerItem.id === item.customer_id)
+      : null;
+    setDeviceCustomerSearch(linkedCustomer ? getCustomerLabel(linkedCustomer) : "");
+    setDeviceCustomerTypeFilter("Alle");
     setDeviceManufacturer(item.manufacturer || "");
     setDeviceManufacturerId(item.manufacturer_id ? String(item.manufacturer_id) : "");
     setDeviceModelId(item.model_id ? String(item.model_id) : "");
@@ -6120,6 +6132,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     const { error } = await supabase.from("devices").insert([
       {
         company_id: currentCompany.id,
+        customer_id: deviceCustomerId ? Number(deviceCustomerId) : null,
         name: deviceName,
         model_id: selectedModel?.id || null,
         model: getDeviceModelDisplayName(selectedModel) || null,
@@ -6169,6 +6182,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       .from("devices")
       .update({
         company_id: currentCompany.id,
+        customer_id: deviceCustomerId ? Number(deviceCustomerId) : null,
         name: deviceName,
         model_id: selectedModel?.id || null,
         model: getDeviceModelDisplayName(selectedModel) || null,
@@ -12948,7 +12962,35 @@ PRO-EFFEKT`,
     }
 
     return matchingCustomers
-      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
+      .filter((customerItem) => {
+        const primaryValues = [
+          customerItem.company,
+          getCustomerDisplayName(customerItem),
+          customerItem.customer_number,
+        ]
+          .filter(Boolean)
+          .map((value) => String(value).toLowerCase());
+
+        if (search.length === 1) {
+          return primaryValues.some((value) =>
+            value
+              .split(/\s+/)
+              .filter(Boolean)
+              .some((word) => word.startsWith(search)),
+          );
+        }
+
+        const extendedValues = [
+          ...primaryValues,
+          customerItem.city,
+          customerItem.email,
+          customerItem.phone,
+        ]
+          .filter(Boolean)
+          .map((value) => String(value).toLowerCase());
+
+        return extendedValues.some((value) => value.includes(search));
+      })
       .slice(0, 80);
   })();
 
@@ -13134,6 +13176,44 @@ PRO-EFFEKT`,
   const selectedDeviceManufacturerModels = deviceManufacturerId
     ? deviceModels.filter((item) => item.manufacturer_id === Number(deviceManufacturerId))
     : [];
+
+  const deviceCustomerOptions = (() => {
+    const search = deviceCustomerSearch.trim().toLowerCase();
+    const filtered = customers
+      .filter((customerItem) =>
+        deviceCustomerTypeFilter === "Alle" ||
+        (customerItem.customer_type || "B2B") === deviceCustomerTypeFilter,
+      )
+      .sort((a, b) =>
+        getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de", { sensitivity: "base" }),
+      );
+
+    const matching = search
+      ? filtered.filter((customerItem) => {
+          const searchable = [
+            customerItem.company,
+            getCustomerDisplayName(customerItem),
+            customerItem.customer_number,
+            customerItem.city,
+            customerItem.email,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return searchable.includes(search);
+        })
+      : filtered.slice(0, 5);
+
+    const selectedCustomer = deviceCustomerId
+      ? customers.find((customerItem) => customerItem.id === Number(deviceCustomerId))
+      : null;
+
+    if (selectedCustomer && !matching.some((item) => item.id === selectedCustomer.id)) {
+      return [selectedCustomer, ...matching].slice(0, 20);
+    }
+
+    return matching.slice(0, 20);
+  })();
 
   const filteredDeviceModelDirectory = (() => {
     const search = deviceModelDirectorySearch.toLowerCase().trim();
@@ -18337,7 +18417,7 @@ PRO-EFFEKT`,
                   >
                     <option value="Alle">Alle Kundentypen</option>
                     <option value="B2B">Nur B2B</option>
-                    <option value="Privatkunde">Nur Privatkunden</option>
+                    <option value="Privatkunde">Nur Endkunden</option>
                   </select>
                 </div>
 
@@ -19283,6 +19363,63 @@ PRO-EFFEKT`,
                     placeholder="Gerätename"
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
+
+                  <div className="space-y-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Kunde zuweisen</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        Suche nach Firma, Name, Kundennummer, Ort oder E-Mail.
+                      </p>
+                    </div>
+
+                    <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+                      <input
+                        value={deviceCustomerSearch}
+                        onChange={(e) => setDeviceCustomerSearch(e.target.value)}
+                        placeholder="Kunde suchen..."
+                        className="min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
+                      />
+
+                      <select
+                        value={deviceCustomerTypeFilter}
+                        onChange={(e) => setDeviceCustomerTypeFilter(e.target.value)}
+                        className="min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
+                      >
+                        <option value="Alle">Alle Kunden</option>
+                        <option value="B2B">B2B</option>
+                        <option value="Privatkunde">Endkunden</option>
+                      </select>
+                    </div>
+
+                    <select
+                      value={deviceCustomerId}
+                      onChange={(e) => {
+                        setDeviceCustomerId(e.target.value);
+                        const selectedCustomer = customers.find(
+                          (customerItem) => customerItem.id === Number(e.target.value),
+                        );
+                        if (selectedCustomer) {
+                          setDeviceCustomerSearch(getCustomerLabel(selectedCustomer));
+                        }
+                      }}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold"
+                    >
+                      <option value="">Kein Kunde zugewiesen</option>
+                      {deviceCustomerOptions.map((customerItem) => (
+                        <option key={customerItem.id} value={customerItem.id}>
+                          {getCustomerLabel(customerItem)}
+                          {customerItem.customer_number ? ` · ${customerItem.customer_number}` : ""}
+                          {customerItem.customer_type === "Privatkunde" ? " · Endkunde" : " · B2B"}
+                        </option>
+                      ))}
+                    </select>
+
+                    {deviceCustomerOptions.length === 0 && (
+                      <p className="rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
+                        Keine passenden Kunden gefunden. Bitte Suche oder Kundentyp ändern.
+                      </p>
+                    )}
+                  </div>
 
                   {isAdmin ? (
                     <div className="space-y-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
