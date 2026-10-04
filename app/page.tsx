@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.41 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.42 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -9403,61 +9403,37 @@ PRO-EFFEKT`,
     const customer = customers.find((item) => item.id === contract.customer_id) || null;
     const customerName = customer ? getCustomerLabel(customer) : "Nicht zugeordnet";
     const customerAddress = customer ? buildCustomerAddress(customer) : "";
-    const companyName = companyData?.name || "TRYBUN";
-    const fileName = `Vertrag-${contract.contract_number}-signiert.html`;
+    const fileName = `Vertrag-${contract.contract_number}-signiert.pdf`;
     const safeFileName = fileName
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `Verträge/${Date.now()}-${safeFileName}`;
 
-    const html = `<!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <title>Vertrag ${escapeDocumentText(contract.contract_number)}</title>
-  <style>
-    body { font-family: Arial, sans-serif; color:#0f172a; margin:0; padding:40px; }
-    h1 { margin:0; font-size:30px; }
-    .head { display:flex; justify-content:space-between; gap:24px; border-bottom:3px solid #0ea5e9; padding-bottom:18px; }
-    .box { margin-top:24px; border:1px solid #cbd5e1; border-radius:16px; padding:18px; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-    .label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
-    .value { margin-top:5px; font-weight:700; white-space:pre-wrap; }
-    .muted { color:#64748b; }
-    .signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
-    .signature-cell { border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
-    .signature-image-wrap { min-height:72px; display:flex; align-items:center; margin:10px 0; }
-    .signature-image-wrap img { max-width:220px; max-height:68px; object-fit:contain; }
-    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #cbd5e1; color:#64748b; font-size:12px; }
-    @media (max-width:640px) { .grid, .signature-grid { grid-template-columns:1fr; } body { padding:22px; } }
-  </style>
-</head>
-<body>
-  <div class="head">
-    <div><h1>Vertrag</h1><div class="muted">${escapeDocumentText(contract.contract_number)}</div></div>
-    <div style="text-align:right"><strong>${escapeDocumentText(companyName)}</strong></div>
-  </div>
-  <div class="box grid">
-    <div><div class="label">Kunde</div><div class="value">${escapeDocumentText(customerName)}</div><div class="muted">${escapeDocumentText(customerAddress)}</div></div>
-    <div><div class="label">Vertragsart</div><div class="value">${escapeDocumentText(contract.contract_type)}</div><div class="label" style="margin-top:14px">Status</div><div class="value">${escapeDocumentText(contract.status)}</div></div>
-  </div>
-  <div class="box"><div class="label">Vertragsbezeichnung</div><div class="value">${escapeDocumentText(contract.title)}</div></div>
-  <div class="box grid">
-    <div><div class="label">Laufzeit</div><div class="value">${escapeDocumentText(contract.start_date || "-")} bis ${escapeDocumentText(contract.end_date || "-")}</div></div>
-    <div><div class="label">SLA / Wartung</div><div class="value">${escapeDocumentText(contract.sla_hours || 0)} h · ${escapeDocumentText(contract.maintenance_interval_months || 0)} Monate</div></div>
-    <div><div class="label">Monatspauschale</div><div class="value">${Number(contract.monthly_amount || 0).toFixed(2)} EUR</div></div>
-  </div>
-  <div class="box"><div class="label">Leistungsumfang / Hinweise</div><div class="value">${escapeDocumentText(contract.note || "Keine zusätzlichen Hinweise.")}</div></div>
-  ${buildDocumentSignatureHtml(technicianSignature, customerSignature)}
-  <div class="footer">${escapeDocumentText(companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`)}</div>
-</body>
-</html>`;
+    const pdfBlob = await createBrandedBusinessPdfBlob({
+      documentType: "Vertrag",
+      number: contract.contract_number,
+      date: contract.start_date || new Date().toISOString().split("T")[0],
+      customerName,
+      customerAddress,
+      reference: contract.contract_type || "Vertrag",
+      title: contract.title,
+      note: contract.note || "Keine zusätzlichen Hinweise.",
+      extraFields: [
+        ["Vertragsart", contract.contract_type || "-"],
+        ["Status", contract.status || "-"],
+        ["Laufzeit", `${contract.start_date || "-"} bis ${contract.end_date || "-"}`],
+        ["SLA", `${contract.sla_hours || 0} h`],
+        ["Wartungsintervall", `${contract.maintenance_interval_months || 0} Monate`],
+        ["Monatspauschale", `${Number(contract.monthly_amount || 0).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR`],
+      ],
+      technicianSignature,
+      customerSignature,
+    });
 
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const uploadResult = await supabase.storage
       .from("documents")
-      .upload(filePath, blob, { contentType: "text/html;charset=utf-8", upsert: false });
+      .upload(filePath, pdfBlob, { contentType: "application/pdf", upsert: false });
     if (uploadResult.error) throw uploadResult.error;
 
     const documentCompanyId = await resolveDocumentCompanyId(contract.customer_id || null, null, null);
@@ -9471,10 +9447,13 @@ PRO-EFFEKT`,
       file_name: fileName,
       file_path: filePath,
       category: "Verträge",
-      file_size: blob.size,
+      file_size: pdfBlob.size,
       customer_id: contract.customer_id || null,
     }]);
-    if (insertResult.error) throw insertResult.error;
+    if (insertResult.error) {
+      await supabase.storage.from("documents").remove([filePath]);
+      throw insertResult.error;
+    }
     await loadDocuments();
   }
 
@@ -11275,6 +11254,403 @@ PRO-EFFEKT`,
       </div>`;
   }
 
+  async function getCompanyPdfLogoDataUrl() {
+    if (typeof window === "undefined") return null;
+
+    const source = companyData?.logo_url || PRO_EFFEKT_LOGO_PATH;
+
+    try {
+      const response = await fetch(source, { cache: "no-store" });
+      if (!response.ok) throw new Error("Logo konnte nicht geladen werden.");
+
+      const blob = await response.blob();
+      const rawDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+
+      if (blob.type.toLowerCase().includes("png")) return rawDataUrl;
+
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Logo konnte nicht verarbeitet werden."));
+        img.src = rawDataUrl;
+      });
+
+      const maxWidth = 1200;
+      const scale = image.naturalWidth > maxWidth ? maxWidth / image.naturalWidth : 1;
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) return rawDataUrl;
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/png");
+    } catch (error) {
+      console.error("Firmenlogo konnte nicht für PDF geladen werden:", error);
+      return getProEffektLogoDataUrl();
+    }
+  }
+
+  async function createBrandedBusinessPdfBlob(options: {
+    documentType: string;
+    number: string;
+    date?: string | null;
+    customerName?: string | null;
+    customerAddress?: string | null;
+    reference?: string | null;
+    ticketLabel?: string | null;
+    title?: string | null;
+    note?: string | null;
+    lines?: StockDocumentLine[];
+    extraFields?: Array<[string, string]>;
+    amountNet?: number | null;
+    taxRate?: number | null;
+    amountGross?: number | null;
+    technicianSignature?: string;
+    customerSignature?: string;
+  }) {
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 14;
+    const contentWidth = pageWidth - margin * 2;
+    const companyName = companyData?.name || DEMO_COMPANY_NAME || "TRYBUN";
+    const companyAddress = companyData?.address || "";
+    const companyContact = [companyData?.phone, companyData?.email, companyData?.website]
+      .filter(Boolean)
+      .join(" · ");
+    const footerText = companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`;
+    const logoDataUrl = await getCompanyPdfLogoDataUrl();
+    let y = 14;
+
+    const clean = (value: any) =>
+      String(value ?? "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const money = (value: number | null | undefined) =>
+      Number(value || 0).toLocaleString("de-DE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + " EUR";
+
+    const drawFooter = () => {
+      const currentY = pageHeight - 9;
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(margin, currentY - 4, pageWidth - margin, currentY - 4);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(100, 116, 139);
+      const footerLines = pdf.splitTextToSize(clean(footerText), contentWidth - 24);
+      pdf.text(footerLines.slice(0, 2), margin, currentY);
+      pdf.text(`Seite ${pdf.getNumberOfPages()}`, pageWidth - margin, currentY, { align: "right" });
+    };
+
+    const addPage = () => {
+      drawFooter();
+      pdf.addPage();
+      y = 14;
+    };
+
+    const ensureSpace = (height: number) => {
+      if (y + height <= pageHeight - 20) return;
+      addPage();
+    };
+
+    const sectionTitle = (title: string) => {
+      ensureSpace(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(2, 132, 199);
+      pdf.text(title, margin, y);
+      y += 3;
+      pdf.setDrawColor(2, 132, 199);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 7;
+      pdf.setTextColor(15, 23, 42);
+    };
+
+    const drawTextBox = (label: string, value: any, minHeight = 18) => {
+      const lines = pdf.splitTextToSize(clean(value) || "-", contentWidth - 8);
+      const height = Math.max(minHeight, 13 + lines.length * 4.3);
+      ensureSpace(height + 4);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.roundedRect(margin, y, contentWidth, height, 3, 3);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(label.toUpperCase(), margin + 4, y + 6);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(lines, margin + 4, y + 12);
+      y += height + 4;
+    };
+
+    const drawInfoGrid = (fields: Array<[string, any]>) => {
+      if (!fields.length) return;
+      const rowHeight = 18;
+      const rows = Math.ceil(fields.length / 2);
+      const height = rows * rowHeight + 5;
+      ensureSpace(height + 3);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.roundedRect(margin, y, contentWidth, height, 3, 3);
+      fields.forEach((field, index) => {
+        const column = index % 2;
+        const row = Math.floor(index / 2);
+        const x = margin + 4 + column * (contentWidth / 2);
+        const rowY = y + 7 + row * rowHeight;
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7.3);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(clean(field[0]).toUpperCase(), x, rowY);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9.2);
+        pdf.setTextColor(15, 23, 42);
+        const lines = pdf.splitTextToSize(clean(field[1]) || "-", contentWidth / 2 - 10);
+        pdf.text(lines.slice(0, 2), x, rowY + 5);
+      });
+      y += height + 4;
+    };
+
+    const drawStockTable = (lines: StockDocumentLine[]) => {
+      if (!lines.length) return;
+      sectionTitle("Positionen");
+
+      const colX = [margin, margin + 72, margin + 120, margin + 145, pageWidth - margin];
+      const drawHeader = () => {
+        ensureSpace(10);
+        pdf.setFillColor(241, 245, 249);
+        pdf.rect(margin, y, contentWidth, 9, "F");
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text("ARTIKEL / MODELL", colX[0] + 2, y + 6);
+        pdf.text("MENGE", colX[1] + 2, y + 6);
+        pdf.text("EINZEL", colX[2] + 2, y + 6);
+        pdf.text("GESAMT", colX[3] + 2, y + 6);
+        y += 10;
+      };
+
+      drawHeader();
+
+      lines.forEach((line) => {
+        const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
+        const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
+        const total = quantity * price;
+        const label = getStockLineLabel(line);
+        const description = clean(line.description);
+        const articleLines = pdf.splitTextToSize(
+          description ? `${label} - ${description}` : label,
+          67,
+        );
+        const rowHeight = Math.max(10, articleLines.length * 4.2 + 3);
+        if (y + rowHeight > pageHeight - 22) {
+          addPage();
+          sectionTitle("Positionen - Fortsetzung");
+          drawHeader();
+        }
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(articleLines, colX[0] + 2, y + 5);
+        pdf.text(`${quantity.toLocaleString("de-DE")} ${getStockLineUnit(line)}`, colX[1] + 2, y + 5);
+        pdf.text(price ? money(price) : "-", colX[2] + 2, y + 5);
+        pdf.text(price ? money(total) : "-", pageWidth - margin - 2, y + 5, { align: "right" });
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(margin, y + rowHeight, pageWidth - margin, y + rowHeight);
+        y += rowHeight + 1;
+      });
+      y += 3;
+    };
+
+    const drawSignatures = () => {
+      const techSignature = options.technicianSignature || "";
+      const customerSignature = options.customerSignature || "";
+      if (!techSignature && !customerSignature) return;
+      sectionTitle("Digitale Unterschriften");
+      ensureSpace(40);
+      const leftX = margin;
+      const rightX = margin + contentWidth / 2 + 4;
+      const width = contentWidth / 2 - 8;
+      const signatureY = y + 21;
+
+      pdf.setDrawColor(203, 213, 225);
+      pdf.roundedRect(leftX, y, width, 32, 3, 3);
+      pdf.roundedRect(rightX, y, width, 32, 3, 3);
+
+      if (techSignature) {
+        try {
+          pdf.addImage(techSignature, "PNG", leftX + 4, y + 5, 55, 14);
+        } catch {
+          // Signatur konnte nicht eingebettet werden.
+        }
+      }
+      if (customerSignature) {
+        try {
+          pdf.addImage(customerSignature, "PNG", rightX + 4, y + 5, 55, 14);
+        } catch {
+          // Signatur konnte nicht eingebettet werden.
+        }
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text("Mitarbeiter / Techniker", leftX + 4, signatureY + 4);
+      pdf.text("Kunde / Auftraggeber", rightX + 4, signatureY + 4);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(techSignature ? "digital signiert" : "nicht signiert", leftX + 4, signatureY + 9);
+      pdf.text(customerSignature ? "digital signiert" : "nicht signiert", rightX + 4, signatureY + 9);
+      y += 37;
+    };
+
+    const headerTextX = logoDataUrl ? margin + 36 : margin;
+    if (logoDataUrl) {
+      try {
+        pdf.addImage(logoDataUrl, "PNG", margin, y - 4, 28, 20);
+      } catch {
+        // Firmenlogo konnte nicht eingebettet werden.
+      }
+    }
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(2, 132, 199);
+    pdf.text(companyName, headerTextX, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.2);
+    pdf.setTextColor(100, 116, 139);
+    if (companyAddress) pdf.text(clean(companyAddress), headerTextX, y + 6);
+    if (companyContact) pdf.text(clean(companyContact), headerTextX, y + 11);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(clean(options.documentType), pageWidth - margin, y, { align: "right" });
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(clean(options.number), pageWidth - margin, y + 6, { align: "right" });
+    if (options.date) {
+      const displayDate = /^\d{4}-\d{2}-\d{2}$/.test(options.date)
+        ? new Date(`${options.date}T00:00:00`).toLocaleDateString("de-DE")
+        : clean(options.date);
+      pdf.text(displayDate, pageWidth - margin, y + 11, { align: "right" });
+    }
+
+    y += 25;
+    pdf.setDrawColor(2, 132, 199);
+    pdf.setLineWidth(0.8);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 8;
+
+    sectionTitle("Kunde / Auftraggeber");
+    drawInfoGrid([
+      ["Kunde", options.customerName || "Nicht zugeordnet"],
+      ["Adresse", options.customerAddress || "-"],
+      ["Referenz", options.reference || "-"],
+      ["Ticket", options.ticketLabel || "-"],
+    ]);
+
+    if (options.title) {
+      sectionTitle("Bezeichnung");
+      drawTextBox("Betreff / Leistung", options.title, 18);
+    }
+
+    if (options.extraFields?.length) {
+      sectionTitle("Details");
+      drawInfoGrid(options.extraFields);
+    }
+
+    if (options.note) {
+      sectionTitle("Hinweise / Leistungsumfang");
+      drawTextBox("Bemerkung", options.note, 22);
+    }
+
+    drawStockTable(options.lines || []);
+
+    if (
+      options.amountNet !== undefined &&
+      options.amountNet !== null &&
+      options.amountGross !== undefined &&
+      options.amountGross !== null
+    ) {
+      sectionTitle("Betrag");
+      drawInfoGrid([
+        ["Netto", money(options.amountNet)],
+        ["MwSt.", `${Number(options.taxRate || 0).toLocaleString("de-DE")} %`],
+        ["Brutto", money(options.amountGross)],
+        ["Status", options.extraFields?.find((entry) => entry[0] === "Status")?.[1] || "-"],
+      ]);
+    }
+
+    drawSignatures();
+    drawFooter();
+    return pdf.output("blob");
+  }
+
+  async function createInvoicePdfBlob(
+    item: InvoiceItem,
+    technicianSignature = "",
+    customerSignature = "",
+    stockLines: StockDocumentLine[] = [],
+  ) {
+    const relatedTicket = item.ticket_id
+      ? tickets.find((ticket) => ticket.id === item.ticket_id)
+      : null;
+    const relatedCustomer = item.customer_id
+      ? customers.find((customer) => customer.id === item.customer_id)
+      : relatedTicket?.customer_id
+        ? customers.find((customer) => customer.id === relatedTicket.customer_id)
+        : null;
+
+    const movementLines: StockDocumentLine[] = inventoryMovements
+      .filter(
+        (movement) =>
+          movement.source_type === "Rechnung" &&
+          movement.source_number === item.number &&
+          !movement.is_voided,
+      )
+      .map((movement) => ({
+        key: movement.source_line_key || `movement-${movement.id}`,
+        itemType: movement.item_type,
+        itemId: String(
+          movement.item_type === "spare_part"
+            ? movement.spare_part_id || ""
+            : movement.device_model_id || "",
+        ),
+        quantity: String(movement.quantity || 1),
+        unitPrice: String(movement.unit_price || 0),
+        description: movement.description || "",
+      }));
+
+    return createBrandedBusinessPdfBlob({
+      documentType: item.type || "Rechnung",
+      number: item.number,
+      date: item.created_at ? new Date(item.created_at).toLocaleDateString("de-DE") : new Date().toLocaleDateString("de-DE"),
+      customerName: relatedCustomer ? getCustomerLabel(relatedCustomer) : getInvoiceCustomerName(item),
+      customerAddress: relatedCustomer ? buildCustomerAddress(relatedCustomer) : "",
+      reference: relatedTicket?.ticket_number || "-",
+      ticketLabel: relatedTicket ? `${relatedTicket.ticket_number} · ${relatedTicket.issue || ""}` : "-",
+      title: item.title,
+      note: item.note || "",
+      lines: stockLines.length ? stockLines : movementLines,
+      extraFields: [["Status", item.status || "-"]],
+      amountNet: Number(item.amount_net || 0),
+      taxRate: Number(item.tax_rate || 0),
+      amountGross: Number(item.amount_gross || 0),
+      technicianSignature,
+      customerSignature,
+    });
+  }
+
   async function createCommercialDocument() {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können Aufträge und Lieferscheine erstellen.");
@@ -11317,94 +11693,31 @@ PRO-EFFEKT`,
     const prefix = commercialDocumentType === "Auftrag" ? "AU" : "LS";
     const dateToken = (commercialDocumentDate || new Date().toISOString().split("T")[0]).replace(/-/g, "");
     const number = `${prefix}-${dateToken}-${Date.now().toString().slice(-4)}`;
-    const fileName = `${commercialDocumentType}-${number}.html`;
+    const fileName = `${commercialDocumentType}-${number}.pdf`;
     const safeFileName = fileName
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${category}/${Date.now()}-${safeFileName}`;
 
-    const escapeText = escapeDocumentText;
-
     const customerName = getCustomerLabel(customer);
     const customerAddress = buildCustomerAddress(customer) || "Keine Adresse hinterlegt";
-    const companyName = companyData?.name || "TRYBUN";
-    const companyAddress = companyData?.address || "";
-    const companyContact = [companyData?.phone, companyData?.email, companyData?.website]
-      .filter(Boolean)
-      .join(" · ");
-
-    const html = `<!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <title>${escapeText(commercialDocumentType)} ${escapeText(number)}</title>
-  <style>
-    body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 40px; }
-    .head { display:flex; justify-content:space-between; gap:24px; border-bottom:3px solid #0ea5e9; padding-bottom:18px; }
-    h1 { margin:0; font-size:30px; }
-    .muted { color:#64748b; }
-    .box { margin-top:24px; border:1px solid #cbd5e1; border-radius:16px; padding:18px; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-    .label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
-    .value { margin-top:5px; font-weight:700; white-space:pre-wrap; }
-    .note { white-space:pre-wrap; line-height:1.55; }
-    .signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
-    .signature-cell { border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
-    .signature-image-wrap { min-height:72px; display:flex; align-items:center; margin:10px 0; }
-    .signature-image-wrap img { max-width:220px; max-height:68px; object-fit:contain; }
-    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #cbd5e1; color:#64748b; font-size:12px; }
-    @media (max-width: 640px) { .signature-grid { grid-template-columns:1fr; } }
-    @media print { body { padding:24px; } }
-  </style>
-</head>
-<body>
-  <div class="head">
-    <div>
-      <h1>${escapeText(commercialDocumentType)}</h1>
-      <div class="muted">${escapeText(number)}</div>
-    </div>
-    <div style="text-align:right">
-      <strong>${escapeText(companyName)}</strong><br/>
-      ${companyAddress ? `${escapeText(companyAddress)}<br/>` : ""}
-      <span class="muted">${escapeText(companyContact)}</span>
-    </div>
-  </div>
-
-  <div class="box grid">
-    <div>
-      <div class="label">Kunde / Auftraggeber</div>
-      <div class="value">${escapeText(customerName)}</div>
-      <div class="muted">${escapeText(customerAddress)}</div>
-    </div>
-    <div>
-      <div class="label">Datum</div>
-      <div class="value">${escapeText(commercialDocumentDate || "-")}</div>
-      <div class="label" style="margin-top:14px">Referenz</div>
-      <div class="value">${escapeText(commercialDocumentReference || selectedTicket?.ticket_number || "-")}</div>
-    </div>
-  </div>
-
-  <div class="box">
-    <div class="label">Bezeichnung / Betreff</div>
-    <div class="value">${escapeText(commercialDocumentTitle.trim())}</div>
-    ${selectedTicket ? `<div class="muted" style="margin-top:10px">Ticket ${escapeText(selectedTicket.ticket_number)} · ${escapeText(selectedTicket.issue)}${selectedTicket.device ? ` · ${escapeText(selectedTicket.device)}` : ""}</div>` : ""}
-  </div>
-
-  <div class="box">
-    <div class="label">Bemerkung / Inhalt</div>
-    <div class="note">${escapeText(commercialDocumentNote.trim() || "Keine zusätzliche Bemerkung.")}</div>
-  </div>
-
-  ${buildStockLinesHtml(commercialDocumentLines)}
-
-  ${buildDocumentSignatureHtml(commercialDocumentTechnicianSignature, commercialDocumentCustomerSignature)}
-
-  <div class="footer">
-    ${escapeText(companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`)}
-  </div>
-</body>
-</html>`;
+    const pdfBlob = await createBrandedBusinessPdfBlob({
+      documentType: commercialDocumentType,
+      number,
+      date: commercialDocumentDate || new Date().toISOString().split("T")[0],
+      customerName,
+      customerAddress,
+      reference: commercialDocumentReference || selectedTicket?.ticket_number || "-",
+      ticketLabel: selectedTicket
+        ? `${selectedTicket.ticket_number} · ${selectedTicket.issue || ""}${selectedTicket.device ? ` · ${selectedTicket.device}` : ""}`
+        : "-",
+      title: commercialDocumentTitle.trim(),
+      note: commercialDocumentNote.trim() || "Keine zusätzliche Bemerkung.",
+      lines: commercialDocumentLines,
+      technicianSignature: commercialDocumentTechnicianSignature,
+      customerSignature: commercialDocumentCustomerSignature,
+    });
 
     setCommercialDocumentBusy(true);
     let inventoryPosted = false;
@@ -11429,11 +11742,11 @@ PRO-EFFEKT`,
         }
       }
 
-      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const blob = pdfBlob;
       const uploadResult = await supabase.storage
         .from("documents")
         .upload(filePath, blob, {
-          contentType: "text/html;charset=utf-8",
+          contentType: "application/pdf",
           upsert: false,
         });
 
@@ -11585,14 +11898,15 @@ PRO-EFFEKT`,
     const signed = Boolean(invoiceTechnicianSignature || invoiceCustomerSignature);
     if (signed && data) {
       try {
+        const signedPdf = await createInvoicePdfBlob(
+          data as InvoiceItem,
+          invoiceTechnicianSignature,
+          invoiceCustomerSignature,
+          invoiceStockLines,
+        );
         const archived = await archiveInvoiceDocument(
           data as InvoiceItem,
-          buildInvoiceHtml(
-            data as InvoiceItem,
-            invoiceTechnicianSignature,
-            invoiceCustomerSignature,
-            invoiceStockLines,
-          ),
+          signedPdf,
         );
         if (!archived) {
           throw new Error("Archivierung der signierten Fassung fehlgeschlagen");
@@ -11605,7 +11919,7 @@ PRO-EFFEKT`,
 
     resetInvoiceForm();
     await loadInvoices();
-    alert(signed ? `${savedType} wurde gespeichert und die signierte Fassung unter Dokumente → Rechnungen archiviert.` : `${savedType} wurde gespeichert.`);
+    alert(signed ? `${savedType} wurde gespeichert und die signierte PDF-Fassung unter Dokumente → ${savedType === "Angebot" ? "Angebote" : "Rechnungen"} archiviert.` : `${savedType} wurde gespeichert.`);
   }
 
   async function updateInvoiceStatus(invoiceId: number, nextStatus: string) {
@@ -11740,20 +12054,21 @@ PRO-EFFEKT`,
 
   async function archiveInvoiceDocument(
     item: InvoiceItem,
-    html: string,
+    pdfBlob: Blob,
   ) {
     try {
-      const fileName = `${item.type}-${item.number}.html`;
-      const filePath = `Rechnungen/${Date.now()}-${fileName}`;
-
-      const blob = new Blob([html], {
-        type: "text/html;charset=utf-8",
-      });
+      const category = item.type === "Angebot" ? "Angebote" : "Rechnungen";
+      const fileName = `${item.type}-${item.number}.pdf`;
+      const safeFileName = fileName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${category}/${Date.now()}-${safeFileName}`;
 
       const uploadResult = await supabase.storage
         .from("documents")
-        .upload(filePath, blob, {
-          contentType: "text/html;charset=utf-8",
+        .upload(filePath, pdfBlob, {
+          contentType: "application/pdf",
           upsert: false,
         });
 
@@ -11777,8 +12092,8 @@ PRO-EFFEKT`,
           company_id: documentCompanyId,
           file_name: fileName,
           file_path: filePath,
-          category: "Rechnungen",
-          file_size: blob.size,
+          category,
+          file_size: pdfBlob.size,
           ticket_id: item.ticket_id || null,
           customer_id: item.customer_id || null,
         },
@@ -11798,20 +12113,26 @@ PRO-EFFEKT`,
     }
   }
 
-  function printInvoice(item: InvoiceItem) {
-    const html = buildInvoiceHtml(item);
+  async function printInvoice(item: InvoiceItem) {
+    try {
+      const pdfBlob = await createInvoicePdfBlob(item);
+      const archived = await archiveInvoiceDocument(item, pdfBlob);
+      if (!archived) {
+        alert(`${item.type} konnte nicht im Dokumentenarchiv gespeichert werden.`);
+        return;
+      }
 
-    archiveInvoiceDocument(item, html);
-
-    const printWindow = window.open("", "_blank");
-
-    if (!printWindow) {
-      alert("Popup wurde blockiert. Bitte Popups erlauben.");
-      return;
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const opened = window.open(pdfUrl, "_blank");
+      if (!opened) {
+        URL.revokeObjectURL(pdfUrl);
+        alert("Popup wurde blockiert. Das PDF wurde trotzdem im Dokumentenarchiv gespeichert.");
+        return;
+      }
+      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+    } catch (error: any) {
+      alert(`${item.type} konnte nicht als PDF erzeugt werden: ${error?.message || "unbekannter Fehler"}`);
     }
-
-    printWindow.document.write(html);
-    printWindow.document.close();
   }
 
   const dueMaintenancePlans = maintenancePlans.filter((plan) => {
