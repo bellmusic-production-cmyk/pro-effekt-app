@@ -1172,10 +1172,8 @@ export default function Home() {
 
       if (userProfile?.role === "technician") {
         const isAssignedToMe = ticket.assigned_to === userProfile.id;
-        const isOpenPoolTicket =
-          !ticket.assigned_to || ticket.status === "Offen" || ticket.status === "Zugewiesen";
 
-        if (!isAssignedToMe && !isOpenPoolTicket) return false;
+        if (!isAssignedToMe) return false;
       }
 
       const search = searchTerm.toLowerCase().trim();
@@ -1271,13 +1269,7 @@ export default function Home() {
       }
 
       if (userProfile?.role === "technician") {
-        const isAssignedToMe = ticket.assigned_to === userProfile.id;
-        const isOpenPoolTicket =
-          !ticket.assigned_to ||
-          ticket.status === "Offen" ||
-          ticket.status === "Zugewiesen";
-
-        return isAssignedToMe || isOpenPoolTicket;
+        return ticket.assigned_to === userProfile.id;
       }
 
       return true;
@@ -1476,12 +1468,7 @@ export default function Home() {
         if (["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || "")) return false;
 
         if (userProfile?.role === "technician") {
-          return (
-            ticket.assigned_to === userProfile?.id ||
-            !ticket.assigned_to ||
-            ticket.status === "Offen" ||
-            ticket.status === "Zugewiesen"
-          );
+          return ticket.assigned_to === userProfile?.id;
         }
 
         return true;
@@ -1521,7 +1508,7 @@ export default function Home() {
 
   const technicianPremiumMaintenancePlans = useMemo(() => {
     return maintenanceTicketSuggestions.filter((plan) => {
-      if (userProfile?.role === "technician") return !plan.assigned_to || plan.assigned_to === userProfile?.id;
+      if (userProfile?.role === "technician") return plan.assigned_to === userProfile?.id;
       return true;
     });
   }, [maintenanceTicketSuggestions, userProfile?.role, userProfile?.id]);
@@ -2584,10 +2571,46 @@ async function loadApplicationData() {
   }
 
   async function loadTickets() {
-    const { data, error } = await supabase
+    // Sicherheitsrelevante Rollenfilterung bereits beim Laden der Tickets anwenden.
+    // Dadurch erhält ein Techniker ausschließlich Tickets, die ihm über assigned_to
+    // ausdrücklich zugewiesen wurden. Unzugewiesene Tickets (assigned_to = NULL)
+    // bleiben vollständig im Admin-Pool und gelangen nicht in den Techniker-State.
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authData.user) {
+      console.error("Angemeldeter Benutzer konnte für den Ticketabruf nicht ermittelt werden:", authError?.message);
+      setTickets([]);
+      return;
+    }
+
+    const { data: ticketProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, role, customer_id")
+      .eq("id", authData.user.id)
+      .maybeSingle();
+
+    if (profileError || !ticketProfile) {
+      console.error("Benutzerrolle konnte für den Ticketabruf nicht ermittelt werden:", profileError?.message);
+      setTickets([]);
+      return;
+    }
+
+    let ticketQuery = supabase
       .from("tickets")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*");
+
+    if (ticketProfile.role === "technician") {
+      ticketQuery = ticketQuery.eq("assigned_to", authData.user.id);
+    } else if (ticketProfile.role === "customer") {
+      if (!ticketProfile.customer_id) {
+        setTickets([]);
+        return;
+      }
+
+      ticketQuery = ticketQuery.eq("customer_id", ticketProfile.customer_id);
+    }
+
+    const { data, error } = await ticketQuery.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Tickets konnten nicht geladen werden:", error.message);
@@ -2835,12 +2858,7 @@ async function loadApplicationData() {
   function canUseTicketChat(ticket: Ticket) {
     if (isAdmin) return true;
     if (isTechnician) {
-      return (
-        ticket.assigned_to === userProfile?.id ||
-        !ticket.assigned_to ||
-        ticket.status === "Offen" ||
-        ticket.status === "Zugewiesen"
-      );
+      return ticket.assigned_to === userProfile?.id;
     }
     return isCustomer && isOwnCustomerTicket(ticket);
   }
@@ -10225,11 +10243,7 @@ PRO-EFFEKT`,
     if (userProfile.role === "technician") {
       return sortTicketsByAppointment(
         sourceTickets.filter(
-          (ticket) =>
-            ticket.assigned_to === userProfile.id ||
-            !ticket.assigned_to ||
-            ticket.status === "Offen" ||
-            ticket.status === "Zugewiesen",
+          (ticket) => ticket.assigned_to === userProfile.id,
         ),
       );
     }
