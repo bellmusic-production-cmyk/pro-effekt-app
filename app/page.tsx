@@ -97,6 +97,7 @@ type Customer = {
 
 type Manufacturer = {
   id: number;
+  company_id: number;
   name: string;
   website: string | null;
   phone: string | null;
@@ -110,6 +111,7 @@ type Manufacturer = {
 
 type DeviceModel = {
   id: number;
+  company_id: number;
   manufacturer_id: number | null;
   name: string | null;
   model?: string | null;
@@ -10837,52 +10839,166 @@ PRO-EFFEKT`,
     const currentCompany = companyData || (await loadCompany(session?.user?.id));
     if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
     if (!deviceImportRows.length) { alert("Bitte zuerst eine Geräte-Excel- oder CSV-Datei auswählen."); return; }
+
     const validRows = deviceImportPreview.filter((row) => row.valid);
     const invalidRows = deviceImportPreview.filter((row) => !row.valid);
     if (!validRows.length) { alert("Es gibt keine gültigen Gerätezeilen zum Importieren."); return; }
+
     const duplicateRows = validRows.filter((row) => row.duplicateDeviceId);
     const actionLabel = deviceImportDuplicateMode === "skip" ? "übersprungen" : deviceImportDuplicateMode === "update" ? "aktualisiert" : "zusätzlich angelegt";
-    if (!confirm(`${validRows.length} gültige Gerätezeile(n) importieren?${invalidRows.length ? `\n${invalidRows.length} fehlerhafte Zeile(n) werden nicht importiert.` : ""}${duplicateRows.length ? `\n${duplicateRows.length} Seriennummer-Duplikat(e) werden ${actionLabel}.` : ""}`)) return;
+    if (!confirm(`${validRows.length} gültige Gerätezeile(n) importieren?${invalidRows.length ? `\n${invalidRows.length} fehlerhafte Zeile(n) werden nicht importiert.` : ""}${duplicateRows.length ? `\n${duplicateRows.length} Seriennummer-Duplikat(e) werden ${actionLabel}.` : ""}\n\nHersteller und Gerätemodelle werden dabei für Ihre Firma automatisch ergänzt.`)) return;
+
     setDeviceImportBusy(true);
     setDeviceImportMessage("Import läuft …");
+
     let created = 0, updated = 0, skipped = 0;
+    let manufacturersCreated = 0, modelsCreated = 0;
     const errors: string[] = [];
-    for (const previewRow of validRows) {
-      const v = previewRow.values;
-      const payload = {
-        company_id: currentCompany.id,
-        customer_id: previewRow.customerId,
-        name: String(v.name || "").trim(),
-        serial_number: String(v.serial_number || "").trim(),
-        location: String(v.location || "").trim() || null,
-        status: String(v.status || "").trim() || "Aktiv",
-        manufacturer: String(v.manufacturer || "").trim() || null,
-        model: String(v.model || "").trim() || null,
-        next_check: normalizeImportDate(String(v.next_check || "")) || null,
-        note: String(v.note || "").trim() || null,
-        inspection_badge_number: String(v.inspection_badge_number || "").trim() || null,
-        inspection_date: normalizeImportDate(String(v.inspection_date || "")) || null,
-        inspection_expires: normalizeImportDate(String(v.inspection_expires || "")) || null,
-        inspection_result: String(v.inspection_result || "").trim() || null,
-        inspection_comment: String(v.inspection_comment || "").trim() || null,
-        service_date: normalizeImportDate(String(v.service_date || "")) || null,
-        service_time: String(v.service_time || "").trim() || null,
-      };
-      try {
-        if (previewRow.duplicateDeviceId && deviceImportDuplicateMode === "skip") { skipped += 1; continue; }
-        if (previewRow.duplicateDeviceId && deviceImportDuplicateMode === "update") {
-          const { error } = await supabase.from("devices").update(payload).eq("id", previewRow.duplicateDeviceId).eq("company_id", currentCompany.id);
+
+    const normalizeCatalogKey = (value: unknown) => String(value || "").trim().toLocaleLowerCase("de-DE");
+
+    try {
+      const [{ data: manufacturerData, error: manufacturerLoadError }, { data: modelData, error: modelLoadError }] = await Promise.all([
+        supabase.from("manufacturers").select("*").eq("company_id", currentCompany.id),
+        supabase.from("device_models").select("*").eq("company_id", currentCompany.id),
+      ]);
+
+      if (manufacturerLoadError) throw new Error(`Hersteller konnten nicht geladen werden: ${manufacturerLoadError.message}`);
+      if (modelLoadError) throw new Error(`Gerätemodelle konnten nicht geladen werden: ${modelLoadError.message}`);
+
+      const manufacturerMap = new Map<string, Manufacturer>();
+      for (const item of (manufacturerData || []) as Manufacturer[]) {
+        const key = normalizeCatalogKey(item.name);
+        if (key) manufacturerMap.set(key, item);
+      }
+
+      const modelMap = new Map<string, DeviceModel>();
+      for (const item of (modelData || []) as DeviceModel[]) {
+        const modelName = getDeviceModelDisplayName(item);
+        const key = `${item.manufacturer_id || 0}::${normalizeCatalogKey(modelName)}`;
+        if (modelName) modelMap.set(key, item);
+      }
+
+      for (const previewRow of validRows) {
+        const v = previewRow.values;
+        const manufacturerName = String(v.manufacturer || "").trim();
+        const modelName = String(v.model || "").trim();
+
+        try {
+          let manufacturerRecord: Manufacturer | null = null;
+          let modelRecord: DeviceModel | null = null;
+
+          if (manufacturerName) {
+            const manufacturerKey = normalizeCatalogKey(manufacturerName);
+            manufacturerRecord = manufacturerMap.get(manufacturerKey) || null;
+
+            if (!manufacturerRecord) {
+              const { data, error } = await supabase
+                .from("manufacturers")
+                .insert([{ company_id: currentCompany.id, name: manufacturerName }])
+                .select("*")
+                .single();
+              if (error) throw new Error(`Hersteller „${manufacturerName}“: ${error.message}`);
+              manufacturerRecord = data as Manufacturer;
+              manufacturerMap.set(manufacturerKey, manufacturerRecord);
+              manufacturersCreated += 1;
+            }
+          }
+
+          if (modelName && manufacturerRecord?.id) {
+            const modelKey = `${manufacturerRecord.id}::${normalizeCatalogKey(modelName)}`;
+            modelRecord = modelMap.get(modelKey) || null;
+
+            if (!modelRecord) {
+              const { data, error } = await supabase
+                .from("device_models")
+                .insert([{
+                  company_id: currentCompany.id,
+                  manufacturer_id: manufacturerRecord.id,
+                  name: modelName,
+                  model: modelName,
+                  category: null,
+                  type: "Sonstiges",
+                  device_type: "Sonstiges",
+                  source: "TRYBUN Geräteimport",
+                  note: null,
+                }])
+                .select("*")
+                .single();
+              if (error) throw new Error(`Modell „${modelName}“: ${error.message}`);
+              modelRecord = data as DeviceModel;
+              modelMap.set(modelKey, modelRecord);
+              modelsCreated += 1;
+            }
+          }
+
+          const payload = {
+            company_id: currentCompany.id,
+            customer_id: previewRow.customerId,
+            name: String(v.name || "").trim(),
+            serial_number: String(v.serial_number || "").trim(),
+            location: String(v.location || "").trim() || null,
+            status: String(v.status || "").trim() || "Aktiv",
+            manufacturer: manufacturerRecord?.name || manufacturerName || null,
+            manufacturer_id: manufacturerRecord?.id || null,
+            model: modelRecord ? getDeviceModelDisplayName(modelRecord) : (modelName || null),
+            model_id: modelRecord?.id || null,
+            next_check: normalizeImportDate(String(v.next_check || "")) || null,
+            note: String(v.note || "").trim() || null,
+            inspection_badge_number: String(v.inspection_badge_number || "").trim() || null,
+            inspection_date: normalizeImportDate(String(v.inspection_date || "")) || null,
+            inspection_expires: normalizeImportDate(String(v.inspection_expires || "")) || null,
+            inspection_result: String(v.inspection_result || "").trim() || null,
+            inspection_comment: String(v.inspection_comment || "").trim() || null,
+            service_date: normalizeImportDate(String(v.service_date || "")) || null,
+            service_time: String(v.service_time || "").trim() || null,
+          };
+
+          if (previewRow.duplicateDeviceId && deviceImportDuplicateMode === "skip") {
+            // Auch bei „Überspringen“ werden bestehende Geräte mit den nun sauber
+            // mandantenbezogenen Hersteller-/Modell-IDs verknüpft. Es entsteht kein Duplikat.
+            const { error } = await supabase
+              .from("devices")
+              .update({
+                manufacturer: payload.manufacturer,
+                manufacturer_id: payload.manufacturer_id,
+                model: payload.model,
+                model_id: payload.model_id,
+              })
+              .eq("id", previewRow.duplicateDeviceId)
+              .eq("company_id", currentCompany.id);
+            if (error) throw error;
+            skipped += 1;
+            continue;
+          }
+
+          if (previewRow.duplicateDeviceId && deviceImportDuplicateMode === "update") {
+            const { error } = await supabase
+              .from("devices")
+              .update(payload)
+              .eq("id", previewRow.duplicateDeviceId)
+              .eq("company_id", currentCompany.id);
+            if (error) throw error;
+            updated += 1;
+            continue;
+          }
+
+          const { error } = await supabase.from("devices").insert([payload]);
           if (error) throw error;
-          updated += 1; continue;
+          created += 1;
+        } catch (error: any) {
+          errors.push(`Zeile ${previewRow.rowNumber}: ${error?.message || "unbekannter Fehler"}`);
         }
-        const { error } = await supabase.from("devices").insert([payload]);
-        if (error) throw error;
-        created += 1;
-      } catch (error: any) { errors.push(`Zeile ${previewRow.rowNumber}: ${error?.message || "unbekannter Fehler"}`); }
+      }
+
+      await Promise.all([loadDevices(), loadManufacturers(), loadDeviceModels()]);
+    } catch (error: any) {
+      errors.push(error?.message || "Stammdaten konnten nicht vorbereitet werden.");
+    } finally {
+      setDeviceImportBusy(false);
     }
-    await loadDevices();
-    setDeviceImportBusy(false);
-    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+
+    const summary = `${created} Geräte neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu · ${modelsCreated} Modelle neu${errors.length ? ` · ${errors.length} Fehler` : ""}`;
     setDeviceImportMessage(summary);
     if (errors.length) alert(`Geräteimport abgeschlossen: ${summary}\n\n${errors.slice(0, 8).join("\n")}${errors.length > 8 ? "\n…" : ""}`);
     else alert(`Geräteimport erfolgreich abgeschlossen.\n${summary}`);
