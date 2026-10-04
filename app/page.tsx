@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.23 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.24 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -12650,7 +12650,7 @@ PRO-EFFEKT`,
     {
       title: "Service",
       icon: "",
-      items: ["Einsatz", "Kalender", "Service-Tickets", "QR-Scan", "Abnahmeprotokoll"],
+      items: ["Einsatz", "Kalender", "Service-Tickets", "QR-Scan"],
     },
     {
       title: "Stammdaten",
@@ -12660,7 +12660,7 @@ PRO-EFFEKT`,
     {
       title: "Dokumente",
       icon: "",
-      items: ["Dokumente", "Verträge", "Rechnungen"],
+      items: ["Dokumente", "Abnahmeprotokoll", "Verträge", "Rechnungen"],
     },
     {
       title: "Lager",
@@ -16610,6 +16610,27 @@ PRO-EFFEKT`,
                 </div>
               </div>
 
+              {!isCustomer && (
+                <div className="rounded-[28px] border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Dokumentation</p>
+                      <h3 className="mt-1 text-xl font-black text-slate-950">Prüfungen & Abnahmen</h3>
+                      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
+                        Prüf-, Abnahme- und Übergabeprotokolle erstellen. Fertige Protokolle werden anschließend im Dokumentenarchiv abgelegt.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openPage("Abnahmeprotokoll")}
+                      className="w-full shrink-0 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-sky-700 sm:w-auto"
+                    >
+                      Protokoll erstellen
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <div className="flex flex-col gap-4">
                   <div>
@@ -17359,18 +17380,6 @@ PRO-EFFEKT`,
                 Firmeneinstellungen
               </div>
 
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Firmenauftritt
-                </p>
-                <h3 className="mt-2 text-4xl font-black">
-                  Firmendesign verwalten
-                </h3>
-                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Logo, Firmenfarbe und Kontaktdaten steuern das Erscheinungsbild von Dashboard, Login, PDF-Dokumenten und Kundenportal.
-                </p>
-              </div>
-
               <div className="rounded-[32px] border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -17633,6 +17642,18 @@ PRO-EFFEKT`,
                 </div>
 
 
+              </div>
+
+              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
+                  Firmenauftritt
+                </p>
+                <h3 className="mt-2 text-4xl font-black">
+                  Firmendesign verwalten
+                </h3>
+                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                  Logo, Firmenfarbe und Kontaktdaten steuern das Erscheinungsbild von Dashboard, Login, PDF-Dokumenten und Kundenportal.
+                </p>
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
