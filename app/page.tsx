@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.40 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.41 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10,6 +10,7 @@ import { supabase } from "../lib/supabase";
 
 type Ticket = {
   id: number;
+  company_id?: number | null;
   ticket_number: string;
   customer: string;
   device: string;
@@ -43,6 +44,7 @@ type Ticket = {
 
 type Device = {
   id: number;
+  company_id?: number | null;
   name: string;
   manufacturer_id: number | null;
   model_id?: number | null;
@@ -157,6 +159,7 @@ type CustomerLibraryDeviceDraft = {
 
 type DocumentItem = {
   id: number;
+  company_id?: number | null;
   file_name: string;
   file_path: string;
   category: string;
@@ -3281,6 +3284,54 @@ async function loadApplicationData() {
     setDocuments(data || []);
   }
 
+  async function resolveDocumentCompanyId(
+    customerId?: number | null,
+    deviceId?: number | null,
+    ticketId?: number | null,
+  ) {
+    if (companyData?.id) return companyData.id;
+
+    const effectiveCustomerId = customerId || userProfile?.customer_id || null;
+    if (effectiveCustomerId) {
+      const localCustomer = customers.find((item) => item.id === Number(effectiveCustomerId));
+      if (localCustomer?.company_id) return Number(localCustomer.company_id);
+
+      const { data } = await supabase
+        .from("customers")
+        .select("company_id")
+        .eq("id", Number(effectiveCustomerId))
+        .maybeSingle();
+      if (data?.company_id) return Number(data.company_id);
+    }
+
+    if (deviceId) {
+      const localDevice = devices.find((item) => item.id === Number(deviceId));
+      if (localDevice?.company_id) return Number(localDevice.company_id);
+
+      const { data } = await supabase
+        .from("devices")
+        .select("company_id")
+        .eq("id", Number(deviceId))
+        .maybeSingle();
+      if (data?.company_id) return Number(data.company_id);
+    }
+
+    if (ticketId) {
+      const localTicket = tickets.find((item) => item.id === Number(ticketId));
+      if (localTicket?.company_id) return Number(localTicket.company_id);
+
+      const { data } = await supabase
+        .from("tickets")
+        .select("company_id")
+        .eq("id", Number(ticketId))
+        .maybeSingle();
+      if (data?.company_id) return Number(data.company_id);
+    }
+
+    const loadedCompany = await loadCompany(session?.user?.id);
+    return loadedCompany?.id || null;
+  }
+
   async function loadDeviceHistory() {
     const { data, error } = await supabase
       .from("device_history")
@@ -4223,8 +4274,21 @@ async function loadApplicationData() {
       return;
     }
 
+    const documentCompanyId = await resolveDocumentCompanyId(
+      uploadCustomerId ? Number(uploadCustomerId) : null,
+      finalDeviceId,
+      finalTicketId,
+    );
+    if (!documentCompanyId) {
+      await supabase.storage.from("documents").remove([filePath]);
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
     const insertResult = await supabase.from("documents").insert([
       {
+        company_id: documentCompanyId,
         file_name: file.name,
         file_path: filePath,
         category: uploadCategory,
@@ -4351,14 +4415,24 @@ async function loadApplicationData() {
       return;
     }
 
+    const deviceCustomerId = devices.find((deviceItem) => deviceItem.id === deviceId)?.customer_id || null;
+    const documentCompanyId = await resolveDocumentCompanyId(deviceCustomerId, deviceId, null);
+    if (!documentCompanyId) {
+      await supabase.storage.from("documents").remove([filePath]);
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
     const insertResult = await supabase.from("documents").insert([
       {
+        company_id: documentCompanyId,
         file_name: file.name,
         file_path: filePath,
         category: uploadCategory,
         file_size: file.size,
         device_id: deviceId,
-        customer_id: devices.find((deviceItem) => deviceItem.id === deviceId)?.customer_id || null,
+        customer_id: deviceCustomerId,
       },
     ]);
 
@@ -4525,15 +4599,25 @@ async function loadApplicationData() {
       return;
     }
 
+    const ticketCustomerId = ticket.customer_id || relatedDevice?.customer_id || null;
+    const documentCompanyId = await resolveDocumentCompanyId(ticketCustomerId, relatedDevice?.id || null, ticket.id);
+    if (!documentCompanyId) {
+      await supabase.storage.from("documents").remove([filePath]);
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
     const insertResult = await supabase.from("documents").insert([
       {
+        company_id: documentCompanyId,
         file_name: file.name,
         file_path: filePath,
         category: uploadCategory,
         file_size: file.size,
         device_id: relatedDevice?.id || null,
         ticket_id: ticket.id,
-        customer_id: ticket.customer_id || relatedDevice?.customer_id || null,
+        customer_id: ticketCustomerId,
       },
     ]);
 
@@ -4578,8 +4662,16 @@ async function loadApplicationData() {
       return;
     }
 
+    const documentCompanyId = await resolveDocumentCompanyId(customerId, deviceId, ticket.id);
+    if (!documentCompanyId) {
+      await supabase.storage.from("documents").remove([filePath]);
+      alert("Ticket wurde erstellt, aber das Dokument konnte keiner Firma zugeordnet werden.");
+      return;
+    }
+
     const insertResult = await supabase.from("documents").insert([
       {
+        company_id: documentCompanyId,
         file_name: file.name,
         file_path: filePath,
         category: safeCategory,
@@ -4632,8 +4724,18 @@ async function loadApplicationData() {
       return;
     }
 
+    const documentCompanyId = await resolveDocumentCompanyId(finalCustomerId, relatedDevice?.id || null, ticket.id);
+    if (!documentCompanyId) {
+      await supabase.storage.from("documents").remove([filePath]);
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      event.target.value = "";
+      return;
+    }
+
     const insertResult = await supabase.from("documents").insert([
       {
+        company_id: documentCompanyId,
         file_name: file.name,
         file_path: filePath,
         category: safeCategory,
@@ -9358,7 +9460,14 @@ PRO-EFFEKT`,
       .upload(filePath, blob, { contentType: "text/html;charset=utf-8", upsert: false });
     if (uploadResult.error) throw uploadResult.error;
 
+    const documentCompanyId = await resolveDocumentCompanyId(contract.customer_id || null, null, null);
+    if (!documentCompanyId) {
+      await supabase.storage.from("documents").remove([filePath]);
+      throw new Error("Vertrag konnte keiner Firma zugeordnet werden.");
+    }
+
     const insertResult = await supabase.from("documents").insert([{
+      company_id: documentCompanyId,
       file_name: fileName,
       file_path: filePath,
       category: "Verträge",
@@ -10826,19 +10935,32 @@ PRO-EFFEKT`,
         return;
       }
 
+      const protocolCustomerId =
+        Number(abnahmeCustomerId) ||
+        selectedTicket?.customer_id ||
+        selectedDevice?.customer_id ||
+        null;
+      const documentCompanyId = await resolveDocumentCompanyId(
+        protocolCustomerId,
+        selectedDevice?.id || null,
+        selectedTicket?.id || null,
+      );
+      if (!documentCompanyId) {
+        await supabase.storage.from("documents").remove([filePath]);
+        alert("Prüf-/Abnahmeprotokoll konnte keiner Firma zugeordnet werden.");
+        return;
+      }
+
       const insertResult = await supabase.from("documents").insert([
         {
+          company_id: documentCompanyId,
           file_name: fileName,
           file_path: filePath,
           category: "Abnahmeprotokolle",
           file_size: pdfBlob.size,
           device_id: null,
           ticket_id: selectedTicket?.id || null,
-          customer_id:
-            Number(abnahmeCustomerId) ||
-            selectedTicket?.customer_id ||
-            selectedDevice?.customer_id ||
-            null,
+          customer_id: protocolCustomerId,
         },
       ]);
 
@@ -10921,19 +11043,32 @@ PRO-EFFEKT`,
         return;
       }
 
+      const protocolCustomerId =
+        Number(abnahmeCustomerId) ||
+        selectedTicket?.customer_id ||
+        selectedDevice?.customer_id ||
+        null;
+      const documentCompanyId = await resolveDocumentCompanyId(
+        protocolCustomerId,
+        selectedDevice?.id || null,
+        selectedTicket?.id || null,
+      );
+      if (!documentCompanyId) {
+        await supabase.storage.from("documents").remove([filePath]);
+        alert("Prüf-/Abnahmeprotokoll konnte keiner Firma zugeordnet werden.");
+        return;
+      }
+
       const insertResult = await supabase.from("documents").insert([
         {
+          company_id: documentCompanyId,
           file_name: fileName,
           file_path: filePath,
           category: "Abnahmeprotokolle",
           file_size: pdfBlob.size,
           device_id: null,
           ticket_id: selectedTicket?.id || null,
-          customer_id:
-            Number(abnahmeCustomerId) ||
-            selectedTicket?.customer_id ||
-            selectedDevice?.customer_id ||
-            null,
+          customer_id: protocolCustomerId,
         },
       ]);
 
@@ -11308,8 +11443,21 @@ PRO-EFFEKT`,
         return;
       }
 
+      const documentCompanyId = await resolveDocumentCompanyId(
+        customer.id,
+        null,
+        selectedTicket?.id || null,
+      );
+      if (!documentCompanyId) {
+        if (inventoryPosted) await rollbackInventorySource(commercialDocumentType, number, "Dokument konnte keiner Firma zugeordnet werden");
+        await supabase.storage.from("documents").remove([filePath]);
+        alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+        return;
+      }
+
       const insertResult = await supabase.from("documents").insert([
         {
+          company_id: documentCompanyId,
           file_name: fileName,
           file_path: filePath,
           category,
@@ -11321,6 +11469,7 @@ PRO-EFFEKT`,
 
       if (insertResult.error) {
         if (inventoryPosted) await rollbackInventorySource(commercialDocumentType, number, "Dokumentdatensatz konnte nicht archiviert werden");
+        await supabase.storage.from("documents").remove([filePath]);
         alert(`Dokument wurde erzeugt, aber nicht im Archiv gespeichert: ${insertResult.error.message}`);
         return;
       }
@@ -11613,8 +11762,19 @@ PRO-EFFEKT`,
         return false;
       }
 
-      await supabase.from("documents").insert([
+      const documentCompanyId = await resolveDocumentCompanyId(
+        item.customer_id || null,
+        null,
+        item.ticket_id || null,
+      );
+      if (!documentCompanyId) {
+        await supabase.storage.from("documents").remove([filePath]);
+        return false;
+      }
+
+      const documentInsert = await supabase.from("documents").insert([
         {
+          company_id: documentCompanyId,
           file_name: fileName,
           file_path: filePath,
           category: "Rechnungen",
@@ -11623,6 +11783,12 @@ PRO-EFFEKT`,
           customer_id: item.customer_id || null,
         },
       ]);
+
+      if (documentInsert.error) {
+        await supabase.storage.from("documents").remove([filePath]);
+        console.error(documentInsert.error.message);
+        return false;
+      }
 
       await loadDocuments();
       return true;
