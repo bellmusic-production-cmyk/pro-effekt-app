@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.42 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.43 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4823,20 +4823,58 @@ async function loadApplicationData() {
     setPreviewName("");
   }
 
+  function getInventorySourceFromDocument(item: DocumentItem) {
+    const fileName = (item.file_name || "").trim();
+    const commercialMatch = fileName.match(/^(Lieferschein|Auftrag)-(.+)\.pdf$/i);
+
+    if (!commercialMatch) return null;
+
+    const sourceType = commercialMatch[1].toLowerCase() === "lieferschein"
+      ? "Lieferschein"
+      : "Auftrag";
+    const sourceNumber = commercialMatch[2]?.trim() || "";
+
+    if (!sourceNumber) return null;
+
+    return { sourceType, sourceNumber };
+  }
+
   async function deleteDocument(item: DocumentItem) {
     if (!canDeleteDocument(item)) {
       alert(documentDeleteLockedReason(item));
       return;
     }
 
-    if (!confirm("Datei wirklich löschen?")) return;
+    const inventorySource = getInventorySourceFromDocument(item);
+    const deleteQuestion = inventorySource
+      ? `${inventorySource.sourceType} wirklich löschen? Zugehörige Lagerbewegungen werden dabei storniert und physisch ausgebuchte Bestände zurückgebucht.`
+      : "Datei wirklich löschen?";
+
+    if (!confirm(deleteQuestion)) return;
+
+    if (inventorySource) {
+      const rollbackResult = await rollbackInventorySource(
+        inventorySource.sourceType,
+        inventorySource.sourceNumber,
+        `${inventorySource.sourceType} im Dokumentenarchiv gelöscht`,
+      );
+
+      if (!rollbackResult.ok) {
+        alert(`Dokument wurde nicht gelöscht, weil die Lagerbewegung nicht zurückgebucht werden konnte: ${rollbackResult.error}`);
+        return;
+      }
+    }
 
     const storageResult = await supabase.storage
       .from("documents")
       .remove([item.file_path]);
 
     if (storageResult.error) {
-      alert("Datei konnte im Storage nicht gelöscht werden.");
+      alert(
+        inventorySource
+          ? "Die Lagerbewegung wurde bereits storniert, aber die Datei konnte nicht gelöscht werden. Bitte den Löschvorgang erneut versuchen."
+          : "Datei konnte im Storage nicht gelöscht werden.",
+      );
       return;
     }
 
@@ -4846,7 +4884,11 @@ async function loadApplicationData() {
       .eq("id", item.id);
 
     if (tableResult.error) {
-      alert("Datei konnte aus der Tabelle nicht gelöscht werden.");
+      alert(
+        inventorySource
+          ? "Die Lagerbewegung wurde bereits storniert, aber der Dokumenteintrag konnte nicht gelöscht werden. Bitte den Löschvorgang erneut versuchen."
+          : "Datei konnte aus der Tabelle nicht gelöscht werden.",
+      );
       return;
     }
 
@@ -11208,12 +11250,18 @@ PRO-EFFEKT`,
   }
 
   async function rollbackInventorySource(sourceType: string, sourceNumber: string, reason: string) {
-    await supabase.rpc("void_inventory_source", {
+    const { error } = await supabase.rpc("void_inventory_source", {
       p_source_type: sourceType,
       p_source_number: sourceNumber,
       p_reason: reason,
     });
+
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+
     await Promise.all([loadServiceParts(), loadDeviceModels(), loadInventoryMovements()]);
+    return { ok: true, error: "" };
   }
 
   function buildStockLinesHtml(lines: StockDocumentLine[]) {
@@ -11946,11 +11994,41 @@ PRO-EFFEKT`,
       return;
     }
 
+    const invoiceItem = invoices.find((item) => item.id === invoiceId) || null;
+    if (!invoiceItem) {
+      alert("Rechnung/Angebot konnte nicht gefunden werden.");
+      return;
+    }
+
+    const hasActiveInventoryMovement =
+      invoiceItem.type === "Rechnung" &&
+      inventoryMovements.some(
+        (movement) =>
+          movement.source_type === "Rechnung" &&
+          movement.source_number === invoiceItem.number &&
+          !movement.is_voided,
+      );
+
     const confirmed = window.confirm(
-      "Diese Rechnung / dieses Angebot wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      hasActiveInventoryMovement
+        ? "Diese Rechnung wirklich löschen? Der damit gebuchte Lagerabgang wird storniert und der Bestand zurückgebucht."
+        : "Diese Rechnung / dieses Angebot wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     );
 
     if (!confirmed) return;
+
+    if (hasActiveInventoryMovement) {
+      const rollbackResult = await rollbackInventorySource(
+        "Rechnung",
+        invoiceItem.number,
+        "Rechnung gelöscht",
+      );
+
+      if (!rollbackResult.ok) {
+        alert(`Rechnung wurde nicht gelöscht, weil der Lagerabgang nicht zurückgebucht werden konnte: ${rollbackResult.error}`);
+        return;
+      }
+    }
 
     const { error } = await supabase
       .from("invoices")
@@ -11958,12 +12036,16 @@ PRO-EFFEKT`,
       .eq("id", invoiceId);
 
     if (error) {
-      alert(`Rechnung/Angebot konnte nicht gelöscht werden: ${error.message}`);
+      alert(
+        hasActiveInventoryMovement
+          ? `Der Lagerbestand wurde bereits zurückgebucht, die Rechnung konnte aber nicht gelöscht werden: ${error.message}`
+          : `Rechnung/Angebot konnte nicht gelöscht werden: ${error.message}`,
+      );
       return;
     }
 
     setInvoices((prev) => prev.filter((item) => item.id !== invoiceId));
-    alert("Rechnung/Angebot wurde gelöscht.");
+    alert(hasActiveInventoryMovement ? "Rechnung wurde gelöscht und der Lagerbestand zurückgebucht." : "Rechnung/Angebot wurde gelöscht.");
   }
 
   function buildInvoiceHtml(
