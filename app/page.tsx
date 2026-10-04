@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.26 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.28 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -421,6 +421,8 @@ const navItems = [
   "Abnahmeprotokoll",
   "Ersatzteile",
   "Dokumente",
+  "Auftrag erstellen",
+  "Lieferschein erstellen",
   "Rechnungen",
   "Verträge",
   "Benachrichtigungen",
@@ -10571,8 +10573,8 @@ PRO-EFFEKT`,
 
 
   async function createCommercialDocument() {
-    if (!isAdmin) {
-      alert("Nur Admins können Aufträge und Lieferscheine erstellen.");
+    if (!isAdmin && !isTechnician) {
+      alert("Nur Admins und Techniker können Aufträge und Lieferscheine erstellen.");
       return;
     }
 
@@ -12812,7 +12814,7 @@ PRO-EFFEKT`,
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente"]
+      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente", "Auftrag erstellen", "Lieferschein erstellen"]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
 
   if (session && legalAccepted && userProfile && !visibleNavItems.includes(activePage)) {
@@ -12838,7 +12840,7 @@ PRO-EFFEKT`,
     {
       title: "Dokumente",
       icon: "",
-      items: ["Dokumente", "Abnahmeprotokoll", "Verträge", "Rechnungen"],
+      items: ["Dokumente", "Abnahmeprotokoll", "Auftrag erstellen", "Lieferschein erstellen", "Verträge", "Rechnungen"],
     },
     {
       title: "Lager",
@@ -12874,6 +12876,8 @@ PRO-EFFEKT`,
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
       Ersatzteile: "Ersatzteile",
       Dokumente: "Dokumente",
+      "Auftrag erstellen": "Auftrag erstellen",
+      "Lieferschein erstellen": "Lieferschein erstellen",
       Rechnungen: "Rechnungen",
       Verträge: "Verträge",
       Benachrichtigungen: "Kommunikation",
@@ -12886,6 +12890,25 @@ PRO-EFFEKT`,
   }
 
   function openPage(item: string) {
+    if (item === "Auftrag erstellen" || item === "Lieferschein erstellen") {
+      if (!(isAdmin || isTechnician)) return;
+
+      setCommercialDocumentType(item === "Auftrag erstellen" ? "Auftrag" : "Lieferschein");
+      setActivePage("Dokumente");
+      setMobileMenuOpen(false);
+      setDocumentQuickFilter("Alle");
+
+      if (typeof window !== "undefined" && session?.user?.id) {
+        window.localStorage.setItem(`trybun-active-page-${session.user.id}`, "Dokumente");
+        window.setTimeout(() => {
+          document
+            .getElementById("commercial-document-create")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      }
+      return;
+    }
+
     setActivePage(item);
     setMobileMenuOpen(false);
 
@@ -16800,6 +16823,49 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
               </div>
 
+              {(isAdmin || isTechnician) && (
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Dokumente erstellen</p>
+                  <h3 className="mt-1 text-xl font-black text-slate-950">Schnellaktionen</h3>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                    Auftrag, Lieferschein oder Prüf-/Abnahmeprotokoll direkt starten.
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCommercialDocumentType("Auftrag");
+                        window.requestAnimationFrame(() =>
+                          document.getElementById("commercial-document-create")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                        );
+                      }}
+                      className="rounded-2xl bg-sky-600 px-5 py-4 text-sm font-black text-white shadow-sm hover:bg-sky-700"
+                    >
+                      Auftrag erstellen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCommercialDocumentType("Lieferschein");
+                        window.requestAnimationFrame(() =>
+                          document.getElementById("commercial-document-create")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                        );
+                      }}
+                      className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-black text-sky-700 hover:bg-sky-100"
+                    >
+                      Lieferschein erstellen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPage("Abnahmeprotokoll")}
+                      className="rounded-2xl border border-slate-300 bg-white px-5 py-4 text-sm font-black text-slate-700 hover:bg-slate-50"
+                    >
+                      Prüfung / Abnahme
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {!isCustomer && (
                 <div className="rounded-[28px] border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -16821,8 +16887,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
               )}
 
-              {isAdmin && (
-                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              {(isAdmin || isTechnician) && (
+                <div id="commercial-document-create" className="scroll-mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Geschäftsdokumente</p>
                     <h3 className="mt-1 text-xl font-black text-slate-950">Auftrag / Lieferschein erstellen</h3>
