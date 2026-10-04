@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.4 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.6 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -17237,26 +17237,7 @@ PRO-EFFEKT`,
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-black text-white">Nächster Schritt</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-                      Benutzer bearbeiten: Rolle, Aktivstatus und Kundenverknüpfung gezielt ändern.
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-black text-white">Danach</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-                      Einladung per E-Mail und Passwort-Reset sauber an Supabase Auth anbinden.
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm font-black text-white">Später</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-                      CSV-/Excel-Import für Kunden, Geräte und Portalbenutzer.
-                    </p>
-                  </div>
-                </div>
+
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
