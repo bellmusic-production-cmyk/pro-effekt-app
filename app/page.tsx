@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.30 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.31 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -136,6 +136,13 @@ type DeviceModel = {
   device_type?: string | null;
   source?: string | null;
   note: string | null;
+  is_stocked?: boolean | null;
+  stock?: number | null;
+  min_stock?: number | null;
+  unit?: string | null;
+  storage_location?: string | null;
+  purchase_price?: number | null;
+  sale_price?: number | null;
   created_at: string;
 };
 
@@ -419,10 +426,10 @@ const navItems = [
   "Geräte",
   "QR-Scan",
   "Abnahmeprotokoll",
+  "Lagerbestand",
   "Ersatzteile",
   "Dokumente",
-  "Auftrag erstellen",
-  "Lieferschein erstellen",
+  "Auftrag / Lieferschein erstellen",
   "Rechnungen",
   "Verträge",
   "Benachrichtigungen",
@@ -961,6 +968,13 @@ export default function Home() {
   const [modelCategory, setModelCategory] = useState("");
   const [modelType, setModelType] = useState("");
   const [modelNote, setModelNote] = useState("");
+  const [modelIsStocked, setModelIsStocked] = useState(false);
+  const [modelStock, setModelStock] = useState("0");
+  const [modelMinStock, setModelMinStock] = useState("0");
+  const [modelUnit, setModelUnit] = useState("Stück");
+  const [modelStorageLocation, setModelStorageLocation] = useState("");
+  const [modelPurchasePrice, setModelPurchasePrice] = useState("");
+  const [modelSalePrice, setModelSalePrice] = useState("");
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [deviceHistory, setDeviceHistory] = useState<DeviceHistory[]>([]);
   const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlan[]>(
@@ -1236,6 +1250,11 @@ export default function Home() {
   const [partUsageDeviceId, setPartUsageDeviceId] = useState("");
   const [partUsageTicketId, setPartUsageTicketId] = useState("");
   const [partUsageNote, setPartUsageNote] = useState("");
+  const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [partManufacturerFilter, setPartManufacturerFilter] = useState("Alle");
+  const [inventorySearchTerm, setInventorySearchTerm] = useState("");
+  const [inventoryTypeFilter, setInventoryTypeFilter] = useState<"Alle" | "Ersatzteile" | "Modelle">("Alle");
+  const [inventoryManufacturerFilter, setInventoryManufacturerFilter] = useState("Alle");
 
   const [invoiceType, setInvoiceType] = useState("Rechnung");
   const [invoiceTicketId, setInvoiceTicketId] = useState("");
@@ -6168,6 +6187,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     setModelCategory("");
     setModelType("");
     setModelNote("");
+    setModelIsStocked(false);
+    setModelStock("0");
+    setModelMinStock("0");
+    setModelUnit("Stück");
+    setModelStorageLocation("");
+    setModelPurchasePrice("");
+    setModelSalePrice("");
   }
 
   function startEditDeviceModel(item: DeviceModel) {
@@ -6177,6 +6203,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     setModelCategory(item.category || "");
     setModelType(getDeviceModelTypeName(item) || "Sonstiges");
     setModelNote(item.note || "");
+    setModelIsStocked(Boolean(item.is_stocked));
+    setModelStock(String(item.stock ?? 0));
+    setModelMinStock(String(item.min_stock ?? 0));
+    setModelUnit(item.unit || "Stück");
+    setModelStorageLocation(item.storage_location || "");
+    setModelPurchasePrice(item.purchase_price != null ? String(item.purchase_price) : "");
+    setModelSalePrice(item.sale_price != null ? String(item.sale_price) : "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -6208,6 +6241,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       device_type: cleanedModelType,
       source: "TRYBUN App",
       note: modelNote.trim() || null,
+      is_stocked: modelIsStocked,
+      stock: modelIsStocked ? Math.max(0, Number(modelStock || 0)) : 0,
+      min_stock: modelIsStocked ? Math.max(0, Number(modelMinStock || 0)) : 0,
+      unit: modelUnit.trim() || "Stück",
+      storage_location: modelStorageLocation.trim() || null,
+      purchase_price: modelPurchasePrice.trim() ? Number(modelPurchasePrice) : null,
+      sale_price: modelSalePrice.trim() ? Number(modelSalePrice) : null,
     };
 
     const result = editingDeviceModel
@@ -12402,6 +12442,37 @@ PRO-EFFEKT`,
 
   const activeServiceParts = serviceParts.filter((part) => !part.is_archived);
 
+  const filteredActiveServiceParts = activeServiceParts.filter((part) => {
+    const matchesManufacturer = partManufacturerFilter === "Alle" || String(part.manufacturer_id || "") === partManufacturerFilter;
+    const query = partSearchTerm.trim().toLowerCase();
+    if (!matchesManufacturer) return false;
+    if (!query) return true;
+    const manufacturerName = getManufacturerNameById(part.manufacturer_id);
+    return [part.name, part.sku, part.category, part.storage_location, part.note, manufacturerName]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  });
+
+  const stockedDeviceModels = deviceModels.filter((modelItem) => Boolean(modelItem.is_stocked));
+  const filteredInventoryParts = activeServiceParts.filter((part) => {
+    if (inventoryTypeFilter === "Modelle") return false;
+    if (inventoryManufacturerFilter !== "Alle" && String(part.manufacturer_id || "") !== inventoryManufacturerFilter) return false;
+    const query = inventorySearchTerm.trim().toLowerCase();
+    if (!query) return true;
+    return [part.name, part.sku, part.category, part.storage_location, getManufacturerNameById(part.manufacturer_id)]
+      .filter(Boolean).join(" ").toLowerCase().includes(query);
+  });
+  const filteredInventoryModels = stockedDeviceModels.filter((modelItem) => {
+    if (inventoryTypeFilter === "Ersatzteile") return false;
+    if (inventoryManufacturerFilter !== "Alle" && String(modelItem.manufacturer_id || "") !== inventoryManufacturerFilter) return false;
+    const query = inventorySearchTerm.trim().toLowerCase();
+    if (!query) return true;
+    return [getDeviceModelDisplayName(modelItem), modelItem.category, getDeviceModelTypeName(modelItem), modelItem.storage_location, getManufacturerNameById(modelItem.manufacturer_id)]
+      .filter(Boolean).join(" ").toLowerCase().includes(query);
+  });
+
   const lowStockParts = activeServiceParts.filter(
     (part) => Number(part.stock || 0) <= Number(part.min_stock || 0),
   );
@@ -13141,7 +13212,7 @@ PRO-EFFEKT`,
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Dokumente", "Auftrag erstellen", "Lieferschein erstellen"]
+      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Lagerbestand", "Ersatzteile", "Dokumente", "Auftrag / Lieferschein erstellen"]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
 
   if (session && legalAccepted && userProfile && !visibleNavItems.includes(activePage)) {
@@ -13167,12 +13238,12 @@ PRO-EFFEKT`,
     {
       title: "Dokumente",
       icon: "",
-      items: ["Dokumente", "Abnahmeprotokoll", "Auftrag erstellen", "Lieferschein erstellen", "Verträge", "Rechnungen"],
+      items: ["Dokumente", "Abnahmeprotokoll", "Auftrag / Lieferschein erstellen", "Verträge", "Rechnungen"],
     },
     {
       title: "Lager",
       icon: "",
-      items: ["Ersatzteile"],
+      items: ["Lagerbestand", "Ersatzteile"],
     },
     {
       title: "Kommunikation",
@@ -13201,10 +13272,10 @@ PRO-EFFEKT`,
       Geräte: "Hersteller-/Gerätebibliothek",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
+      Lagerbestand: "Lagerbestand",
       Ersatzteile: "Ersatzteile",
       Dokumente: "Dokumente",
-      "Auftrag erstellen": "Auftrag erstellen",
-      "Lieferschein erstellen": "Lieferschein erstellen",
+      "Auftrag / Lieferschein erstellen": "Auftrag / Lieferschein erstellen",
       Rechnungen: "Rechnungen",
       Verträge: "Verträge",
       Benachrichtigungen: "Kommunikation",
@@ -13217,10 +13288,10 @@ PRO-EFFEKT`,
   }
 
   function openPage(item: string) {
-    if (item === "Auftrag erstellen" || item === "Lieferschein erstellen") {
+    if (item === "Auftrag / Lieferschein erstellen") {
       if (!(isAdmin || isTechnician)) return;
 
-      setCommercialDocumentType(item === "Auftrag erstellen" ? "Auftrag" : "Lieferschein");
+      setCommercialDocumentType("Auftrag");
       setActivePage("Dokumente");
       setMobileMenuOpen(false);
       setDocumentQuickFilter("Alle");
@@ -14887,13 +14958,15 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {(["Service-Tickets", "Kunden", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
+          {(["Service-Tickets", "Kunden", "Lagerbestand", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
             <div className="mb-6 rounded-[32px] bg-[#07111d] p-5 text-white shadow-sm lg:hidden">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
                 {activePage === "Service-Tickets"
                   ? "Service"
                   : activePage === "Kunden"
                     ? "Stammdaten"
+                    : activePage === "Lagerbestand"
+                      ? "Lager"
                     : activePage === "Ersatzteile"
                       ? "Lager"
                       : activePage === "Einstellungen"
@@ -14905,6 +14978,8 @@ PRO-EFFEKT`,
                   ? "Service-Tickets"
                   : activePage === "Kunden"
                     ? "Kunden"
+                    : activePage === "Lagerbestand"
+                      ? "Lagerbestand"
                     : activePage === "Ersatzteile"
                       ? "Ersatzteile"
                       : activePage === "Rechnungen"
@@ -15666,10 +15741,6 @@ PRO-EFFEKT`,
 
           {activePage === "Kalender" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
-
               <div className="overflow-hidden rounded-[34px] bg-[#07111d] text-white shadow-xl">
                 <div className="p-6 md:p-8">
                   <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
@@ -17989,7 +18060,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
 
           {activePage === "Einstellungen" && isAdmin && (
-            <div className="min-w-0 max-w-full space-y-6 overflow-x-hidden">
+            <div className="flex min-w-0 max-w-full flex-col gap-6 overflow-x-hidden">
               <div className="rounded-[32px] border border-sky-200 bg-white p-5 shadow-sm sm:p-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
@@ -18142,7 +18213,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 Firmeneinstellungen
               </div>
 
-              <div className="rounded-[32px] border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm">
+              <div className="order-first rounded-[32px] border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-400">
@@ -19558,6 +19629,23 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                             placeholder="Gerätetyp, z. B. Steuerung, Pumpe, Anlage"
                             className="rounded-2xl border border-slate-300 px-5 py-4"
                           />
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <label className="flex items-center gap-3 text-sm font-black text-slate-800">
+                            <input type="checkbox" checked={modelIsStocked} onChange={(e) => setModelIsStocked(e.target.checked)} className="h-5 w-5 rounded border-slate-300" />
+                            Dieses Modell als Verkaufs-/Lagergerät führen
+                          </label>
+                          {modelIsStocked && (
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                              <input value={modelStock} onChange={(e) => setModelStock(e.target.value)} type="number" min="0" placeholder="Bestand" className="rounded-2xl border border-slate-300 px-4 py-3" />
+                              <input value={modelMinStock} onChange={(e) => setModelMinStock(e.target.value)} type="number" min="0" placeholder="Mindestbestand" className="rounded-2xl border border-slate-300 px-4 py-3" />
+                              <input value={modelUnit} onChange={(e) => setModelUnit(e.target.value)} placeholder="Einheit, z. B. Stück" className="rounded-2xl border border-slate-300 px-4 py-3" />
+                              <input value={modelStorageLocation} onChange={(e) => setModelStorageLocation(e.target.value)} placeholder="Lagerort" className="rounded-2xl border border-slate-300 px-4 py-3" />
+                              <input value={modelPurchasePrice} onChange={(e) => setModelPurchasePrice(e.target.value)} type="number" min="0" step="0.01" placeholder="Einkaufspreis" className="rounded-2xl border border-slate-300 px-4 py-3" />
+                              <input value={modelSalePrice} onChange={(e) => setModelSalePrice(e.target.value)} type="number" min="0" step="0.01" placeholder="Verkaufspreis" className="rounded-2xl border border-slate-300 px-4 py-3" />
+                            </div>
+                          )}
                         </div>
 
                         <textarea
@@ -23803,7 +23891,59 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
             </div>
           )}
 
-          {(activePage === "Ersatzteile" || activePage === "Ersatzteile") && (
+                    {activePage === "Lagerbestand" && (
+            <div className="space-y-6">
+              <div className="rounded-[28px] bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Lager</p>
+                <h2 className="mt-2 text-3xl font-black">Lagerbestand</h2>
+                <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Physische Lagerware zentral finden: Ersatzteile sowie Modelle, die ausdrücklich als Verkaufs-/Lagergerät geführt werden.</p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Ersatzteile" value={activeServiceParts.length} />
+                <StatCard label="Lager-Modelle" value={stockedDeviceModels.length} />
+                <StatCard label="Artikel gesamt" value={activeServiceParts.length + stockedDeviceModels.length} />
+                <StatCard label="Kritisch" value={activeServiceParts.filter((p) => Number(p.stock || 0) <= Number(p.min_stock || 0)).length + stockedDeviceModels.filter((m) => Number(m.stock || 0) <= Number(m.min_stock || 0)).length} />
+              </div>
+
+              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="grid gap-3 lg:grid-cols-[1fr_220px_280px]">
+                  <input value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-inventory-search" placeholder="Lager durchsuchen: Artikel, Modell, SKU, Hersteller, Lagerort …" className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold outline-none focus:border-sky-400" />
+                  <select value={inventoryTypeFilter} onChange={(e) => setInventoryTypeFilter(e.target.value as "Alle" | "Ersatzteile" | "Modelle")} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                    <option value="Alle">Alle Lagerartikel</option><option value="Ersatzteile">Nur Ersatzteile</option><option value="Modelle">Nur Modelle</option>
+                  </select>
+                  <select value={inventoryManufacturerFilter} onChange={(e) => setInventoryManufacturerFilter(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                    <option value="Alle">Alle Hersteller</option>
+                    {manufacturers.map((manufacturerItem) => <option key={manufacturerItem.id} value={manufacturerItem.id}>{manufacturerItem.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {filteredInventoryParts.map((part) => {
+                  const critical = Number(part.stock || 0) <= Number(part.min_stock || 0);
+                  return <div key={`part-${part.id}`} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-amber-600">Ersatzteil · {getManufacturerNameById(part.manufacturer_id) || "Ohne Hersteller"}</p><h3 className="mt-1 break-words text-xl font-black">{part.name}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{part.sku || "Keine Artikelnummer"} · Lagerort: {part.storage_location || "nicht angegeben"}</p></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black">{part.stock ?? 0} {part.unit || "Stück"}</span><span className={`rounded-full px-3 py-2 text-xs font-black ${critical ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{critical ? "Nachbestellen" : "Verfügbar"}</span></div>
+                    </div>
+                  </div>;
+                })}
+                {filteredInventoryModels.map((modelItem) => {
+                  const critical = Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0);
+                  return <div key={`model-${modelItem.id}`} className="rounded-[24px] border border-sky-200 bg-white p-4 shadow-sm sm:p-5">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">Verkaufsgerät / Modell · {getManufacturerNameById(modelItem.manufacturer_id)}</p><h3 className="mt-1 break-words text-xl font-black">{getDeviceModelDisplayName(modelItem)}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{getDeviceModelTypeName(modelItem)} · Lagerort: {modelItem.storage_location || "nicht angegeben"}</p></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black">{modelItem.stock ?? 0} {modelItem.unit || "Stück"}</span><span className={`rounded-full px-3 py-2 text-xs font-black ${critical ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{critical ? "Nachbestellen" : "Verfügbar"}</span></div>
+                    </div>
+                  </div>;
+                })}
+                {filteredInventoryParts.length === 0 && filteredInventoryModels.length === 0 && <div className="rounded-[24px] bg-white p-6 text-center font-bold text-slate-500 shadow-sm">Keine passenden Lagerartikel gefunden.</div>}
+              </div>
+            </div>
+          )}
+
+{activePage === "Ersatzteile" && (
             <div className="space-y-6">
               <div className="rounded-[24px] border-2 border-sky-500 bg-sky-50 p-4 text-sm font-black text-sky-700">
                 Ersatzteilverwaltung
@@ -23830,6 +23970,23 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                   }
                 />
                 <StatCard label="Verbrauch gebucht" value={partUsages.length} />
+              </div>
+
+              <div className="rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="grid gap-3 md:grid-cols-[1fr_280px]">
+                  <input
+                    value={partSearchTerm}
+                    onChange={(e) => setPartSearchTerm(e.target.value)}
+                    type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-spare-parts-search"
+                    placeholder="Ersatzteile suchen: Bezeichnung, Artikelnummer, Hersteller, Lagerort …"
+                    className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold outline-none focus:border-sky-400"
+                  />
+                  <select value={partManufacturerFilter} onChange={(e) => setPartManufacturerFilter(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                    <option value="Alle">Alle Hersteller</option>
+                    {manufacturers.map((manufacturerItem) => <option key={manufacturerItem.id} value={manufacturerItem.id}>{manufacturerItem.name}</option>)}
+                  </select>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-slate-500">{filteredActiveServiceParts.length} von {activeServiceParts.length} aktiven Ersatzteilen angezeigt.</p>
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
@@ -23934,7 +24091,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
                       <option value="">Ersatzteil auswählen</option>
-                      {activeServiceParts.map((part) => (
+                      {filteredActiveServiceParts.map((part) => (
                         <option key={part.id} value={part.id}>
                           {part.name} · Bestand: {part.stock ?? 0}{" "}
                           {part.unit || "Stück"}
@@ -23996,15 +24153,16 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
               </div>
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Lagerbestand</h3>
+                <h3 className="text-xl font-black">Ersatzteilbestand</h3>
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                  {activeServiceParts.length === 0 ? (
+                  {filteredActiveServiceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Noch keine Ersatzteile angelegt. Admins können oben erste
-                      Ersatzteile erfassen.
+                      {partSearchTerm.trim() || partManufacturerFilter !== "Alle"
+                        ? "Keine passenden Ersatzteile gefunden."
+                        : "Noch keine Ersatzteile angelegt. Admins können oben erste Ersatzteile erfassen."}
                     </div>
                   ) : (
-                    activeServiceParts.map((part) => {
+                    filteredActiveServiceParts.map((part) => {
                       const status = stockStatus(part);
                       return (
                         <div
