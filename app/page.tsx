@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.17 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.18 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -843,6 +843,9 @@ export default function Home() {
   );
   const [serviceParts, setServiceParts] = useState<SparePart[]>([]);
   const [partUsages, setPartUsages] = useState<PartUsage[]>([]);
+  const [voidedPartUsages, setVoidedPartUsages] = useState<PartUsage[]>([]);
+  const [voidedPartUsagesTotal, setVoidedPartUsagesTotal] = useState(0);
+  const [voidedPartUsagesLoadingMore, setVoidedPartUsagesLoadingMore] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [ticketChatMessages, setTicketChatMessages] = useState<TicketChatMessage[]>([]);
@@ -2464,6 +2467,7 @@ async function loadApplicationData() {
       loadMaintenancePlans(),
       loadServiceParts(),
       loadPartUsages(),
+      loadVoidedPartUsages(10),
       loadInvoices(),
       loadNotifications(),
       loadTicketChatMessages(),
@@ -3104,6 +3108,7 @@ async function loadApplicationData() {
     const { data, error } = await supabase
       .from("part_usages")
       .select("*")
+      .eq("is_voided", false)
       .order("created_at", { ascending: false })
       .limit(25);
 
@@ -3116,6 +3121,58 @@ async function loadApplicationData() {
     }
 
     setPartUsages(data || []);
+  }
+
+  async function loadVoidedPartUsages(limit = 10) {
+    const safeLimit = Math.max(10, Number(limit) || 10);
+    const { data, error, count } = await supabase
+      .from("part_usages")
+      .select("*", { count: "exact" })
+      .eq("is_voided", true)
+      .order("voided_at", { ascending: false })
+      .range(0, safeLimit - 1);
+
+    if (error) {
+      console.error(
+        "Storno-Historie konnte nicht geladen werden:",
+        error.message,
+      );
+      return;
+    }
+
+    setVoidedPartUsages(data || []);
+    setVoidedPartUsagesTotal(count || 0);
+  }
+
+  async function loadMoreVoidedPartUsages() {
+    if (voidedPartUsagesLoadingMore) return;
+    if (voidedPartUsages.length >= voidedPartUsagesTotal) return;
+
+    const from = voidedPartUsages.length;
+    const to = from + 9;
+    setVoidedPartUsagesLoadingMore(true);
+
+    const { data, error, count } = await supabase
+      .from("part_usages")
+      .select("*", { count: "exact" })
+      .eq("is_voided", true)
+      .order("voided_at", { ascending: false })
+      .range(from, to);
+
+    setVoidedPartUsagesLoadingMore(false);
+
+    if (error) {
+      alert(`Weitere Stornos konnten nicht geladen werden: ${error.message}`);
+      return;
+    }
+
+    setVoidedPartUsages((prev) => [
+      ...prev,
+      ...(data || []).filter(
+        (item) => !prev.some((existing) => existing.id === item.id),
+      ),
+    ]);
+    setVoidedPartUsagesTotal(count || voidedPartUsagesTotal);
   }
 
   async function loadInvoices() {
@@ -8816,7 +8873,11 @@ PRO-EFFEKT`,
       );
     }
 
-    await Promise.all([loadServiceParts(), loadPartUsages()]);
+    await Promise.all([
+      loadServiceParts(),
+      loadPartUsages(),
+      loadVoidedPartUsages(10),
+    ]);
   }
 
   async function generateMaintenanceFromContract(contract: ServiceContract) {
@@ -22963,34 +23024,34 @@ PRO-EFFEKT`,
               </div>
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Letzte Buchungen</h3>
+                <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <h3 className="text-xl font-black">Aktuelle Verbrauchsbuchungen</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Laufende Ersatzteilverbräuche. Fehlbuchungen können storniert werden und wechseln anschließend in die Storno-Historie.
+                    </p>
+                  </div>
+                  <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                    {partUsages.length} aktiv
+                  </span>
+                </div>
+
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {partUsages.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                      Noch kein Verbrauch gebucht.
+                      Keine aktiven Verbrauchsbuchungen vorhanden.
                     </div>
                   ) : (
                     partUsages.map((usage) => (
                       <div
                         key={usage.id}
-                        className={`min-w-0 overflow-hidden rounded-2xl border p-4 ${
-                          usage.is_voided
-                            ? "border-red-200 bg-red-50/60"
-                            : "border-slate-200 bg-slate-50"
-                        }`}
+                        className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-black">
-                                {getPartNameById(usage.part_id)}
-                              </p>
-                              {usage.is_voided && (
-                                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
-                                  Storniert
-                                </span>
-                              )}
-                            </div>
+                            <p className="font-black">
+                              {getPartNameById(usage.part_id)}
+                            </p>
                             <p className="mt-1 text-sm text-slate-600">
                               Menge: {usage.quantity} · Gerät:{" "}
                               {getDeviceNameById(usage.device_id)}
@@ -23000,22 +23061,12 @@ PRO-EFFEKT`,
                                 {usage.note}
                               </p>
                             )}
-                            {usage.is_voided && (
-                              <div className="mt-3 rounded-xl bg-white/80 p-3 text-sm text-red-700">
-                                <p className="font-bold">
-                                  Storniert{usage.voided_at ? ` am ${formatDate(usage.voided_at)}` : ""}
-                                </p>
-                                {usage.void_reason && (
-                                  <p className="mt-1">Grund: {usage.void_reason}</p>
-                                )}
-                              </div>
-                            )}
                           </div>
                           <div className="flex flex-col items-start gap-2 md:items-end">
                             <p className="text-sm font-bold text-slate-500">
                               {formatDate(usage.created_at)}
                             </p>
-                            {(isAdmin || isTechnician) && !usage.is_voided && (
+                            {(isAdmin || isTechnician) && (
                               <button
                                 onClick={() => voidPartUsage(usage)}
                                 className="rounded-xl bg-red-100 px-4 py-2 text-sm font-bold text-red-700"
@@ -23027,6 +23078,100 @@ PRO-EFFEKT`,
                         </div>
                       </div>
                     ))
+                  )}
+                </div>
+              </div>
+
+              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-xl font-black">Storno-Historie</h3>
+                      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
+                        {voidedPartUsagesTotal}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Dokumentierte Fehl- und Korrekturbuchungen. Standardmäßig werden die letzten 10 Stornos angezeigt.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                  {voidedPartUsagesTotal === 0 ? (
+                    <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
+                      Noch keine Stornierungen vorhanden.
+                    </div>
+                  ) : (
+                    <>
+                      {voidedPartUsages.map((usage) => (
+                        <div
+                          key={usage.id}
+                          className="min-w-0 overflow-hidden rounded-2xl border border-red-200 bg-red-50/60 p-4"
+                        >
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-black">
+                                  {getPartNameById(usage.part_id)}
+                                </p>
+                                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
+                                  Storniert
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-600">
+                                Menge: {usage.quantity} · Gerät:{" "}
+                                {getDeviceNameById(usage.device_id)}
+                              </p>
+                              {usage.note && (
+                                <p className="mt-1 text-sm text-slate-500">
+                                  Ursprüngliche Notiz: {usage.note}
+                                </p>
+                              )}
+                              <div className="mt-3 rounded-xl bg-white/80 p-3 text-sm text-red-700">
+                                <p className="font-bold">
+                                  Storniert{usage.voided_at ? ` am ${formatDate(usage.voided_at)}` : ""}
+                                </p>
+                                {usage.void_reason && (
+                                  <p className="mt-1">Grund: {usage.void_reason}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-sm font-bold text-slate-500 md:text-right">
+                              <p>Gebucht am</p>
+                              <p className="mt-1">{formatDate(usage.created_at)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(voidedPartUsagesTotal > 10 || voidedPartUsages.length > 10) && (
+                        <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap">
+                          {voidedPartUsages.length < voidedPartUsagesTotal && (
+                            <button
+                              onClick={loadMoreVoidedPartUsages}
+                              disabled={voidedPartUsagesLoadingMore}
+                              className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {voidedPartUsagesLoadingMore
+                                ? "Weitere Stornos werden geladen …"
+                                : `Weitere Stornos anzeigen (${Math.min(10, voidedPartUsagesTotal - voidedPartUsages.length)})`}
+                            </button>
+                          )}
+
+                          {voidedPartUsages.length > 10 && (
+                            <button
+                              onClick={() =>
+                                setVoidedPartUsages((prev) => prev.slice(0, 10))
+                              }
+                              className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700"
+                            >
+                              Auf die letzten 10 reduzieren
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
