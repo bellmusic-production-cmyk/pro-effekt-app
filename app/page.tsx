@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.11 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.12 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -815,7 +815,7 @@ export default function Home() {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptDigitalDocumentation, setAcceptDigitalDocumentation] = useState(false);
-  const [activePage, setActivePage] = useState("Service-Tickets");
+  const [activePage, setActivePage] = useState("Dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14096,6 +14096,35 @@ PRO-EFFEKT`,
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {(["Service-Tickets", "Kunden", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
+            <div className="mb-6 rounded-[32px] bg-[#07111d] p-5 text-white shadow-sm lg:hidden">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
+                {activePage === "Service-Tickets"
+                  ? "Service"
+                  : activePage === "Kunden"
+                    ? "Stammdaten"
+                    : activePage === "Ersatzteile"
+                      ? "Lager"
+                      : activePage === "Einstellungen"
+                        ? "Verwaltung"
+                        : "Dokumente"}
+              </p>
+              <h2 className="mt-2 text-3xl font-black leading-tight">
+                {activePage === "Service-Tickets"
+                  ? "Tickets"
+                  : activePage === "Kunden"
+                    ? "Kunden"
+                    : activePage === "Ersatzteile"
+                      ? "Ersatzteile"
+                      : activePage === "Rechnungen"
+                        ? "Rechnungen"
+                        : activePage === "Verträge"
+                          ? "Verträge"
+                          : "Einstellungen"}
+              </h2>
             </div>
           )}
 
