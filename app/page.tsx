@@ -20743,16 +20743,25 @@ PRO-EFFEKT`,
                                     />
 
                                     <input
+                                      key={`service-time-${ticket.id}-${ticket.service_time || "empty"}`}
                                       type="time"
-                                      value={ticket.service_time || ""}
-                                      onChange={(e) =>
-                                        updateTicketAssignment(
+                                      step={60}
+                                      defaultValue={ticket.service_time ? ticket.service_time.slice(0, 5) : ""}
+                                      onBlur={(e) => {
+                                        const nextServiceTime = e.currentTarget.value || null;
+                                        const currentServiceTime = ticket.service_time
+                                          ? ticket.service_time.slice(0, 5)
+                                          : null;
+
+                                        if (currentServiceTime === nextServiceTime) return;
+
+                                        void updateTicketAssignment(
                                           ticket.id,
                                           ticket.assigned_to || null,
                                           ticket.service_date || null,
-                                          e.target.value || null,
-                                        )
-                                      }
+                                          nextServiceTime,
+                                        );
+                                      }}
                                       className="w-full min-w-0 rounded-2xl border border-slate-300 px-3 py-3 text-sm font-bold"
                                     />
                                   </div>
