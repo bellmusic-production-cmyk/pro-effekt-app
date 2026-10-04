@@ -1,9 +1,9 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.29 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.30 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabase";
@@ -806,6 +806,127 @@ function normalizeImportHeader(value: string) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+
+type DocumentSignaturePadProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function DocumentSignaturePad({ label, value, onChange }: DocumentSignaturePadProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
+
+  function ensureCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const ratio = Math.max(1, window.devicePixelRatio || 1);
+    const nextWidth = Math.max(1, Math.floor(rect.width * ratio));
+    const nextHeight = Math.max(1, Math.floor(rect.height * ratio));
+
+    if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+      canvas.width = nextWidth;
+      canvas.height = nextHeight;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.scale(ratio, ratio);
+        context.lineWidth = 2.2;
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.strokeStyle = "#0f172a";
+      }
+    }
+
+    return canvas;
+  }
+
+  function getPoint(event: ReactPointerEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  }
+
+  function start(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const canvas = ensureCanvas();
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    drawingRef.current = true;
+    canvas.setPointerCapture(event.pointerId);
+    const point = getPoint(event, canvas);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+  }
+
+  function draw(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return;
+    const canvas = ensureCanvas();
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const point = getPoint(event, canvas);
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  }
+
+  function finish() {
+    if (!drawingRef.current) return;
+    drawingRef.current = false;
+    const canvas = canvasRef.current;
+    if (canvas) onChange(canvas.toDataURL("image/png"));
+  }
+
+  function clear() {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const context = canvas.getContext("2d");
+      context?.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    onChange("");
+  }
+
+  useEffect(() => {
+    const canvas = ensureCanvas();
+    if (!canvas) return;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!value) return;
+    const image = new Image();
+    image.onload = () => {
+      const rect = canvas.getBoundingClientRect();
+      context.drawImage(image, 0, 0, rect.width, rect.height);
+    };
+    image.src = value;
+  }, [value]);
+
+  return (
+    <div className="min-w-0">
+      <p className="mb-2 text-sm font-black text-slate-700">{label}</p>
+      <canvas
+        ref={canvasRef}
+        onPointerDown={start}
+        onPointerMove={draw}
+        onPointerUp={finish}
+        onPointerCancel={finish}
+        onPointerLeave={finish}
+        className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
+      />
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <span className={`text-xs font-bold ${value ? "text-emerald-600" : "text-slate-400"}`}>
+          {value ? "Unterschrift erfasst" : "Noch nicht unterschrieben"}
+        </span>
+        <button type="button" onClick={clear} className="text-xs font-black text-slate-500">
+          Löschen
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -1123,6 +1244,8 @@ export default function Home() {
   const [invoiceTaxRate, setInvoiceTaxRate] = useState("19");
   const [invoiceStatus, setInvoiceStatus] = useState("Entwurf");
   const [invoiceNote, setInvoiceNote] = useState("");
+  const [invoiceTechnicianSignature, setInvoiceTechnicianSignature] = useState("");
+  const [invoiceCustomerSignature, setInvoiceCustomerSignature] = useState("");
 
   const [calendarDate, setCalendarDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -1154,6 +1277,8 @@ export default function Home() {
   const [contractEndDate, setContractEndDate] = useState("");
   const [contractStatus, setContractStatus] = useState("Aktiv");
   const [contractNote, setContractNote] = useState("");
+  const [contractTechnicianSignature, setContractTechnicianSignature] = useState("");
+  const [contractCustomerSignature, setContractCustomerSignature] = useState("");
   const [editingContractId, setEditingContractId] = useState<number | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -1195,6 +1320,8 @@ export default function Home() {
     new Date().toISOString().split("T")[0],
   );
   const [commercialDocumentNote, setCommercialDocumentNote] = useState("");
+  const [commercialDocumentTechnicianSignature, setCommercialDocumentTechnicianSignature] = useState("");
+  const [commercialDocumentCustomerSignature, setCommercialDocumentCustomerSignature] = useState("");
   const [commercialDocumentBusy, setCommercialDocumentBusy] = useState(false);
   const [selectedDeviceView, setSelectedDeviceView] = useState<Device | null>(
     null,
@@ -8977,6 +9104,8 @@ PRO-EFFEKT`,
     setContractEndDate("");
     setContractStatus("Aktiv");
     setContractNote("");
+    setContractTechnicianSignature("");
+    setContractCustomerSignature("");
   }
 
   function startEditContract(contract: ServiceContract) {
@@ -8991,10 +9120,90 @@ PRO-EFFEKT`,
     setContractEndDate(contract.end_date || "");
     setContractStatus(contract.status || "Aktiv");
     setContractNote(contract.note || "");
+    setContractTechnicianSignature("");
+    setContractCustomerSignature("");
 
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }
+
+  async function archiveSignedContractDocument(
+    contract: ServiceContract,
+    technicianSignature: string,
+    customerSignature: string,
+  ) {
+    if (!technicianSignature && !customerSignature) return;
+
+    const customer = customers.find((item) => item.id === contract.customer_id) || null;
+    const customerName = customer ? getCustomerLabel(customer) : "Nicht zugeordnet";
+    const customerAddress = customer ? buildCustomerAddress(customer) : "";
+    const companyName = companyData?.name || "TRYBUN";
+    const fileName = `Vertrag-${contract.contract_number}-signiert.html`;
+    const safeFileName = fileName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `Verträge/${Date.now()}-${safeFileName}`;
+
+    const html = `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Vertrag ${escapeDocumentText(contract.contract_number)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color:#0f172a; margin:0; padding:40px; }
+    h1 { margin:0; font-size:30px; }
+    .head { display:flex; justify-content:space-between; gap:24px; border-bottom:3px solid #0ea5e9; padding-bottom:18px; }
+    .box { margin-top:24px; border:1px solid #cbd5e1; border-radius:16px; padding:18px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+    .value { margin-top:5px; font-weight:700; white-space:pre-wrap; }
+    .muted { color:#64748b; }
+    .signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
+    .signature-cell { border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
+    .signature-image-wrap { min-height:72px; display:flex; align-items:center; margin:10px 0; }
+    .signature-image-wrap img { max-width:220px; max-height:68px; object-fit:contain; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #cbd5e1; color:#64748b; font-size:12px; }
+    @media (max-width:640px) { .grid, .signature-grid { grid-template-columns:1fr; } body { padding:22px; } }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <div><h1>Vertrag</h1><div class="muted">${escapeDocumentText(contract.contract_number)}</div></div>
+    <div style="text-align:right"><strong>${escapeDocumentText(companyName)}</strong></div>
+  </div>
+  <div class="box grid">
+    <div><div class="label">Kunde</div><div class="value">${escapeDocumentText(customerName)}</div><div class="muted">${escapeDocumentText(customerAddress)}</div></div>
+    <div><div class="label">Vertragsart</div><div class="value">${escapeDocumentText(contract.contract_type)}</div><div class="label" style="margin-top:14px">Status</div><div class="value">${escapeDocumentText(contract.status)}</div></div>
+  </div>
+  <div class="box"><div class="label">Vertragsbezeichnung</div><div class="value">${escapeDocumentText(contract.title)}</div></div>
+  <div class="box grid">
+    <div><div class="label">Laufzeit</div><div class="value">${escapeDocumentText(contract.start_date || "-")} bis ${escapeDocumentText(contract.end_date || "-")}</div></div>
+    <div><div class="label">SLA / Wartung</div><div class="value">${escapeDocumentText(contract.sla_hours || 0)} h · ${escapeDocumentText(contract.maintenance_interval_months || 0)} Monate</div></div>
+    <div><div class="label">Monatspauschale</div><div class="value">${Number(contract.monthly_amount || 0).toFixed(2)} EUR</div></div>
+  </div>
+  <div class="box"><div class="label">Leistungsumfang / Hinweise</div><div class="value">${escapeDocumentText(contract.note || "Keine zusätzlichen Hinweise.")}</div></div>
+  ${buildDocumentSignatureHtml(technicianSignature, customerSignature)}
+  <div class="footer">${escapeDocumentText(companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`)}</div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const uploadResult = await supabase.storage
+      .from("documents")
+      .upload(filePath, blob, { contentType: "text/html;charset=utf-8", upsert: false });
+    if (uploadResult.error) throw uploadResult.error;
+
+    const insertResult = await supabase.from("documents").insert([{
+      file_name: fileName,
+      file_path: filePath,
+      category: "Verträge",
+      file_size: blob.size,
+      customer_id: contract.customer_id || null,
+    }]);
+    if (insertResult.error) throw insertResult.error;
+    await loadDocuments();
   }
 
   async function saveContract() {
@@ -9042,40 +9251,72 @@ PRO-EFFEKT`,
     };
 
     if (editingContractId) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("service_contracts")
         .update(payload)
-        .eq("id", editingContractId);
+        .eq("id", editingContractId)
+        .select("*")
+        .single();
 
       if (error) {
         alert(`Vertrag konnte nicht aktualisiert werden: ${error.message}`);
         return;
       }
 
+      const signed = Boolean(contractTechnicianSignature || contractCustomerSignature);
+      if (signed && data) {
+        try {
+          await archiveSignedContractDocument(
+            data as ServiceContract,
+            contractTechnicianSignature,
+            contractCustomerSignature,
+          );
+        } catch (signatureError: any) {
+          alert(`Vertrag wurde aktualisiert, die signierte Dokumentfassung konnte aber nicht archiviert werden: ${signatureError?.message || "unbekannter Fehler"}`);
+          return;
+        }
+      }
+
       resetContractForm();
       await loadContracts();
-      alert("Vertrag wurde aktualisiert.");
+      alert(signed ? "Vertrag wurde aktualisiert und die signierte Fassung unter Dokumente → Verträge archiviert." : "Vertrag wurde aktualisiert.");
       return;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("service_contracts")
       .insert([
         {
           ...payload,
           contract_number: `SV-${Date.now().toString().slice(-6)}`,
         },
-      ]);
+      ])
+      .select("*")
+      .single();
 
     if (error) {
       alert(`Vertrag konnte nicht gespeichert werden: ${error.message}`);
       return;
     }
 
+    const signed = Boolean(contractTechnicianSignature || contractCustomerSignature);
+    if (signed && data) {
+      try {
+        await archiveSignedContractDocument(
+          data as ServiceContract,
+          contractTechnicianSignature,
+          contractCustomerSignature,
+        );
+      } catch (signatureError: any) {
+        alert(`Vertrag wurde gespeichert, die signierte Dokumentfassung konnte aber nicht archiviert werden: ${signatureError?.message || "unbekannter Fehler"}`);
+        return;
+      }
+    }
+
     resetContractForm();
     await loadContracts();
 
-    alert("Vertrag gespeichert.");
+    alert(signed ? "Vertrag gespeichert und signierte Fassung unter Dokumente → Verträge archiviert." : "Vertrag gespeichert.");
   }
 
   async function deleteContract(contractId: number) {
@@ -9361,6 +9602,8 @@ PRO-EFFEKT`,
     setInvoiceTaxRate("19");
     setInvoiceStatus("Entwurf");
     setInvoiceNote("");
+    setInvoiceTechnicianSignature("");
+    setInvoiceCustomerSignature("");
   }
 
   function getInvoiceCustomerName(item: InvoiceItem) {
@@ -10572,6 +10815,42 @@ PRO-EFFEKT`,
 
 
 
+  function escapeDocumentText(value: unknown) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function buildDocumentSignatureHtml(
+    technicianSignature: string,
+    customerSignature: string,
+  ) {
+    if (!technicianSignature && !customerSignature) return "";
+
+    const signedAt = new Date().toLocaleString("de-DE");
+    const signatureCell = (label: string, signature: string) => `
+      <div class="signature-cell">
+        <div class="label">${escapeDocumentText(label)}</div>
+        <div class="signature-image-wrap">
+          ${signature ? `<img src="${signature}" alt="${escapeDocumentText(label)}" />` : `<span class="muted">Nicht unterschrieben</span>`}
+        </div>
+        <div class="muted">${signature ? "Digital unterschrieben" : "Keine Unterschrift"}</div>
+      </div>`;
+
+    return `
+      <div class="box">
+        <div class="label">Digitale Unterschriften</div>
+        <div class="signature-grid">
+          ${signatureCell("Mitarbeiter / Techniker", technicianSignature)}
+          ${signatureCell("Kunde / Auftraggeber", customerSignature)}
+        </div>
+        <div class="muted" style="margin-top:12px">Signaturstand: ${escapeDocumentText(signedAt)}</div>
+      </div>`;
+  }
+
   async function createCommercialDocument() {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können Aufträge und Lieferscheine erstellen.");
@@ -10612,13 +10891,7 @@ PRO-EFFEKT`,
       .replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${category}/${Date.now()}-${safeFileName}`;
 
-    const escapeText = (value: unknown) =>
-      String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    const escapeText = escapeDocumentText;
 
     const customerName = getCustomerLabel(customer);
     const customerAddress = buildCustomerAddress(customer) || "Keine Adresse hinterlegt";
@@ -10643,7 +10916,12 @@ PRO-EFFEKT`,
     .label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
     .value { margin-top:5px; font-weight:700; white-space:pre-wrap; }
     .note { white-space:pre-wrap; line-height:1.55; }
+    .signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
+    .signature-cell { border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
+    .signature-image-wrap { min-height:72px; display:flex; align-items:center; margin:10px 0; }
+    .signature-image-wrap img { max-width:220px; max-height:68px; object-fit:contain; }
     .footer { margin-top:48px; padding-top:16px; border-top:1px solid #cbd5e1; color:#64748b; font-size:12px; }
+    @media (max-width: 640px) { .signature-grid { grid-template-columns:1fr; } }
     @media print { body { padding:24px; } }
   </style>
 </head>
@@ -10684,6 +10962,8 @@ PRO-EFFEKT`,
     <div class="label">Bemerkung / Inhalt</div>
     <div class="note">${escapeText(commercialDocumentNote.trim() || "Keine zusätzliche Bemerkung.")}</div>
   </div>
+
+  ${buildDocumentSignatureHtml(commercialDocumentTechnicianSignature, commercialDocumentCustomerSignature)}
 
   <div class="footer">
     ${escapeText(companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`)}
@@ -10732,6 +11012,8 @@ PRO-EFFEKT`,
       setCommercialDocumentTitle("");
       setCommercialDocumentReference("");
       setCommercialDocumentNote("");
+      setCommercialDocumentTechnicianSignature("");
+      setCommercialDocumentCustomerSignature("");
 
       alert(`${commercialDocumentType} ${number} wurde erstellt und unter Dokumente → ${category} archiviert.`);
     } finally {
@@ -10778,16 +11060,41 @@ PRO-EFFEKT`,
       note: invoiceNote.trim() || null,
     };
 
-    const { error } = await supabase.from("invoices").insert([payload]);
+    const { data, error } = await supabase
+      .from("invoices")
+      .insert([payload])
+      .select("*")
+      .single();
 
     if (error) {
       alert(`Rechnung/Angebot konnte nicht gespeichert werden: ${error.message}`);
       return;
     }
 
+    const savedType = invoiceType;
+    const signed = Boolean(invoiceTechnicianSignature || invoiceCustomerSignature);
+    if (signed && data) {
+      try {
+        const archived = await archiveInvoiceDocument(
+          data as InvoiceItem,
+          buildInvoiceHtml(
+            data as InvoiceItem,
+            invoiceTechnicianSignature,
+            invoiceCustomerSignature,
+          ),
+        );
+        if (!archived) {
+          throw new Error("Archivierung der signierten Fassung fehlgeschlagen");
+        }
+      } catch (signatureError: any) {
+        alert(`${savedType} wurde gespeichert, die signierte Dokumentfassung konnte aber nicht archiviert werden: ${signatureError?.message || "unbekannter Fehler"}`);
+        return;
+      }
+    }
+
     resetInvoiceForm();
     await loadInvoices();
-    alert(`${invoiceType} wurde gespeichert.`);
+    alert(signed ? `${savedType} wurde gespeichert und die signierte Fassung unter Dokumente → Rechnungen archiviert.` : `${savedType} wurde gespeichert.`);
   }
 
   async function updateInvoiceStatus(invoiceId: number, nextStatus: string) {
@@ -10834,6 +11141,75 @@ PRO-EFFEKT`,
     alert("Rechnung/Angebot wurde gelöscht.");
   }
 
+  function buildInvoiceHtml(
+    item: InvoiceItem,
+    technicianSignature = "",
+    customerSignature = "",
+  ) {
+    const relatedTicket = item.ticket_id
+      ? tickets.find((ticket) => ticket.id === item.ticket_id)
+      : null;
+    const companyName = companyData?.name || "TRYBUN";
+
+    return `
+      <!doctype html>
+      <html lang="de">
+        <head>
+          <meta charset="utf-8" />
+          <title>${escapeDocumentText(companyName)} ${escapeDocumentText(item.type)} ${escapeDocumentText(item.number)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
+            h1 { color: #38bdf8; letter-spacing: 2px; }
+            h2 { margin-top: 30px; border-bottom: 2px solid #38bdf8; padding-bottom: 8px; }
+            .box { border: 1px solid #cbd5e1; border-radius: 16px; padding: 18px; margin: 16px 0; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+            .label { font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: bold; }
+            .value { margin-top: 4px; font-weight: bold; white-space: pre-wrap; }
+            .muted { color:#64748b; }
+            .total { font-size: 28px; font-weight: 900; color: #38bdf8; }
+            .signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
+            .signature-cell { border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
+            .signature-image-wrap { min-height:72px; display:flex; align-items:center; margin:10px 0; }
+            .signature-image-wrap img { max-width:220px; max-height:68px; object-fit:contain; }
+            @media (max-width:640px) { .grid, .signature-grid { grid-template-columns:1fr; } body { padding:22px; } }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px;">
+            <div><h1 style="margin:0;">${escapeDocumentText(companyName)}</h1><p>TRYBUN Service Management System</p></div>
+          </div>
+
+          <h2>${escapeDocumentText(item.type)} ${escapeDocumentText(item.number)}</h2>
+          <div class="box grid">
+            <div><div class="label">Kunde</div><div class="value">${escapeDocumentText(getInvoiceCustomerName(item))}</div></div>
+            <div><div class="label">Status</div><div class="value">${escapeDocumentText(item.status)}</div></div>
+            <div><div class="label">Ticket</div><div class="value">${escapeDocumentText(relatedTicket?.ticket_number || "-")}</div></div>
+            <div><div class="label">Datum</div><div class="value">${escapeDocumentText(new Date(item.created_at).toLocaleDateString("de-DE"))}</div></div>
+          </div>
+
+          <h2>Leistung</h2>
+          <div class="box">
+            <div class="label">Position</div>
+            <div class="value">${escapeDocumentText(item.title)}</div>
+            <p>${escapeDocumentText(item.note || "")}</p>
+          </div>
+
+          <h2>Betrag</h2>
+          <div class="box grid">
+            <div><div class="label">Netto</div><div class="value">${item.amount_net.toFixed(2)} EUR</div></div>
+            <div><div class="label">MwSt.</div><div class="value">${item.tax_rate}%</div></div>
+            <div><div class="label">Brutto</div><div class="total">${item.amount_gross.toFixed(2)} EUR</div></div>
+          </div>
+
+          ${buildDocumentSignatureHtml(technicianSignature, customerSignature)}
+
+          <button onclick="window.print()" style="padding:14px 22px;border-radius:14px;border:0;background:#38bdf8;color:white;font-weight:bold;">Drucken / PDF speichern</button>
+        </body>
+      </html>
+    `;
+  }
+
   async function archiveInvoiceDocument(
     item: InvoiceItem,
     html: string,
@@ -10855,7 +11231,7 @@ PRO-EFFEKT`,
 
       if (uploadResult.error) {
         console.error(uploadResult.error.message);
-        return;
+        return false;
       }
 
       await supabase.from("documents").insert([
@@ -10870,64 +11246,15 @@ PRO-EFFEKT`,
       ]);
 
       await loadDocuments();
+      return true;
     } catch (error) {
       console.error(error);
+      return false;
     }
   }
 
   function printInvoice(item: InvoiceItem) {
-    const relatedTicket = item.ticket_id
-      ? tickets.find((ticket) => ticket.id === item.ticket_id)
-      : null;
-
-    const html = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>PRO-EFFEKT ${item.type} ${item.number}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
-            h1 { color: #38bdf8; letter-spacing: 4px; }
-            h2 { margin-top: 30px; border-bottom: 2px solid #38bdf8; padding-bottom: 8px; }
-            .box { border: 1px solid #cbd5e1; border-radius: 16px; padding: 18px; margin: 16px 0; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-            .label { font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-            .value { margin-top: 4px; font-weight: bold; }
-            .total { font-size: 28px; font-weight: 900; color: #38bdf8; }
-            @media print { button { display: none; } }
-          </style>
-        </head>
-        <body>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p>TRYBUN Software Service · ${item.type}</p>
-
-          <h2>${item.type} ${item.number}</h2>
-          <div class="box grid">
-            <div><div class="label">Kunde</div><div class="value">${getInvoiceCustomerName(item)}</div></div>
-            <div><div class="label">Status</div><div class="value">${item.status}</div></div>
-            <div><div class="label">Ticket</div><div class="value">${relatedTicket?.ticket_number || "-"}</div></div>
-            <div><div class="label">Datum</div><div class="value">${new Date(item.created_at).toLocaleDateString("de-DE")}</div></div>
-          </div>
-
-          <h2>Leistung</h2>
-          <div class="box">
-            <div class="label">Position</div>
-            <div class="value">${item.title}</div>
-            <p>${item.note || ""}</p>
-          </div>
-
-          <h2>Betrag</h2>
-          <div class="box grid">
-            <div><div class="label">Netto</div><div class="value">${item.amount_net.toFixed(2)} EUR</div></div>
-            <div><div class="label">MwSt.</div><div class="value">${item.tax_rate}%</div></div>
-            <div><div class="label">Brutto</div><div class="total">${item.amount_gross.toFixed(2)} EUR</div></div>
-          </div>
-
-          <button onclick="window.print()" style="padding:14px 22px;border-radius:14px;border:0;background:#38bdf8;color:white;font-weight:bold;">Drucken / PDF speichern</button>
-        </body>
-      </html>
-    `;
+    const html = buildInvoiceHtml(item);
 
     archiveInvoiceDocument(item, html);
 
@@ -16695,6 +17022,22 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4"
                     />
 
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Digitale Freigabe</p>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <DocumentSignaturePad
+                          label="Mitarbeiter / Techniker"
+                          value={invoiceTechnicianSignature}
+                          onChange={setInvoiceTechnicianSignature}
+                        />
+                        <DocumentSignaturePad
+                          label="Kunde / Auftraggeber"
+                          value={invoiceCustomerSignature}
+                          onChange={setInvoiceCustomerSignature}
+                        />
+                      </div>
+                    </div>
+
                     <button
                       onClick={saveInvoice}
                       className="w-full rounded-2xl bg-sky-500 py-4 font-black text-white"
@@ -17007,6 +17350,24 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       placeholder={commercialDocumentType === "Auftrag" ? "Auftragsumfang, Hinweise, gewünschte Ausführung ..." : "Gelieferte Positionen, Mengen, Hinweise ..."}
                       className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                     />
+                  </div>
+
+                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Digitale Freigabe</p>
+                    <h4 className="mt-1 text-lg font-black text-slate-900">Unterschriften</h4>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">Optional direkt mit Finger, Stift oder Maus unterschreiben. Die Signaturen werden in die archivierte Dokumentfassung übernommen.</p>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <DocumentSignaturePad
+                        label="Mitarbeiter / Techniker"
+                        value={commercialDocumentTechnicianSignature}
+                        onChange={setCommercialDocumentTechnicianSignature}
+                      />
+                      <DocumentSignaturePad
+                        label="Kunde / Auftraggeber"
+                        value={commercialDocumentCustomerSignature}
+                        onChange={setCommercialDocumentCustomerSignature}
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -20429,6 +20790,22 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
                       rows={4}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4"
                     />
+
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Digitale Freigabe</p>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <DocumentSignaturePad
+                          label="Mitarbeiter / Techniker"
+                          value={contractTechnicianSignature}
+                          onChange={setContractTechnicianSignature}
+                        />
+                        <DocumentSignaturePad
+                          label="Kunde / Auftraggeber"
+                          value={contractCustomerSignature}
+                          onChange={setContractCustomerSignature}
+                        />
+                      </div>
+                    </div>
 
                     <button
                       onClick={saveContract}
