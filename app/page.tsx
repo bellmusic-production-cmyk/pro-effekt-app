@@ -20716,16 +20716,29 @@ PRO-EFFEKT`,
                                     </select>
 
                                     <input
+                                      key={`service-date-${ticket.id}-${ticket.service_date || "empty"}`}
                                       type="date"
-                                      value={ticket.service_date || ""}
-                                      onChange={(e) =>
-                                        updateTicketAssignment(
+                                      min={APP_DATE_MIN}
+                                      max={APP_DATE_MAX}
+                                      defaultValue={ticket.service_date || ""}
+                                      onBlur={(e) => {
+                                        const nextServiceDate = e.currentTarget.value || null;
+
+                                        if (nextServiceDate && !isValidAppDate(nextServiceDate)) {
+                                          alert("Bitte ein vollständiges Datum zwischen 01.01.2000 und 31.12.2100 eingeben.");
+                                          e.currentTarget.value = ticket.service_date || "";
+                                          return;
+                                        }
+
+                                        if ((ticket.service_date || null) === nextServiceDate) return;
+
+                                        void updateTicketAssignment(
                                           ticket.id,
                                           ticket.assigned_to || null,
-                                          e.target.value || null,
+                                          nextServiceDate,
                                           ticket.service_time || null,
-                                        )
-                                      }
+                                        );
+                                      }}
                                       className="w-full min-w-0 rounded-2xl border border-slate-300 px-3 py-3 text-sm font-bold"
                                     />
 
