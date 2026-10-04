@@ -802,6 +802,7 @@ export default function Home() {
     new Date().toISOString().split("T")[0],
   );
   const [calendarTechnicianFilter, setCalendarTechnicianFilter] = useState("Alle");
+  const [calendarView, setCalendarView] = useState<"week" | "year">("week");
 
   const [notificationType, setNotificationType] = useState("Einsatzbestätigung");
   const [notificationRecipient, setNotificationRecipient] = useState("");
@@ -10508,9 +10509,8 @@ PRO-EFFEKT`,
   const calendarItemsCount =
     calendarTickets.length + calendarMaintenancePlans.length;
 
-  // Premium-Wochenkalender: calendarDate bestimmt die sichtbare Woche.
-  // Die Ticketdaten bleiben die einzige Quelle für Techniker, Datum, Uhrzeit,
-  // Kunde und Einsatzort. Dadurch bleibt die bestehende Disposition unverändert.
+  // Premium-Disposition: Wochen- und Jahreskalender.
+  // Ticketdaten bleiben die Quelle für Techniker, Datum, Uhrzeit, Kunde und Einsatzort.
   const calendarWeekStart = (() => {
     const base = new Date(`${calendarDate || new Date().toISOString().split("T")[0]}T12:00:00`);
     const day = base.getDay();
@@ -10520,27 +10520,34 @@ PRO-EFFEKT`,
     return base;
   })();
 
-  const calendarWeekDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(calendarWeekStart);
-    date.setDate(calendarWeekStart.getDate() + index);
-    const iso = [
+  function calendarIsoDate(date: Date) {
+    return [
       date.getFullYear(),
       String(date.getMonth() + 1).padStart(2, "0"),
       String(date.getDate()).padStart(2, "0"),
     ].join("-");
-    return { date, iso };
+  }
+
+  const calendarWeekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(calendarWeekStart);
+    date.setDate(calendarWeekStart.getDate() + index);
+    return { date, iso: calendarIsoDate(date) };
   });
 
   const calendarWeekEnd = calendarWeekDays[6]?.iso || calendarDate;
   const calendarWeekStartIso = calendarWeekDays[0]?.iso || calendarDate;
-  const calendarTodayIso = (() => {
-    const now = new Date();
-    return [
-      now.getFullYear(),
-      String(now.getMonth() + 1).padStart(2, "0"),
-      String(now.getDate()).padStart(2, "0"),
-    ].join("-");
-  })();
+  const calendarTodayIso = calendarIsoDate(new Date());
+
+  function calendarIsoWeekNumber(date: Date) {
+    const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNumber = target.getUTCDay() || 7;
+    target.setUTCDate(target.getUTCDate() + 4 - dayNumber);
+    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+    return Math.ceil((((target.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  }
+
+  const calendarWeekNumber = calendarIsoWeekNumber(calendarWeekStart);
+  const calendarSelectedYear = new Date(`${calendarDate}T12:00:00`).getFullYear();
 
   const calendarWeekTickets = sortTicketsByAppointment(
     visibleRoleTickets.filter((ticket) => {
@@ -10549,9 +10556,7 @@ PRO-EFFEKT`,
       if (
         calendarTechnicianFilter !== "Alle" &&
         ticket.assigned_to !== calendarTechnicianFilter
-      ) {
-        return false;
-      }
+      ) return false;
       if (isTechnician && ticket.assigned_to !== userProfile?.id) return false;
       return true;
     }),
@@ -10563,9 +10568,21 @@ PRO-EFFEKT`,
     if (
       calendarTechnicianFilter !== "Alle" &&
       plan.assigned_to !== calendarTechnicianFilter
-    ) {
-      return false;
-    }
+    ) return false;
+    if (isTechnician && plan.assigned_to !== userProfile?.id) return false;
+    return true;
+  });
+
+  const calendarYearTickets = visibleRoleTickets.filter((ticket) => {
+    if (!ticket.service_date || !ticket.service_date.startsWith(`${calendarSelectedYear}-`)) return false;
+    if (calendarTechnicianFilter !== "Alle" && ticket.assigned_to !== calendarTechnicianFilter) return false;
+    if (isTechnician && ticket.assigned_to !== userProfile?.id) return false;
+    return true;
+  });
+
+  const calendarYearMaintenancePlans = maintenancePlans.filter((plan) => {
+    if (!plan.next_due || !plan.next_due.startsWith(`${calendarSelectedYear}-`)) return false;
+    if (calendarTechnicianFilter !== "Alle" && plan.assigned_to !== calendarTechnicianFilter) return false;
     if (isTechnician && plan.assigned_to !== userProfile?.id) return false;
     return true;
   });
@@ -10578,16 +10595,22 @@ PRO-EFFEKT`,
   function calendarMoveWeek(offset: number) {
     const next = new Date(calendarWeekStart);
     next.setDate(next.getDate() + offset * 7);
-    const iso = [
-      next.getFullYear(),
-      String(next.getMonth() + 1).padStart(2, "0"),
-      String(next.getDate()).padStart(2, "0"),
-    ].join("-");
-    setCalendarDate(iso);
+    setCalendarDate(calendarIsoDate(next));
+  }
+
+  function calendarMoveYear(offset: number) {
+    const current = new Date(`${calendarDate}T12:00:00`);
+    current.setFullYear(current.getFullYear() + offset);
+    setCalendarDate(calendarIsoDate(current));
   }
 
   function calendarGoToday() {
     setCalendarDate(calendarTodayIso);
+  }
+
+  function calendarSelectDay(date: Date) {
+    setCalendarDate(calendarIsoDate(date));
+    setCalendarView("week");
   }
 
   function calendarTicketTop(ticket: Ticket) {
@@ -10623,7 +10646,49 @@ PRO-EFFEKT`,
     }).format(last)}`;
   }
 
-  const activeEinsatzTickets = sortTicketsByAppointment(
+  function calendarTicketKind(ticket: Ticket) {
+    const value = `${ticket.issue || ""} ${ticket.description || ""}`.toLowerCase();
+    if (value.includes("sicherheits") || value.includes("prüfung") || value.includes("pruefung")) return "inspection";
+    if (value.includes("installation")) return "installation";
+    if (value.includes("beratung") || value.includes("dienstleistung")) return "consulting";
+    if (value.includes("wartung")) return "maintenance";
+    if (value.includes("reparatur")) return "repair";
+    return "service";
+  }
+
+  function calendarTicketStyle(ticket: Ticket) {
+    const kind = calendarTicketKind(ticket);
+    if (kind === "repair") return "border-rose-200 bg-rose-600 hover:bg-rose-500 shadow-rose-900/15";
+    if (kind === "maintenance") return "border-violet-200 bg-violet-600 hover:bg-violet-500 shadow-violet-900/15";
+    if (kind === "inspection") return "border-emerald-200 bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/15";
+    if (kind === "installation") return "border-cyan-200 bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/15";
+    if (kind === "consulting") return "border-indigo-200 bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/15";
+    return "border-sky-200 bg-sky-600 hover:bg-sky-500 shadow-sky-900/15";
+  }
+
+  function calendarTicketDot(ticket: Ticket) {
+    const kind = calendarTicketKind(ticket);
+    if (kind === "repair") return "bg-rose-500";
+    if (kind === "maintenance") return "bg-violet-500";
+    if (kind === "inspection") return "bg-emerald-500";
+    if (kind === "installation") return "bg-cyan-500";
+    if (kind === "consulting") return "bg-indigo-500";
+    return "bg-sky-500";
+  }
+
+  function calendarMonthDays(monthIndex: number) {
+    const first = new Date(calendarSelectedYear, monthIndex, 1, 12);
+    const firstWeekday = first.getDay() === 0 ? 6 : first.getDay() - 1;
+    const daysInMonth = new Date(calendarSelectedYear, monthIndex + 1, 0).getDate();
+    const cells: Array<Date | null> = Array.from({ length: firstWeekday }, () => null);
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      cells.push(new Date(calendarSelectedYear, monthIndex, day, 12));
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  }
+
+    const activeEinsatzTickets = sortTicketsByAppointment(
     visibleRoleTickets.filter(
       (ticket) =>
         !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
@@ -13463,7 +13528,7 @@ PRO-EFFEKT`,
 
           {activePage === "Kalender" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
+              <div className="rounded-[24px] border border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-4 text-sm font-black text-sky-700">
                 TRYBUN · Betriebsbereit
               </div>
 
@@ -13474,21 +13539,40 @@ PRO-EFFEKT`,
                       <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
                         Disposition
                       </p>
-                      <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                        Einsatzkalender
-                      </h3>
+                      <h3 className="mt-2 text-3xl font-black md:text-4xl">Einsatzkalender</h3>
                       <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                        Wochenplanung für Serviceeinsätze und Techniker. Alle Termine werden direkt aus den Tickets gelesen.
+                        Wochen- und Jahresplanung für Serviceeinsätze, Wartungen und Techniker.
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex rounded-2xl border border-white/10 bg-white/10 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setCalendarView("week")}
+                          className={`rounded-xl px-4 py-2 text-sm font-black transition ${
+                            calendarView === "week" ? "bg-white text-slate-900" : "text-slate-300 hover:bg-white/10"
+                          }`}
+                        >
+                          Woche
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCalendarView("year")}
+                          className={`rounded-xl px-4 py-2 text-sm font-black transition ${
+                            calendarView === "year" ? "bg-white text-slate-900" : "text-slate-300 hover:bg-white/10"
+                          }`}
+                        >
+                          Jahr
+                        </button>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={() => calendarMoveWeek(-1)}
+                        onClick={() => calendarView === "week" ? calendarMoveWeek(-1) : calendarMoveYear(-1)}
                         className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
                       >
-                        ‹ Vorherige Woche
+                        ‹ {calendarView === "week" ? "Vorherige Woche" : "Vorheriges Jahr"}
                       </button>
                       <button
                         type="button"
@@ -13499,10 +13583,10 @@ PRO-EFFEKT`,
                       </button>
                       <button
                         type="button"
-                        onClick={() => calendarMoveWeek(1)}
+                        onClick={() => calendarView === "week" ? calendarMoveWeek(1) : calendarMoveYear(1)}
                         className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
                       >
-                        Nächste Woche ›
+                        {calendarView === "week" ? "Nächste Woche" : "Nächstes Jahr"} ›
                       </button>
                     </div>
                   </div>
@@ -13510,9 +13594,13 @@ PRO-EFFEKT`,
                   <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
                     <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
                       <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
-                        Kalenderwoche
+                        {calendarView === "week" ? "Kalenderwoche" : "Kalenderjahr"}
                       </p>
-                      <p className="mt-1 text-lg font-black text-white">{calendarFormatWeekRange()}</p>
+                      <p className="mt-1 text-lg font-black text-white">
+                        {calendarView === "week"
+                          ? `KW ${String(calendarWeekNumber).padStart(2, "0")} · ${calendarFormatWeekRange()}`
+                          : calendarSelectedYear}
+                      </p>
                     </div>
 
                     <select
@@ -13530,30 +13618,36 @@ PRO-EFFEKT`,
 
                     <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
                       <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
-                        Geplante Einsätze
+                        {calendarView === "week" ? "Geplante Einsätze" : "Einträge im Jahr"}
                       </p>
                       <p className="mt-1 text-lg font-black text-sky-400">
-                        {calendarWeekTickets.length}
+                        {calendarView === "week"
+                          ? calendarWeekTickets.length + calendarWeekMaintenancePlans.length
+                          : calendarYearTickets.length + calendarYearMaintenancePlans.length}
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
-                <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-gradient-to-br from-slate-50 via-sky-50/30 to-indigo-50/40 shadow-xl shadow-slate-200/50">
+                <div className="border-b border-slate-200 bg-white/75 px-5 py-4 backdrop-blur">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">
-                        Wochenansicht
+                        {calendarView === "week" ? "Wochenansicht" : "Jahresansicht"}
                       </p>
                       <h4 className="mt-1 text-2xl font-black text-slate-900">
-                        Techniker & Touren
+                        {calendarView === "week" ? "Techniker & Touren" : `${calendarSelectedYear} · Gesamtüberblick`}
                       </h4>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs font-black">
-                      <span className="rounded-full bg-sky-100 px-3 py-2 text-sky-700">Serviceeinsatz</span>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] font-black">
+                      <span className="rounded-full bg-rose-100 px-3 py-2 text-rose-700">Reparatur</span>
                       <span className="rounded-full bg-violet-100 px-3 py-2 text-violet-700">Wartung</span>
+                      <span className="rounded-full bg-emerald-100 px-3 py-2 text-emerald-700">Sicherheitsprüfung</span>
+                      <span className="rounded-full bg-cyan-100 px-3 py-2 text-cyan-700">Installation</span>
+                      <span className="rounded-full bg-indigo-100 px-3 py-2 text-indigo-700">Beratung / Dienstleistung</span>
+                      <span className="rounded-full bg-sky-100 px-3 py-2 text-sky-700">Service</span>
                       {unplannedDispatchTickets.length > 0 && (
                         <span className="rounded-full bg-amber-100 px-3 py-2 text-amber-800">
                           {unplannedDispatchTickets.length} noch einzuplanen
@@ -13563,176 +13657,253 @@ PRO-EFFEKT`,
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <div className="min-w-[1180px]">
-                    <div className="grid grid-cols-[82px_repeat(7,minmax(150px,1fr))] border-b border-slate-200 bg-white">
-                      <div className="border-r border-slate-200 p-3 text-center text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
-                        Zeit
-                      </div>
-                      {calendarWeekDays.map((dayItem) => {
-                        const isToday = dayItem.iso === calendarTodayIso;
-                        const dayTickets = calendarWeekTickets.filter((ticket) => ticket.service_date === dayItem.iso);
-                        const dayMaintenance = calendarWeekMaintenancePlans.filter((plan) => plan.next_due === dayItem.iso);
+                {calendarView === "year" ? (
+                  <div className="p-4 md:p-6">
+                    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                      {Array.from({ length: 12 }, (_, monthIndex) => {
+                        const monthDate = new Date(calendarSelectedYear, monthIndex, 1, 12);
+                        const monthDays = calendarMonthDays(monthIndex);
+                        const monthTickets = calendarYearTickets.filter(
+                          (ticket) => Number(String(ticket.service_date || "").slice(5, 7)) === monthIndex + 1,
+                        );
+                        const monthMaintenance = calendarYearMaintenancePlans.filter(
+                          (plan) => Number(String(plan.next_due || "").slice(5, 7)) === monthIndex + 1,
+                        );
 
                         return (
                           <div
-                            key={dayItem.iso}
-                            className={`border-r border-slate-200 p-3 text-center last:border-r-0 ${
-                              isToday ? "bg-sky-50" : ""
-                            }`}
+                            key={monthIndex}
+                            className="overflow-hidden rounded-[24px] border border-slate-200 bg-white/90 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                           >
-                            <p className={`text-xs font-black uppercase tracking-[0.12em] ${
-                              isToday ? "text-sky-600" : "text-slate-500"
-                            }`}>
-                              {new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(dayItem.date)}
-                            </p>
-                            <div className="mt-1 flex items-center justify-center gap-2">
-                              <span className={`text-xl font-black ${
-                                isToday ? "text-sky-700" : "text-slate-900"
-                              }`}>
-                                {calendarFormatShortDate(dayItem.date)}
-                              </span>
-                              {isToday && (
-                                <span className="rounded-full bg-sky-500 px-2 py-1 text-[9px] font-black uppercase text-white">
-                                  Heute
-                                </span>
-                              )}
+                            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-50 to-sky-50 px-4 py-3">
+                              <div>
+                                <h5 className="text-lg font-black text-slate-900">
+                                  {new Intl.DateTimeFormat("de-DE", { month: "long" }).format(monthDate)}
+                                </h5>
+                                <p className="text-[10px] font-bold text-slate-400">
+                                  {monthTickets.length + monthMaintenance.length} Einträge
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => calendarSelectDay(monthDate)}
+                                className="rounded-xl bg-slate-900 px-3 py-2 text-[10px] font-black text-white"
+                              >
+                                Öffnen
+                              </button>
                             </div>
-                            <p className="mt-1 text-[10px] font-bold text-slate-400">
-                              {dayTickets.length} Einsatz{dayTickets.length === 1 ? "" : "e"}
-                              {dayMaintenance.length > 0 ? ` · ${dayMaintenance.length} Wartung` : ""}
-                            </p>
+
+                            <div className="p-3">
+                              <div className="grid grid-cols-7 gap-1 pb-2 text-center text-[9px] font-black uppercase text-slate-400">
+                                {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((label) => (
+                                  <div key={label}>{label}</div>
+                                ))}
+                              </div>
+                              <div className="grid grid-cols-7 gap-1">
+                                {monthDays.map((day, dayIndex) => {
+                                  if (!day) return <div key={`empty-${dayIndex}`} className="aspect-square" />;
+                                  const iso = calendarIsoDate(day);
+                                  const dayTickets = calendarYearTickets.filter((ticket) => ticket.service_date === iso);
+                                  const dayMaintenance = calendarYearMaintenancePlans.filter((plan) => plan.next_due === iso);
+                                  const hasEntries = dayTickets.length + dayMaintenance.length > 0;
+                                  const isToday = iso === calendarTodayIso;
+                                  const isSelected = iso === calendarDate;
+
+                                  return (
+                                    <button
+                                      key={iso}
+                                      type="button"
+                                      onClick={() => calendarSelectDay(day)}
+                                      title={`${calendarIsoWeekNumber(day)}. KW · ${dayTickets.length} Einsätze · ${dayMaintenance.length} Wartungen`}
+                                      className={`relative aspect-square rounded-xl border text-xs font-black transition ${
+                                        isSelected
+                                          ? "border-sky-500 bg-sky-500 text-white shadow-md"
+                                          : isToday
+                                            ? "border-sky-300 bg-sky-100 text-sky-800"
+                                            : hasEntries
+                                              ? "border-slate-200 bg-slate-50 text-slate-900 hover:border-sky-300 hover:bg-sky-50"
+                                              : "border-transparent text-slate-500 hover:bg-slate-100"
+                                      }`}
+                                    >
+                                      {day.getDate()}
+                                      {hasEntries && (
+                                        <span className="absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
+                                          {dayTickets.slice(0, 3).map((ticket) => (
+                                            <span key={ticket.id} className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : calendarTicketDot(ticket)}`} />
+                                          ))}
+                                          {dayMaintenance.length > 0 && (
+                                            <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-violet-500"}`} />
+                                          )}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
-
-                    {calendarWeekMaintenancePlans.length > 0 && (
-                      <div className="grid grid-cols-[82px_repeat(7,minmax(150px,1fr))] border-b border-violet-100 bg-violet-50/40">
-                        <div className="border-r border-violet-100 p-3 text-center text-[10px] font-black uppercase tracking-[0.1em] text-violet-500">
-                          Ganztägig
+                    <p className="mt-5 text-center text-xs font-bold text-slate-500">
+                      Tag anklicken → TRYBUN öffnet direkt die zugehörige Kalenderwoche.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto p-3 md:p-4">
+                    <div className="min-w-[900px] overflow-hidden rounded-[22px] border border-slate-200 bg-white/80 shadow-inner">
+                      <div className="grid grid-cols-[70px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50">
+                        <div className="border-r border-slate-200 p-3 text-center text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                          Zeit
                         </div>
                         {calendarWeekDays.map((dayItem) => {
+                          const isToday = dayItem.iso === calendarTodayIso;
+                          const dayTickets = calendarWeekTickets.filter((ticket) => ticket.service_date === dayItem.iso);
                           const dayMaintenance = calendarWeekMaintenancePlans.filter((plan) => plan.next_due === dayItem.iso);
+                          const isWeekend = dayItem.date.getDay() === 0 || dayItem.date.getDay() === 6;
+
                           return (
-                            <div key={dayItem.iso} className="min-h-[62px] border-r border-violet-100 p-2 last:border-r-0">
-                              {dayMaintenance.map((plan) => (
-                                <div
-                                  key={plan.id}
-                                  className="mb-1 rounded-xl border border-violet-200 bg-violet-100 px-2 py-2 text-[10px] font-black text-violet-800"
-                                >
-                                  Wartung · {plan.title || plan.maintenance_type || "Wartung"}
-                                </div>
-                              ))}
+                            <button
+                              type="button"
+                              key={dayItem.iso}
+                              onClick={() => setCalendarDate(dayItem.iso)}
+                              className={`border-r border-slate-200 p-3 text-center last:border-r-0 transition ${
+                                isToday ? "bg-sky-100/80" : isWeekend ? "bg-indigo-50/60" : "hover:bg-sky-50"
+                              }`}
+                            >
+                              <p className={`text-[11px] font-black uppercase tracking-[0.12em] ${
+                                isToday ? "text-sky-700" : "text-slate-500"
+                              }`}>
+                                {new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(dayItem.date)}
+                              </p>
+                              <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
+                                <span className={`text-lg font-black ${isToday ? "text-sky-700" : "text-slate-900"}`}>
+                                  {calendarFormatShortDate(dayItem.date)}
+                                </span>
+                                {isToday && (
+                                  <span className="rounded-full bg-sky-500 px-2 py-1 text-[8px] font-black uppercase text-white">Heute</span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-[9px] font-bold text-slate-400">
+                                {dayTickets.length} Einsatz{dayTickets.length === 1 ? "" : "e"}
+                                {dayMaintenance.length > 0 ? ` · ${dayMaintenance.length} Wartung` : ""}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {calendarWeekMaintenancePlans.length > 0 && (
+                        <div className="grid grid-cols-[70px_repeat(7,minmax(0,1fr))] border-b border-violet-100 bg-violet-50/50">
+                          <div className="border-r border-violet-100 p-2 text-center text-[9px] font-black uppercase tracking-[0.08em] text-violet-500">
+                            Ganztägig
+                          </div>
+                          {calendarWeekDays.map((dayItem) => {
+                            const dayMaintenance = calendarWeekMaintenancePlans.filter((plan) => plan.next_due === dayItem.iso);
+                            return (
+                              <div key={dayItem.iso} className="min-h-[58px] border-r border-violet-100 p-1.5 last:border-r-0">
+                                {dayMaintenance.map((plan) => (
+                                  <div key={plan.id} className="mb-1 rounded-lg border border-violet-200 bg-violet-600 px-2 py-1.5 text-[9px] font-black text-white shadow-sm">
+                                    Wartung · {plan.title || plan.maintenance_type || "Wartung"}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-[70px_repeat(7,minmax(0,1fr))]">
+                        <div className="relative border-r border-slate-200 bg-slate-100/80" style={{ height: `${calendarHours.length * calendarHourHeight}px` }}>
+                          {calendarHours.map((hour, index) => (
+                            <div
+                              key={hour}
+                              className="absolute left-0 right-0 border-t border-slate-200 px-2 pt-1 text-right text-[10px] font-black text-slate-400"
+                              style={{ top: `${index * calendarHourHeight}px`, height: `${calendarHourHeight}px` }}
+                            >
+                              {String(hour).padStart(2, "0")}:00
+                            </div>
+                          ))}
+                        </div>
+
+                        {calendarWeekDays.map((dayItem) => {
+                          const dayTickets = calendarWeekTickets.filter((ticket) => ticket.service_date === dayItem.iso);
+                          const isToday = dayItem.iso === calendarTodayIso;
+                          const isWeekend = dayItem.date.getDay() === 0 || dayItem.date.getDay() === 6;
+
+                          return (
+                            <div
+                              key={dayItem.iso}
+                              className={`relative border-r border-slate-200 last:border-r-0 ${
+                                isToday ? "bg-sky-50/80" : isWeekend ? "bg-indigo-50/35" : "bg-white/80"
+                              }`}
+                              style={{
+                                height: `${calendarHours.length * calendarHourHeight}px`,
+                                backgroundImage:
+                                  "repeating-linear-gradient(to bottom, transparent 0, transparent 71px, rgba(148,163,184,0.20) 71px, rgba(148,163,184,0.20) 72px)",
+                              }}
+                            >
+                              {dayTickets.map((ticket) => {
+                                const sameTimeTickets = dayTickets.filter(
+                                  (item) => String(item.service_time || "").slice(0, 5) === String(ticket.service_time || "").slice(0, 5),
+                                );
+                                const sameTimeIndex = sameTimeTickets.findIndex((item) => item.id === ticket.id);
+                                const overlapCount = Math.max(1, sameTimeTickets.length);
+                                const widthPercent = 100 / overlapCount;
+                                const leftPercent = sameTimeIndex * widthPercent;
+                                const ticketCustomer =
+                                  customers.find((item) => item.id === ticket.billing_customer_id) ||
+                                  customers.find((item) => item.id === ticket.customer_id) ||
+                                  null;
+                                const address =
+                                  ticket.service_address ||
+                                  [
+                                    ticketCustomer?.street,
+                                    ticketCustomer?.house_number,
+                                    ticketCustomer?.postal_code,
+                                    ticketCustomer?.city,
+                                  ].filter(Boolean).join(" ") ||
+                                  ticketCustomer?.address ||
+                                  "Einsatzort nicht hinterlegt";
+
+                                return (
+                                  <button
+                                    key={ticket.id}
+                                    type="button"
+                                    onClick={() => openPage("Einsatz")}
+                                    className={`absolute z-10 overflow-hidden rounded-xl border p-2 text-left text-white shadow-lg transition hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${calendarTicketStyle(ticket)}`}
+                                    style={{
+                                      top: `${calendarTicketTop(ticket) + 3}px`,
+                                      height: "66px",
+                                      left: `calc(${leftPercent}% + 3px)`,
+                                      width: `calc(${widthPercent}% - 6px)`,
+                                    }}
+                                    title={`${ticket.ticket_number} · ${ticket.customer} · ${address}`}
+                                  >
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="truncate text-[10px] font-black">{String(ticket.service_time || "07:00").slice(0, 5)}</span>
+                                      <span className="truncate text-[8px] font-black text-white/80">{ticket.ticket_number}</span>
+                                    </div>
+                                    <p className="mt-0.5 truncate text-[10px] font-black">{getTechnicianNameById(ticket.assigned_to)}</p>
+                                    <p className="truncate text-[9px] font-bold text-white/90">{ticket.customer}</p>
+                                    <p className="truncate text-[8px] font-semibold text-white/80">📍 {address}</p>
+                                  </button>
+                                );
+                              })}
                             </div>
                           );
                         })}
                       </div>
-                    )}
-
-                    <div className="grid grid-cols-[82px_repeat(7,minmax(150px,1fr))]">
-                      <div className="relative border-r border-slate-200 bg-slate-50" style={{ height: `${calendarHours.length * calendarHourHeight}px` }}>
-                        {calendarHours.map((hour, index) => (
-                          <div
-                            key={hour}
-                            className="absolute left-0 right-0 border-t border-slate-200 px-3 pt-1 text-right text-[11px] font-black text-slate-400"
-                            style={{ top: `${index * calendarHourHeight}px`, height: `${calendarHourHeight}px` }}
-                          >
-                            {String(hour).padStart(2, "0")}:00
-                          </div>
-                        ))}
-                      </div>
-
-                      {calendarWeekDays.map((dayItem) => {
-                        const dayTickets = calendarWeekTickets.filter((ticket) => ticket.service_date === dayItem.iso);
-                        const isToday = dayItem.iso === calendarTodayIso;
-
-                        return (
-                          <div
-                            key={dayItem.iso}
-                            className={`relative border-r border-slate-200 last:border-r-0 ${
-                              isToday ? "bg-sky-50/35" : "bg-white"
-                            }`}
-                            style={{
-                              height: `${calendarHours.length * calendarHourHeight}px`,
-                              backgroundImage:
-                                "repeating-linear-gradient(to bottom, transparent 0, transparent 71px, rgba(148,163,184,0.22) 71px, rgba(148,163,184,0.22) 72px)",
-                            }}
-                          >
-                            {dayTickets.map((ticket) => {
-                              const sameTimeTickets = dayTickets.filter(
-                                (item) => String(item.service_time || "").slice(0, 5) === String(ticket.service_time || "").slice(0, 5),
-                              );
-                              const sameTimeIndex = sameTimeTickets.findIndex((item) => item.id === ticket.id);
-                              const overlapCount = Math.max(1, sameTimeTickets.length);
-                              const widthPercent = 100 / overlapCount;
-                              const leftPercent = sameTimeIndex * widthPercent;
-                              const ticketCustomer =
-                                customers.find((item) => item.id === ticket.billing_customer_id) ||
-                                customers.find((item) => item.id === ticket.customer_id) ||
-                                null;
-                              const address =
-                                ticket.service_address ||
-                                [
-                                  ticketCustomer?.street,
-                                  ticketCustomer?.house_number,
-                                  ticketCustomer?.postal_code,
-                                  ticketCustomer?.city,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" ") ||
-                                ticketCustomer?.address ||
-                                "Einsatzort nicht hinterlegt";
-
-                              return (
-                                <button
-                                  key={ticket.id}
-                                  type="button"
-                                  onClick={() => openPage("Einsatz")}
-                                  className="absolute z-10 overflow-hidden rounded-xl border border-sky-200 bg-sky-600 p-2 text-left text-white shadow-lg shadow-sky-900/15 transition hover:z-20 hover:-translate-y-0.5 hover:bg-sky-500 hover:shadow-xl"
-                                  style={{
-                                    top: `${calendarTicketTop(ticket) + 3}px`,
-                                    height: "66px",
-                                    left: `calc(${leftPercent}% + 3px)`,
-                                    width: `calc(${widthPercent}% - 6px)`,
-                                  }}
-                                  title={`${ticket.ticket_number} · ${ticket.customer} · ${address}`}
-                                >
-                                  <div className="flex items-center justify-between gap-1">
-                                    <span className="truncate text-[11px] font-black">
-                                      {String(ticket.service_time || "07:00").slice(0, 5)}
-                                    </span>
-                                    <span className="truncate text-[9px] font-black text-sky-100">
-                                      {ticket.ticket_number}
-                                    </span>
-                                  </div>
-                                  <p className="mt-0.5 truncate text-[11px] font-black">
-                                    {getTechnicianNameById(ticket.assigned_to)}
-                                  </p>
-                                  <p className="truncate text-[10px] font-bold text-sky-50">
-                                    {ticket.customer}
-                                  </p>
-                                  <p className="truncate text-[9px] font-semibold text-sky-100">
-                                    📍 {address}
-                                  </p>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {unplannedDispatchTickets.length > 0 && !isCustomer && (
-                <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                <div className="rounded-[28px] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                        Noch einzuplanen
-                      </p>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Noch einzuplanen</p>
                       <h4 className="mt-1 text-xl font-black text-slate-900">
                         {unplannedDispatchTickets.length} offene Ticket{unplannedDispatchTickets.length === 1 ? "" : "s"} ohne vollständige Disposition
                       </h4>
@@ -13754,9 +13925,7 @@ PRO-EFFEKT`,
                       <div key={ticket.id} className="rounded-2xl border border-amber-200 bg-white p-4">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs font-black text-amber-700">{ticket.ticket_number}</span>
-                          <span className={`rounded-full px-3 py-1 text-[10px] font-black ${statusClass(ticket.status)}`}>
-                            {ticket.status}
-                          </span>
+                          <span className={`rounded-full px-3 py-1 text-[10px] font-black ${statusClass(ticket.status)}`}>{ticket.status}</span>
                         </div>
                         <p className="mt-2 truncate font-black text-slate-900">{ticket.customer}</p>
                         <p className="mt-1 truncate text-xs font-semibold text-slate-500">
@@ -13772,7 +13941,7 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {activePage === "Benachrichtigungen" && (
+                    {activePage === "Benachrichtigungen" && (
             <>
             <section className="space-y-5">
               <div className="rounded-[28px] border border-cyan-200 bg-cyan-50 p-5 shadow-sm">
