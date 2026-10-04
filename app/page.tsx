@@ -5,6 +5,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
+import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabase";
 
 type Ticket = {
@@ -570,6 +571,88 @@ type AbnahmeDeviceRow = {
 
 
 
+
+type CustomerImportDuplicateMode = "skip" | "update" | "create";
+
+type CustomerImportField =
+  | "customer_number"
+  | "supplier_number"
+  | "customer_type"
+  | "company"
+  | "contact_person"
+  | "first_name"
+  | "last_name"
+  | "email"
+  | "email_2"
+  | "phone"
+  | "phone_2"
+  | "address"
+  | "street"
+  | "house_number"
+  | "postal_code"
+  | "city"
+  | "country"
+  | "address_extra"
+  | "vat_id"
+  | "tax_number"
+  | "contact_1_name"
+  | "contact_1_email"
+  | "contact_1_phone"
+  | "contact_2_name"
+  | "contact_2_email"
+  | "contact_2_phone";
+
+type CustomerImportMapping = Record<CustomerImportField, string>;
+
+type CustomerImportPreviewRow = {
+  rowNumber: number;
+  values: Partial<Record<CustomerImportField, string>>;
+  valid: boolean;
+  error: string;
+  duplicateCustomerId: number | null;
+};
+
+const customerImportFields: Array<{ key: CustomerImportField; label: string; aliases: string[] }> = [
+  { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "customer number", "customer_number"] },
+  { key: "supplier_number", label: "Lieferantennummer", aliases: ["lieferantennummer", "lieferanten nr", "supplier number", "supplier_number"] },
+  { key: "customer_type", label: "Kundentyp", aliases: ["kundentyp", "kundenart", "customer type", "customer_type"] },
+  { key: "company", label: "Firma", aliases: ["firma", "firmenname", "unternehmen", "company"] },
+  { key: "contact_person", label: "Ansprechpartner", aliases: ["ansprechpartner", "kontaktperson", "contact person", "contact_person"] },
+  { key: "first_name", label: "Vorname", aliases: ["vorname", "first name", "firstname", "first_name"] },
+  { key: "last_name", label: "Nachname", aliases: ["nachname", "last name", "lastname", "last_name"] },
+  { key: "email", label: "E-Mail", aliases: ["e-mail", "email", "mail"] },
+  { key: "email_2", label: "E-Mail 2", aliases: ["e-mail 2", "email 2", "zweite email", "email_2"] },
+  { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "phone", "tel"] },
+  { key: "phone_2", label: "Telefon 2", aliases: ["telefon 2", "phone 2", "tel 2", "phone_2"] },
+  { key: "address", label: "Adresse komplett", aliases: ["adresse", "anschrift", "address"] },
+  { key: "street", label: "Straße", aliases: ["straße", "strasse", "street"] },
+  { key: "house_number", label: "Hausnummer", aliases: ["hausnummer", "haus nr", "house number", "house_number"] },
+  { key: "postal_code", label: "PLZ", aliases: ["plz", "postleitzahl", "postal code", "zip", "postal_code"] },
+  { key: "city", label: "Ort", aliases: ["ort", "stadt", "city"] },
+  { key: "country", label: "Land", aliases: ["land", "country"] },
+  { key: "address_extra", label: "Adresszusatz", aliases: ["adresszusatz", "address extra", "address_extra"] },
+  { key: "vat_id", label: "USt-IdNr.", aliases: ["ust-idnr", "ust id", "umsatzsteuer id", "vat id", "vat_id"] },
+  { key: "tax_number", label: "Steuernummer", aliases: ["steuernummer", "tax number", "tax_number"] },
+  { key: "contact_1_name", label: "Kontakt 1 · Name", aliases: ["kontakt 1 name", "ansprechpartner 1", "contact 1 name", "contact_1_name"] },
+  { key: "contact_1_email", label: "Kontakt 1 · E-Mail", aliases: ["kontakt 1 email", "ansprechpartner 1 email", "contact 1 email", "contact_1_email"] },
+  { key: "contact_1_phone", label: "Kontakt 1 · Telefon", aliases: ["kontakt 1 telefon", "ansprechpartner 1 telefon", "contact 1 phone", "contact_1_phone"] },
+  { key: "contact_2_name", label: "Kontakt 2 · Name", aliases: ["kontakt 2 name", "ansprechpartner 2", "contact 2 name", "contact_2_name"] },
+  { key: "contact_2_email", label: "Kontakt 2 · E-Mail", aliases: ["kontakt 2 email", "ansprechpartner 2 email", "contact 2 email", "contact_2_email"] },
+  { key: "contact_2_phone", label: "Kontakt 2 · Telefon", aliases: ["kontakt 2 telefon", "ansprechpartner 2 telefon", "contact 2 phone", "contact_2_phone"] },
+];
+
+function emptyCustomerImportMapping(): CustomerImportMapping {
+  return Object.fromEntries(customerImportFields.map((field) => [field.key, ""])) as CustomerImportMapping;
+}
+
+function normalizeImportHeader(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[._/\\-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
 export default function Home() {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -646,6 +729,14 @@ export default function Home() {
   const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [appDataLoaded, setAppDataLoaded] = useState(false);
+
+  const [customerImportFileName, setCustomerImportFileName] = useState("");
+  const [customerImportHeaders, setCustomerImportHeaders] = useState<string[]>([]);
+  const [customerImportRows, setCustomerImportRows] = useState<Record<string, string>[]>([]);
+  const [customerImportMapping, setCustomerImportMapping] = useState<CustomerImportMapping>(emptyCustomerImportMapping());
+  const [customerImportDuplicateMode, setCustomerImportDuplicateMode] = useState<CustomerImportDuplicateMode>("skip");
+  const [customerImportBusy, setCustomerImportBusy] = useState(false);
+  const [customerImportMessage, setCustomerImportMessage] = useState("");
 
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
@@ -10324,6 +10415,262 @@ PRO-EFFEKT`,
     return sortTicketsByAppointment(sourceTickets.filter((ticket) => ticket.assigned_to));
   }, [tickets, userProfile]);
 
+
+  function resetCustomerImport() {
+    setCustomerImportFileName("");
+    setCustomerImportHeaders([]);
+    setCustomerImportRows([]);
+    setCustomerImportMapping(emptyCustomerImportMapping());
+    setCustomerImportMessage("");
+  }
+
+  function autoMapCustomerImportHeaders(headers: string[]) {
+    const normalizedHeaders = headers.map((header) => ({ original: header, normalized: normalizeImportHeader(header) }));
+    const nextMapping = emptyCustomerImportMapping();
+
+    customerImportFields.forEach((field) => {
+      const aliases = [field.key, field.label, ...field.aliases].map(normalizeImportHeader);
+      const exact = normalizedHeaders.find((header) => aliases.includes(header.normalized));
+      if (exact) {
+        nextMapping[field.key] = exact.original;
+        return;
+      }
+
+      const partial = normalizedHeaders.find((header) =>
+        aliases.some((alias) => alias.length >= 4 && (header.normalized.includes(alias) || alias.includes(header.normalized))),
+      );
+      if (partial) nextMapping[field.key] = partial.original;
+    });
+
+    setCustomerImportMapping(nextMapping);
+  }
+
+  async function handleCustomerImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!isAdmin) {
+      alert("Der Datenimport ist ausschließlich für Admins verfügbar.");
+      return;
+    }
+
+    setCustomerImportBusy(true);
+    setCustomerImportMessage("");
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array", cellDates: false });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) throw new Error("Die Datei enthält kein Tabellenblatt.");
+
+      const sheet = workbook.Sheets[firstSheetName];
+      const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+        header: 1,
+        defval: "",
+        raw: false,
+      });
+
+      if (matrix.length < 2) throw new Error("Die Datei enthält keine Datenzeilen.");
+
+      const rawHeaders = (matrix[0] || []).map((value) => String(value ?? "").trim());
+      const headers = rawHeaders.map((header, index) => header || `Spalte ${index + 1}`);
+      const rows = matrix
+        .slice(1)
+        .map((row) => {
+          const record: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            record[header] = String(row?.[index] ?? "").trim();
+          });
+          return record;
+        })
+        .filter((row) => Object.values(row).some((value) => String(value).trim() !== ""));
+
+      if (rows.length === 0) throw new Error("Die Datei enthält keine befüllten Datenzeilen.");
+
+      setCustomerImportFileName(file.name);
+      setCustomerImportHeaders(headers);
+      setCustomerImportRows(rows);
+      autoMapCustomerImportHeaders(headers);
+      setCustomerImportMessage(`${rows.length} Datenzeile${rows.length === 1 ? "" : "n"} eingelesen.`);
+    } catch (error: any) {
+      resetCustomerImport();
+      alert(`Datei konnte nicht gelesen werden. ${error?.message || "Bitte Excel-/CSV-Datei prüfen."}`);
+    } finally {
+      setCustomerImportBusy(false);
+    }
+  }
+
+  function getCustomerImportValue(row: Record<string, string>, field: CustomerImportField) {
+    const sourceHeader = customerImportMapping[field];
+    return sourceHeader ? String(row[sourceHeader] || "").trim() : "";
+  }
+
+  function findCustomerImportDuplicate(values: Partial<Record<CustomerImportField, string>>) {
+    const customerNumber = String(values.customer_number || "").trim().toLowerCase();
+    const emailValue = String(values.email || "").trim().toLowerCase();
+
+    if (customerNumber) {
+      const match = customers.find((item) => String(item.customer_number || "").trim().toLowerCase() === customerNumber);
+      if (match) return match;
+    }
+
+    if (emailValue) {
+      const match = customers.find((item) => String(item.email || "").trim().toLowerCase() === emailValue);
+      if (match) return match;
+    }
+
+    return null;
+  }
+
+  const customerImportPreview = useMemo<CustomerImportPreviewRow[]>(() => {
+    return customerImportRows.map((row, index) => {
+      const values: Partial<Record<CustomerImportField, string>> = {};
+      customerImportFields.forEach((field) => {
+        values[field.key] = getCustomerImportValue(row, field.key);
+      });
+
+      const customerTypeValue = String(values.customer_type || "B2B").trim() || "B2B";
+      const isPrivate = ["privat", "privatkunde", "private"].includes(customerTypeValue.toLowerCase());
+      const hasCompany = Boolean(String(values.company || "").trim());
+      const hasPrivateName = Boolean(
+        `${String(values.first_name || "")} ${String(values.last_name || "")}`.trim() ||
+        String(values.contact_person || "").trim(),
+      );
+      const valid = isPrivate ? hasPrivateName : hasCompany;
+      const duplicate = findCustomerImportDuplicate(values);
+
+      return {
+        rowNumber: index + 2,
+        values: { ...values, customer_type: customerTypeValue },
+        valid,
+        error: valid ? "" : isPrivate ? "Vor-/Nachname oder Ansprechpartner fehlt" : "Firmenname fehlt",
+        duplicateCustomerId: duplicate?.id || null,
+      };
+    });
+  }, [customerImportRows, customerImportMapping, customers]);
+
+  async function importCustomersFromFile() {
+    if (!isAdmin) {
+      alert("Der Datenimport ist ausschließlich für Admins verfügbar.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    if (customerImportRows.length === 0) {
+      alert("Bitte zuerst eine Excel- oder CSV-Datei auswählen.");
+      return;
+    }
+
+    const invalidRows = customerImportPreview.filter((row) => !row.valid);
+    if (invalidRows.length > 0) {
+      alert(`Import gestoppt: ${invalidRows.length} Zeile(n) sind noch fehlerhaft. Bitte Spaltenzuordnung prüfen.`);
+      return;
+    }
+
+    const duplicateRows = customerImportPreview.filter((row) => row.duplicateCustomerId);
+    const actionLabel = customerImportDuplicateMode === "skip" ? "übersprungen" : customerImportDuplicateMode === "update" ? "aktualisiert" : "zusätzlich angelegt";
+    if (!confirm(`${customerImportPreview.length} Kundenzeile(n) importieren?${duplicateRows.length ? `\n${duplicateRows.length} Duplikat(e) werden ${actionLabel}.` : ""}`)) return;
+
+    setCustomerImportBusy(true);
+    setCustomerImportMessage("Import läuft …");
+
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const previewRow of customerImportPreview) {
+      const values = previewRow.values;
+      const customerTypeValue = String(values.customer_type || "B2B").trim() || "B2B";
+      const normalizedCustomerType = ["privat", "privatkunde", "private"].includes(customerTypeValue.toLowerCase()) ? "Privatkunde" : customerTypeValue;
+      const isPrivate = normalizedCustomerType === "Privatkunde";
+      const firstName = String(values.first_name || "").trim();
+      const lastName = String(values.last_name || "").trim();
+      const privateName = `${firstName} ${lastName}`.trim();
+      const street = String(values.street || "").trim();
+      const houseNumber = String(values.house_number || "").trim();
+      const postalCode = String(values.postal_code || "").trim();
+      const city = String(values.city || "").trim();
+      const country = String(values.country || "").trim();
+      const composedAddress = [
+        [street, houseNumber].filter(Boolean).join(" "),
+        [postalCode, city].filter(Boolean).join(" "),
+        country,
+      ].filter(Boolean).join(", ");
+
+      const payload = {
+        company_id: currentCompany.id,
+        customer_number: String(values.customer_number || "").trim() || null,
+        supplier_number: String(values.supplier_number || "").trim() || null,
+        customer_type: normalizedCustomerType,
+        company: isPrivate ? null : String(values.company || "").trim() || null,
+        contact_person: String(values.contact_person || "").trim() || privateName || null,
+        first_name: firstName || null,
+        last_name: lastName || null,
+        email: String(values.email || "").trim() || null,
+        email_2: String(values.email_2 || "").trim() || null,
+        phone: String(values.phone || "").trim() || null,
+        phone_2: String(values.phone_2 || "").trim() || null,
+        address: String(values.address || "").trim() || composedAddress || null,
+        street: street || null,
+        house_number: houseNumber || null,
+        postal_code: postalCode || null,
+        city: city || null,
+        country: country || null,
+        address_extra: String(values.address_extra || "").trim() || null,
+        vat_id: String(values.vat_id || "").trim() || null,
+        tax_number: String(values.tax_number || "").trim() || null,
+        contact_1_name: String(values.contact_1_name || "").trim() || null,
+        contact_1_email: String(values.contact_1_email || "").trim() || null,
+        contact_1_phone: String(values.contact_1_phone || "").trim() || null,
+        contact_2_name: String(values.contact_2_name || "").trim() || null,
+        contact_2_email: String(values.contact_2_email || "").trim() || null,
+        contact_2_phone: String(values.contact_2_phone || "").trim() || null,
+      };
+
+      try {
+        if (previewRow.duplicateCustomerId && customerImportDuplicateMode === "skip") {
+          skipped += 1;
+          continue;
+        }
+
+        if (previewRow.duplicateCustomerId && customerImportDuplicateMode === "update") {
+          const { error } = await supabase
+            .from("customers")
+            .update(payload)
+            .eq("id", previewRow.duplicateCustomerId)
+            .eq("company_id", currentCompany.id);
+          if (error) throw error;
+          updated += 1;
+          continue;
+        }
+
+        const { error } = await supabase.from("customers").insert([payload]);
+        if (error) throw error;
+        created += 1;
+      } catch (error: any) {
+        errors.push(`Zeile ${previewRow.rowNumber}: ${error?.message || "unbekannter Fehler"}`);
+      }
+    }
+
+    await loadCustomers();
+    setCustomerImportBusy(false);
+    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+    setCustomerImportMessage(summary);
+
+    if (errors.length > 0) {
+      alert(`Import abgeschlossen: ${summary}\n\n${errors.slice(0, 8).join("\n")}${errors.length > 8 ? "\n…" : ""}`);
+    } else {
+      alert(`Kundenimport erfolgreich abgeschlossen.\n${summary}`);
+    }
+  }
+
   const role = userProfile?.role || null;
   const isAdmin = role === "admin";
   const isTechnician = role === "technician";
@@ -15665,6 +16012,98 @@ PRO-EFFEKT`,
 
           {activePage === "Einstellungen" && isAdmin && (
             <div className="space-y-6">
+              <div className="rounded-[32px] border border-sky-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-600">Datenimport · Kunden</p>
+                    <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950">Excel- und CSV-Kundenimport</h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                      Importiere Kunden aus .xlsx, .xls oder .csv. TRYBUN erkennt bekannte Spalten automatisch. Die Mandantenfirma wird niemals aus der Datei übernommen, sondern fest aus deinem angemeldeten Unternehmen gesetzt.
+                    </p>
+                  </div>
+                  {customerImportRows.length > 0 && (
+                    <button type="button" onClick={resetCustomerImport} disabled={customerImportBusy} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                      Import zurücksetzen
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <label className="block">
+                    <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Excel / CSV auswählen</span>
+                    <input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleCustomerImportFile} disabled={customerImportBusy} className="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-black file:text-white disabled:opacity-50" />
+                  </label>
+                  <div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">
+                    {customerImportFileName || "Noch keine Datei"}
+                  </div>
+                </div>
+
+                {customerImportRows.length > 0 && (
+                  <>
+                    <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h4 className="text-lg font-black text-slate-950">Spalten zuordnen</h4>
+                          <p className="text-sm font-semibold text-slate-500">Nicht benötigte TRYBUN-Felder können auf „Nicht importieren“ bleiben.</p>
+                        </div>
+                        <div className="rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm">{customerImportRows.length} Zeilen</div>
+                      </div>
+                      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {customerImportFields.map((field) => (
+                          <label key={field.key} className="block rounded-2xl border border-slate-200 bg-white p-3">
+                            <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{field.label}</span>
+                            <select value={customerImportMapping[field.key]} onChange={(event) => setCustomerImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-sky-400">
+                              <option value="">Nicht importieren</option>
+                              {customerImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}
+                            </select>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+                      <label className="block">
+                        <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Duplikate</span>
+                        <select value={customerImportDuplicateMode} onChange={(event) => setCustomerImportDuplicateMode(event.target.value as CustomerImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800">
+                          <option value="skip">Überspringen</option>
+                          <option value="update">Vorhandene Kunden aktualisieren</option>
+                          <option value="create">Trotzdem neu anlegen</option>
+                        </select>
+                      </label>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-600">
+                        Duplikaterkennung: zuerst Kundennummer, ersatzweise E-Mail. Gefunden: <span className="font-black text-slate-950">{customerImportPreview.filter((row) => row.duplicateCustomerId).length}</span>
+                      </div>
+                      <button type="button" onClick={importCustomersFromFile} disabled={customerImportBusy || customerImportPreview.some((row) => !row.valid)} className="rounded-2xl bg-sky-500 px-6 py-4 text-sm font-black text-white shadow-sm hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-300">
+                        {customerImportBusy ? "Import läuft …" : "Kunden importieren"}
+                      </button>
+                    </div>
+
+                    <div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200">
+                      <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h4 className="font-black">Importvorschau</h4>
+                          <p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p>
+                        </div>
+                        <div className="text-sm font-black">{customerImportPreview.filter((row) => row.valid).length} gültig · {customerImportPreview.filter((row) => !row.valid).length} fehlerhaft</div>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-[900px] w-full text-left text-sm">
+                          <thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Kundennr.</th><th className="px-4 py-3">Firma / Name</th><th className="px-4 py-3">E-Mail</th><th className="px-4 py-3">Ort</th><th className="px-4 py-3">Status</th></tr></thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {customerImportPreview.slice(0, 20).map((row) => {
+                              const displayName = String(row.values.company || "").trim() || `${String(row.values.first_name || "")} ${String(row.values.last_name || "")}`.trim() || String(row.values.contact_person || "").trim() || "-";
+                              return <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-bold">{row.values.customer_number || "-"}</td><td className="px-4 py-3 font-black text-slate-900">{displayName}</td><td className="px-4 py-3">{row.values.email || "-"}</td><td className="px-4 py-3">{row.values.city || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.duplicateCustomerId ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.duplicateCustomerId ? "Duplikat" : "Bereit"}</span></td></tr>;
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {customerImportMessage && <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700">{customerImportMessage}</div>}
+              </div>
+
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
                 TRYBUN White-Label · Firmeneinstellungen
               </div>
