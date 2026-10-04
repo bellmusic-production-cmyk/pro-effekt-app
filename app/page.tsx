@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.31 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.32 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -426,8 +426,8 @@ const navItems = [
   "Geräte",
   "QR-Scan",
   "Abnahmeprotokoll",
-  "Lagerbestand",
   "Ersatzteile",
+  "Gerätebestand",
   "Dokumente",
   "Auftrag / Lieferschein erstellen",
   "Rechnungen",
@@ -1253,7 +1253,6 @@ export default function Home() {
   const [partSearchTerm, setPartSearchTerm] = useState("");
   const [partManufacturerFilter, setPartManufacturerFilter] = useState("Alle");
   const [inventorySearchTerm, setInventorySearchTerm] = useState("");
-  const [inventoryTypeFilter, setInventoryTypeFilter] = useState<"Alle" | "Ersatzteile" | "Modelle">("Alle");
   const [inventoryManufacturerFilter, setInventoryManufacturerFilter] = useState("Alle");
 
   const [invoiceType, setInvoiceType] = useState("Rechnung");
@@ -12456,16 +12455,7 @@ PRO-EFFEKT`,
   });
 
   const stockedDeviceModels = deviceModels.filter((modelItem) => Boolean(modelItem.is_stocked));
-  const filteredInventoryParts = activeServiceParts.filter((part) => {
-    if (inventoryTypeFilter === "Modelle") return false;
-    if (inventoryManufacturerFilter !== "Alle" && String(part.manufacturer_id || "") !== inventoryManufacturerFilter) return false;
-    const query = inventorySearchTerm.trim().toLowerCase();
-    if (!query) return true;
-    return [part.name, part.sku, part.category, part.storage_location, getManufacturerNameById(part.manufacturer_id)]
-      .filter(Boolean).join(" ").toLowerCase().includes(query);
-  });
   const filteredInventoryModels = stockedDeviceModels.filter((modelItem) => {
-    if (inventoryTypeFilter === "Ersatzteile") return false;
     if (inventoryManufacturerFilter !== "Alle" && String(modelItem.manufacturer_id || "") !== inventoryManufacturerFilter) return false;
     const query = inventorySearchTerm.trim().toLowerCase();
     if (!query) return true;
@@ -13212,7 +13202,7 @@ PRO-EFFEKT`,
   const visibleNavItems = isAdmin
     ? navItems
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Lagerbestand", "Ersatzteile", "Dokumente", "Auftrag / Lieferschein erstellen"]
+      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Gerätebestand", "Dokumente", "Auftrag / Lieferschein erstellen"]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
 
   if (session && legalAccepted && userProfile && !visibleNavItems.includes(activePage)) {
@@ -13243,7 +13233,7 @@ PRO-EFFEKT`,
     {
       title: "Lager",
       icon: "",
-      items: ["Lagerbestand", "Ersatzteile"],
+      items: ["Ersatzteile", "Gerätebestand"],
     },
     {
       title: "Kommunikation",
@@ -13272,8 +13262,8 @@ PRO-EFFEKT`,
       Geräte: "Hersteller-/Gerätebibliothek",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
-      Lagerbestand: "Lagerbestand",
       Ersatzteile: "Ersatzteile",
+      Gerätebestand: "Gerätebestand",
       Dokumente: "Dokumente",
       "Auftrag / Lieferschein erstellen": "Auftrag / Lieferschein erstellen",
       Rechnungen: "Rechnungen",
@@ -14958,14 +14948,14 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {(["Service-Tickets", "Kunden", "Lagerbestand", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
+          {(["Service-Tickets", "Kunden", "Gerätebestand", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
             <div className="mb-6 rounded-[32px] bg-[#07111d] p-5 text-white shadow-sm lg:hidden">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
                 {activePage === "Service-Tickets"
                   ? "Service"
                   : activePage === "Kunden"
                     ? "Stammdaten"
-                    : activePage === "Lagerbestand"
+                    : activePage === "Gerätebestand"
                       ? "Lager"
                     : activePage === "Ersatzteile"
                       ? "Lager"
@@ -14978,8 +14968,8 @@ PRO-EFFEKT`,
                   ? "Service-Tickets"
                   : activePage === "Kunden"
                     ? "Kunden"
-                    : activePage === "Lagerbestand"
-                      ? "Lagerbestand"
+                    : activePage === "Gerätebestand"
+                      ? "Gerätebestand"
                     : activePage === "Ersatzteile"
                       ? "Ersatzteile"
                       : activePage === "Rechnungen"
@@ -23891,54 +23881,42 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
             </div>
           )}
 
-                    {activePage === "Lagerbestand" && (
+                    {activePage === "Gerätebestand" && (
             <div className="space-y-6">
               <div className="rounded-[28px] bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Lager</p>
-                <h2 className="mt-2 text-3xl font-black">Lagerbestand</h2>
-                <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Physische Lagerware zentral finden: Ersatzteile sowie Modelle, die ausdrücklich als Verkaufs-/Lagergerät geführt werden.</p>
+                <h2 className="mt-2 text-3xl font-black">Gerätebestand</h2>
+                <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Lagerfähige Verkaufsgeräte nach Hersteller und Modell verwalten. Kundengeräte mit Seriennummer bleiben davon getrennt.</p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <StatCard label="Ersatzteile" value={activeServiceParts.length} />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <StatCard label="Lager-Modelle" value={stockedDeviceModels.length} />
-                <StatCard label="Artikel gesamt" value={activeServiceParts.length + stockedDeviceModels.length} />
-                <StatCard label="Kritisch" value={activeServiceParts.filter((p) => Number(p.stock || 0) <= Number(p.min_stock || 0)).length + stockedDeviceModels.filter((m) => Number(m.stock || 0) <= Number(m.min_stock || 0)).length} />
+                <StatCard label="Einheiten gesamt" value={stockedDeviceModels.reduce((sum, modelItem) => sum + Number(modelItem.stock || 0), 0)} />
+                <StatCard label="Kritisch" value={stockedDeviceModels.filter((modelItem) => Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0)).length} />
               </div>
 
               <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                <div className="grid gap-3 lg:grid-cols-[1fr_220px_280px]">
-                  <input value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-inventory-search" placeholder="Lager durchsuchen: Artikel, Modell, SKU, Hersteller, Lagerort …" className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold outline-none focus:border-sky-400" />
-                  <select value={inventoryTypeFilter} onChange={(e) => setInventoryTypeFilter(e.target.value as "Alle" | "Ersatzteile" | "Modelle")} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
-                    <option value="Alle">Alle Lagerartikel</option><option value="Ersatzteile">Nur Ersatzteile</option><option value="Modelle">Nur Modelle</option>
-                  </select>
+                <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
+                  <input value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-device-stock-search" placeholder="Gerätebestand suchen: Modell, Kategorie, Hersteller, Lagerort …" className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold outline-none focus:border-sky-400" />
                   <select value={inventoryManufacturerFilter} onChange={(e) => setInventoryManufacturerFilter(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
                     <option value="Alle">Alle Hersteller</option>
                     {manufacturers.map((manufacturerItem) => <option key={manufacturerItem.id} value={manufacturerItem.id}>{manufacturerItem.name}</option>)}
                   </select>
                 </div>
+                <p className="mt-3 text-sm font-semibold text-slate-500">{filteredInventoryModels.length} von {stockedDeviceModels.length} lagerfähigen Modellen angezeigt.</p>
               </div>
 
               <div className="space-y-4">
-                {filteredInventoryParts.map((part) => {
-                  const critical = Number(part.stock || 0) <= Number(part.min_stock || 0);
-                  return <div key={`part-${part.id}`} className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-amber-600">Ersatzteil · {getManufacturerNameById(part.manufacturer_id) || "Ohne Hersteller"}</p><h3 className="mt-1 break-words text-xl font-black">{part.name}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{part.sku || "Keine Artikelnummer"} · Lagerort: {part.storage_location || "nicht angegeben"}</p></div>
-                      <div className="flex flex-wrap items-center gap-2"><span className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black">{part.stock ?? 0} {part.unit || "Stück"}</span><span className={`rounded-full px-3 py-2 text-xs font-black ${critical ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{critical ? "Nachbestellen" : "Verfügbar"}</span></div>
-                    </div>
-                  </div>;
-                })}
                 {filteredInventoryModels.map((modelItem) => {
                   const critical = Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0);
                   return <div key={`model-${modelItem.id}`} className="rounded-[24px] border border-sky-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">Verkaufsgerät / Modell · {getManufacturerNameById(modelItem.manufacturer_id)}</p><h3 className="mt-1 break-words text-xl font-black">{getDeviceModelDisplayName(modelItem)}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{getDeviceModelTypeName(modelItem)} · Lagerort: {modelItem.storage_location || "nicht angegeben"}</p></div>
+                      <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">{getManufacturerNameById(modelItem.manufacturer_id) || "Ohne Hersteller"}</p><h3 className="mt-1 break-words text-xl font-black">{getDeviceModelDisplayName(modelItem)}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{getDeviceModelTypeName(modelItem)} · Lagerort: {modelItem.storage_location || "nicht angegeben"}</p></div>
                       <div className="flex flex-wrap items-center gap-2"><span className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black">{modelItem.stock ?? 0} {modelItem.unit || "Stück"}</span><span className={`rounded-full px-3 py-2 text-xs font-black ${critical ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{critical ? "Nachbestellen" : "Verfügbar"}</span></div>
                     </div>
                   </div>;
                 })}
-                {filteredInventoryParts.length === 0 && filteredInventoryModels.length === 0 && <div className="rounded-[24px] bg-white p-6 text-center font-bold text-slate-500 shadow-sm">Keine passenden Lagerartikel gefunden.</div>}
+                {filteredInventoryModels.length === 0 && <div className="rounded-[24px] bg-white p-6 text-center font-bold text-slate-500 shadow-sm">Keine passenden Lagergeräte gefunden. Modelle werden hier erst angezeigt, wenn sie als Lagerware geführt werden.</div>}
               </div>
             </div>
           )}
