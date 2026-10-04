@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.14 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.15 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -8632,19 +8632,54 @@ PRO-EFFEKT`,
       return;
     }
 
-    if (!confirm("Ersatzteil wirklich löschen?")) return;
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    const part = serviceParts.find((item) => item.id === partId) || null;
+
+    const { count: usageCount, error: usageError } = await supabase
+      .from("part_usages")
+      .select("id", { count: "exact", head: true })
+      .eq("part_id", partId)
+      .eq("company_id", currentCompany.id);
+
+    if (usageError) {
+      alert("Das Ersatzteil konnte vor dem Löschen nicht geprüft werden. Bitte versuche es erneut.");
+      return;
+    }
+
+    const linkedUsages = usageCount || 0;
+    const label = part?.name || "Dieses Ersatzteil";
+    const message = linkedUsages > 0
+      ? `${label} wurde bereits ${linkedUsages} Mal im Verbrauch gebucht. Beim Löschen werden auch diese Verbrauchsbuchungen dauerhaft entfernt. Wirklich löschen?`
+      : `${label} wirklich dauerhaft löschen?`;
+
+    if (!confirm(message)) return;
 
     const { error } = await supabase
       .from("spare_parts")
       .delete()
-      .eq("id", partId);
+      .eq("id", partId)
+      .eq("company_id", currentCompany.id);
 
     if (error) {
-      alert(`Ersatzteil konnte nicht gelöscht werden: ${error.message}`);
+      alert("Ersatzteil konnte nicht gelöscht werden. Bitte versuche es erneut.");
       return;
     }
 
-    await loadServiceParts();
+    if (editingPart?.id === partId) {
+      resetPartForm();
+    }
+
+    if (selectedPartId === String(partId)) {
+      setSelectedPartId("");
+    }
+
+    await Promise.all([loadServiceParts(), loadPartUsages()]);
   }
 
   async function consumeServicePart() {
