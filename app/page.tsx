@@ -18545,10 +18545,10 @@ PRO-EFFEKT`,
                         <p className="mb-2 text-sm font-black text-slate-700">Techniker / Prüfer</p>
                         <canvas
                           ref={abnahmeTechnicianCanvasRef}
-                          onPointerDown={(e) => startAbnahmeSignature("technician", e)}
-                          onPointerMove={(e) => drawAbnahmeSignature("technician", e)}
-                          onPointerUp={() => stopAbnahmeSignature("technician")}
-                          onPointerLeave={() => stopAbnahmeSignature("technician")}
+                          onPointerDown={(e) => startSignature("technician", e)}
+                          onPointerMove={(e) => drawSignature("technician", e)}
+                          onPointerUp={() => finishSignature("technician")}
+                          onPointerLeave={() => finishSignature("technician")}
                           className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
                         />
                         <button type="button" onClick={() => clearSignatureCanvas("technician")} className="mt-2 text-xs font-black text-slate-500">Unterschrift löschen</button>
@@ -18557,10 +18557,10 @@ PRO-EFFEKT`,
                         <p className="mb-2 text-sm font-black text-slate-700">Kunde / Auftraggeber</p>
                         <canvas
                           ref={abnahmeCustomerCanvasRef}
-                          onPointerDown={(e) => startAbnahmeSignature("customer", e)}
-                          onPointerMove={(e) => drawAbnahmeSignature("customer", e)}
-                          onPointerUp={() => stopAbnahmeSignature("customer")}
-                          onPointerLeave={() => stopAbnahmeSignature("customer")}
+                          onPointerDown={(e) => startSignature("customer", e)}
+                          onPointerMove={(e) => drawSignature("customer", e)}
+                          onPointerUp={() => finishSignature("customer")}
+                          onPointerLeave={() => finishSignature("customer")}
                           className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
                         />
                         <button type="button" onClick={() => clearSignatureCanvas("customer")} className="mt-2 text-xs font-black text-slate-500">Unterschrift löschen</button>
