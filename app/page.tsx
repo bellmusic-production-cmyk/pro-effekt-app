@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.3 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.4 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -852,6 +852,8 @@ export default function Home() {
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
+  const [userManagementRoleFilter, setUserManagementRoleFilter] = useState<"admin" | "technician" | "customer">("admin");
+  const [userManagementSearch, setUserManagementSearch] = useState("");
   const [userCompanyNames, setUserCompanyNames] = useState<Record<string, string>>({});
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -1982,14 +1984,30 @@ export default function Home() {
   }, [userProfiles]);
 
   const userManagementProfiles = useMemo(() => {
-    return [...userProfiles].sort((a, b) => {
-      const roleOrder: Record<string, number> = { admin: 0, technician: 1, customer: 2 };
-      const roleDiff = (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9);
-      if (roleDiff !== 0) return roleDiff;
+    const search = userManagementSearch.trim().toLocaleLowerCase("de-DE");
 
-      return getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de");
-    });
-  }, [userProfiles, customers]);
+    return userProfiles
+      .filter((profile) => profile.role === userManagementRoleFilter)
+      // Kunden erscheinen hier nur als echte Portal-Zugänge aus profiles.
+      // Reine Servicekunden aus customers werden niemals in diese Liste gemischt.
+      .filter((profile) => {
+        if (!search) return true;
+        const linkedCustomer = profile.role === "customer" ? getCustomerForUserProfile(profile) : null;
+        return [
+          getUserDisplayName(profile),
+          profile.company,
+          userCompanyNames[profile.id],
+          linkedCustomer?.company,
+          linkedCustomer?.email,
+          linkedCustomer?.customer_number,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLocaleLowerCase("de-DE")
+          .includes(search);
+      })
+      .sort((a, b) => getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de"));
+  }, [userProfiles, userManagementRoleFilter, userManagementSearch, userCompanyNames, customers]);
 
   const notificationTotalPages = Math.max(1, Math.ceil(communicationFilteredNotifications.length / notificationPageSize));
 
@@ -17108,6 +17126,43 @@ PRO-EFFEKT`,
                   </div>
                 </div>
 
+                <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+                  <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr_auto] lg:items-end">
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Benutzergruppe</span>
+                      <select
+                        value={userManagementRoleFilter}
+                        onChange={(event) => setUserManagementRoleFilter(event.target.value as "admin" | "technician" | "customer")}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-black text-slate-900"
+                      >
+                        <option value="admin">Administratoren</option>
+                        <option value="technician">Techniker</option>
+                        <option value="customer">Kundenportal-Zugänge</option>
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Suche</span>
+                      <input
+                        value={userManagementSearch}
+                        onChange={(event) => setUserManagementSearch(event.target.value)}
+                        placeholder={userManagementRoleFilter === "customer" ? "Name, Firma, Kundennummer oder E-Mail …" : "Name oder Firma …"}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900"
+                      />
+                    </label>
+
+                    <div className="rounded-2xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-sm font-black text-sky-100">
+                      {userManagementProfiles.length} angezeigt
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs font-semibold leading-5 text-slate-400">
+                    {userManagementRoleFilter === "customer"
+                      ? "Hier erscheinen ausschließlich Kundenkontakte mit eingerichtetem TRYBUN-Portalzugang. Normale Servicekunden ohne Login werden nicht aufgeführt."
+                      : "Die Liste zeigt nur Benutzer der ausgewählten internen Rolle."}
+                  </p>
+                </div>
+
                 <div className="mt-6 overflow-hidden rounded-[28px] border border-white/10 bg-[#0b1624]">
                   <div className="hidden grid-cols-[1.4fr_0.8fr_1fr_0.8fr] gap-4 border-b border-white/10 px-5 py-3 text-xs font-black uppercase tracking-[0.16em] text-slate-400 lg:grid">
                     <span>Benutzer</span>
@@ -17119,7 +17174,11 @@ PRO-EFFEKT`,
                   <div className="divide-y divide-white/10">
                     {userManagementProfiles.length === 0 ? (
                       <div className="p-5 text-sm font-semibold text-slate-400">
-                        Keine Benutzerprofile geladen. Prüfe RLS/Profiles oder lade die Benutzer erneut.
+                        {userManagementSearch.trim()
+                          ? "Keine passenden Benutzer in dieser Gruppe gefunden."
+                          : userManagementRoleFilter === "customer"
+                            ? "Noch keine Kundenportal-Zugänge vorhanden."
+                            : "Keine Benutzer in dieser Rolle vorhanden."}
                       </div>
                     ) : (
                       userManagementProfiles.map((profile) => {
