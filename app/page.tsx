@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.36 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.37 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7374,10 +7374,32 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     );
   }
 
-  function findDeviceFromQrInput(input: string) {
-    const raw = input.trim();
+  function getQrDeviceSearchText(item: Device) {
+    const linkedCustomer = item.customer_id
+      ? customers.find((customerItem) => customerItem.id === item.customer_id)
+      : null;
 
-    if (!raw) return null;
+    return [
+      item.id,
+      item.name,
+      item.manufacturer,
+      getManufacturerNameById(item.manufacturer_id),
+      item.model,
+      getDeviceModelNameById(item.model_id),
+      item.serial_number,
+      item.location,
+      item.status,
+      linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+      linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+  }
+
+  function getQrDeviceMatches(input: string) {
+    const raw = input.trim();
+    if (!raw) return [] as Device[];
 
     let normalized = raw.toLowerCase();
 
@@ -7392,24 +7414,51 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
       // Eingabe ist kein URL.
     }
 
-    return (
-      devices.find((item) => String(item.id).toLowerCase() === normalized) ||
-      devices.find((item) => String(item.serial_number || "").toLowerCase() === normalized) ||
-      devices.find((item) => String(item.name || "").toLowerCase() === normalized) ||
-      devices.find((item) => String(item.name || "").toLowerCase().includes(normalized)) ||
-      devices.find((item) => String(item.serial_number || "").toLowerCase().includes(normalized)) ||
-      null
+    const allowedDevices = devices.filter((item) => {
+      if (isCustomer && userProfile?.customer_id) {
+        return item.customer_id === userProfile.customer_id;
+      }
+      return true;
+    });
+
+    const exactMatches = allowedDevices.filter((item) =>
+      [item.id, item.serial_number, item.name]
+        .filter((value) => value !== null && value !== undefined)
+        .some((value) => String(value).toLowerCase() === normalized),
     );
+
+    if (exactMatches.length > 0) return exactMatches;
+
+    return allowedDevices.filter((item) => getQrDeviceSearchText(item).includes(normalized));
+  }
+
+  function findDeviceFromQrInput(input: string) {
+    const matches = getQrDeviceMatches(input);
+    return matches.length === 1 ? matches[0] : null;
   }
 
   function openDeviceFromScanValue(value: string) {
-    const foundDevice = findDeviceFromQrInput(value);
+    const raw = value.trim();
 
-    if (!foundDevice) {
-      setQrScanStatus("Kein passendes Gerät gefunden. Bitte Geräte-ID, Seriennummer oder QR-Link prüfen.");
+    if (!raw) {
+      setQrScanStatus("Bitte Suchbegriff, Geräte-ID, Seriennummer oder QR-Link eingeben.");
       return;
     }
 
+    const matches = getQrDeviceMatches(raw);
+    setQrSearchTerm(raw);
+
+    if (matches.length === 0) {
+      setQrScanStatus("Kein passendes Gerät gefunden. Suche nach Gerätename, Seriennummer, Hersteller, Modell, Kunde, Standort oder ID.");
+      return;
+    }
+
+    if (matches.length > 1) {
+      setQrScanStatus(`${matches.length} passende Geräte gefunden. Bitte unten einen Treffer auswählen.`);
+      return;
+    }
+
+    const foundDevice = matches[0];
     setQrScanStatus(`Gerät gefunden: ${foundDevice.name}`);
     stopQrScanner();
     openDeviceFromQr(foundDevice);
@@ -12986,35 +13035,12 @@ PRO-EFFEKT`,
     return true;
   });
 
-  const qrPreviewDevices = qrBaseDevices.slice(0, 12);
-
   const filteredQrDevices = (() => {
     const search = qrSearchTerm.toLowerCase().trim();
 
     const matchedDevices = qrBaseDevices.filter((item) => {
-      const linkedCustomer = item.customer_id
-        ? customers.find((customerItem) => customerItem.id === item.customer_id)
-        : null;
-
       if (!search) return true;
-
-      return [
-        item.id,
-        item.name,
-        item.manufacturer,
-        getManufacturerNameById(item.manufacturer_id),
-        item.model,
-        getDeviceModelNameById(item.model_id),
-        item.serial_number,
-        item.location,
-        item.status,
-        linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-        linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
+      return getQrDeviceSearchText(item).includes(search);
     });
 
     if (!search) {
@@ -13029,29 +13055,7 @@ PRO-EFFEKT`,
 
     if (!search) return qrBaseDevices.length;
 
-    return qrBaseDevices.filter((item) => {
-      const linkedCustomer = item.customer_id
-        ? customers.find((customerItem) => customerItem.id === item.customer_id)
-        : null;
-
-      return [
-        item.id,
-        item.name,
-        item.manufacturer,
-        getManufacturerNameById(item.manufacturer_id),
-        item.model,
-        getDeviceModelNameById(item.model_id),
-        item.serial_number,
-        item.location,
-        item.status,
-        linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-        linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
-    }).length;
+    return qrBaseDevices.filter((item) => getQrDeviceSearchText(item).includes(search)).length;
   })();
 
   const invoiceRevenueGross = invoices
@@ -22482,8 +22486,22 @@ placeholder="Gerät / Anlage / Modell suchen..."
                 <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto]">
                   <input
                     value={qrManualCode}
-                    onChange={(e) => setQrManualCode(e.target.value)}
-                    placeholder="QR-Link, Geräte-ID, Seriennummer oder Gerätename einfügen..."
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setQrManualCode(value);
+                      setQrSearchTerm(value);
+                      if (!value.trim()) setQrScanStatus("Scanner bereit.");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") openDeviceFromScanValue(qrManualCode);
+                    }}
+                    type="search"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="search"
+                    name="trybun-qr-quick-device-search"
+                    placeholder="Gerät, Seriennummer, Hersteller, Modell, Kunde, Standort oder ID suchen..."
                     className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-bold text-slate-900"
                   />
 
@@ -22560,7 +22578,11 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
                   <input
                     value={qrSearchTerm}
-                    onChange={(e) => setQrSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setQrSearchTerm(value);
+                      setQrManualCode(value);
+                    }}
                     type="search"
 autoComplete="off"
 autoCorrect="off"
