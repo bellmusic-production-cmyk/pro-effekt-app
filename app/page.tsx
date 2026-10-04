@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.9.7 · Kundenimport Spaltenerkennung Fix · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.10.0 · Geräteimport + Kundenimport · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -604,6 +604,59 @@ type CustomerImportField =
 
 type CustomerImportMapping = Record<CustomerImportField, string>;
 
+type DeviceImportDuplicateMode = "skip" | "update" | "create";
+type DeviceImportField =
+  | "customer_number"
+  | "name"
+  | "serial_number"
+  | "location"
+  | "status"
+  | "manufacturer"
+  | "model"
+  | "next_check"
+  | "note"
+  | "inspection_badge_number"
+  | "inspection_date"
+  | "inspection_expires"
+  | "inspection_result"
+  | "inspection_comment"
+  | "service_date"
+  | "service_time";
+
+type DeviceImportMapping = Record<DeviceImportField, string>;
+type DeviceImportPreviewRow = {
+  rowNumber: number;
+  values: Partial<Record<DeviceImportField, string>>;
+  customerId: number | null;
+  customerName: string;
+  valid: boolean;
+  error: string;
+  duplicateDeviceId: number | null;
+};
+
+const deviceImportFields: Array<{ key: DeviceImportField; label: string; aliases: string[] }> = [
+  { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "kd nr", "kdnr", "debitor", "debitor nr", "debitor nummer", "debitorennummer", "customer number", "customer_number"] },
+  { key: "name", label: "Gerät / Anlage", aliases: ["geraet", "gerät", "geraetename", "gerätename", "anlage", "anlagenname", "bezeichnung", "device", "device name"] },
+  { key: "serial_number", label: "Seriennummer", aliases: ["seriennummer", "serien nr", "serien-nr", "seriennr", "serial", "serial number", "serial_number", "s/n"] },
+  { key: "manufacturer", label: "Hersteller", aliases: ["hersteller", "fabrikat", "manufacturer", "marke"] },
+  { key: "model", label: "Modell / Typ", aliases: ["modell", "typ", "modell typ", "gerätetyp", "geraetetyp", "model", "type"] },
+  { key: "location", label: "Standort", aliases: ["standort", "einbauort", "aufstellort", "location"] },
+  { key: "status", label: "Status", aliases: ["status", "geraetestatus", "gerätestatus", "device status"] },
+  { key: "next_check", label: "Nächste Prüfung", aliases: ["naechste pruefung", "nächste prüfung", "naechster prueftermin", "next check", "next_check"] },
+  { key: "inspection_badge_number", label: "Prüfplaketten-Nr.", aliases: ["pruefplakette", "prüfplakette", "plakettennummer", "inspection badge number"] },
+  { key: "inspection_date", label: "Prüfdatum", aliases: ["pruefdatum", "prüfdatum", "inspection date", "inspection_date"] },
+  { key: "inspection_expires", label: "Prüfung gültig bis", aliases: ["pruefung gueltig bis", "prüfung gültig bis", "inspection expires", "inspection_expires"] },
+  { key: "inspection_result", label: "Prüfergebnis", aliases: ["pruefergebnis", "prüfergebnis", "inspection result", "inspection_result"] },
+  { key: "inspection_comment", label: "Prüfkommentar", aliases: ["pruefkommentar", "prüfkommentar", "inspection comment", "inspection_comment"] },
+  { key: "service_date", label: "Wartungsdatum", aliases: ["wartungsdatum", "servicedatum", "service date", "service_date"] },
+  { key: "service_time", label: "Wartungszeit", aliases: ["wartungszeit", "servicezeit", "service time", "service_time"] },
+  { key: "note", label: "Notiz", aliases: ["notiz", "bemerkung", "hinweis", "note", "notes"] },
+];
+
+function emptyDeviceImportMapping(): DeviceImportMapping {
+  return Object.fromEntries(deviceImportFields.map((field) => [field.key, ""])) as DeviceImportMapping;
+}
+
 type CustomerImportPreviewRow = {
   rowNumber: number;
   values: Partial<Record<CustomerImportField, string>>;
@@ -740,6 +793,14 @@ export default function Home() {
   const [customerImportDuplicateMode, setCustomerImportDuplicateMode] = useState<CustomerImportDuplicateMode>("skip");
   const [customerImportBusy, setCustomerImportBusy] = useState(false);
   const [customerImportMessage, setCustomerImportMessage] = useState("");
+
+  const [deviceImportFileName, setDeviceImportFileName] = useState("");
+  const [deviceImportHeaders, setDeviceImportHeaders] = useState<string[]>([]);
+  const [deviceImportRows, setDeviceImportRows] = useState<Record<string, string>[]>([]);
+  const [deviceImportMapping, setDeviceImportMapping] = useState<DeviceImportMapping>(emptyDeviceImportMapping());
+  const [deviceImportDuplicateMode, setDeviceImportDuplicateMode] = useState<DeviceImportDuplicateMode>("skip");
+  const [deviceImportBusy, setDeviceImportBusy] = useState(false);
+  const [deviceImportMessage, setDeviceImportMessage] = useState("");
 
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
@@ -10673,6 +10734,159 @@ PRO-EFFEKT`,
     }
   }
 
+
+  function resetDeviceImport() {
+    setDeviceImportFileName("");
+    setDeviceImportHeaders([]);
+    setDeviceImportRows([]);
+    setDeviceImportMapping(emptyDeviceImportMapping());
+    setDeviceImportMessage("");
+  }
+
+  function autoMapDeviceImportHeaders(headers: string[]) {
+    const normalizedHeaders = headers.map((header) => ({ original: header, normalized: normalizeImportHeader(header) }));
+    const nextMapping = emptyDeviceImportMapping();
+    const usedHeaders = new Set<string>();
+    deviceImportFields.forEach((field) => {
+      const aliases = new Set([field.key, field.label, ...field.aliases].map(normalizeImportHeader));
+      const exact = normalizedHeaders.find((header) => !usedHeaders.has(header.original) && aliases.has(header.normalized));
+      if (exact) {
+        nextMapping[field.key] = exact.original;
+        usedHeaders.add(exact.original);
+      }
+    });
+    setDeviceImportMapping(nextMapping);
+  }
+
+  async function handleDeviceImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!isAdmin) { alert("Der Datenimport ist ausschließlich für Admins verfügbar."); return; }
+    setDeviceImportBusy(true);
+    setDeviceImportMessage("");
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array", cellDates: false });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) throw new Error("Die Datei enthält kein Tabellenblatt.");
+      const sheet = workbook.Sheets[firstSheetName];
+      const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, { header: 1, defval: "", raw: false });
+      if (matrix.length < 2) throw new Error("Die Datei enthält keine Datenzeilen.");
+      const rawHeaders = (matrix[0] || []).map((value) => String(value ?? "").trim());
+      const headers = rawHeaders.map((header, index) => header || `Spalte ${index + 1}`);
+      const rows = matrix.slice(1).map((row) => {
+        const record: Record<string, string> = {};
+        headers.forEach((header, index) => { record[header] = String(row?.[index] ?? "").trim(); });
+        return record;
+      }).filter((row) => Object.values(row).some((value) => String(value).trim() !== ""));
+      if (!rows.length) throw new Error("Die Datei enthält keine befüllten Datenzeilen.");
+      setDeviceImportFileName(file.name);
+      setDeviceImportHeaders(headers);
+      setDeviceImportRows(rows);
+      autoMapDeviceImportHeaders(headers);
+      setDeviceImportMessage(`${rows.length} Gerätezeile${rows.length === 1 ? "" : "n"} eingelesen.`);
+    } catch (error: any) {
+      resetDeviceImport();
+      alert(`Datei konnte nicht gelesen werden. ${error?.message || "Bitte Excel-/CSV-Datei prüfen."}`);
+    } finally { setDeviceImportBusy(false); }
+  }
+
+  function getDeviceImportValue(row: Record<string, string>, field: DeviceImportField) {
+    const sourceHeader = deviceImportMapping[field];
+    return sourceHeader ? String(row[sourceHeader] || "").trim() : "";
+  }
+
+  function normalizeImportDate(value: string) {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    const de = text.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+    if (de) return `${de[3]}-${de[2].padStart(2, "0")}-${de[1].padStart(2, "0")}`;
+    return text;
+  }
+
+  const deviceImportPreview = useMemo<DeviceImportPreviewRow[]>(() => {
+    return deviceImportRows.map((row, index) => {
+      const values: Partial<Record<DeviceImportField, string>> = {};
+      deviceImportFields.forEach((field) => { values[field.key] = getDeviceImportValue(row, field.key); });
+      const customerNumber = String(values.customer_number || "").trim().toLowerCase();
+      const customerMatch = customerNumber ? customers.find((item) => String(item.customer_number || "").trim().toLowerCase() === customerNumber) : null;
+      const serial = String(values.serial_number || "").trim().toLowerCase();
+      const duplicate = serial ? devices.find((item) => String(item.serial_number || "").trim().toLowerCase() === serial) : null;
+      const derivedName = String(values.name || "").trim() || String(values.model || "").trim() || [values.manufacturer, values.model].filter(Boolean).join(" ").trim();
+      let error = "";
+      if (!customerNumber) error = "Kundennummer fehlt";
+      else if (!customerMatch) error = "Kundennummer unbekannt";
+      else if (!serial) error = "Seriennummer fehlt";
+      else if (!derivedName) error = "Geräte-/Modellbezeichnung fehlt";
+      return {
+        rowNumber: index + 2,
+        values: { ...values, name: derivedName },
+        customerId: customerMatch?.id || null,
+        customerName: customerMatch ? (customerMatch.company || `${customerMatch.first_name || ""} ${customerMatch.last_name || ""}`.trim() || `Kunde ${customerMatch.id}`) : "",
+        valid: !error,
+        error,
+        duplicateDeviceId: duplicate?.id || null,
+      };
+    });
+  }, [deviceImportRows, deviceImportMapping, customers, devices]);
+
+  async function importDevicesFromFile() {
+    if (!isAdmin) { alert("Der Datenimport ist ausschließlich für Admins verfügbar."); return; }
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
+    if (!deviceImportRows.length) { alert("Bitte zuerst eine Geräte-Excel- oder CSV-Datei auswählen."); return; }
+    const invalidRows = deviceImportPreview.filter((row) => !row.valid);
+    if (invalidRows.length) { alert(`Import gestoppt: ${invalidRows.length} Zeile(n) sind fehlerhaft. Unbekannte Kunden, fehlende Seriennummern oder fehlende Gerätebezeichnungen müssen zuerst korrigiert werden.`); return; }
+    const duplicateRows = deviceImportPreview.filter((row) => row.duplicateDeviceId);
+    const actionLabel = deviceImportDuplicateMode === "skip" ? "übersprungen" : deviceImportDuplicateMode === "update" ? "aktualisiert" : "zusätzlich angelegt";
+    if (!confirm(`${deviceImportPreview.length} Gerätezeile(n) importieren?${duplicateRows.length ? `\n${duplicateRows.length} Seriennummer-Duplikat(e) werden ${actionLabel}.` : ""}`)) return;
+    setDeviceImportBusy(true);
+    setDeviceImportMessage("Import läuft …");
+    let created = 0, updated = 0, skipped = 0;
+    const errors: string[] = [];
+    for (const previewRow of deviceImportPreview) {
+      const v = previewRow.values;
+      const payload = {
+        company_id: currentCompany.id,
+        customer_id: previewRow.customerId,
+        name: String(v.name || "").trim(),
+        serial_number: String(v.serial_number || "").trim(),
+        location: String(v.location || "").trim() || null,
+        status: String(v.status || "").trim() || "Aktiv",
+        manufacturer: String(v.manufacturer || "").trim() || null,
+        model: String(v.model || "").trim() || null,
+        next_check: normalizeImportDate(String(v.next_check || "")) || null,
+        note: String(v.note || "").trim() || null,
+        inspection_badge_number: String(v.inspection_badge_number || "").trim() || null,
+        inspection_date: normalizeImportDate(String(v.inspection_date || "")) || null,
+        inspection_expires: normalizeImportDate(String(v.inspection_expires || "")) || null,
+        inspection_result: String(v.inspection_result || "").trim() || null,
+        inspection_comment: String(v.inspection_comment || "").trim() || null,
+        service_date: normalizeImportDate(String(v.service_date || "")) || null,
+        service_time: String(v.service_time || "").trim() || null,
+      };
+      try {
+        if (previewRow.duplicateDeviceId && deviceImportDuplicateMode === "skip") { skipped += 1; continue; }
+        if (previewRow.duplicateDeviceId && deviceImportDuplicateMode === "update") {
+          const { error } = await supabase.from("devices").update(payload).eq("id", previewRow.duplicateDeviceId).eq("company_id", currentCompany.id);
+          if (error) throw error;
+          updated += 1; continue;
+        }
+        const { error } = await supabase.from("devices").insert([payload]);
+        if (error) throw error;
+        created += 1;
+      } catch (error: any) { errors.push(`Zeile ${previewRow.rowNumber}: ${error?.message || "unbekannter Fehler"}`); }
+    }
+    await loadDevices();
+    setDeviceImportBusy(false);
+    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+    setDeviceImportMessage(summary);
+    if (errors.length) alert(`Geräteimport abgeschlossen: ${summary}\n\n${errors.slice(0, 8).join("\n")}${errors.length > 8 ? "\n…" : ""}`);
+    else alert(`Geräteimport erfolgreich abgeschlossen.\n${summary}`);
+  }
+
   const role = userProfile?.role || null;
   const isAdmin = role === "admin";
   const isTechnician = role === "technician";
@@ -16104,6 +16318,34 @@ PRO-EFFEKT`,
                 )}
 
                 {customerImportMessage && <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700">{customerImportMessage}</div>}
+              </div>
+
+              <div className="rounded-[32px] border border-indigo-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Datenimport · Geräte / Anlagen</p>
+                    <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950">Excel- und CSV-Geräteimport</h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">Jede Zeile ist ein konkretes Kundengerät. TRYBUN ordnet es über die Kundennummer dem bereits vorhandenen Kunden zu. Seriennummer und Mandantenfirma werden sicher geprüft; unbekannte Kundennummern werden nicht importiert.</p>
+                  </div>
+                  {deviceImportRows.length > 0 && <button type="button" onClick={resetDeviceImport} disabled={deviceImportBusy} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50">Import zurücksetzen</button>}
+                </div>
+                <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Geräte-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleDeviceImportFile} disabled={deviceImportBusy} className="mt-2 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:font-black file:text-white disabled:opacity-50" /></label>
+                  <div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{deviceImportFileName || "Noch keine Datei"}</div>
+                </div>
+                {deviceImportRows.length > 0 && <>
+                  <div className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><h4 className="text-lg font-black text-slate-950">Gerätespalten zuordnen</h4><p className="text-sm font-semibold text-slate-500">Pflicht für den Import: Kundennummer, Seriennummer und Geräte-/Modellbezeichnung.</p></div><div className="rounded-2xl bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm">{deviceImportRows.length} Zeilen</div></div>
+                    <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{deviceImportFields.map((field) => <label key={field.key} className="block rounded-2xl border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{field.label}</span><select value={deviceImportMapping[field.key]} onChange={(event) => setDeviceImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-indigo-400"><option value="">Nicht importieren</option>{deviceImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
+                  </div>
+                  <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+                    <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Seriennummer-Duplikate</span><select value={deviceImportDuplicateMode} onChange={(event) => setDeviceImportDuplicateMode(event.target.value as DeviceImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandenes Gerät aktualisieren</option><option value="create">Trotzdem neu anlegen</option></select></label>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-600">Kundenzuordnung über Kundennummer. Seriennummer-Duplikate: <span className="font-black text-slate-950">{deviceImportPreview.filter((row) => row.duplicateDeviceId).length}</span></div>
+                    <button type="button" onClick={importDevicesFromFile} disabled={deviceImportBusy || deviceImportPreview.some((row) => !row.valid)} className="rounded-2xl bg-indigo-500 px-6 py-4 text-sm font-black text-white shadow-sm hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-300">{deviceImportBusy ? "Import läuft …" : "Geräte importieren"}</button>
+                  </div>
+                  <div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Geräte-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{deviceImportPreview.filter((row) => row.valid).length} gültig · {deviceImportPreview.filter((row) => !row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[1000px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Kundennr.</th><th className="px-4 py-3">Kunde</th><th className="px-4 py-3">Gerät / Modell</th><th className="px-4 py-3">Seriennummer</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{deviceImportPreview.slice(0,20).map((row) => <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-bold">{row.values.customer_number || "-"}</td><td className="px-4 py-3 font-black text-slate-900">{row.customerName || "-"}</td><td className="px-4 py-3">{row.values.name || row.values.model || "-"}</td><td className="px-4 py-3 font-bold">{row.values.serial_number || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.duplicateDeviceId ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.duplicateDeviceId ? "Duplikat" : "Bereit"}</span></td></tr>)}</tbody></table></div></div>
+                </>}
+                {deviceImportMessage && <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-black text-indigo-700">{deviceImportMessage}</div>}
               </div>
 
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
