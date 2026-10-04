@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.13 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.14 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -210,21 +210,10 @@ type SparePart = {
   manufacturer_part_number?: string | null;
   purchase_price?: number | null;
   storage_location?: string | null;
+  category?: string | null;
   created_at: string;
 };
 
-type ServicePart = {
-  id: number;
-  name: string;
-  sku: string | null;
-  category: string | null;
-  stock: number | null;
-  min_stock: number | null;
-  unit: string | null;
-  location: string | null;
-  note: string | null;
-  created_at: string;
-};
 
 type PartUsage = {
   id: number;
@@ -846,7 +835,7 @@ export default function Home() {
   const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlan[]>(
     [],
   );
-  const [serviceParts, setServiceParts] = useState<ServicePart[]>([]);
+  const [serviceParts, setServiceParts] = useState<SparePart[]>([]);
   const [partUsages, setPartUsages] = useState<PartUsage[]>([]);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -938,7 +927,7 @@ export default function Home() {
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editingPart, setEditingPart] = useState<ServicePart | null>(null);
+  const [editingPart, setEditingPart] = useState<SparePart | null>(null);
 
   const [customer, setCustomer] = useState("");
   const [device, setDevice] = useState("");
@@ -3092,16 +3081,17 @@ async function loadApplicationData() {
 
   async function loadServiceParts() {
     const { data, error } = await supabase
-      .from("service_parts")
+      .from("spare_parts")
       .select("*")
       .order("name", { ascending: true });
 
     if (error) {
       console.error("Ersatzteile konnten nicht geladen werden:", error.message);
+      setServiceParts([]);
       return;
     }
 
-    setServiceParts(data || []);
+    setServiceParts((data || []) as SparePart[]);
   }
 
   async function loadPartUsages() {
@@ -8548,7 +8538,7 @@ PRO-EFFEKT`,
     window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
   }
 
-  function stockStatus(part: ServicePart) {
+  function stockStatus(part: SparePart) {
     const stock = Number(part.stock || 0);
     const minStock = Number(part.min_stock || 0);
 
@@ -8574,7 +8564,7 @@ PRO-EFFEKT`,
     );
   }
 
-  function startEditPart(part: ServicePart) {
+  function startEditPart(part: SparePart) {
     setEditingPart(part);
     setPartName(part.name || "");
     setPartSku(part.sku || "");
@@ -8582,7 +8572,7 @@ PRO-EFFEKT`,
     setPartStock(String(part.stock ?? 0));
     setPartMinStock(String(part.min_stock ?? 1));
     setPartUnit(part.unit || "Stück");
-    setPartLocation(part.location || "");
+    setPartLocation(part.storage_location || "");
     setPartNote(part.note || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -8598,23 +8588,32 @@ PRO-EFFEKT`,
       return;
     }
 
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     const payload = {
+      company_id: currentCompany.id,
       name: partName.trim(),
       sku: partSku.trim() || null,
       category: partCategory.trim() || null,
       stock: Number(partStock) || 0,
       min_stock: Number(partMinStock) || 0,
       unit: partUnit.trim() || "Stück",
-      location: partLocation.trim() || null,
+      storage_location: partLocation.trim() || null,
       note: partNote.trim() || null,
     };
 
     const result = editingPart
       ? await supabase
-          .from("service_parts")
+          .from("spare_parts")
           .update(payload)
           .eq("id", editingPart.id)
-      : await supabase.from("service_parts").insert([payload]);
+          .eq("company_id", currentCompany.id)
+      : await supabase.from("spare_parts").insert([payload]);
 
     if (result.error) {
       alert(
@@ -8636,7 +8635,7 @@ PRO-EFFEKT`,
     if (!confirm("Ersatzteil wirklich löschen?")) return;
 
     const { error } = await supabase
-      .from("service_parts")
+      .from("spare_parts")
       .delete()
       .eq("id", partId);
 
@@ -8678,6 +8677,7 @@ PRO-EFFEKT`,
     const usageResult = await supabase.from("part_usages").insert([
       {
         part_id: part.id,
+        company_id: part.company_id,
         device_id: partUsageDeviceId ? Number(partUsageDeviceId) : null,
         ticket_id: partUsageTicketId ? Number(partUsageTicketId) : null,
         quantity,
@@ -8694,9 +8694,10 @@ PRO-EFFEKT`,
     }
 
     const updateResult = await supabase
-      .from("service_parts")
+      .from("spare_parts")
       .update({ stock: newStock })
-      .eq("id", part.id);
+      .eq("id", part.id)
+      .eq("company_id", part.company_id);
 
     if (updateResult.error) {
       alert(
@@ -11575,6 +11576,7 @@ PRO-EFFEKT`,
     }
 
     await loadManufacturers();
+    await loadServiceParts();
     setSparePartImportBusy(false);
     const summary = `${created} Ersatzteile neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu · ${suppliersCreated} Lieferanten neu${errors.length ? ` · ${errors.length} Fehler` : ""}`;
     setSparePartImportMessage(summary);
@@ -22812,7 +22814,7 @@ PRO-EFFEKT`,
                                 {part.name}
                               </h4>
                               <p className="mt-2 break-words text-sm text-slate-600">
-                                Lagerort: {part.location || "nicht angegeben"} ·
+                                Lagerort: {part.storage_location || "nicht angegeben"} ·
                                 Mindestbestand: {part.min_stock ?? 0}{" "}
                                 {part.unit || "Stück"}
                               </p>
