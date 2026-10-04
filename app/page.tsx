@@ -18295,7 +18295,7 @@ PRO-EFFEKT`,
                 </div>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.4fr]">
+              <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.65fr)]">
                 <div className="space-y-6">
                   <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">1 · Vorgang</p>
@@ -18450,8 +18450,8 @@ PRO-EFFEKT`,
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                <div className="min-w-0 space-y-6">
+                  <div className="min-w-0 overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 p-5 shadow-sm">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">4 · Prüfung</p>
@@ -18468,7 +18468,7 @@ PRO-EFFEKT`,
                     <div className="mt-5 space-y-3">
                       {abnahmeChecks.map((item, index) => (
                         <div key={`${index}-${item.question}`} className="rounded-2xl border border-slate-200 bg-white p-4">
-                          <div className="flex gap-3">
+                          <div className="flex min-w-0 flex-wrap gap-3">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-black text-white">{index + 1}</div>
                             <input
                               value={item.question}
@@ -18478,7 +18478,7 @@ PRO-EFFEKT`,
                             <button type="button" onClick={() => removeAbnahmeCheck(index)} className="rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600">Entfernen</button>
                           </div>
 
-                          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.7fr_0.45fr]">
+                          <div className="mt-4 grid min-w-0 gap-3 xl:grid-cols-[minmax(150px,0.9fr)_minmax(130px,0.7fr)_minmax(90px,0.4fr)]">
                             <select
                               value={item.result}
                               onChange={(e) => updateAbnahmeCheck(index, "result", e.target.value)}
