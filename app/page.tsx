@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.10.0 · Geräteimport + Kundenimport · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.10.1 · Geräteimport Spaltenerkennung + Kundenimport · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -636,19 +636,19 @@ type DeviceImportPreviewRow = {
 
 const deviceImportFields: Array<{ key: DeviceImportField; label: string; aliases: string[] }> = [
   { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "kd nr", "kdnr", "debitor", "debitor nr", "debitor nummer", "debitorennummer", "customer number", "customer_number"] },
-  { key: "name", label: "Gerät / Anlage", aliases: ["geraet", "gerät", "geraetename", "gerätename", "anlage", "anlagenname", "bezeichnung", "device", "device name"] },
+  { key: "name", label: "Gerät / Anlage", aliases: ["geraet", "gerät", "geraetename", "gerätename", "anlage", "anlagenname", "anlagenbezeichnung", "geraetebezeichnung", "gerätebezeichnung", "bezeichnung", "device", "device name"] },
   { key: "serial_number", label: "Seriennummer", aliases: ["seriennummer", "serien nr", "serien-nr", "seriennr", "serial", "serial number", "serial_number", "s/n"] },
   { key: "manufacturer", label: "Hersteller", aliases: ["hersteller", "fabrikat", "manufacturer", "marke"] },
   { key: "model", label: "Modell / Typ", aliases: ["modell", "typ", "modell typ", "gerätetyp", "geraetetyp", "model", "type"] },
   { key: "location", label: "Standort", aliases: ["standort", "einbauort", "aufstellort", "location"] },
-  { key: "status", label: "Status", aliases: ["status", "geraetestatus", "gerätestatus", "device status"] },
+  { key: "status", label: "Status", aliases: ["status", "anlagenstatus", "geraetestatus", "gerätestatus", "device status"] },
   { key: "next_check", label: "Nächste Prüfung", aliases: ["naechste pruefung", "nächste prüfung", "naechster prueftermin", "next check", "next_check"] },
   { key: "inspection_badge_number", label: "Prüfplaketten-Nr.", aliases: ["pruefplakette", "prüfplakette", "plakettennummer", "inspection badge number"] },
-  { key: "inspection_date", label: "Prüfdatum", aliases: ["pruefdatum", "prüfdatum", "inspection date", "inspection_date"] },
+  { key: "inspection_date", label: "Prüfdatum", aliases: ["pruefdatum", "prüfdatum", "letzte pruefung", "letzte prüfung", "letztes pruefdatum", "letztes prüfdatum", "inspection date", "inspection_date"] },
   { key: "inspection_expires", label: "Prüfung gültig bis", aliases: ["pruefung gueltig bis", "prüfung gültig bis", "inspection expires", "inspection_expires"] },
   { key: "inspection_result", label: "Prüfergebnis", aliases: ["pruefergebnis", "prüfergebnis", "inspection result", "inspection_result"] },
   { key: "inspection_comment", label: "Prüfkommentar", aliases: ["pruefkommentar", "prüfkommentar", "inspection comment", "inspection_comment"] },
-  { key: "service_date", label: "Wartungsdatum", aliases: ["wartungsdatum", "servicedatum", "service date", "service_date"] },
+  { key: "service_date", label: "Wartungsdatum", aliases: ["wartungsdatum", "letzte wartung", "letztes wartungsdatum", "servicedatum", "service date", "service_date"] },
   { key: "service_time", label: "Wartungszeit", aliases: ["wartungszeit", "servicezeit", "service time", "service_time"] },
   { key: "note", label: "Notiz", aliases: ["notiz", "bemerkung", "hinweis", "note", "notes"] },
 ];
