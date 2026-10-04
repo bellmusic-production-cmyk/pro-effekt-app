@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.24 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.25 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1184,6 +1184,16 @@ export default function Home() {
   const [uploadInspectionIntervalMonths, setUploadInspectionIntervalMonths] = useState("12");
   const [uploadInspectionBadgeNumber, setUploadInspectionBadgeNumber] = useState("");
   const [uploadInspectionNote, setUploadInspectionNote] = useState("");
+  const [commercialDocumentType, setCommercialDocumentType] = useState<"Auftrag" | "Lieferschein">("Auftrag");
+  const [commercialDocumentCustomerId, setCommercialDocumentCustomerId] = useState("");
+  const [commercialDocumentTicketId, setCommercialDocumentTicketId] = useState("");
+  const [commercialDocumentTitle, setCommercialDocumentTitle] = useState("");
+  const [commercialDocumentReference, setCommercialDocumentReference] = useState("");
+  const [commercialDocumentDate, setCommercialDocumentDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [commercialDocumentNote, setCommercialDocumentNote] = useState("");
+  const [commercialDocumentBusy, setCommercialDocumentBusy] = useState(false);
   const [selectedDeviceView, setSelectedDeviceView] = useState<Device | null>(
     null,
   );
@@ -10560,6 +10570,174 @@ PRO-EFFEKT`,
 
 
 
+  async function createCommercialDocument() {
+    if (!isAdmin) {
+      alert("Nur Admins können Aufträge und Lieferscheine erstellen.");
+      return;
+    }
+
+    const customer = customers.find(
+      (item) => item.id === Number(commercialDocumentCustomerId),
+    );
+
+    if (!customer) {
+      alert("Bitte einen Kunden auswählen.");
+      return;
+    }
+
+    if (!commercialDocumentTitle.trim()) {
+      alert("Bitte eine Bezeichnung / einen Betreff eingeben.");
+      return;
+    }
+
+    const selectedTicket = commercialDocumentTicketId
+      ? tickets.find((ticket) => ticket.id === Number(commercialDocumentTicketId))
+      : null;
+
+    if (selectedTicket?.customer_id && selectedTicket.customer_id !== customer.id) {
+      alert("Das ausgewählte Ticket gehört nicht zum ausgewählten Kunden.");
+      return;
+    }
+
+    const category = commercialDocumentType === "Auftrag" ? "Aufträge" : "Lieferscheine";
+    const prefix = commercialDocumentType === "Auftrag" ? "AU" : "LS";
+    const dateToken = (commercialDocumentDate || new Date().toISOString().split("T")[0]).replace(/-/g, "");
+    const number = `${prefix}-${dateToken}-${Date.now().toString().slice(-4)}`;
+    const fileName = `${commercialDocumentType}-${number}.html`;
+    const safeFileName = fileName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    const filePath = `${category}/${Date.now()}-${safeFileName}`;
+
+    const escapeText = (value: unknown) =>
+      String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const customerName = getCustomerLabel(customer);
+    const customerAddress = buildCustomerAddress(customer) || "Keine Adresse hinterlegt";
+    const companyName = companyData?.name || "TRYBUN";
+    const companyAddress = companyData?.address || "";
+    const companyContact = [companyData?.phone, companyData?.email, companyData?.website]
+      .filter(Boolean)
+      .join(" · ");
+
+    const html = `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeText(commercialDocumentType)} ${escapeText(number)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 40px; }
+    .head { display:flex; justify-content:space-between; gap:24px; border-bottom:3px solid #0ea5e9; padding-bottom:18px; }
+    h1 { margin:0; font-size:30px; }
+    .muted { color:#64748b; }
+    .box { margin-top:24px; border:1px solid #cbd5e1; border-radius:16px; padding:18px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#64748b; }
+    .value { margin-top:5px; font-weight:700; white-space:pre-wrap; }
+    .note { white-space:pre-wrap; line-height:1.55; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #cbd5e1; color:#64748b; font-size:12px; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>${escapeText(commercialDocumentType)}</h1>
+      <div class="muted">${escapeText(number)}</div>
+    </div>
+    <div style="text-align:right">
+      <strong>${escapeText(companyName)}</strong><br/>
+      ${companyAddress ? `${escapeText(companyAddress)}<br/>` : ""}
+      <span class="muted">${escapeText(companyContact)}</span>
+    </div>
+  </div>
+
+  <div class="box grid">
+    <div>
+      <div class="label">Kunde / Auftraggeber</div>
+      <div class="value">${escapeText(customerName)}</div>
+      <div class="muted">${escapeText(customerAddress)}</div>
+    </div>
+    <div>
+      <div class="label">Datum</div>
+      <div class="value">${escapeText(commercialDocumentDate || "-")}</div>
+      <div class="label" style="margin-top:14px">Referenz</div>
+      <div class="value">${escapeText(commercialDocumentReference || selectedTicket?.ticket_number || "-")}</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="label">Bezeichnung / Betreff</div>
+    <div class="value">${escapeText(commercialDocumentTitle.trim())}</div>
+    ${selectedTicket ? `<div class="muted" style="margin-top:10px">Ticket ${escapeText(selectedTicket.ticket_number)} · ${escapeText(selectedTicket.issue)}${selectedTicket.device ? ` · ${escapeText(selectedTicket.device)}` : ""}</div>` : ""}
+  </div>
+
+  <div class="box">
+    <div class="label">Bemerkung / Inhalt</div>
+    <div class="note">${escapeText(commercialDocumentNote.trim() || "Keine zusätzliche Bemerkung.")}</div>
+  </div>
+
+  <div class="footer">
+    ${escapeText(companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`)}
+  </div>
+</body>
+</html>`;
+
+    setCommercialDocumentBusy(true);
+
+    try {
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const uploadResult = await supabase.storage
+        .from("documents")
+        .upload(filePath, blob, {
+          contentType: "text/html;charset=utf-8",
+          upsert: false,
+        });
+
+      if (uploadResult.error) {
+        alert(`${commercialDocumentType} konnte nicht erstellt werden: ${uploadResult.error.message}`);
+        return;
+      }
+
+      const insertResult = await supabase.from("documents").insert([
+        {
+          file_name: fileName,
+          file_path: filePath,
+          category,
+          file_size: blob.size,
+          ticket_id: selectedTicket?.id || null,
+          customer_id: customer.id,
+        },
+      ]);
+
+      if (insertResult.error) {
+        alert(`Dokument wurde erzeugt, aber nicht im Archiv gespeichert: ${insertResult.error.message}`);
+        return;
+      }
+
+      await loadDocuments();
+      setActiveDocumentCategory(category);
+      setDocumentQuickFilter("Alle");
+      setDocumentPage(1);
+      setExpandedDocumentId(null);
+      setCommercialDocumentTicketId("");
+      setCommercialDocumentTitle("");
+      setCommercialDocumentReference("");
+      setCommercialDocumentNote("");
+
+      alert(`${commercialDocumentType} ${number} wurde erstellt und unter Dokumente → ${category} archiviert.`);
+    } finally {
+      setCommercialDocumentBusy(false);
+    }
+  }
+
+
   async function saveInvoice() {
     if (!isAdmin) {
       alert("Nur Admins können Rechnungen und Angebote erstellen.");
@@ -16628,6 +16806,139 @@ PRO-EFFEKT`,
                       Protokoll erstellen
                     </button>
                   </div>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Geschäftsdokumente</p>
+                    <h3 className="mt-1 text-xl font-black text-slate-950">Auftrag / Lieferschein erstellen</h3>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                      Erstelle einen Auftrag oder Lieferschein, ordne ihn einem Kunden und optional einem Ticket zu und archiviere ihn direkt unter Dokumente.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Dokumenttyp</label>
+                      <select
+                        value={commercialDocumentType}
+                        onChange={(e) => setCommercialDocumentType(e.target.value as "Auftrag" | "Lieferschein")}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="Auftrag">Auftrag</option>
+                        <option value="Lieferschein">Lieferschein</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kunde</label>
+                      <select
+                        value={commercialDocumentCustomerId}
+                        onChange={(e) => {
+                          setCommercialDocumentCustomerId(e.target.value);
+                          setCommercialDocumentTicketId("");
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="">Kunde auswählen</option>
+                        {[...customers]
+                          .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+                          .map((customerItem) => (
+                            <option key={customerItem.id} value={customerItem.id}>
+                              {getCustomerLabel(customerItem)}{customerItem.customer_number ? ` · ${customerItem.customer_number}` : ""}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ticket optional</label>
+                      <select
+                        value={commercialDocumentTicketId}
+                        onChange={(e) => {
+                          const nextId = e.target.value;
+                          setCommercialDocumentTicketId(nextId);
+                          const selectedTicket = tickets.find((ticket) => ticket.id === Number(nextId));
+                          if (selectedTicket?.customer_id) {
+                            setCommercialDocumentCustomerId(String(selectedTicket.customer_id));
+                          }
+                          if (selectedTicket && !commercialDocumentTitle.trim()) {
+                            setCommercialDocumentTitle(`${selectedTicket.issue}${selectedTicket.device ? ` · ${selectedTicket.device}` : ""}`);
+                          }
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="">Kein Ticket verknüpfen</option>
+                        {tickets
+                          .filter((ticket) =>
+                            !commercialDocumentCustomerId ||
+                            !ticket.customer_id ||
+                            ticket.customer_id === Number(commercialDocumentCustomerId),
+                          )
+                          .map((ticket) => (
+                            <option key={ticket.id} value={ticket.id}>
+                              {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Datum</label>
+                      <input
+                        type="date"
+                        value={commercialDocumentDate}
+                        onChange={(e) => setCommercialDocumentDate(e.target.value)}
+                        min={APP_DATE_MIN}
+                        max={APP_DATE_MAX}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bezeichnung / Betreff</label>
+                      <input
+                        value={commercialDocumentTitle}
+                        onChange={(e) => setCommercialDocumentTitle(e.target.value)}
+                        placeholder={commercialDocumentType === "Auftrag" ? "z. B. Wartungsauftrag Heizungsanlage" : "z. B. Lieferung Ersatzteile"}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Referenz optional</label>
+                      <input
+                        value={commercialDocumentReference}
+                        onChange={(e) => setCommercialDocumentReference(e.target.value)}
+                        placeholder="Bestellnummer / Vorgang / Kundenreferenz"
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bemerkung / Inhalt</label>
+                    <textarea
+                      value={commercialDocumentNote}
+                      onChange={(e) => setCommercialDocumentNote(e.target.value)}
+                      rows={4}
+                      placeholder={commercialDocumentType === "Auftrag" ? "Auftragsumfang, Hinweise, gewünschte Ausführung ..." : "Gelieferte Positionen, Mengen, Hinweise ..."}
+                      className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={createCommercialDocument}
+                    disabled={commercialDocumentBusy}
+                    className="mt-4 w-full rounded-2xl bg-sky-600 px-5 py-4 font-black text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    {commercialDocumentBusy ? "Dokument wird erstellt …" : `${commercialDocumentType} erstellen & archivieren`}
+                  </button>
                 </div>
               )}
 
