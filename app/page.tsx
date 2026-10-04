@@ -10508,6 +10508,121 @@ PRO-EFFEKT`,
   const calendarItemsCount =
     calendarTickets.length + calendarMaintenancePlans.length;
 
+  // Premium-Wochenkalender: calendarDate bestimmt die sichtbare Woche.
+  // Die Ticketdaten bleiben die einzige Quelle für Techniker, Datum, Uhrzeit,
+  // Kunde und Einsatzort. Dadurch bleibt die bestehende Disposition unverändert.
+  const calendarWeekStart = (() => {
+    const base = new Date(`${calendarDate || new Date().toISOString().split("T")[0]}T12:00:00`);
+    const day = base.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    base.setDate(base.getDate() + mondayOffset);
+    base.setHours(12, 0, 0, 0);
+    return base;
+  })();
+
+  const calendarWeekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(calendarWeekStart);
+    date.setDate(calendarWeekStart.getDate() + index);
+    const iso = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+    return { date, iso };
+  });
+
+  const calendarWeekEnd = calendarWeekDays[6]?.iso || calendarDate;
+  const calendarWeekStartIso = calendarWeekDays[0]?.iso || calendarDate;
+  const calendarTodayIso = (() => {
+    const now = new Date();
+    return [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
+  })();
+
+  const calendarWeekTickets = sortTicketsByAppointment(
+    visibleRoleTickets.filter((ticket) => {
+      if (!ticket.service_date) return false;
+      if (ticket.service_date < calendarWeekStartIso || ticket.service_date > calendarWeekEnd) return false;
+      if (
+        calendarTechnicianFilter !== "Alle" &&
+        ticket.assigned_to !== calendarTechnicianFilter
+      ) {
+        return false;
+      }
+      if (isTechnician && ticket.assigned_to !== userProfile?.id) return false;
+      return true;
+    }),
+  );
+
+  const calendarWeekMaintenancePlans = maintenancePlans.filter((plan) => {
+    if (!plan.next_due) return false;
+    if (plan.next_due < calendarWeekStartIso || plan.next_due > calendarWeekEnd) return false;
+    if (
+      calendarTechnicianFilter !== "Alle" &&
+      plan.assigned_to !== calendarTechnicianFilter
+    ) {
+      return false;
+    }
+    if (isTechnician && plan.assigned_to !== userProfile?.id) return false;
+    return true;
+  });
+
+  const calendarHours = Array.from({ length: 14 }, (_, index) => 7 + index);
+  const calendarHourHeight = 72;
+  const calendarStartHour = 7;
+  const calendarEndHour = 21;
+
+  function calendarMoveWeek(offset: number) {
+    const next = new Date(calendarWeekStart);
+    next.setDate(next.getDate() + offset * 7);
+    const iso = [
+      next.getFullYear(),
+      String(next.getMonth() + 1).padStart(2, "0"),
+      String(next.getDate()).padStart(2, "0"),
+    ].join("-");
+    setCalendarDate(iso);
+  }
+
+  function calendarGoToday() {
+    setCalendarDate(calendarTodayIso);
+  }
+
+  function calendarTicketTop(ticket: Ticket) {
+    const raw = String(ticket.service_time || "07:00").slice(0, 5);
+    const [hourValue, minuteValue] = raw.split(":").map(Number);
+    const hour = Number.isFinite(hourValue) ? hourValue : calendarStartHour;
+    const minute = Number.isFinite(minuteValue) ? minuteValue : 0;
+    const clampedMinutes = Math.max(
+      0,
+      Math.min(
+        (calendarEndHour - calendarStartHour) * 60 - 60,
+        (hour - calendarStartHour) * 60 + minute,
+      ),
+    );
+    return (clampedMinutes / 60) * calendarHourHeight;
+  }
+
+  function calendarFormatShortDate(date: Date) {
+    return new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+    }).format(date);
+  }
+
+  function calendarFormatWeekRange() {
+    const first = calendarWeekDays[0]?.date;
+    const last = calendarWeekDays[6]?.date;
+    if (!first || !last) return "";
+    return `${calendarFormatShortDate(first)} – ${new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(last)}`;
+  }
+
   const activeEinsatzTickets = sortTicketsByAppointment(
     visibleRoleTickets.filter(
       (ticket) =>
@@ -13352,318 +13467,308 @@ PRO-EFFEKT`,
                 TRYBUN · Betriebsbereit
               </div>
 
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Disposition
-                </p>
-                <h3 className="mt-2 text-4xl font-black">
-                  Tagesplanung & Tourenübersicht
-                </h3>
-                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Termine werden direkt aus den Tickets gelesen. Änderungen im Ticket aktualisieren Einsatz und Kalender automatisch.
-                </p>
+              <div className="overflow-hidden rounded-[34px] bg-[#07111d] text-white shadow-xl">
+                <div className="p-6 md:p-8">
+                  <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
+                        Disposition
+                      </p>
+                      <h3 className="mt-2 text-3xl font-black md:text-4xl">
+                        Einsatzkalender
+                      </h3>
+                      <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                        Wochenplanung für Serviceeinsätze und Techniker. Alle Termine werden direkt aus den Tickets gelesen.
+                      </p>
+                    </div>
 
-                <div className="mt-6 grid gap-3 md:grid-cols-3">
-                  <input
-                    value={calendarDate}
-                    onChange={(e) => setCalendarDate(e.target.value)}
-                    type="date"
-                    className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-black text-slate-900"
-                  />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => calendarMoveWeek(-1)}
+                        className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
+                      >
+                        ‹ Vorherige Woche
+                      </button>
+                      <button
+                        type="button"
+                        onClick={calendarGoToday}
+                        className="rounded-2xl bg-sky-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/20 transition hover:bg-sky-400"
+                      >
+                        Heute
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => calendarMoveWeek(1)}
+                        className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/20"
+                      >
+                        Nächste Woche ›
+                      </button>
+                    </div>
+                  </div>
 
-                  <select
-                    value={calendarTechnicianFilter}
-                    onChange={(e) => setCalendarTechnicianFilter(e.target.value)}
-                    className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-black text-slate-900"
-                  >
-                    <option value="Alle">Alle Techniker</option>
-                    {technicians.map((technician) => (
-                      <option key={technician.id} value={technician.id}>
-                        {technician.full_name || technician.company || technician.id}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+                    <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                        Kalenderwoche
+                      </p>
+                      <p className="mt-1 text-lg font-black text-white">{calendarFormatWeekRange()}</p>
+                    </div>
 
-                  <div className="rounded-2xl bg-white/10 px-5 py-4">
-                    <p className="text-xs font-bold text-slate-300">
-                      Einträge am Tag
-                    </p>
-                    <p className="text-xl font-black text-sky-400">
-                      {calendarItemsCount}
-                    </p>
+                    <select
+                      value={calendarTechnicianFilter}
+                      onChange={(e) => setCalendarTechnicianFilter(e.target.value)}
+                      className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-black text-slate-900"
+                    >
+                      <option value="Alle">Alle Techniker</option>
+                      {technicians.map((technician) => (
+                        <option key={technician.id} value={technician.id}>
+                          {technician.full_name || technician.company || technician.id}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+                        Geplante Einsätze
+                      </p>
+                      <p className="mt-1 text-lg font-black text-sky-400">
+                        {calendarWeekTickets.length}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {!isCustomer && (
-                <div className="rounded-[28px] border border-violet-200 bg-violet-50 p-5 shadow-sm">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-700">
-                        Wartungsautomatisierung
-                      </p>
-                      <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Automatischer Erinnerungsmonitor
-                      </h3>
-                      <p className="mt-1 text-sm font-bold text-slate-600">
-                        30 / 14 / 7 / 1 Tage Erinnerungen mit Doppelversand-Schutz.
-                      </p>
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => runMaintenanceAutomation(false)}
-                        className="rounded-2xl bg-violet-100 px-4 py-3 text-sm font-black text-violet-700"
-                      >
-                        Mails vormerken
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => runMaintenanceAutomation(true)}
-                        className="rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black text-white"
-                      >
-                        Automatik senden
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <StatCard label="Heute fällig" value={maintenanceAutomationStats.dueToday} />
-                    <StatCard label="Bereit" value={maintenanceAutomationStats.automationReady} />
-                    <StatCard label="Heute versendet" value={maintenanceAutomationStats.sentToday} />
-                    <StatCard label="Fehler" value={maintenanceAutomationStats.failed} />
-                  </div>
-                </div>
-              )}
-
-              {!isCustomer && maintenanceMailCandidates.length > 0 && (
-                <div className="rounded-[28px] border border-blue-200 bg-blue-50 p-5 shadow-sm">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-                        Automatische Wartungsmails
-                      </p>
-                      <h3 className="mt-1 text-xl font-black text-slate-900">
-                        {maintenanceMailCandidates.length} Wartungsmail(s) bereit
-                      </h3>
-                      <p className="mt-1 text-sm font-bold text-slate-600">
-                        Fällige Wartungen können direkt als E-Mail vorgemerkt oder sofort versendet werden.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openPage("Benachrichtigungen")}
-                      className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white"
-                    >
-                      Kommunikationszentrale öffnen
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!isCustomer && maintenanceTicketSuggestions.length > 0 && (
-                <div className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-sm">
+              <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+                <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">
-                        Wartungsplaner Premium
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">
+                        Wochenansicht
                       </p>
-                      <h3 className="mt-1 text-xl font-black text-slate-900">
-                        Nächste automatische Ticketvorschläge
-                      </h3>
+                      <h4 className="mt-1 text-2xl font-black text-slate-900">
+                        Techniker & Touren
+                      </h4>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white"
-                    >
-                      Zu den Vorschlägen
-                    </button>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    {maintenanceTicketSuggestions.slice(0, 3).map((plan) => {
-                      const dueState = getMaintenanceDueState(plan);
-
-                      return (
-                        <div key={plan.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <p className="font-black text-slate-900">{plan.title || "Wartung"}</p>
-                          <p className="mt-1 text-xs font-bold text-slate-500">
-                            {plan.maintenance_type || "Wartung"} · {plan.next_due || "ohne Termin"}
-                          </p>
-                          <span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ${dueState.className}`}>
-                            {dueState.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid gap-4 md:grid-cols-5">
-                <StatCard label="Tickets am gewählten Tag" value={calendarTickets.length} />
-                <StatCard label="Sicherheitsprüfung/Wartungen" value={calendarMaintenancePlans.length} />
-                <StatCard
-                  label="Offene Einsätze am Tag"
-                  value={
-                    calendarTickets.filter(
-                      (ticket) =>
-                        ticket.status !== "Abgeschlossen" &&
-                        ticket.status !== "Erledigt",
-                    ).length
-                  }
-                />
-                <StatCard label="Offene Tickets gesamt" value={activePlanningTickets.length} />
-                <StatCard label="Davon ungeplant" value={unplannedDispatchTickets.length} />
-              </div>
-
-              <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-black">Service-Einsätze</h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Direkt aus den Ticket-Terminen des gewählten Tages.
-                      </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-black">
+                      <span className="rounded-full bg-sky-100 px-3 py-2 text-sky-700">Serviceeinsatz</span>
+                      <span className="rounded-full bg-violet-100 px-3 py-2 text-violet-700">Wartung</span>
+                      {unplannedDispatchTickets.length > 0 && (
+                        <span className="rounded-full bg-amber-100 px-3 py-2 text-amber-800">
+                          {unplannedDispatchTickets.length} noch einzuplanen
+                        </span>
+                      )}
                     </div>
-                    <button
-                      onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
-                    >
-                      Tickets
-                    </button>
-                  </div>
-
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {calendarTickets.length === 0 ? (
-                      <div className="space-y-3">
-                        <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                          Keine geplanten Service-Einsätze für den gewählten Tag.
-                        </div>
-                        {activePlanningTickets.length > 0 && (
-                          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                            <p className="font-black text-amber-900">
-                              {activePlanningTickets.length} offene Ticket(s) vorhanden
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-amber-800">
-                              Davon sind {unplannedDispatchTickets.length} noch nicht vollständig disponiert
-                              (Techniker oder Termin fehlt). Offene Tickets ohne Termin erscheinen nicht als
-                              Einsatz am gewählten Kalendertag.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => openPage("Service-Tickets")}
-                              className="mt-3 rounded-xl bg-amber-900 px-4 py-2 text-sm font-black text-white"
-                            >
-                              Offene Tickets anzeigen
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      calendarTickets.map((ticket) => (
-                          <div
-                            key={ticket.id}
-                            className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                          >
-                            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                              <div>
-                                <p className="text-xs font-black text-sky-500">
-                                  {ticket.service_time || "ohne Uhrzeit"} · {ticket.ticket_number}
-                                </p>
-                                <h4 className="mt-1 break-words text-xl font-black">
-                                  {ticket.customer}
-                                </h4>
-                                <p className="mt-2 break-words text-sm text-slate-600">
-                                  {ticket.device} · {ticket.issue}
-                                </p>
-                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
-                                  Techniker: {getTechnicianNameById(ticket.assigned_to)}
-                                </p>
-                              </div>
-
-                              <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
-                                <span className={`rounded-full px-4 py-2 text-sm font-bold ${statusClass(ticket.status)}`}>
-                                  {ticket.status}
-                                </span>
-                                <button
-                                  onClick={() => openPage("Einsatz")}
-                                  className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
-                                >
-                                  Einsatz öffnen
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                    )}
                   </div>
                 </div>
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-black">Wartungen</h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Sicherheitsprüfung- und Wartungspläne mit Fälligkeit am gewählten Tag.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => openPage("Abnahmeprotokoll")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
-                    >
-                      Wartung
-                    </button>
-                  </div>
-
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {calendarMaintenancePlans.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Sicherheitsprüfung/Wartungen für diesen Tag.
+                <div className="overflow-x-auto">
+                  <div className="min-w-[1180px]">
+                    <div className="grid grid-cols-[82px_repeat(7,minmax(150px,1fr))] border-b border-slate-200 bg-white">
+                      <div className="border-r border-slate-200 p-3 text-center text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                        Zeit
                       </div>
-                    ) : (
-                      calendarMaintenancePlans.map((plan) => {
-                        const deviceItem = devices.find(
-                          (device) => device.id === plan.device_id,
-                        );
+                      {calendarWeekDays.map((dayItem) => {
+                        const isToday = dayItem.iso === calendarTodayIso;
+                        const dayTickets = calendarWeekTickets.filter((ticket) => ticket.service_date === dayItem.iso);
+                        const dayMaintenance = calendarWeekMaintenancePlans.filter((plan) => plan.next_due === dayItem.iso);
 
                         return (
                           <div
-                            key={plan.id}
-                            className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                            key={dayItem.iso}
+                            className={`border-r border-slate-200 p-3 text-center last:border-r-0 ${
+                              isToday ? "bg-sky-50" : ""
+                            }`}
                           >
-                            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                              <div>
-                                <p className="text-xs font-black text-sky-500">
-                                  {plan.maintenance_type || "Wartung"}
-                                </p>
-                                <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
-                                  {plan.title || "Wartung"}
-                                </h4>
-                                <p className="mt-2 break-words text-sm text-slate-600">
-                                  Kunde: {getCustomerNameById(plan.customer_id || deviceItem?.customer_id || null)}
-                                </p>
-                                <p className="mt-1 text-sm text-slate-600">
-                                  Gerät: {deviceItem?.name || "Unbekanntes Gerät"}
-                                </p>
-                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
-                                  Techniker: {getMaintenanceAssignedName(plan.assigned_to)}
-                                </p>
-                              </div>
-
-                              <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700">
-                                {plan.status || "Geplant"}
+                            <p className={`text-xs font-black uppercase tracking-[0.12em] ${
+                              isToday ? "text-sky-600" : "text-slate-500"
+                            }`}>
+                              {new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(dayItem.date)}
+                            </p>
+                            <div className="mt-1 flex items-center justify-center gap-2">
+                              <span className={`text-xl font-black ${
+                                isToday ? "text-sky-700" : "text-slate-900"
+                              }`}>
+                                {calendarFormatShortDate(dayItem.date)}
                               </span>
+                              {isToday && (
+                                <span className="rounded-full bg-sky-500 px-2 py-1 text-[9px] font-black uppercase text-white">
+                                  Heute
+                                </span>
+                              )}
                             </div>
+                            <p className="mt-1 text-[10px] font-bold text-slate-400">
+                              {dayTickets.length} Einsatz{dayTickets.length === 1 ? "" : "e"}
+                              {dayMaintenance.length > 0 ? ` · ${dayMaintenance.length} Wartung` : ""}
+                            </p>
                           </div>
                         );
-                      })
+                      })}
+                    </div>
+
+                    {calendarWeekMaintenancePlans.length > 0 && (
+                      <div className="grid grid-cols-[82px_repeat(7,minmax(150px,1fr))] border-b border-violet-100 bg-violet-50/40">
+                        <div className="border-r border-violet-100 p-3 text-center text-[10px] font-black uppercase tracking-[0.1em] text-violet-500">
+                          Ganztägig
+                        </div>
+                        {calendarWeekDays.map((dayItem) => {
+                          const dayMaintenance = calendarWeekMaintenancePlans.filter((plan) => plan.next_due === dayItem.iso);
+                          return (
+                            <div key={dayItem.iso} className="min-h-[62px] border-r border-violet-100 p-2 last:border-r-0">
+                              {dayMaintenance.map((plan) => (
+                                <div
+                                  key={plan.id}
+                                  className="mb-1 rounded-xl border border-violet-200 bg-violet-100 px-2 py-2 text-[10px] font-black text-violet-800"
+                                >
+                                  Wartung · {plan.title || plan.maintenance_type || "Wartung"}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
+
+                    <div className="grid grid-cols-[82px_repeat(7,minmax(150px,1fr))]">
+                      <div className="relative border-r border-slate-200 bg-slate-50" style={{ height: `${calendarHours.length * calendarHourHeight}px` }}>
+                        {calendarHours.map((hour, index) => (
+                          <div
+                            key={hour}
+                            className="absolute left-0 right-0 border-t border-slate-200 px-3 pt-1 text-right text-[11px] font-black text-slate-400"
+                            style={{ top: `${index * calendarHourHeight}px`, height: `${calendarHourHeight}px` }}
+                          >
+                            {String(hour).padStart(2, "0")}:00
+                          </div>
+                        ))}
+                      </div>
+
+                      {calendarWeekDays.map((dayItem) => {
+                        const dayTickets = calendarWeekTickets.filter((ticket) => ticket.service_date === dayItem.iso);
+                        const isToday = dayItem.iso === calendarTodayIso;
+
+                        return (
+                          <div
+                            key={dayItem.iso}
+                            className={`relative border-r border-slate-200 last:border-r-0 ${
+                              isToday ? "bg-sky-50/35" : "bg-white"
+                            }`}
+                            style={{
+                              height: `${calendarHours.length * calendarHourHeight}px`,
+                              backgroundImage:
+                                "repeating-linear-gradient(to bottom, transparent 0, transparent 71px, rgba(148,163,184,0.22) 71px, rgba(148,163,184,0.22) 72px)",
+                            }}
+                          >
+                            {dayTickets.map((ticket) => {
+                              const sameTimeTickets = dayTickets.filter(
+                                (item) => String(item.service_time || "").slice(0, 5) === String(ticket.service_time || "").slice(0, 5),
+                              );
+                              const sameTimeIndex = sameTimeTickets.findIndex((item) => item.id === ticket.id);
+                              const overlapCount = Math.max(1, sameTimeTickets.length);
+                              const widthPercent = 100 / overlapCount;
+                              const leftPercent = sameTimeIndex * widthPercent;
+                              const ticketCustomer =
+                                customers.find((item) => item.id === ticket.billing_customer_id) ||
+                                customers.find((item) => item.id === ticket.customer_id) ||
+                                null;
+                              const address =
+                                ticket.service_address ||
+                                [
+                                  ticketCustomer?.street,
+                                  ticketCustomer?.house_number,
+                                  ticketCustomer?.postal_code,
+                                  ticketCustomer?.city,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ") ||
+                                ticketCustomer?.address ||
+                                "Einsatzort nicht hinterlegt";
+
+                              return (
+                                <button
+                                  key={ticket.id}
+                                  type="button"
+                                  onClick={() => openPage("Einsatz")}
+                                  className="absolute z-10 overflow-hidden rounded-xl border border-sky-200 bg-sky-600 p-2 text-left text-white shadow-lg shadow-sky-900/15 transition hover:z-20 hover:-translate-y-0.5 hover:bg-sky-500 hover:shadow-xl"
+                                  style={{
+                                    top: `${calendarTicketTop(ticket) + 3}px`,
+                                    height: "66px",
+                                    left: `calc(${leftPercent}% + 3px)`,
+                                    width: `calc(${widthPercent}% - 6px)`,
+                                  }}
+                                  title={`${ticket.ticket_number} · ${ticket.customer} · ${address}`}
+                                >
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="truncate text-[11px] font-black">
+                                      {String(ticket.service_time || "07:00").slice(0, 5)}
+                                    </span>
+                                    <span className="truncate text-[9px] font-black text-sky-100">
+                                      {ticket.ticket_number}
+                                    </span>
+                                  </div>
+                                  <p className="mt-0.5 truncate text-[11px] font-black">
+                                    {getTechnicianNameById(ticket.assigned_to)}
+                                  </p>
+                                  <p className="truncate text-[10px] font-bold text-sky-50">
+                                    {ticket.customer}
+                                  </p>
+                                  <p className="truncate text-[9px] font-semibold text-sky-100">
+                                    📍 {address}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {unplannedDispatchTickets.length > 0 && !isCustomer && (
+                <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
+                        Noch einzuplanen
+                      </p>
+                      <h4 className="mt-1 text-xl font-black text-slate-900">
+                        {unplannedDispatchTickets.length} offene Ticket{unplannedDispatchTickets.length === 1 ? "" : "s"} ohne vollständige Disposition
+                      </h4>
+                      <p className="mt-1 text-sm font-semibold text-slate-600">
+                        Techniker oder Einsatzdatum fehlt. Diese Tickets erscheinen erst nach vollständiger Planung im Kalender.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openPage("Service-Tickets")}
+                      className="rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
+                    >
+                      Tickets disponieren
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {unplannedDispatchTickets.slice(0, 6).map((ticket) => (
+                      <div key={ticket.id} className="rounded-2xl border border-amber-200 bg-white p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-black text-amber-700">{ticket.ticket_number}</span>
+                          <span className={`rounded-full px-3 py-1 text-[10px] font-black ${statusClass(ticket.status)}`}>
+                            {ticket.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 truncate font-black text-slate-900">{ticket.customer}</p>
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+                          {!ticket.assigned_to ? "Techniker fehlt" : getTechnicianNameById(ticket.assigned_to)}
+                          {" · "}
+                          {!ticket.service_date ? "Termin fehlt" : ticket.service_date}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
