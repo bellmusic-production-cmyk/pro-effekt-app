@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.10.1 · Geräteimport Spaltenerkennung + Kundenimport · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.10.2 · Geräteimport Spaltenerkennung + Kundenimport · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10724,7 +10724,7 @@ PRO-EFFEKT`,
 
     await loadCustomers();
     setCustomerImportBusy(false);
-    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} Duplikat(e) übersprungen${invalidRows.length ? ` · ${invalidRows.length} fehlerhafte Zeile(n) nicht importiert` : ""}${errors.length ? ` · ${errors.length} Importfehler` : ""}`;
     setCustomerImportMessage(summary);
 
     if (errors.length > 0) {
@@ -10837,16 +10837,17 @@ PRO-EFFEKT`,
     const currentCompany = companyData || (await loadCompany(session?.user?.id));
     if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
     if (!deviceImportRows.length) { alert("Bitte zuerst eine Geräte-Excel- oder CSV-Datei auswählen."); return; }
+    const validRows = deviceImportPreview.filter((row) => row.valid);
     const invalidRows = deviceImportPreview.filter((row) => !row.valid);
-    if (invalidRows.length) { alert(`Import gestoppt: ${invalidRows.length} Zeile(n) sind fehlerhaft. Unbekannte Kunden, fehlende Seriennummern oder fehlende Gerätebezeichnungen müssen zuerst korrigiert werden.`); return; }
-    const duplicateRows = deviceImportPreview.filter((row) => row.duplicateDeviceId);
+    if (!validRows.length) { alert("Es gibt keine gültigen Gerätezeilen zum Importieren."); return; }
+    const duplicateRows = validRows.filter((row) => row.duplicateDeviceId);
     const actionLabel = deviceImportDuplicateMode === "skip" ? "übersprungen" : deviceImportDuplicateMode === "update" ? "aktualisiert" : "zusätzlich angelegt";
-    if (!confirm(`${deviceImportPreview.length} Gerätezeile(n) importieren?${duplicateRows.length ? `\n${duplicateRows.length} Seriennummer-Duplikat(e) werden ${actionLabel}.` : ""}`)) return;
+    if (!confirm(`${validRows.length} gültige Gerätezeile(n) importieren?${invalidRows.length ? `\n${invalidRows.length} fehlerhafte Zeile(n) werden nicht importiert.` : ""}${duplicateRows.length ? `\n${duplicateRows.length} Seriennummer-Duplikat(e) werden ${actionLabel}.` : ""}`)) return;
     setDeviceImportBusy(true);
     setDeviceImportMessage("Import läuft …");
     let created = 0, updated = 0, skipped = 0;
     const errors: string[] = [];
-    for (const previewRow of deviceImportPreview) {
+    for (const previewRow of validRows) {
       const v = previewRow.values;
       const payload = {
         company_id: currentCompany.id,
@@ -16341,7 +16342,7 @@ PRO-EFFEKT`,
                   <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
                     <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Seriennummer-Duplikate</span><select value={deviceImportDuplicateMode} onChange={(event) => setDeviceImportDuplicateMode(event.target.value as DeviceImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandenes Gerät aktualisieren</option><option value="create">Trotzdem neu anlegen</option></select></label>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-600">Kundenzuordnung über Kundennummer. Seriennummer-Duplikate: <span className="font-black text-slate-950">{deviceImportPreview.filter((row) => row.duplicateDeviceId).length}</span></div>
-                    <button type="button" onClick={importDevicesFromFile} disabled={deviceImportBusy || deviceImportPreview.some((row) => !row.valid)} className="rounded-2xl bg-indigo-500 px-6 py-4 text-sm font-black text-white shadow-sm hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-300">{deviceImportBusy ? "Import läuft …" : "Geräte importieren"}</button>
+                    <button type="button" onClick={importDevicesFromFile} disabled={deviceImportBusy || !deviceImportPreview.some((row) => row.valid)} className="rounded-2xl bg-indigo-500 px-6 py-4 text-sm font-black text-white shadow-sm hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-300">{deviceImportBusy ? "Import läuft …" : "Geräte importieren"}</button>
                   </div>
                   <div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Geräte-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{deviceImportPreview.filter((row) => row.valid).length} gültig · {deviceImportPreview.filter((row) => !row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[1000px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Kundennr.</th><th className="px-4 py-3">Kunde</th><th className="px-4 py-3">Gerät / Modell</th><th className="px-4 py-3">Seriennummer</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{deviceImportPreview.slice(0,20).map((row) => <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-bold">{row.values.customer_number || "-"}</td><td className="px-4 py-3 font-black text-slate-900">{row.customerName || "-"}</td><td className="px-4 py-3">{row.values.name || row.values.model || "-"}</td><td className="px-4 py-3 font-bold">{row.values.serial_number || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.duplicateDeviceId ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.duplicateDeviceId ? "Duplikat" : "Bereit"}</span></td></tr>)}</tbody></table></div></div>
                 </>}
