@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.6 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.7 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -16961,7 +16961,7 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN White-Label · Firmeneinstellungen
+                Firmeneinstellungen
               </div>
 
               <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
@@ -16972,7 +16972,7 @@ PRO-EFFEKT`,
                   Firmendesign verwalten
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Logo, Firmenfarbe und Kontaktdaten werden später für Dashboard, Login, PDF-Dokumente und Kundenportal verwendet.
+                  Logo, Firmenfarbe und Kontaktdaten steuern das Erscheinungsbild von Dashboard, Login, PDF-Dokumenten und Kundenportal.
                 </p>
               </div>
 
@@ -16980,13 +16980,13 @@ PRO-EFFEKT`,
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-400">
-                      Benutzerverwaltung Premium · Phase 1
+                      Benutzer & Rollen
                     </p>
                     <h3 className="mt-2 text-2xl font-black tracking-[-0.03em]">
                       Rollen, Zugänge und Portal-Zuordnung im Überblick
                     </h3>
                     <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
-                      Diese Übersicht ist bewusst zunächst nur lesend. TRYBUN zeigt vorhandene Profile, Rollen, Aktivstatus und Kundenverknüpfung, ohne Auth-Zugänge, Einladungen oder Passwörter automatisch zu verändern.
+                      Verwalte interne Benutzer und Kundenportal-Zugänge zentral nach Benutzergruppe. Rollen, Aktivstatus und Kundenverknüpfungen sind direkt sichtbar.
                     </p>
                   </div>
 
@@ -17002,10 +17002,10 @@ PRO-EFFEKT`,
                 <div className="mt-6 rounded-[28px] border border-sky-400/20 bg-sky-500/10 p-5">
                   <div className="flex flex-col gap-2">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
-                      Benutzer anlegen · Phase 2
+                      Benutzer anlegen
                     </p>
                     <h4 className="text-xl font-black text-white">
-                      Neuen Zugang vorbereiten
+                      Neuen Zugang anlegen
                     </h4>
                     <p className="max-w-3xl text-sm font-semibold leading-6 text-slate-300">
                       Der Admin legt hier echte Supabase-Auth-Benutzer an. Rollen und Kundenportal-Zuordnung werden direkt in TRYBUN gespeichert.
