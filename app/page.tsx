@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.38 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.39 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -743,6 +743,7 @@ type MasterImportDuplicateMode = "skip" | "update";
 type ManufacturerImportField = "name" | "dealer_number" | "contact_person" | "phone" | "email" | "address" | "website" | "parts_url" | "note" | "model_name" | "model_category" | "model_type" | "model_note";
 type SupplierImportField = "name" | "dealer_number" | "contact_person" | "phone" | "email" | "address" | "website" | "parts_url" | "note";
 type ModelImportField = "manufacturer" | "name" | "category" | "type" | "note";
+type DeviceStockImportField = "manufacturer" | "model" | "stock" | "min_stock" | "unit" | "storage_location" | "purchase_price" | "sale_price";
 type SparePartImportField = "name" | "sku" | "manufacturer" | "supplier" | "manufacturer_part_number" | "stock" | "min_stock" | "unit" | "purchase_price" | "storage_location" | "note";
 
 type GenericImportMapping = Record<string, string>;
@@ -782,6 +783,17 @@ const modelImportFields: Array<{ key: ModelImportField; label: string; aliases: 
   { key: "category", label: "Kategorie", aliases: ["kategorie", "category", "gruppe", "warengruppe"] },
   { key: "type", label: "Gerätetyp", aliases: ["gerätetyp", "geraetetyp", "type", "device type"] },
   { key: "note", label: "Notiz", aliases: ["notiz", "bemerkung", "hinweis", "note"] },
+];
+
+const deviceStockImportFields: Array<{ key: DeviceStockImportField; label: string; aliases: string[] }> = [
+  { key: "manufacturer", label: "Hersteller", aliases: ["hersteller", "herstellername", "manufacturer", "marke", "fabrikat"] },
+  { key: "model", label: "Modell", aliases: ["modell", "modellname", "modell typ", "modell/typ", "model", "model name"] },
+  { key: "stock", label: "Bestand", aliases: ["bestand", "lagerbestand", "stock", "menge", "anzahl"] },
+  { key: "min_stock", label: "Mindestbestand", aliases: ["mindestbestand", "meldebestand", "min stock", "minimum stock"] },
+  { key: "unit", label: "Einheit", aliases: ["einheit", "unit", "mengeneinheit"] },
+  { key: "storage_location", label: "Lagerort", aliases: ["lagerort", "lagerplatz", "storage location", "location"] },
+  { key: "purchase_price", label: "Einkaufspreis", aliases: ["einkaufspreis", "ek", "ek preis", "purchase price"] },
+  { key: "sale_price", label: "Verkaufspreis", aliases: ["verkaufspreis", "vk", "vk preis", "sale price", "selling price"] },
 ];
 
 const sparePartImportFields: Array<{ key: SparePartImportField; label: string; aliases: string[] }> = [
@@ -1064,6 +1076,14 @@ export default function Home() {
   const [modelImportDuplicateMode, setModelImportDuplicateMode] = useState<MasterImportDuplicateMode>("skip");
   const [modelImportBusy, setModelImportBusy] = useState(false);
   const [modelImportMessage, setModelImportMessage] = useState("");
+
+  const [deviceStockImportFileName, setDeviceStockImportFileName] = useState("");
+  const [deviceStockImportHeaders, setDeviceStockImportHeaders] = useState<string[]>([]);
+  const [deviceStockImportRows, setDeviceStockImportRows] = useState<Record<string, string>[]>([]);
+  const [deviceStockImportMapping, setDeviceStockImportMapping] = useState<GenericImportMapping>(() => emptyGenericMapping(deviceStockImportFields));
+  const [deviceStockImportDuplicateMode, setDeviceStockImportDuplicateMode] = useState<MasterImportDuplicateMode>("update");
+  const [deviceStockImportBusy, setDeviceStockImportBusy] = useState(false);
+  const [deviceStockImportMessage, setDeviceStockImportMessage] = useState("");
 
   const [sparePartImportFileName, setSparePartImportFileName] = useState("");
   const [sparePartImportHeaders, setSparePartImportHeaders] = useState<string[]>([]);
@@ -12018,6 +12038,38 @@ PRO-EFFEKT`,
     });
   }, [manufacturerImportRows, manufacturerImportMapping, manufacturers, deviceModels]);
 
+  const deviceStockImportPreview = useMemo(() => {
+    return deviceStockImportRows.map((row, index) => {
+      const manufacturerName = importValue(row, deviceStockImportMapping, "manufacturer");
+      const modelName = importValue(row, deviceStockImportMapping, "model");
+      const manufacturer = manufacturerName
+        ? manufacturers.find((item) => normalizeMasterKey(item.name) === normalizeMasterKey(manufacturerName)) || null
+        : null;
+      const model = manufacturer && modelName
+        ? deviceModels.find((item) => item.manufacturer_id === manufacturer.id && normalizeMasterKey(getDeviceModelDisplayName(item)) === normalizeMasterKey(modelName)) || null
+        : null;
+      let error = "";
+      if (!manufacturerName) error = "Hersteller fehlt";
+      else if (!modelName) error = "Modell fehlt";
+      else if (!manufacturer) error = "Hersteller nicht gefunden";
+      else if (!model) error = "Modell nicht gefunden";
+      const valid = !error;
+      return {
+        rowNumber: index + 2,
+        manufacturerName,
+        modelName,
+        stock: Math.max(0, Math.trunc(parseImportNumber(importValue(row, deviceStockImportMapping, "stock"), 0))),
+        minStock: Math.max(0, Math.trunc(parseImportNumber(importValue(row, deviceStockImportMapping, "min_stock"), 0))),
+        unit: importValue(row, deviceStockImportMapping, "unit") || "Stück",
+        storageLocation: importValue(row, deviceStockImportMapping, "storage_location"),
+        valid,
+        error,
+        modelId: model?.id || null,
+        alreadyStocked: Boolean(model?.is_stocked),
+      };
+    });
+  }, [deviceStockImportRows, deviceStockImportMapping, manufacturers, deviceModels]);
+
   const supplierImportPreview = useMemo(() => {
     return supplierImportRows.map((row, index) => {
       const name = importValue(row, supplierImportMapping, "name");
@@ -12198,6 +12250,100 @@ PRO-EFFEKT`,
     alert(`Hersteller- & Modellimport abgeschlossen.\n${summary}${errors.length ? `\n\n${errors.slice(0, 8).join("\n")}` : ""}`);
   }
 
+
+  async function handleDeviceStockImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
+    if (!isAdmin) { alert("Der Datenimport ist ausschließlich für Admins verfügbar."); return; }
+    setDeviceStockImportBusy(true); setDeviceStockImportMessage("");
+    try {
+      const { headers, rows } = await readMasterImportFile(file);
+      setDeviceStockImportFileName(file.name);
+      setDeviceStockImportHeaders(headers);
+      setDeviceStockImportRows(rows);
+      setDeviceStockImportMapping(autoMapGenericImportHeaders(headers, deviceStockImportFields));
+      setDeviceStockImportMessage(`${rows.length} Gerätebestandszeile(n) eingelesen.`);
+    } catch (error: any) {
+      alert(`Gerätebestandsdatei konnte nicht gelesen werden: ${error?.message || "Datei prüfen."}`);
+    } finally {
+      setDeviceStockImportBusy(false);
+    }
+  }
+
+  async function importDeviceStockFromFile() {
+    if (!isAdmin) return;
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
+
+    const rows = deviceStockImportRows.map((row, index) => ({
+      row,
+      rowNumber: index + 2,
+      manufacturerName: importValue(row, deviceStockImportMapping, "manufacturer"),
+      modelName: importValue(row, deviceStockImportMapping, "model"),
+    })).filter((item) => item.manufacturerName || item.modelName);
+
+    if (!rows.length) { alert("Keine gültigen Gerätebestandszeilen gefunden."); return; }
+    if (!confirm(`${rows.length} Gerätebestandszeile(n) für ${currentCompany.name} importieren?\nHersteller und Modelle müssen bereits im Stammdatenkatalog vorhanden sein.`)) return;
+
+    setDeviceStockImportBusy(true);
+    setDeviceStockImportMessage("Import läuft …");
+    let activated = 0, updated = 0, skipped = 0;
+    const errors: string[] = [];
+
+    const [{ data: mans, error: me }, { data: mods, error: moe }] = await Promise.all([
+      supabase.from("manufacturers").select("*").eq("company_id", currentCompany.id),
+      supabase.from("device_models").select("*").eq("company_id", currentCompany.id),
+    ]);
+    if (me || moe) {
+      setDeviceStockImportBusy(false);
+      alert("Hersteller und Modelle konnten für den Gerätebestand nicht geladen werden.");
+      return;
+    }
+
+    const manMap = new Map<string, Manufacturer>();
+    (mans || []).forEach((item: any) => manMap.set(normalizeMasterKey(item.name), item));
+    const modelMap = new Map<string, DeviceModel>();
+    (mods || []).forEach((item: any) => modelMap.set(`${item.manufacturer_id || 0}::${normalizeMasterKey(getDeviceModelDisplayName(item))}`, item));
+
+    for (const item of rows) {
+      try {
+        const manufacturer = manMap.get(normalizeMasterKey(item.manufacturerName));
+        if (!manufacturer) { errors.push(`Zeile ${item.rowNumber}: Hersteller nicht gefunden.`); continue; }
+        const model = modelMap.get(`${manufacturer.id}::${normalizeMasterKey(item.modelName)}`);
+        if (!model) { errors.push(`Zeile ${item.rowNumber}: Modell nicht beim gewählten Hersteller gefunden.`); continue; }
+        if (model.is_stocked && deviceStockImportDuplicateMode === "skip") { skipped++; continue; }
+
+        const purchasePriceText = importValue(item.row, deviceStockImportMapping, "purchase_price");
+        const salePriceText = importValue(item.row, deviceStockImportMapping, "sale_price");
+        const payload = {
+          is_stocked: true,
+          stock: Math.max(0, Math.trunc(parseImportNumber(importValue(item.row, deviceStockImportMapping, "stock"), 0))),
+          min_stock: Math.max(0, Math.trunc(parseImportNumber(importValue(item.row, deviceStockImportMapping, "min_stock"), 0))),
+          unit: importValue(item.row, deviceStockImportMapping, "unit") || "Stück",
+          storage_location: importValue(item.row, deviceStockImportMapping, "storage_location") || null,
+          purchase_price: purchasePriceText ? Math.max(0, parseImportNumber(purchasePriceText, 0)) : null,
+          sale_price: salePriceText ? Math.max(0, parseImportNumber(salePriceText, 0)) : null,
+        };
+        const { error } = await supabase.from("device_models").update(payload).eq("id", model.id).eq("company_id", currentCompany.id);
+        if (error) throw error;
+        if (model.is_stocked) updated++; else activated++;
+        modelMap.set(`${manufacturer.id}::${normalizeMasterKey(item.modelName)}`, { ...model, ...payload } as DeviceModel);
+      } catch (error: any) {
+        errors.push(`Zeile ${item.rowNumber}: konnte nicht importiert werden.`);
+      }
+    }
+
+    await loadDeviceModels();
+    setDeviceStockImportBusy(false);
+    const summary = `${activated} neu im Gerätebestand · ${updated} Bestände aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+    if (errors.length === 0) {
+      setDeviceStockImportFileName("");
+      setDeviceStockImportHeaders([]);
+      setDeviceStockImportRows([]);
+      setDeviceStockImportMapping(emptyGenericMapping(deviceStockImportFields));
+    }
+    setDeviceStockImportMessage(summary);
+    alert(`Gerätebestand-Import abgeschlossen.\n${summary}${errors.length ? `\n\n${errors.slice(0, 8).join("\n")}` : ""}`);
+  }
 
   async function handleSupplierImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
@@ -18279,6 +18425,25 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Hersteller-&-Modelle-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{manufacturerImportPreview.filter((row) => row.valid).length} gültig · {manufacturerImportPreview.filter((row) => !row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Modell</th><th className="px-4 py-3">Kategorie</th><th className="px-4 py-3">Gerätetyp</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{manufacturerImportPreview.slice(0,20).map((row) => <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.manufacturerName || "-"}</td><td className="px-4 py-3">{row.modelName || "Nur Hersteller"}</td><td className="px-4 py-3">{row.category || "-"}</td><td className="px-4 py-3">{row.type || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.modelExists || (row.manufacturerExists && !row.modelName) ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.modelExists ? "Modell vorhanden" : row.manufacturerExists && !row.modelName ? "Hersteller vorhanden" : row.manufacturerExists ? "Modell neu" : "Bereit"}</span></td></tr>)}</tbody></table></div></div>
                 </>}
                 {manufacturerImportMessage && <div className="mt-4 break-words rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">{manufacturerImportMessage}</div>}
+              </div>
+
+              <div className="rounded-[32px] border border-violet-200 bg-white p-5 shadow-sm sm:p-6">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-600">Datenimport · Gerätebestand</p>
+                <h3 className="mt-2 text-2xl font-black text-slate-950">Gerätebestand importieren</h3>
+                <p className="mt-2 text-sm font-bold text-slate-500">Bestände werden vorhandenen Hersteller-/Modell-Stammdaten zugeordnet. Der Import legt keine neuen Modelle an.</p>
+                <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Gerätebestand-Excel oder CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleDeviceStockImportFile} disabled={deviceStockImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm disabled:opacity-50" /></label>
+                  <div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{deviceStockImportFileName || "Noch keine Datei"}</div>
+                </div>
+                {deviceStockImportRows.length > 0 && <>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{deviceStockImportFields.map((field) => <label key={field.key} className="min-w-0 rounded-2xl border border-slate-200 p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}</span><select value={deviceStockImportMapping[field.key] || ""} onChange={(event) => setDeviceStockImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{deviceStockImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <label className="min-w-0 flex-1 text-xs font-black uppercase text-slate-500">Bereits im Gerätebestand<select value={deviceStockImportDuplicateMode} onChange={(event) => setDeviceStockImportDuplicateMode(event.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="update">Bestand aktualisieren</option><option value="skip">Überspringen</option></select></label>
+                    <button type="button" onClick={importDeviceStockFromFile} disabled={deviceStockImportBusy || !deviceStockImportPreview.some((row) => row.valid)} className="w-full rounded-2xl bg-violet-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{deviceStockImportBusy ? "Import läuft …" : "Gerätebestand importieren"}</button>
+                  </div>
+                  <div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Gerätebestand-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{deviceStockImportPreview.filter((row) => row.valid).length} gültig · {deviceStockImportPreview.filter((row) => !row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[980px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Modell</th><th className="px-4 py-3">Bestand</th><th className="px-4 py-3">Mindestbestand</th><th className="px-4 py-3">Lagerort</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{deviceStockImportPreview.slice(0,20).map((row) => <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.manufacturerName || "-"}</td><td className="px-4 py-3 font-black">{row.modelName || "-"}</td><td className="px-4 py-3">{row.stock} {row.unit}</td><td className="px-4 py-3">{row.minStock}</td><td className="px-4 py-3">{row.storageLocation || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.alreadyStocked ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.alreadyStocked ? "Bestand vorhanden" : "Bereit"}</span></td></tr>)}</tbody></table></div></div>
+                </>}
+                {deviceStockImportMessage && <div className="mt-4 break-words rounded-2xl bg-violet-50 px-4 py-3 text-sm font-black text-violet-700">{deviceStockImportMessage}</div>}
               </div>
 
               <div className="rounded-[32px] border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
