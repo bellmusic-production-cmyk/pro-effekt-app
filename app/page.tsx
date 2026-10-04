@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.35 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.36 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -13298,7 +13298,7 @@ PRO-EFFEKT`,
     {
       title: "Service",
       icon: "",
-      items: ["Einsatz", "Kalender", "Service-Tickets", "QR-Scan"],
+      items: ["Einsatz", "Kalender", "Service-Tickets"],
     },
     {
       title: "Stammdaten",
@@ -13308,7 +13308,7 @@ PRO-EFFEKT`,
     {
       title: "Lager",
       icon: "",
-      items: ["Geräte", "Gerätebestand", "Ersatzteile"],
+      items: ["Geräte", "Gerätebestand", "Ersatzteile", "QR-Scan"],
     },
     {
       title: "Dokumente",
@@ -15028,7 +15028,7 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {(["Service-Tickets", "Kunden", "Geräte", "Gerätebestand", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
+          {(["Service-Tickets", "Kunden", "Geräte", "Gerätebestand", "Ersatzteile", "QR-Scan", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
             <div className="mb-6 rounded-[32px] bg-[#07111d] p-5 text-white shadow-sm lg:hidden">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
                 {activePage === "Service-Tickets"
@@ -15040,6 +15040,8 @@ PRO-EFFEKT`,
                     : activePage === "Gerätebestand"
                       ? "Lager"
                     : activePage === "Ersatzteile"
+                      ? "Lager"
+                    : activePage === "QR-Scan"
                       ? "Lager"
                       : activePage === "Einstellungen"
                         ? "Verwaltung"
@@ -15056,6 +15058,8 @@ PRO-EFFEKT`,
                       ? "Gerätebestand"
                     : activePage === "Ersatzteile"
                       ? "Ersatzteile"
+                    : activePage === "QR-Scan"
+                      ? "QR-Scan"
                       : activePage === "Rechnungen"
                         ? "Rechnungen"
                         : activePage === "Verträge"
