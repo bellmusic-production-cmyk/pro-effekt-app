@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.9.6 · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.9.7 · Kundenimport Spaltenerkennung Fix · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -613,16 +613,16 @@ type CustomerImportPreviewRow = {
 };
 
 const customerImportFields: Array<{ key: CustomerImportField; label: string; aliases: string[] }> = [
-  { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "customer number", "customer_number"] },
+  { key: "customer_number", label: "Kundennummer", aliases: ["kundennummer", "kunden nr", "kunden-nr", "kd nr", "kdnr", "debitor", "debitor nr", "debitor nummer", "debitorennummer", "customer number", "customer_number"] },
   { key: "supplier_number", label: "Lieferantennummer", aliases: ["lieferantennummer", "lieferanten nr", "supplier number", "supplier_number"] },
   { key: "customer_type", label: "Kundentyp", aliases: ["kundentyp", "kundenart", "customer type", "customer_type"] },
-  { key: "company", label: "Firma", aliases: ["firma", "firmenname", "unternehmen", "company"] },
-  { key: "contact_person", label: "Ansprechpartner", aliases: ["ansprechpartner", "kontaktperson", "contact person", "contact_person"] },
+  { key: "company", label: "Firma", aliases: ["firma", "firmenname", "firmenbezeichnung", "unternehmen", "unternehmensname", "betrieb", "company", "company name"] },
+  { key: "contact_person", label: "Ansprechpartner", aliases: ["ansprechpartner", "ansprechp", "ansprechp.", "kontaktperson", "kontakt", "contact person", "contact_person"] },
   { key: "first_name", label: "Vorname", aliases: ["vorname", "first name", "firstname", "first_name"] },
   { key: "last_name", label: "Nachname", aliases: ["nachname", "last name", "lastname", "last_name"] },
   { key: "email", label: "E-Mail", aliases: ["e-mail", "email", "mail"] },
   { key: "email_2", label: "E-Mail 2", aliases: ["e-mail 2", "email 2", "zweite email", "email_2"] },
-  { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "phone", "tel"] },
+  { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "telefon nr", "tel nr", "phone", "tel"] },
   { key: "phone_2", label: "Telefon 2", aliases: ["telefon 2", "phone 2", "tel 2", "phone_2"] },
   { key: "address", label: "Adresse komplett", aliases: ["adresse", "anschrift", "address"] },
   { key: "street", label: "Straße", aliases: ["straße", "strasse", "street"] },
@@ -10427,19 +10427,18 @@ PRO-EFFEKT`,
   function autoMapCustomerImportHeaders(headers: string[]) {
     const normalizedHeaders = headers.map((header) => ({ original: header, normalized: normalizeImportHeader(header) }));
     const nextMapping = emptyCustomerImportMapping();
+    const usedHeaders = new Set<string>();
 
     customerImportFields.forEach((field) => {
-      const aliases = [field.key, field.label, ...field.aliases].map(normalizeImportHeader);
-      const exact = normalizedHeaders.find((header) => aliases.includes(header.normalized));
+      const aliases = new Set([field.key, field.label, ...field.aliases].map(normalizeImportHeader));
+      const exact = normalizedHeaders.find(
+        (header) => !usedHeaders.has(header.original) && aliases.has(header.normalized),
+      );
+
       if (exact) {
         nextMapping[field.key] = exact.original;
-        return;
+        usedHeaders.add(exact.original);
       }
-
-      const partial = normalizedHeaders.find((header) =>
-        aliases.some((alias) => alias.length >= 4 && (header.normalized.includes(alias) || alias.includes(header.normalized))),
-      );
-      if (partial) nextMapping[field.key] = partial.original;
     });
 
     setCustomerImportMapping(nextMapping);
