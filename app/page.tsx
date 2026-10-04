@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.11.0 · Zentraler mandantenfähiger Datenimport · Kunden + Hersteller + Geräte/Modelle + Kundengeräte + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.0 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -110,6 +110,21 @@ type Manufacturer = {
   created_at: string;
 };
 
+type Supplier = {
+  id: number;
+  company_id: number;
+  name: string;
+  dealer_number?: string | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  contact_person: string | null;
+  address: string | null;
+  parts_url: string | null;
+  note: string | null;
+  created_at: string;
+};
+
 type DeviceModel = {
   id: number;
   company_id: number;
@@ -191,6 +206,7 @@ type SparePart = {
   unit: string | null;
   note: string | null;
   manufacturer_id?: number | null;
+  supplier_id?: number | null;
   manufacturer_part_number?: string | null;
   purchase_price?: number | null;
   storage_location?: string | null;
@@ -719,14 +735,15 @@ function emptyCustomerImportMapping(): CustomerImportMapping {
 
 type MasterImportDuplicateMode = "skip" | "update";
 type ManufacturerImportField = "name" | "dealer_number" | "contact_person" | "phone" | "email" | "address" | "website" | "parts_url" | "note";
+type SupplierImportField = "name" | "dealer_number" | "contact_person" | "phone" | "email" | "address" | "website" | "parts_url" | "note";
 type ModelImportField = "manufacturer" | "name" | "category" | "type" | "note";
-type SparePartImportField = "name" | "sku" | "manufacturer" | "manufacturer_part_number" | "stock" | "min_stock" | "unit" | "purchase_price" | "storage_location" | "note";
+type SparePartImportField = "name" | "sku" | "manufacturer" | "supplier" | "manufacturer_part_number" | "stock" | "min_stock" | "unit" | "purchase_price" | "storage_location" | "note";
 
 type GenericImportMapping = Record<string, string>;
 
 const manufacturerImportFields: Array<{ key: ManufacturerImportField; label: string; aliases: string[] }> = [
-  { key: "name", label: "Hersteller / Lieferant", aliases: ["hersteller", "herstellername", "lieferant", "lieferantenname", "manufacturer", "supplier"] },
-  { key: "dealer_number", label: "Händler-/Kundennummer", aliases: ["händlernummer", "haendlernummer", "händler nr", "haendler nr", "lieferantennummer", "kundennummer beim lieferanten", "dealer number", "supplier number"] },
+  { key: "name", label: "Hersteller", aliases: ["hersteller", "herstellername", "manufacturer", "marke", "fabrikat"] },
+  { key: "dealer_number", label: "Kundennummer beim Hersteller", aliases: ["kundennummer beim hersteller", "hersteller kundennummer", "händlernummer", "haendlernummer", "dealer number"] },
   { key: "contact_person", label: "Ansprechpartner", aliases: ["ansprechpartner", "kontaktperson", "kontakt", "contact person"] },
   { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "tel", "phone"] },
   { key: "email", label: "E-Mail", aliases: ["e-mail", "email", "mail"] },
@@ -736,9 +753,22 @@ const manufacturerImportFields: Array<{ key: ManufacturerImportField; label: str
   { key: "note", label: "Notiz", aliases: ["notiz", "bemerkung", "hinweis", "note"] },
 ];
 
+
+const supplierImportFields: Array<{ key: SupplierImportField; label: string; aliases: string[] }> = [
+  { key: "name", label: "Lieferant", aliases: ["lieferant", "lieferantenname", "supplier", "vendor"] },
+  { key: "dealer_number", label: "Kundennummer beim Lieferanten", aliases: ["kundennummer beim lieferanten", "lieferantennummer", "kunden nr", "customer number", "supplier number"] },
+  { key: "contact_person", label: "Ansprechpartner", aliases: ["ansprechpartner", "kontaktperson", "kontakt", "contact person"] },
+  { key: "phone", label: "Telefon", aliases: ["telefon", "telefonnummer", "tel", "phone"] },
+  { key: "email", label: "E-Mail", aliases: ["e-mail", "email", "mail"] },
+  { key: "address", label: "Adresse", aliases: ["adresse", "anschrift", "address"] },
+  { key: "website", label: "Website", aliases: ["website", "webseite", "homepage", "url"] },
+  { key: "parts_url", label: "Bestell-URL", aliases: ["bestell url", "bestell-url", "shop", "shop url", "order url", "parts url"] },
+  { key: "note", label: "Notiz", aliases: ["notiz", "bemerkung", "hinweis", "note"] },
+];
+
 const modelImportFields: Array<{ key: ModelImportField; label: string; aliases: string[] }> = [
   { key: "manufacturer", label: "Hersteller", aliases: ["hersteller", "herstellername", "manufacturer", "marke", "fabrikat"] },
-  { key: "name", label: "Modell / Gerät", aliases: ["modell", "modellname", "gerät", "geraet", "gerätetyp", "geraetetyp", "typ", "model", "device"] },
+  { key: "name", label: "Modell", aliases: ["modell", "modellname", "typ", "model", "model name"] },
   { key: "category", label: "Kategorie", aliases: ["kategorie", "category", "gruppe", "warengruppe"] },
   { key: "type", label: "Gerätetyp", aliases: ["gerätetyp", "geraetetyp", "type", "device type"] },
   { key: "note", label: "Notiz", aliases: ["notiz", "bemerkung", "hinweis", "note"] },
@@ -747,7 +777,8 @@ const modelImportFields: Array<{ key: ModelImportField; label: string; aliases: 
 const sparePartImportFields: Array<{ key: SparePartImportField; label: string; aliases: string[] }> = [
   { key: "name", label: "Ersatzteil / Bezeichnung", aliases: ["ersatzteil", "bezeichnung", "artikel", "artikelbezeichnung", "name", "part"] },
   { key: "sku", label: "Artikelnummer / SKU", aliases: ["artikelnummer", "artikel nr", "artikel-nr", "sku", "teilenummer"] },
-  { key: "manufacturer", label: "Hersteller / Lieferant", aliases: ["hersteller", "lieferant", "manufacturer", "supplier"] },
+  { key: "manufacturer", label: "Hersteller", aliases: ["hersteller", "herstellername", "manufacturer", "marke"] },
+  { key: "supplier", label: "Lieferant", aliases: ["lieferant", "lieferantenname", "supplier", "vendor"] },
   { key: "manufacturer_part_number", label: "Hersteller-Artikelnummer", aliases: ["hersteller artikelnummer", "hersteller-artikelnummer", "herstellernummer", "bestellnummer", "manufacturer part number", "mpn"] },
   { key: "stock", label: "Bestand", aliases: ["bestand", "lagerbestand", "stock", "menge"] },
   { key: "min_stock", label: "Mindestbestand", aliases: ["mindestbestand", "meldebestand", "min stock", "minimum stock"] },
@@ -873,6 +904,14 @@ export default function Home() {
   const [manufacturerImportDuplicateMode, setManufacturerImportDuplicateMode] = useState<MasterImportDuplicateMode>("skip");
   const [manufacturerImportBusy, setManufacturerImportBusy] = useState(false);
   const [manufacturerImportMessage, setManufacturerImportMessage] = useState("");
+
+  const [supplierImportFileName, setSupplierImportFileName] = useState("");
+  const [supplierImportHeaders, setSupplierImportHeaders] = useState<string[]>([]);
+  const [supplierImportRows, setSupplierImportRows] = useState<Record<string, string>[]>([]);
+  const [supplierImportMapping, setSupplierImportMapping] = useState<GenericImportMapping>(() => emptyGenericMapping(supplierImportFields));
+  const [supplierImportDuplicateMode, setSupplierImportDuplicateMode] = useState<MasterImportDuplicateMode>("skip");
+  const [supplierImportBusy, setSupplierImportBusy] = useState(false);
+  const [supplierImportMessage, setSupplierImportMessage] = useState("");
 
   const [modelImportFileName, setModelImportFileName] = useState("");
   const [modelImportHeaders, setModelImportHeaders] = useState<string[]>([]);
@@ -11172,8 +11211,8 @@ PRO-EFFEKT`,
     const currentCompany = companyData || (await loadCompany(session?.user?.id));
     if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
     const rows = manufacturerImportRows.map((row, index) => ({ row, rowNumber: index + 2, name: importValue(row, manufacturerImportMapping, "name") })).filter((item) => item.name);
-    if (!rows.length) { alert("Keine gültigen Hersteller gefunden. Bitte Spalte Hersteller/Lieferant zuordnen."); return; }
-    if (!confirm(`${rows.length} Hersteller-/Lieferantenzeile(n) für ${currentCompany.name} importieren?`)) return;
+    if (!rows.length) { alert("Keine gültigen Hersteller gefunden. Bitte die Spalte Hersteller zuordnen."); return; }
+    if (!confirm(`${rows.length} Herstellerzeile(n) für ${currentCompany.name} importieren?`)) return;
     setManufacturerImportBusy(true); setManufacturerImportMessage("Import läuft …");
     let created=0, updated=0, skipped=0; const errors:string[]=[];
     const { data: existing, error: loadError } = await supabase.from("manufacturers").select("*").eq("company_id", currentCompany.id);
@@ -11189,6 +11228,86 @@ PRO-EFFEKT`,
     await loadManufacturers(); setManufacturerImportBusy(false); const summary=`${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length?` · ${errors.length} Fehler`:""}`; setManufacturerImportMessage(summary); alert(`Herstellerimport abgeschlossen.\n${summary}${errors.length?`\n\n${errors.slice(0,8).join("\n")}`:""}`);
   }
 
+
+  async function handleSupplierImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
+    if (!isAdmin) { alert("Der Datenimport ist ausschließlich für Admins verfügbar."); return; }
+    setSupplierImportBusy(true); setSupplierImportMessage("");
+    try {
+      const { headers, rows } = await readMasterImportFile(file);
+      setSupplierImportFileName(file.name);
+      setSupplierImportHeaders(headers);
+      setSupplierImportRows(rows);
+      setSupplierImportMapping(autoMapGenericImportHeaders(headers, supplierImportFields));
+      setSupplierImportMessage(`${rows.length} Lieferantenzeile(n) eingelesen.`);
+    } catch (error: any) {
+      alert(`Lieferantendatei konnte nicht gelesen werden: ${error?.message || "Datei prüfen."}`);
+    } finally {
+      setSupplierImportBusy(false);
+    }
+  }
+
+  async function importSuppliersFromFile() {
+    if (!isAdmin) return;
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
+
+    const rows = supplierImportRows
+      .map((row, index) => ({ row, rowNumber: index + 2, name: importValue(row, supplierImportMapping, "name") }))
+      .filter((item) => item.name);
+
+    if (!rows.length) { alert("Keine gültigen Lieferanten gefunden. Bitte die Spalte Lieferant zuordnen."); return; }
+    if (!confirm(`${rows.length} Lieferantenzeile(n) für ${currentCompany.name} importieren?`)) return;
+
+    setSupplierImportBusy(true); setSupplierImportMessage("Import läuft …");
+    let created = 0, updated = 0, skipped = 0;
+    const errors: string[] = [];
+
+    const { data: existing, error: loadError } = await supabase
+      .from("suppliers").select("*").eq("company_id", currentCompany.id);
+
+    if (loadError) { setSupplierImportBusy(false); alert(loadError.message); return; }
+
+    const map = new Map<string, Supplier>();
+    (existing || []).forEach((s: any) => map.set(normalizeMasterKey(s.name), s));
+
+    for (const item of rows) try {
+      const r = item.row;
+      const payload = {
+        company_id: currentCompany.id,
+        name: item.name,
+        dealer_number: importValue(r, supplierImportMapping, "dealer_number") || null,
+        contact_person: importValue(r, supplierImportMapping, "contact_person") || null,
+        phone: importValue(r, supplierImportMapping, "phone") || null,
+        email: importValue(r, supplierImportMapping, "email") || null,
+        address: importValue(r, supplierImportMapping, "address") || null,
+        website: importValue(r, supplierImportMapping, "website") || null,
+        parts_url: importValue(r, supplierImportMapping, "parts_url") || null,
+        note: importValue(r, supplierImportMapping, "note") || null,
+      };
+      const found = map.get(normalizeMasterKey(item.name));
+      if (found && supplierImportDuplicateMode === "skip") { skipped++; continue; }
+      if (found) {
+        const { error } = await supabase.from("suppliers").update(payload)
+          .eq("id", found.id).eq("company_id", currentCompany.id);
+        if (error) throw error;
+        updated++;
+      } else {
+        const { data, error } = await supabase.from("suppliers").insert([payload]).select("*").single();
+        if (error) throw error;
+        map.set(normalizeMasterKey(item.name), data as Supplier);
+        created++;
+      }
+    } catch (error: any) {
+      errors.push(`Zeile ${item.rowNumber}: ${error?.message || "unbekannter Fehler"}`);
+    }
+
+    setSupplierImportBusy(false);
+    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} übersprungen${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+    setSupplierImportMessage(summary);
+    alert(`Lieferantenimport abgeschlossen.\n${summary}${errors.length ? `\n\n${errors.slice(0, 8).join("\n")}` : ""}`);
+  }
+
   async function handleModelImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file=event.target.files?.[0]; event.target.value=""; if(!file)return; if(!isAdmin)return;
     setModelImportBusy(true); setModelImportMessage("");
@@ -11198,12 +11317,12 @@ PRO-EFFEKT`,
   async function importModelsFromFile() {
     if(!isAdmin)return; const currentCompany=companyData||(await loadCompany(session?.user?.id)); if(!currentCompany?.id){alert("Ihre Firmenzuordnung konnte nicht geladen werden.");return;}
     const rows=modelImportRows.map((row,index)=>({row,rowNumber:index+2,manufacturer:importValue(row,modelImportMapping,"manufacturer"),name:importValue(row,modelImportMapping,"name")})).filter(x=>x.manufacturer&&x.name);
-    if(!rows.length){alert("Keine gültigen Modellzeilen. Hersteller und Modell müssen zugeordnet sein.");return;} if(!confirm(`${rows.length} Geräte-/Modellzeile(n) importieren? Fehlende Hersteller werden für ${currentCompany.name} angelegt.`))return;
+    if(!rows.length){alert("Keine gültigen Modellzeilen. Hersteller und Modell müssen zugeordnet sein.");return;} if(!confirm(`${rows.length} Modellzeile(n) importieren? Fehlende Hersteller werden für ${currentCompany.name} angelegt.`))return;
     setModelImportBusy(true);setModelImportMessage("Import läuft …");let created=0,updated=0,skipped=0,manufacturersCreated=0;const errors:string[]=[];
     const [{data:mans,error:me},{data:mods,error:moe}]=await Promise.all([supabase.from("manufacturers").select("*").eq("company_id",currentCompany.id),supabase.from("device_models").select("*").eq("company_id",currentCompany.id)]);if(me||moe){setModelImportBusy(false);alert(me?.message||moe?.message);return;}
     const manMap=new Map<string,Manufacturer>();(mans||[]).forEach((m:any)=>manMap.set(normalizeMasterKey(m.name),m));const modelMap=new Map<string,DeviceModel>();(mods||[]).forEach((m:any)=>modelMap.set(`${m.manufacturer_id||0}::${normalizeMasterKey(getDeviceModelDisplayName(m))}`,m));
     for(const item of rows)try{let man=manMap.get(normalizeMasterKey(item.manufacturer))||null;if(!man){const {data,error}=await supabase.from("manufacturers").insert([{company_id:currentCompany.id,name:item.manufacturer}]).select("*").single();if(error)throw error;man=data as Manufacturer;manMap.set(normalizeMasterKey(item.manufacturer),man);manufacturersCreated++;}const key=`${man.id}::${normalizeMasterKey(item.name)}`;const found=modelMap.get(key);const type=importValue(item.row,modelImportMapping,"type")||"Sonstiges";const payload={company_id:currentCompany.id,manufacturer_id:man.id,name:item.name,model:item.name,category:importValue(item.row,modelImportMapping,"category")||null,type,device_type:type,source:"TRYBUN Stammdatenimport",note:importValue(item.row,modelImportMapping,"note")||null};if(found&&modelImportDuplicateMode==="skip"){skipped++;continue;}if(found){const {error}=await supabase.from("device_models").update(payload).eq("id",found.id).eq("company_id",currentCompany.id);if(error)throw error;updated++;}else{const {data,error}=await supabase.from("device_models").insert([payload]).select("*").single();if(error)throw error;modelMap.set(key,data as DeviceModel);created++;}}catch(error:any){errors.push(`Zeile ${item.rowNumber}: ${error?.message||"unbekannter Fehler"}`)}
-    await Promise.all([loadManufacturers(),loadDeviceModels()]);setModelImportBusy(false);const summary=`${created} Modelle neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu${errors.length?` · ${errors.length} Fehler`:""}`;setModelImportMessage(summary);alert(`Geräte-/Modellimport abgeschlossen.\n${summary}${errors.length?`\n\n${errors.slice(0,8).join("\n")}`:""}`);
+    await Promise.all([loadManufacturers(),loadDeviceModels()]);setModelImportBusy(false);const summary=`${created} Modelle neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu${errors.length?` · ${errors.length} Fehler`:""}`;setModelImportMessage(summary);alert(`Modellimport abgeschlossen.\n${summary}${errors.length?`\n\n${errors.slice(0,8).join("\n")}`:""}`);
   }
 
   async function handleSparePartImportFile(event: ChangeEvent<HTMLInputElement>) {
@@ -11211,10 +11330,127 @@ PRO-EFFEKT`,
   }
 
   async function importSparePartsFromFile() {
-    if(!isAdmin)return;const currentCompany=companyData||(await loadCompany(session?.user?.id));if(!currentCompany?.id){alert("Ihre Firmenzuordnung konnte nicht geladen werden.");return;}const rows=sparePartImportRows.map((row,index)=>({row,rowNumber:index+2,name:importValue(row,sparePartImportMapping,"name")})).filter(x=>x.name);if(!rows.length){alert("Keine gültigen Ersatzteilzeilen. Bitte Ersatzteil/Bezeichnung zuordnen.");return;}if(!confirm(`${rows.length} Ersatzteilzeile(n) in den Ersatzteilstamm von ${currentCompany.name} importieren?`))return;
-    setSparePartImportBusy(true);setSparePartImportMessage("Import läuft …");let created=0,updated=0,skipped=0,manufacturersCreated=0;const errors:string[]=[];const [{data:mans,error:me},{data:parts,error:pe}]=await Promise.all([supabase.from("manufacturers").select("*").eq("company_id",currentCompany.id),supabase.from("spare_parts").select("*").eq("company_id",currentCompany.id)]);if(me||pe){setSparePartImportBusy(false);alert(me?.message||pe?.message);return;}const manMap=new Map<string,Manufacturer>();(mans||[]).forEach((m:any)=>manMap.set(normalizeMasterKey(m.name),m));const skuMap=new Map<string,SparePart>();const nameMap=new Map<string,SparePart>();(parts||[]).forEach((p:any)=>{if(p.sku)skuMap.set(normalizeMasterKey(p.sku),p);nameMap.set(`${p.manufacturer_id||0}::${normalizeMasterKey(p.name)}`,p)});
-    for(const item of rows)try{const r=item.row;const manufacturerName=importValue(r,sparePartImportMapping,"manufacturer");let man:Manufacturer|null=null;if(manufacturerName){man=manMap.get(normalizeMasterKey(manufacturerName))||null;if(!man){const {data,error}=await supabase.from("manufacturers").insert([{company_id:currentCompany.id,name:manufacturerName}]).select("*").single();if(error)throw error;man=data as Manufacturer;manMap.set(normalizeMasterKey(manufacturerName),man);manufacturersCreated++;}}const sku=importValue(r,sparePartImportMapping,"sku");const found=(sku?skuMap.get(normalizeMasterKey(sku)):null)||nameMap.get(`${man?.id||0}::${normalizeMasterKey(item.name)}`);const payload={company_id:currentCompany.id,name:item.name,sku:sku||null,manufacturer_id:man?.id||null,manufacturer_part_number:importValue(r,sparePartImportMapping,"manufacturer_part_number")||null,stock:parseImportNumber(importValue(r,sparePartImportMapping,"stock"),0),min_stock:parseImportNumber(importValue(r,sparePartImportMapping,"min_stock"),0),unit:importValue(r,sparePartImportMapping,"unit")||"Stück",purchase_price:parseImportNumber(importValue(r,sparePartImportMapping,"purchase_price"),0),storage_location:importValue(r,sparePartImportMapping,"storage_location")||null,note:importValue(r,sparePartImportMapping,"note")||null};if(found&&sparePartImportDuplicateMode==="skip"){skipped++;continue;}if(found){const {error}=await supabase.from("spare_parts").update(payload).eq("id",found.id).eq("company_id",currentCompany.id);if(error)throw error;updated++;}else{const {data,error}=await supabase.from("spare_parts").insert([payload]).select("*").single();if(error)throw error;const inserted=data as SparePart;if(sku)skuMap.set(normalizeMasterKey(sku),inserted);nameMap.set(`${man?.id||0}::${normalizeMasterKey(item.name)}`,inserted);created++;}}catch(error:any){errors.push(`Zeile ${item.rowNumber}: ${error?.message||"unbekannter Fehler"}`)}
-    await loadManufacturers();setSparePartImportBusy(false);const summary=`${created} Ersatzteile neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu${errors.length?` · ${errors.length} Fehler`:""}`;setSparePartImportMessage(summary);alert(`Ersatzteilimport abgeschlossen.\n${summary}${errors.length?`\n\n${errors.slice(0,8).join("\n")}`:""}`);
+    if (!isAdmin) return;
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) { alert("Ihre Firmenzuordnung konnte nicht geladen werden."); return; }
+
+    const rows = sparePartImportRows
+      .map((row, index) => ({ row, rowNumber: index + 2, name: importValue(row, sparePartImportMapping, "name") }))
+      .filter((x) => x.name);
+
+    if (!rows.length) { alert("Keine gültigen Ersatzteilzeilen. Bitte Ersatzteil/Bezeichnung zuordnen."); return; }
+    if (!confirm(`${rows.length} Ersatzteilzeile(n) in den Ersatzteilstamm von ${currentCompany.name} importieren?`)) return;
+
+    setSparePartImportBusy(true); setSparePartImportMessage("Import läuft …");
+    let created = 0, updated = 0, skipped = 0, manufacturersCreated = 0, suppliersCreated = 0;
+    const errors: string[] = [];
+
+    const [
+      { data: mans, error: me },
+      { data: sups, error: se },
+      { data: parts, error: pe },
+    ] = await Promise.all([
+      supabase.from("manufacturers").select("*").eq("company_id", currentCompany.id),
+      supabase.from("suppliers").select("*").eq("company_id", currentCompany.id),
+      supabase.from("spare_parts").select("*").eq("company_id", currentCompany.id),
+    ]);
+
+    if (me || se || pe) {
+      setSparePartImportBusy(false);
+      alert(me?.message || se?.message || pe?.message);
+      return;
+    }
+
+    const manMap = new Map<string, Manufacturer>();
+    (mans || []).forEach((m: any) => manMap.set(normalizeMasterKey(m.name), m));
+    const supplierMap = new Map<string, Supplier>();
+    (sups || []).forEach((s: any) => supplierMap.set(normalizeMasterKey(s.name), s));
+
+    const skuMap = new Map<string, SparePart>();
+    const nameMap = new Map<string, SparePart>();
+    (parts || []).forEach((p: any) => {
+      if (p.sku) skuMap.set(normalizeMasterKey(p.sku), p);
+      nameMap.set(`${p.manufacturer_id || 0}::${p.supplier_id || 0}::${normalizeMasterKey(p.name)}`, p);
+    });
+
+    for (const item of rows) try {
+      const r = item.row;
+      const manufacturerName = importValue(r, sparePartImportMapping, "manufacturer");
+      const supplierName = importValue(r, sparePartImportMapping, "supplier");
+
+      let man: Manufacturer | null = null;
+      if (manufacturerName) {
+        man = manMap.get(normalizeMasterKey(manufacturerName)) || null;
+        if (!man) {
+          const { data, error } = await supabase.from("manufacturers")
+            .insert([{ company_id: currentCompany.id, name: manufacturerName }]).select("*").single();
+          if (error) throw error;
+          man = data as Manufacturer;
+          manMap.set(normalizeMasterKey(manufacturerName), man);
+          manufacturersCreated++;
+        }
+      }
+
+      let supplier: Supplier | null = null;
+      if (supplierName) {
+        supplier = supplierMap.get(normalizeMasterKey(supplierName)) || null;
+        if (!supplier) {
+          const { data, error } = await supabase.from("suppliers")
+            .insert([{ company_id: currentCompany.id, name: supplierName }]).select("*").single();
+          if (error) throw error;
+          supplier = data as Supplier;
+          supplierMap.set(normalizeMasterKey(supplierName), supplier);
+          suppliersCreated++;
+        }
+      }
+
+      const sku = importValue(r, sparePartImportMapping, "sku");
+      const nameKey = `${man?.id || 0}::${supplier?.id || 0}::${normalizeMasterKey(item.name)}`;
+      const found = (sku ? skuMap.get(normalizeMasterKey(sku)) : null) || nameMap.get(nameKey);
+
+      const payload = {
+        company_id: currentCompany.id,
+        name: item.name,
+        sku: sku || null,
+        manufacturer_id: man?.id || null,
+        supplier_id: supplier?.id || null,
+        manufacturer_part_number: importValue(r, sparePartImportMapping, "manufacturer_part_number") || null,
+        stock: parseImportNumber(importValue(r, sparePartImportMapping, "stock"), 0),
+        min_stock: parseImportNumber(importValue(r, sparePartImportMapping, "min_stock"), 0),
+        unit: importValue(r, sparePartImportMapping, "unit") || "Stück",
+        purchase_price: parseImportNumber(importValue(r, sparePartImportMapping, "purchase_price"), 0),
+        storage_location: importValue(r, sparePartImportMapping, "storage_location") || null,
+        note: importValue(r, sparePartImportMapping, "note") || null,
+      };
+
+      if (found && sparePartImportDuplicateMode === "skip") { skipped++; continue; }
+
+      if (found) {
+        const { error } = await supabase.from("spare_parts").update(payload)
+          .eq("id", found.id).eq("company_id", currentCompany.id);
+        if (error) throw error;
+        updated++;
+      } else {
+        const { data, error } = await supabase.from("spare_parts").insert([payload]).select("*").single();
+        if (error) throw error;
+        const inserted = data as SparePart;
+        if (sku) skuMap.set(normalizeMasterKey(sku), inserted);
+        nameMap.set(nameKey, inserted);
+        created++;
+      }
+    } catch (error: any) {
+      errors.push(`Zeile ${item.rowNumber}: ${error?.message || "unbekannter Fehler"}`);
+    }
+
+    await loadManufacturers();
+    setSparePartImportBusy(false);
+    const summary = `${created} Ersatzteile neu · ${updated} aktualisiert · ${skipped} übersprungen · ${manufacturersCreated} Hersteller neu · ${suppliersCreated} Lieferanten neu${errors.length ? ` · ${errors.length} Fehler` : ""}`;
+    setSparePartImportMessage(summary);
+    alert(`Ersatzteilimport abgeschlossen.
+${summary}${errors.length ? `
+
+${errors.slice(0, 8).join("
+")}` : ""}`);
   }
 
   const role = userProfile?.role || null;
@@ -16679,23 +16915,32 @@ PRO-EFFEKT`,
               </div>
 
               <div className="rounded-[32px] border border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Datenimport · Hersteller / Lieferanten</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Datenimport · Hersteller</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-950">Herstellerstamm importieren</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-500">Ohne Kunden- oder Gerätepflicht. Händlernummer, Kontakt, Adresse, Website und Bestell-URL werden direkt dem Hersteller Ihrer Firma zugeordnet.</p>
+                <p className="mt-2 text-sm font-semibold text-slate-500">Reiner Herstellerstamm. Kundennummer beim Hersteller, Kontakt, Adresse, Website und Hersteller-/Ersatzteil-URL werden mandantenbezogen gespeichert.</p>
                 <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]"><input type="file" accept=".xlsx,.xls,.csv" onChange={handleManufacturerImportFile} disabled={manufacturerImportBusy} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold"/><div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{manufacturerImportFileName||"Noch keine Datei"}</div></div>
                 {manufacturerImportRows.length>0&&<><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{manufacturerImportFields.map(field=><label key={field.key} className="rounded-2xl border border-slate-200 p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}</span><select value={manufacturerImportMapping[field.key]||""} onChange={e=>setManufacturerImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{manufacturerImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={manufacturerImportDuplicateMode} onChange={e=>setManufacturerImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importManufacturersFromFile} disabled={manufacturerImportBusy} className="rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300">{manufacturerImportBusy?"Import läuft …":"Hersteller importieren"}</button></div></>}
                 {manufacturerImportMessage&&<div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">{manufacturerImportMessage}</div>}
               </div>
 
+              <div className="rounded-[32px] border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Datenimport · Lieferanten</p>
+                <h3 className="mt-2 text-2xl font-black text-slate-950">Lieferantenstamm importieren</h3>
+                <p className="mt-2 text-sm font-semibold text-slate-500">Lieferanten sind von Herstellern getrennt. Kundennummer beim Lieferanten, Kontakt, Adresse, Website und Bestell-URL werden Ihrer Firma zugeordnet.</p>
+                <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]"><input type="file" accept=".xlsx,.xls,.csv" onChange={handleSupplierImportFile} disabled={supplierImportBusy} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold"/><div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{supplierImportFileName||"Noch keine Datei"}</div></div>
+                {supplierImportRows.length>0&&<><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{supplierImportFields.map(field=><label key={field.key} className="rounded-2xl border border-slate-200 p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}</span><select value={supplierImportMapping[field.key]||""} onChange={e=>setSupplierImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{supplierImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={supplierImportDuplicateMode} onChange={e=>setSupplierImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSuppliersFromFile} disabled={supplierImportBusy} className="rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300">{supplierImportBusy?"Import läuft …":"Lieferanten importieren"}</button></div></>}
+                {supplierImportMessage&&<div className="mt-4 rounded-2xl bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-700">{supplierImportMessage}</div>}
+              </div>
+
               <div className="rounded-[32px] border border-violet-200 bg-white p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-600">Datenimport · Geräte-/Modellstamm</p><h3 className="mt-2 text-2xl font-black text-slate-950">Geräte und Modelle ohne Kundenzuordnung</h3><p className="mt-2 text-sm font-semibold text-slate-500">Für Bibliotheken und Altstammdaten. Keine Kundennummer und keine Seriennummer erforderlich. Fehlende Hersteller werden mandantenbezogen angelegt.</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-600">Datenimport · Modellstamm</p><h3 className="mt-2 text-2xl font-black text-slate-950">Modelle importieren</h3><p className="mt-2 text-sm font-semibold text-slate-500">Ein Modell gehört immer zu einem Hersteller. Keine Kundennummer und keine Seriennummer erforderlich. Fehlende Hersteller werden mandantenbezogen angelegt.</p>
                 <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]"><input type="file" accept=".xlsx,.xls,.csv" onChange={handleModelImportFile} disabled={modelImportBusy} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold"/><div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{modelImportFileName||"Noch keine Datei"}</div></div>
                 {modelImportRows.length>0&&<><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{modelImportFields.map(field=><label key={field.key} className="rounded-2xl border border-slate-200 p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}</span><select value={modelImportMapping[field.key]||""} onChange={e=>setModelImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{modelImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={modelImportDuplicateMode} onChange={e=>setModelImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importModelsFromFile} disabled={modelImportBusy} className="rounded-2xl bg-violet-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300">{modelImportBusy?"Import läuft …":"Modelle importieren"}</button></div></>}
                 {modelImportMessage&&<div className="mt-4 rounded-2xl bg-violet-50 px-4 py-3 text-sm font-black text-violet-700">{modelImportMessage}</div>}
               </div>
 
               <div className="rounded-[32px] border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Datenimport · Ersatzteile</p><h3 className="mt-2 text-2xl font-black text-slate-950">Ersatzteilstamm importieren</h3><p className="mt-2 text-sm font-semibold text-slate-500">Importiert direkt nach <span className="font-black">spare_parts</span>: Artikelnummer, Hersteller-Artikelnummer, Bestand, Mindestbestand, Einheit, Einkaufspreis und Lagerort. Hersteller werden über manufacturer_id verknüpft.</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Datenimport · Ersatzteile</p><h3 className="mt-2 text-2xl font-black text-slate-950">Ersatzteilstamm importieren</h3><p className="mt-2 text-sm font-semibold text-slate-500">Importiert direkt nach <span className="font-black">spare_parts</span>. Hersteller und Lieferant sind getrennte Zuordnungen und werden über manufacturer_id bzw. supplier_id verknüpft.</p>
                 <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]"><input type="file" accept=".xlsx,.xls,.csv" onChange={handleSparePartImportFile} disabled={sparePartImportBusy} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold"/><div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white">{sparePartImportFileName||"Noch keine Datei"}</div></div>
                 {sparePartImportRows.length>0&&<><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{sparePartImportFields.map(field=><label key={field.key} className="rounded-2xl border border-slate-200 p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}</span><select value={sparePartImportMapping[field.key]||""} onChange={e=>setSparePartImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{sparePartImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={sparePartImportDuplicateMode} onChange={e=>setSparePartImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSparePartsFromFile} disabled={sparePartImportBusy} className="rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300">{sparePartImportBusy?"Import läuft …":"Ersatzteile importieren"}</button></div></>}
                 {sparePartImportMessage&&<div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700">{sparePartImportMessage}</div>}
@@ -18122,7 +18367,7 @@ PRO-EFFEKT`,
                   <h3 className="text-xl font-black">Bibliothek</h3>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                      Such- und Lesemodus: Techniker können Hersteller und Geräte / Modelle einsehen, aber nicht bearbeiten.
+                      Such- und Lesemodus: Techniker können Hersteller und Modelle einsehen, aber nicht bearbeiten.
                     </p>
                   )}
 
@@ -18164,7 +18409,7 @@ PRO-EFFEKT`,
 
                         return (
                           <option key={item.id} value={item.id}>
-                            {item.name} · {modelCount} Modellbezeichnung(en)
+                            {item.name} · {modelCount} Modell(e)
                           </option>
                         );
                       })}
@@ -18182,7 +18427,7 @@ PRO-EFFEKT`,
                       </p>
                     ) : !catalogManufacturerId ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
-                        Bitte oben einen Hersteller auswählen, um Geräte / Modelle und Daten anzuzeigen.
+                        Bitte oben einen Hersteller auswählen, um die zugehörigen Modelle und Herstellerdaten anzuzeigen.
                       </p>
                     ) : (
                       filteredManufacturerDirectory
@@ -18199,7 +18444,7 @@ PRO-EFFEKT`,
                                 <div>
                                   <h4 className="text-2xl font-black text-[#07111d]">{item.name}</h4>
                                   <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                                    {modelsForManufacturer.length} Modellbezeichnung(en) · {Object.keys(modelsByType).length} Kategorie(n)
+                                    {modelsForManufacturer.length} Modell(e) · {Object.keys(modelsByType).length} Kategorie(n)
                                   </p>
                                 </div>
 
