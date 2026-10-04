@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.39 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.40 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -235,6 +235,37 @@ type PartUsage = {
   is_voided?: boolean | null;
   voided_at?: string | null;
   voided_by?: string | null;
+  void_reason?: string | null;
+  created_at: string;
+};
+
+
+type StockDocumentLine = {
+  key: string;
+  itemType: "device_model" | "spare_part";
+  itemId: string;
+  quantity: string;
+  unitPrice: string;
+  description: string;
+};
+
+type InventoryMovement = {
+  id: number;
+  company_id: number;
+  item_type: "device_model" | "spare_part";
+  device_model_id?: number | null;
+  spare_part_id?: number | null;
+  movement_type: string;
+  quantity: number;
+  source_type: string;
+  source_number: string;
+  source_line_key: string;
+  ticket_id?: number | null;
+  customer_id?: number | null;
+  description?: string | null;
+  unit_price?: number | null;
+  is_voided?: boolean | null;
+  voided_at?: string | null;
   void_reason?: string | null;
   created_at: string;
 };
@@ -997,6 +1028,7 @@ export default function Home() {
   const [voidedPartUsages, setVoidedPartUsages] = useState<PartUsage[]>([]);
   const [voidedPartUsagesTotal, setVoidedPartUsagesTotal] = useState(0);
   const [voidedPartUsagesLoadingMore, setVoidedPartUsagesLoadingMore] = useState(false);
+  const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>([]);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [ticketChatMessages, setTicketChatMessages] = useState<TicketChatMessage[]>([]);
@@ -1285,6 +1317,8 @@ export default function Home() {
   const [invoiceNote, setInvoiceNote] = useState("");
   const [invoiceTechnicianSignature, setInvoiceTechnicianSignature] = useState("");
   const [invoiceCustomerSignature, setInvoiceCustomerSignature] = useState("");
+  const [invoiceStockLines, setInvoiceStockLines] = useState<StockDocumentLine[]>([]);
+  const [invoiceDirectStockIssue, setInvoiceDirectStockIssue] = useState(false);
 
   const [calendarDate, setCalendarDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -1361,6 +1395,8 @@ export default function Home() {
   const [commercialDocumentNote, setCommercialDocumentNote] = useState("");
   const [commercialDocumentTechnicianSignature, setCommercialDocumentTechnicianSignature] = useState("");
   const [commercialDocumentCustomerSignature, setCommercialDocumentCustomerSignature] = useState("");
+  const [commercialDocumentLines, setCommercialDocumentLines] = useState<StockDocumentLine[]>([]);
+  const [commercialDocumentReserveStock, setCommercialDocumentReserveStock] = useState(false);
   const [commercialDocumentBusy, setCommercialDocumentBusy] = useState(false);
   const [selectedDeviceView, setSelectedDeviceView] = useState<Device | null>(
     null,
@@ -2651,6 +2687,7 @@ async function loadApplicationData() {
       loadServiceParts(),
       loadPartUsages(),
       loadVoidedPartUsages(10),
+      loadInventoryMovements(),
       loadInvoices(),
       loadNotifications(),
       loadTicketChatMessages(),
@@ -2925,6 +2962,7 @@ async function loadApplicationData() {
       setMaintenancePlans([]);
       setServiceParts([]);
       setPartUsages([]);
+      setInventoryMovements([]);
       setInvoices([]);
       setNotifications([]);
       setTicketChatMessages([]);
@@ -3304,6 +3342,22 @@ async function loadApplicationData() {
     }
 
     setPartUsages(data || []);
+  }
+
+  async function loadInventoryMovements() {
+    const { data, error } = await supabase
+      .from("inventory_movements")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(250);
+
+    if (error) {
+      console.error("Lagerbewegungen konnten nicht geladen werden:", error.message);
+      setInventoryMovements([]);
+      return;
+    }
+
+    setInventoryMovements((data || []) as InventoryMovement[]);
   }
 
   async function loadVoidedPartUsages(limit = 10) {
@@ -9713,6 +9767,8 @@ PRO-EFFEKT`,
     setInvoiceNote("");
     setInvoiceTechnicianSignature("");
     setInvoiceCustomerSignature("");
+    setInvoiceStockLines([]);
+    setInvoiceDirectStockIssue(false);
   }
 
   function getInvoiceCustomerName(item: InvoiceItem) {
@@ -10933,6 +10989,130 @@ PRO-EFFEKT`,
       .replace(/'/g, "&#039;");
   }
 
+  function createStockDocumentLine(itemType: "device_model" | "spare_part" = "device_model"): StockDocumentLine {
+    return {
+      key: `stock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      itemType,
+      itemId: "",
+      quantity: "1",
+      unitPrice: "",
+      description: "",
+    };
+  }
+
+  function getStockLineItem(line: StockDocumentLine) {
+    if (!line.itemId) return null;
+    if (line.itemType === "spare_part") {
+      return serviceParts.find((item) => item.id === Number(line.itemId)) || null;
+    }
+    return deviceModels.find((item) => item.id === Number(line.itemId)) || null;
+  }
+
+  function getStockLineLabel(line: StockDocumentLine) {
+    const item: any = getStockLineItem(line);
+    if (!item) return line.description || "Nicht ausgewählt";
+    if (line.itemType === "spare_part") {
+      return `${item.name}${item.sku ? ` · ${item.sku}` : ""}`;
+    }
+    const manufacturerName = getManufacturerNameById(item.manufacturer_id);
+    return [manufacturerName, getDeviceModelDisplayName(item)].filter(Boolean).join(" · ");
+  }
+
+  function getStockLineAvailable(line: StockDocumentLine) {
+    const item: any = getStockLineItem(line);
+    return Number(item?.stock || 0);
+  }
+
+  function getStockLineUnit(line: StockDocumentLine) {
+    const item: any = getStockLineItem(line);
+    return item?.unit || "Stück";
+  }
+
+  function getDefaultStockLinePrice(line: StockDocumentLine) {
+    const item: any = getStockLineItem(line);
+    if (!item) return "";
+    const price = line.itemType === "device_model" ? item.sale_price : null;
+    return price === null || price === undefined ? "" : String(Number(price));
+  }
+
+  function updateStockDocumentLine(
+    lines: StockDocumentLine[],
+    setLines: (next: StockDocumentLine[]) => void,
+    key: string,
+    patch: Partial<StockDocumentLine>,
+  ) {
+    setLines(lines.map((line) => line.key === key ? { ...line, ...patch } : line));
+  }
+
+  function validateStockDocumentLines(lines: StockDocumentLine[], requireStock = false) {
+    for (const line of lines) {
+      const quantity = Number(String(line.quantity).replace(",", "."));
+      if (!line.itemId) return "Bitte bei jeder Lagerposition einen Artikel auswählen.";
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isInteger(quantity)) return "Bitte bei jeder Lagerposition eine ganze Menge größer 0 eingeben.";
+      if (!getStockLineItem(line)) return "Mindestens eine Lagerposition konnte nicht mehr gefunden werden.";
+      if (requireStock && quantity > getStockLineAvailable(line)) {
+        return `Nicht genügend Bestand für ${getStockLineLabel(line)}. Verfügbar: ${getStockLineAvailable(line)} ${getStockLineUnit(line)}.`;
+      }
+    }
+    return "";
+  }
+
+  function stockLinesToRpc(lines: StockDocumentLine[]) {
+    return lines.map((line, index) => ({
+      line_key: line.key || `line-${index + 1}`,
+      item_type: line.itemType,
+      item_id: Number(line.itemId),
+      quantity: Number(String(line.quantity).replace(",", ".")),
+      description: line.description.trim() || getStockLineLabel(line),
+      unit_price: line.unitPrice.trim() ? Number(line.unitPrice.replace(",", ".")) : null,
+    }));
+  }
+
+  async function postInventoryDocument(
+    sourceType: "Auftrag" | "Lieferschein" | "Rechnung",
+    sourceNumber: string,
+    movementType: "reserve" | "issue",
+    customerId: number | null,
+    ticketId: number | null,
+    lines: StockDocumentLine[],
+  ) {
+    if (!lines.length) return { ok: true, error: "" };
+
+    const { error } = await supabase.rpc("post_inventory_document", {
+      p_source_type: sourceType,
+      p_source_number: sourceNumber,
+      p_movement_type: movementType,
+      p_customer_id: customerId,
+      p_ticket_id: ticketId,
+      p_lines: stockLinesToRpc(lines),
+    });
+
+    if (error) return { ok: false, error: error.message };
+
+    await Promise.all([loadServiceParts(), loadDeviceModels(), loadInventoryMovements()]);
+    return { ok: true, error: "" };
+  }
+
+  async function rollbackInventorySource(sourceType: string, sourceNumber: string, reason: string) {
+    await supabase.rpc("void_inventory_source", {
+      p_source_type: sourceType,
+      p_source_number: sourceNumber,
+      p_reason: reason,
+    });
+    await Promise.all([loadServiceParts(), loadDeviceModels(), loadInventoryMovements()]);
+  }
+
+  function buildStockLinesHtml(lines: StockDocumentLine[]) {
+    if (!lines.length) return "";
+    const rows = lines.map((line) => {
+      const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
+      const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
+      const total = quantity * price;
+      return `<tr><td>${escapeDocumentText(getStockLineLabel(line))}</td><td>${escapeDocumentText(line.description || "-")}</td><td style="text-align:right">${quantity.toLocaleString("de-DE")} ${escapeDocumentText(getStockLineUnit(line))}</td><td style="text-align:right">${price ? `${price.toFixed(2)} €` : "-"}</td><td style="text-align:right">${price ? `${total.toFixed(2)} €` : "-"}</td></tr>`;
+    }).join("");
+    return `<div class="box"><div class="label">Positionen</div><div style="overflow-x:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid #cbd5e1">Artikel</th><th style="text-align:left;padding:8px;border-bottom:1px solid #cbd5e1">Beschreibung</th><th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">Menge</th><th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">Preis</th><th style="text-align:right;padding:8px;border-bottom:1px solid #cbd5e1">Summe</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
   function buildDocumentSignatureHtml(
     technicianSignature: string,
     customerSignature: string,
@@ -10986,6 +11166,15 @@ PRO-EFFEKT`,
 
     if (selectedTicket?.customer_id && selectedTicket.customer_id !== customer.id) {
       alert("Das ausgewählte Ticket gehört nicht zum ausgewählten Kunden.");
+      return;
+    }
+
+    const stockLineError = validateStockDocumentLines(
+      commercialDocumentLines,
+      commercialDocumentType === "Lieferschein",
+    );
+    if (stockLineError) {
+      alert(stockLineError);
       return;
     }
 
@@ -11072,6 +11261,8 @@ PRO-EFFEKT`,
     <div class="note">${escapeText(commercialDocumentNote.trim() || "Keine zusätzliche Bemerkung.")}</div>
   </div>
 
+  ${buildStockLinesHtml(commercialDocumentLines)}
+
   ${buildDocumentSignatureHtml(commercialDocumentTechnicianSignature, commercialDocumentCustomerSignature)}
 
   <div class="footer">
@@ -11081,8 +11272,28 @@ PRO-EFFEKT`,
 </html>`;
 
     setCommercialDocumentBusy(true);
+    let inventoryPosted = false;
 
     try {
+      if (commercialDocumentLines.length > 0) {
+        const shouldPost = commercialDocumentType === "Lieferschein" || commercialDocumentReserveStock;
+        if (shouldPost) {
+          const inventoryResult = await postInventoryDocument(
+            commercialDocumentType,
+            number,
+            commercialDocumentType === "Lieferschein" ? "issue" : "reserve",
+            customer.id,
+            selectedTicket?.id || null,
+            commercialDocumentLines,
+          );
+          if (!inventoryResult.ok) {
+            alert(`Lagerbuchung konnte nicht durchgeführt werden: ${inventoryResult.error}`);
+            return;
+          }
+          inventoryPosted = true;
+        }
+      }
+
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const uploadResult = await supabase.storage
         .from("documents")
@@ -11092,6 +11303,7 @@ PRO-EFFEKT`,
         });
 
       if (uploadResult.error) {
+        if (inventoryPosted) await rollbackInventorySource(commercialDocumentType, number, "Dokument konnte nicht archiviert werden");
         alert(`${commercialDocumentType} konnte nicht erstellt werden: ${uploadResult.error.message}`);
         return;
       }
@@ -11108,6 +11320,7 @@ PRO-EFFEKT`,
       ]);
 
       if (insertResult.error) {
+        if (inventoryPosted) await rollbackInventorySource(commercialDocumentType, number, "Dokumentdatensatz konnte nicht archiviert werden");
         alert(`Dokument wurde erzeugt, aber nicht im Archiv gespeichert: ${insertResult.error.message}`);
         return;
       }
@@ -11123,8 +11336,17 @@ PRO-EFFEKT`,
       setCommercialDocumentNote("");
       setCommercialDocumentTechnicianSignature("");
       setCommercialDocumentCustomerSignature("");
+      setCommercialDocumentLines([]);
+      setCommercialDocumentReserveStock(false);
 
-      alert(`${commercialDocumentType} ${number} wurde erstellt und unter Dokumente → ${category} archiviert.`);
+      const stockMessage = commercialDocumentLines.length
+        ? commercialDocumentType === "Lieferschein"
+          ? " Der Lagerbestand wurde entsprechend ausgebucht."
+          : commercialDocumentReserveStock
+            ? " Die Positionen wurden als Reservierung protokolliert."
+            : " Es wurde keine Lagerbuchung ausgelöst."
+        : "";
+      alert(`${commercialDocumentType} ${number} wurde erstellt und unter Dokumente → ${category} archiviert.${stockMessage}`);
     } finally {
       setCommercialDocumentBusy(false);
     }
@@ -11137,12 +11359,26 @@ PRO-EFFEKT`,
       return;
     }
 
-    if (!invoiceTitle.trim() || !invoiceAmountNet.trim()) {
-      alert("Bitte Titel und Netto-Betrag ausfüllen.");
+    if (!invoiceTitle.trim()) {
+      alert("Bitte einen Titel eingeben.");
       return;
     }
 
-    const net = Number(invoiceAmountNet.replace(",", "."));
+    const invoiceStockError = validateStockDocumentLines(
+      invoiceStockLines,
+      invoiceType === "Rechnung" && invoiceDirectStockIssue,
+    );
+    if (invoiceStockError) {
+      alert(invoiceStockError);
+      return;
+    }
+
+    const stockLineNet = invoiceStockLines.reduce((sum, line) => {
+      const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
+      const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
+      return sum + quantity * price;
+    }, 0);
+    const net = stockLineNet > 0 ? Math.round(stockLineNet * 100) / 100 : Number(invoiceAmountNet.replace(",", "."));
     const tax = Number(invoiceTaxRate.replace(",", "."));
 
     if (!Number.isFinite(net) || net < 0) {
@@ -11180,6 +11416,22 @@ PRO-EFFEKT`,
       return;
     }
 
+    if (invoiceType === "Rechnung" && invoiceDirectStockIssue && invoiceStockLines.length > 0 && data) {
+      const inventoryResult = await postInventoryDocument(
+        "Rechnung",
+        String((data as InvoiceItem).number),
+        "issue",
+        (data as InvoiceItem).customer_id || null,
+        (data as InvoiceItem).ticket_id || null,
+        invoiceStockLines,
+      );
+      if (!inventoryResult.ok) {
+        await supabase.from("invoices").delete().eq("id", (data as InvoiceItem).id);
+        alert(`Rechnung wurde nicht gespeichert, weil die Lagerbuchung fehlgeschlagen ist: ${inventoryResult.error}`);
+        return;
+      }
+    }
+
     const savedType = invoiceType;
     const signed = Boolean(invoiceTechnicianSignature || invoiceCustomerSignature);
     if (signed && data) {
@@ -11190,6 +11442,7 @@ PRO-EFFEKT`,
             data as InvoiceItem,
             invoiceTechnicianSignature,
             invoiceCustomerSignature,
+            invoiceStockLines,
           ),
         );
         if (!archived) {
@@ -11254,11 +11507,26 @@ PRO-EFFEKT`,
     item: InvoiceItem,
     technicianSignature = "",
     customerSignature = "",
+    stockLines: StockDocumentLine[] = [],
   ) {
     const relatedTicket = item.ticket_id
       ? tickets.find((ticket) => ticket.id === item.ticket_id)
       : null;
     const companyName = companyData?.name || "TRYBUN";
+    const invoiceMovementLines = inventoryMovements.filter(
+      (movement) => movement.source_type === "Rechnung" && movement.source_number === item.number && !movement.is_voided,
+    );
+    const invoicePositionsHtml = stockLines.length
+      ? `<h2>Warenpositionen</h2>${buildStockLinesHtml(stockLines)}`
+      : invoiceMovementLines.length
+        ? `<h2>Warenpositionen</h2><div class="box">${invoiceMovementLines.map((movement) => {
+            const label = movement.item_type === "spare_part"
+              ? serviceParts.find((part) => part.id === movement.spare_part_id)?.name || movement.description || "Ersatzteil"
+              : getDeviceModelDisplayName(deviceModels.find((model) => model.id === movement.device_model_id)) || movement.description || "Modell";
+            const price = Number(movement.unit_price || 0);
+            return `<div style="display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #e2e8f0"><span>${escapeDocumentText(label)}</span><strong>${Number(movement.quantity).toLocaleString("de-DE")} × ${price ? `${price.toFixed(2)} EUR` : "-"}</strong></div>`;
+          }).join("")}</div>`
+        : "";
 
     return `
       <!doctype html>
@@ -11303,6 +11571,8 @@ PRO-EFFEKT`,
             <div class="value">${escapeDocumentText(item.title)}</div>
             <p>${escapeDocumentText(item.note || "")}</p>
           </div>
+
+          ${invoicePositionsHtml}
 
           <h2>Betrag</h2>
           <div class="box grid">
@@ -17285,6 +17555,43 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4"
                     />
 
+                    <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Warenpositionen</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-600">Optional Modelle/Verkaufsgeräte oder Ersatzteile hinzufügen.</p>
+                        </div>
+                        <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine()])} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">+ Position</button>
+                      </div>
+                      {invoiceStockLines.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                          {invoiceStockLines.map((line) => (
+                            <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
+                              <div className="grid gap-3 lg:grid-cols-[145px_minmax(0,1fr)_100px_130px_auto]">
+                                <select value={line.itemType} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-xl border border-slate-300 px-3 py-3 font-bold"><option value="device_model">Modell / Gerät</option><option value="spare_part">Ersatzteil</option></select>
+                                <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold">
+                                  <option value="">Artikel auswählen</option>
+                                  {line.itemType === "device_model"
+                                    ? deviceModels.filter((item) => item.is_stocked).sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de")).map((item) => <option key={item.id} value={item.id}>{getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}</option>)
+                                    : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
+                                </select>
+                                <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
+                                <input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unitPrice: e.target.value })} placeholder="Preis €" className="rounded-xl border border-slate-300 px-3 py-3" />
+                                <button type="button" onClick={() => setInvoiceStockLines(invoiceStockLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
+                              </div>
+                              <p className="mt-2 text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</p>
+                            </div>
+                          ))}
+                          {invoiceType === "Rechnung" && (
+                            <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                              <input type="checkbox" checked={invoiceDirectStockIssue} onChange={(e) => setInvoiceDirectStockIssue(e.target.checked)} className="mt-1 h-5 w-5" />
+                              <span><strong>Direktverkauf – Bestand mit Rechnung ausbuchen</strong><span className="mt-1 block text-sm text-amber-700">Nur aktivieren, wenn für diese Ware kein Lieferschein den Lagerabgang bereits gebucht hat. So wird eine Doppelbuchung verhindert.</span></span>
+                            </label>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid gap-3 md:grid-cols-3">
                       <input
                         value={invoiceAmountNet}
@@ -17642,6 +17949,56 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                       />
                     </div>
+                  </div>
+
+                  <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Lagerpositionen</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-600">Modelle/Verkaufsgeräte und Ersatzteile auswählen. Ein Lieferschein bucht diese Positionen aus dem Lager aus.</p>
+                      </div>
+                      <button type="button" onClick={() => setCommercialDocumentLines([...commercialDocumentLines, createStockDocumentLine()])} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">+ Position</button>
+                    </div>
+
+                    {commercialDocumentLines.length === 0 ? (
+                      <div className="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold text-slate-500">Noch keine Lagerposition. Freitext-Belege bleiben weiterhin möglich.</div>
+                    ) : (
+                      <div className="mt-4 space-y-3">
+                        {commercialDocumentLines.map((line) => (
+                          <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
+                            <div className="grid gap-3 lg:grid-cols-[150px_minmax(0,1fr)_110px_140px_auto]">
+                              <select value={line.itemType} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-xl border border-slate-300 px-3 py-3 font-bold">
+                                <option value="device_model">Modell / Gerät</option>
+                                <option value="spare_part">Ersatzteil</option>
+                              </select>
+                              <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold">
+                                <option value="">Artikel auswählen</option>
+                                {line.itemType === "device_model"
+                                  ? deviceModels.filter((item) => item.is_stocked).sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de")).map((item) => <option key={item.id} value={item.id}>{getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}</option>)
+                                  : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
+                              </select>
+                              <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis €" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <button type="button" onClick={() => setCommercialDocumentLines(commercialDocumentLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
+                            </div>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                              <input value={line.description} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { description: e.target.value })} placeholder="Positionsbeschreibung optional" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <span className="text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {commercialDocumentType === "Auftrag" && commercialDocumentLines.length > 0 && (
+                      <label className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4">
+                        <input type="checkbox" checked={commercialDocumentReserveStock} onChange={(e) => setCommercialDocumentReserveStock(e.target.checked)} className="mt-1 h-5 w-5" />
+                        <span><strong>Positionen reservieren</strong><span className="mt-1 block text-sm text-slate-500">Der physische Bestand bleibt unverändert; die Reservierung wird nachvollziehbar protokolliert.</span></span>
+                      </label>
+                    )}
+                    {commercialDocumentType === "Lieferschein" && commercialDocumentLines.length > 0 && (
+                      <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">Beim Erstellen des Lieferscheins werden die Positionen unmittelbar aus dem physischen Lagerbestand ausgebucht.</div>
+                    )}
                   </div>
 
                   <div className="mt-4">
