@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.32 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.33 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4975,7 +4975,7 @@ async function loadApplicationData() {
         ? `Kundengeräte zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
         : "",
       selectedTicketModelLabels.length > 0
-        ? `Aus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        ? `Aus Modelle-Katalog zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
         : "",
     ].filter(Boolean);
 
@@ -5111,7 +5111,7 @@ async function loadApplicationData() {
         ? `Kundengeräte zugeordnet:\n${selectedCustomerDeviceLabels.join("\n")}`
         : "",
       selectedTicketModelLabels.length > 0
-        ? `Aus Gerätebibliothek zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
+        ? `Aus Modelle-Katalog zugeordnet:\n${selectedTicketModelLabels.join("\n")}`
         : "",
     ].filter(Boolean);
 
@@ -13223,17 +13223,17 @@ PRO-EFFEKT`,
     {
       title: "Stammdaten",
       icon: "",
-      items: ["Kunden", "Geräte"],
+      items: ["Kunden"],
+    },
+    {
+      title: "Lager",
+      icon: "",
+      items: ["Geräte", "Gerätebestand", "Ersatzteile"],
     },
     {
       title: "Dokumente",
       icon: "",
       items: ["Dokumente", "Abnahmeprotokoll", "Auftrag / Lieferschein erstellen", "Verträge", "Rechnungen"],
-    },
-    {
-      title: "Lager",
-      icon: "",
-      items: ["Ersatzteile", "Gerätebestand"],
     },
     {
       title: "Kommunikation",
@@ -13259,7 +13259,7 @@ PRO-EFFEKT`,
       Kalender: "Kalender",
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
-      Geräte: "Hersteller-/Gerätebibliothek",
+      Geräte: "Modelle",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
       Ersatzteile: "Ersatzteile",
@@ -14038,7 +14038,7 @@ PRO-EFFEKT`,
     const searchParts = search.split(/\s+/).filter(Boolean);
 
     // Wichtig:
-    // Abnahmeprotokolle suchen zuerst in der neutralen Gerätebibliothek
+    // Abnahmeprotokolle suchen zuerst im neutralen Modelle-Katalog
     // Hersteller -> Kategorie -> Modell. Seriennummern und Kundenzuordnungen
     // bleiben ausschließlich an Kundengeräten und werden hier NICHT übernommen.
     const neutralDeviceMap = new Map<string, Device>();
@@ -14948,13 +14948,15 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {(["Service-Tickets", "Kunden", "Gerätebestand", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
+          {(["Service-Tickets", "Kunden", "Geräte", "Gerätebestand", "Ersatzteile", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
             <div className="mb-6 rounded-[32px] bg-[#07111d] p-5 text-white shadow-sm lg:hidden">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
                 {activePage === "Service-Tickets"
                   ? "Service"
                   : activePage === "Kunden"
                     ? "Stammdaten"
+                    : activePage === "Geräte"
+                      ? "Lager"
                     : activePage === "Gerätebestand"
                       ? "Lager"
                     : activePage === "Ersatzteile"
@@ -14968,6 +14970,8 @@ PRO-EFFEKT`,
                   ? "Service-Tickets"
                   : activePage === "Kunden"
                     ? "Kunden"
+                    : activePage === "Geräte"
+                      ? "Modelle"
                     : activePage === "Gerätebestand"
                       ? "Gerätebestand"
                     : activePage === "Ersatzteile"
@@ -18967,7 +18971,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           Geräte diesem Kunden zuweisen
                         </h4>
                         <p className="mt-1 text-sm font-semibold text-slate-500">
-                          Suche in der Hersteller-/Gerätebibliothek. Beim Zuordnen zum Kunden wird daraus ein eigenes Kundengerät mit eigener Seriennummer.
+                          Suche in Hersteller & Modelle. Beim Zuordnen zum Kunden wird daraus ein eigenes Kundengerät mit eigener Seriennummer.
                         </p>
                       </div>
 
@@ -18985,7 +18989,7 @@ autoCorrect="off"
 spellCheck={false}
 enterKeyHint="search"
 name="trybun-customer-device-library-query"
-placeholder="Bibliothek suchen: Hersteller, Kategorie, Modellbezeichnung"
+placeholder="Modelle suchen: Hersteller, Kategorie, Modellbezeichnung"
                       className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-sky-500"
                     />
 
@@ -19102,7 +19106,7 @@ placeholder="Bibliothek suchen: Hersteller, Kategorie, Modellbezeichnung"
                         </div>
                       ) : customerDeviceAssignResults.length === 0 ? (
                         <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Kein passendes Modell in der Bibliothek gefunden.
+                          Kein passendes Modell gefunden.
                         </div>
                       ) : (
                         customerDeviceAssignResults.map((modelItem) => (
@@ -19473,10 +19477,10 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                   {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                  Hersteller-/Gerätebibliothek
+                  Hersteller & Modelle
                 </h3>
                 <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
-                  Ein zentraler Bereich für Herstellerkontakte, Gerätetypen und Modellbezeichnungen. Keine Kunden und keine Seriennummern in der Bibliothek.
+                  Ein zentraler Bereich für Herstellerkontakte, Gerätetypen und Modellbezeichnungen. Modelle sind Stammdaten ohne Kunden- oder Seriennummern.
                 </p>
               </div>
 
@@ -19667,7 +19671,7 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                 </div>
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Bibliothek</h3>
+                  <h3 className="text-xl font-black">Modelle</h3>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                       Such- und Lesemodus: Techniker können Hersteller und Modelle einsehen, aber nicht bearbeiten.
@@ -22923,7 +22927,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                         Geräte suchen und auswählen <span className="text-slate-400">(optional, Mehrfachauswahl)</span>
                       </p>
                       <p className="mt-1 text-xs font-semibold text-slate-500">
-                        Kundengeräte bringen Seriennummer und Standort mit. Bibliotheksmodelle sind nur Modellbezeichnungen ohne Seriennummer.
+                        Kundengeräte bringen Seriennummer und Standort mit. Modelle aus dem Katalog sind reine Stammdaten ohne Seriennummer.
                       </p>
 
                       <input
@@ -22935,8 +22939,8 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                         }}
                         placeholder={
                           selectedTicketCustomer
-                            ? "Kundengerät oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Standort..."
-                            : "Gerät oder Bibliothek suchen: Hersteller, Kategorie, Modell, Seriennummer, Kunde..."
+                            ? "Kundengerät oder Modell suchen: Hersteller, Kategorie, Modell, Seriennummer, Standort..."
+                            : "Gerät oder Modell suchen: Hersteller, Kategorie, Modell, Seriennummer, Kunde..."
                         }
                         className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         autoComplete="off"
@@ -22983,7 +22987,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
 
                       {selectedTicketCustomer && !ticketDeviceSearch.trim() && ticketCustomerDevices.length === 0 && (
                         <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          Für diesen Kunden ist noch kein Kundengerät zugeordnet. Du kannst ein Bibliotheksmodell suchen oder unten einen freien Gerätenamen eintragen.
+                          Für diesen Kunden ist noch kein Kundengerät zugeordnet. Du kannst ein Modell aus dem Katalog suchen oder unten einen freien Gerätenamen eintragen.
                         </p>
                       )}
 
@@ -23049,7 +23053,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       {ticketDeviceSearch.trim() && filteredTicketLibraryModels.length > 0 && (
                         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3">
                           <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
-                            Treffer aus Hersteller-/Gerätebibliothek
+                            Treffer aus dem Modelle-Katalog
                           </p>
                           <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                             {filteredTicketLibraryModels.map((modelItem) => {
@@ -23072,7 +23076,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                     {getManufacturerNameById(modelItem.manufacturer_id)} · {getDeviceModelTypeName(modelItem) || "Kategorie offen"}
                                   </p>
                                   <p className="mt-1 text-xs font-black text-sky-600">
-                                    {selected ? "✓ Ausgewählt" : "+ Bibliotheksmodell zum Ticket hinzufügen"}
+                                    {selected ? "✓ Ausgewählt" : "+ Modell zum Ticket hinzufügen"}
                                   </p>
                                 </button>
                               );
