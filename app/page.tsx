@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.15 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.16 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -211,6 +211,7 @@ type SparePart = {
   purchase_price?: number | null;
   storage_location?: string | null;
   category?: string | null;
+  is_archived?: boolean | null;
   created_at: string;
 };
 
@@ -8628,7 +8629,7 @@ PRO-EFFEKT`,
 
   async function deleteServicePart(partId: number) {
     if (!isAdmin) {
-      alert("Nur Admins können Ersatzteile löschen.");
+      alert("Nur Admins können Ersatzteile archivieren.");
       return;
     }
 
@@ -8648,26 +8649,26 @@ PRO-EFFEKT`,
       .eq("company_id", currentCompany.id);
 
     if (usageError) {
-      alert("Das Ersatzteil konnte vor dem Löschen nicht geprüft werden. Bitte versuche es erneut.");
+      alert("Das Ersatzteil konnte vor dem Archivieren nicht geprüft werden. Bitte versuche es erneut.");
       return;
     }
 
     const linkedUsages = usageCount || 0;
     const label = part?.name || "Dieses Ersatzteil";
     const message = linkedUsages > 0
-      ? `${label} wurde bereits ${linkedUsages} Mal im Verbrauch gebucht. Beim Löschen werden auch diese Verbrauchsbuchungen dauerhaft entfernt. Wirklich löschen?`
-      : `${label} wirklich dauerhaft löschen?`;
+      ? `${label} wurde bereits ${linkedUsages} Mal im Verbrauch gebucht. Es wird aus dem aktiven Lager entfernt, die bisherigen Buchungen und die Servicehistorie bleiben vollständig erhalten. Wirklich archivieren?`
+      : `${label} aus dem aktiven Lager entfernen und archivieren?`;
 
     if (!confirm(message)) return;
 
     const { error } = await supabase
       .from("spare_parts")
-      .delete()
+      .update({ is_archived: true })
       .eq("id", partId)
       .eq("company_id", currentCompany.id);
 
     if (error) {
-      alert("Ersatzteil konnte nicht gelöscht werden. Bitte versuche es erneut.");
+      alert("Ersatzteil konnte nicht archiviert werden. Bitte versuche es erneut.");
       return;
     }
 
@@ -8684,7 +8685,7 @@ PRO-EFFEKT`,
 
   async function consumeServicePart() {
     const part = serviceParts.find(
-      (item) => String(item.id) === selectedPartId,
+      (item) => String(item.id) === selectedPartId && !item.is_archived,
     );
     const quantity = Number(partUsageQuantity);
 
@@ -11745,7 +11746,9 @@ PRO-EFFEKT`,
     return dueDate.getTime() < today.getTime();
   });
 
-  const lowStockParts = serviceParts.filter(
+  const activeServiceParts = serviceParts.filter((part) => !part.is_archived);
+
+  const lowStockParts = activeServiceParts.filter(
     (part) => Number(part.stock || 0) <= Number(part.min_stock || 0),
   );
 
@@ -22640,12 +22643,12 @@ PRO-EFFEKT`,
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard
                   label="Ersatzteile aktiv"
-                  value={serviceParts.length}
+                  value={activeServiceParts.length}
                 />
                 <StatCard
                   label="Nachbestellen"
                   value={
-                    serviceParts.filter(
+                    activeServiceParts.filter(
                       (part) =>
                         Number(part.stock || 0) <= Number(part.min_stock || 0),
                     ).length
@@ -22654,7 +22657,7 @@ PRO-EFFEKT`,
                 <StatCard
                   label="Leer"
                   value={
-                    serviceParts.filter((part) => Number(part.stock || 0) <= 0)
+                    activeServiceParts.filter((part) => Number(part.stock || 0) <= 0)
                       .length
                   }
                 />
@@ -22763,7 +22766,7 @@ PRO-EFFEKT`,
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
                       <option value="">Ersatzteil auswählen</option>
-                      {serviceParts.map((part) => (
+                      {activeServiceParts.map((part) => (
                         <option key={part.id} value={part.id}>
                           {part.name} · Bestand: {part.stock ?? 0}{" "}
                           {part.unit || "Stück"}
@@ -22827,13 +22830,13 @@ PRO-EFFEKT`,
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                 <h3 className="text-xl font-black">Lagerbestand</h3>
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                  {serviceParts.length === 0 ? (
+                  {activeServiceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch keine Ersatzteile angelegt. Admins können oben erste
                       Ersatzteile erfassen.
                     </div>
                   ) : (
-                    serviceParts.map((part) => {
+                    activeServiceParts.map((part) => {
                       const status = stockStatus(part);
                       return (
                         <div
@@ -22886,7 +22889,7 @@ PRO-EFFEKT`,
                                     onClick={() => deleteServicePart(part.id)}
                                     className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                   >
-                                    Löschen
+                                    Archivieren
                                   </button>
                                 </>
                               )}
