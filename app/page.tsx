@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.12 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.13 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -14114,7 +14114,7 @@ PRO-EFFEKT`,
               </p>
               <h2 className="mt-2 text-3xl font-black leading-tight">
                 {activePage === "Service-Tickets"
-                  ? "Tickets"
+                  ? "Service-Tickets"
                   : activePage === "Kunden"
                     ? "Kunden"
                     : activePage === "Ersatzteile"
