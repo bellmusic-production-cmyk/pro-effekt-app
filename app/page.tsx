@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.28 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.29 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -19858,18 +19858,12 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                         value={deviceCustomerSearch}
                         onChange={(e) => setDeviceCustomerSearch(e.target.value)}
                         type="search"
-autoComplete="off"
-autoCorrect="off"
-spellCheck={false}
-enterKeyHint="search"
-name="trybun-device-customer-query"
-type="search"
-autoComplete="off"
-autoCorrect="off"
-spellCheck={false}
-enterKeyHint="search"
-name="trybun-inspection-customer-query"
-placeholder="Kunde suchen..."
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        enterKeyHint="search"
+                        name="trybun-device-customer-query"
+                        placeholder="Kunde suchen..."
                         className="min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
                       />
 
