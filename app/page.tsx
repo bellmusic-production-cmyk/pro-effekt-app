@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.43 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.44 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1316,6 +1316,7 @@ export default function Home() {
   const [invoiceTitle, setInvoiceTitle] = useState("");
   const [invoiceAmountNet, setInvoiceAmountNet] = useState("");
   const [invoiceTaxRate, setInvoiceTaxRate] = useState("19");
+  const [invoicePriceMode, setInvoicePriceMode] = useState<"netto" | "brutto">("netto");
   const [invoiceStatus, setInvoiceStatus] = useState("Entwurf");
   const [invoiceNote, setInvoiceNote] = useState("");
   const [invoiceTechnicianSignature, setInvoiceTechnicianSignature] = useState("");
@@ -1396,6 +1397,8 @@ export default function Home() {
     new Date().toISOString().split("T")[0],
   );
   const [commercialDocumentNote, setCommercialDocumentNote] = useState("");
+  const [commercialDocumentTaxRate, setCommercialDocumentTaxRate] = useState("19");
+  const [commercialDocumentPriceMode, setCommercialDocumentPriceMode] = useState<"netto" | "brutto">("netto");
   const [commercialDocumentTechnicianSignature, setCommercialDocumentTechnicianSignature] = useState("");
   const [commercialDocumentCustomerSignature, setCommercialDocumentCustomerSignature] = useState("");
   const [commercialDocumentLines, setCommercialDocumentLines] = useState<StockDocumentLine[]>([]);
@@ -9887,12 +9890,35 @@ PRO-EFFEKT`,
     );
   }
 
+  function getDefaultBusinessPriceMode(customer?: Customer | null): "netto" | "brutto" {
+    return String(customer?.customer_type || "").toLowerCase() === "privatkunde" ? "brutto" : "netto";
+  }
+
+  function calculateDocumentAmounts(lines: StockDocumentLine[], taxRateValue: string | number, priceMode: "netto" | "brutto") {
+    const rate = Math.max(0, Number(String(taxRateValue ?? 0).replace(",", ".")) || 0);
+    const enteredTotal = lines.reduce((sum, line) => {
+      const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
+      const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
+      return sum + quantity * price;
+    }, 0);
+    const gross = priceMode === "brutto" ? enteredTotal : enteredTotal * (1 + rate / 100);
+    const net = priceMode === "brutto" ? enteredTotal / (1 + rate / 100 || 1) : enteredTotal;
+    return {
+      taxRate: Math.round(rate * 100) / 100,
+      net: Math.round(net * 100) / 100,
+      gross: Math.round(gross * 100) / 100,
+      taxAmount: Math.round((gross - net) * 100) / 100,
+      enteredTotal: Math.round(enteredTotal * 100) / 100,
+    };
+  }
+
   function resetInvoiceForm() {
     setInvoiceType("Rechnung");
     setInvoiceTicketId("");
     setInvoiceTitle("");
     setInvoiceAmountNet("");
     setInvoiceTaxRate("19");
+    setInvoicePriceMode("netto");
     setInvoiceStatus("Entwurf");
     setInvoiceNote("");
     setInvoiceTechnicianSignature("");
@@ -11358,6 +11384,7 @@ PRO-EFFEKT`,
     amountNet?: number | null;
     taxRate?: number | null;
     amountGross?: number | null;
+    priceMode?: "netto" | "brutto";
     technicianSignature?: string;
     customerSignature?: string;
   }) {
@@ -11480,8 +11507,8 @@ PRO-EFFEKT`,
         pdf.setTextColor(71, 85, 105);
         pdf.text("ARTIKEL / MODELL", colX[0] + 2, y + 6);
         pdf.text("MENGE", colX[1] + 2, y + 6);
-        pdf.text("EINZEL", colX[2] + 2, y + 6);
-        pdf.text("GESAMT", colX[3] + 2, y + 6);
+        pdf.text(options.priceMode === "brutto" ? "EINZEL BRUTTO" : options.priceMode === "netto" ? "EINZEL NETTO" : "EINZEL", colX[2] + 2, y + 6);
+        pdf.text(options.priceMode === "brutto" ? "GESAMT BRUTTO" : options.priceMode === "netto" ? "GESAMT NETTO" : "GESAMT", colX[3] + 2, y + 6);
         y += 10;
       };
 
@@ -11632,10 +11659,10 @@ PRO-EFFEKT`,
     ) {
       sectionTitle("Betrag");
       drawInfoGrid([
+        ["Preisangabe", options.priceMode === "brutto" ? "Bruttopreise" : "Nettopreise"],
         ["Netto", money(options.amountNet)],
-        ["MwSt.", `${Number(options.taxRate || 0).toLocaleString("de-DE")} %`],
+        ["MwSt.", `${Number(options.taxRate || 0).toLocaleString("de-DE")} % · ${money(Number(options.amountGross || 0) - Number(options.amountNet || 0))}`],
         ["Brutto", money(options.amountGross)],
-        ["Status", options.extraFields?.find((entry) => entry[0] === "Status")?.[1] || "-"],
       ]);
     }
 
@@ -11649,6 +11676,7 @@ PRO-EFFEKT`,
     technicianSignature = "",
     customerSignature = "",
     stockLines: StockDocumentLine[] = [],
+    priceMode: "netto" | "brutto" = "netto",
   ) {
     const relatedTicket = item.ticket_id
       ? tickets.find((ticket) => ticket.id === item.ticket_id)
@@ -11694,6 +11722,7 @@ PRO-EFFEKT`,
       amountNet: Number(item.amount_net || 0),
       taxRate: Number(item.tax_rate || 0),
       amountGross: Number(item.amount_gross || 0),
+      priceMode,
       technicianSignature,
       customerSignature,
     });
@@ -11750,6 +11779,11 @@ PRO-EFFEKT`,
 
     const customerName = getCustomerLabel(customer);
     const customerAddress = buildCustomerAddress(customer) || "Keine Adresse hinterlegt";
+    const commercialAmounts = calculateDocumentAmounts(
+      commercialDocumentLines,
+      commercialDocumentTaxRate,
+      commercialDocumentPriceMode,
+    );
     const pdfBlob = await createBrandedBusinessPdfBlob({
       documentType: commercialDocumentType,
       number,
@@ -11763,6 +11797,10 @@ PRO-EFFEKT`,
       title: commercialDocumentTitle.trim(),
       note: commercialDocumentNote.trim() || "Keine zusätzliche Bemerkung.",
       lines: commercialDocumentLines,
+      amountNet: commercialDocumentLines.length ? commercialAmounts.net : null,
+      taxRate: commercialDocumentLines.length ? commercialAmounts.taxRate : null,
+      amountGross: commercialDocumentLines.length ? commercialAmounts.gross : null,
+      priceMode: commercialDocumentPriceMode,
       technicianSignature: commercialDocumentTechnicianSignature,
       customerSignature: commercialDocumentCustomerSignature,
     });
@@ -11844,6 +11882,8 @@ PRO-EFFEKT`,
       setCommercialDocumentTitle("");
       setCommercialDocumentReference("");
       setCommercialDocumentNote("");
+      setCommercialDocumentTaxRate("19");
+      setCommercialDocumentPriceMode("netto");
       setCommercialDocumentTechnicianSignature("");
       setCommercialDocumentCustomerSignature("");
       setCommercialDocumentLines([]);
@@ -11883,24 +11923,29 @@ PRO-EFFEKT`,
       return;
     }
 
-    const stockLineNet = invoiceStockLines.reduce((sum, line) => {
+    const tax = Math.max(0, Number(invoiceTaxRate.replace(",", ".")) || 0);
+    const lineEnteredTotal = invoiceStockLines.reduce((sum, line) => {
       const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
       const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
       return sum + quantity * price;
     }, 0);
-    const net = stockLineNet > 0 ? Math.round(stockLineNet * 100) / 100 : Number(invoiceAmountNet.replace(",", "."));
-    const tax = Number(invoiceTaxRate.replace(",", "."));
+    const enteredAmount = lineEnteredTotal > 0 ? lineEnteredTotal : Number(invoiceAmountNet.replace(",", "."));
 
-    if (!Number.isFinite(net) || net < 0) {
-      alert("Bitte einen gültigen Netto-Betrag eingeben.");
+    if (!Number.isFinite(enteredAmount) || enteredAmount < 0) {
+      alert(`Bitte einen gültigen ${invoicePriceMode === "brutto" ? "Brutto" : "Netto"}-Betrag eingeben.`);
       return;
     }
+
+    const gross = invoicePriceMode === "brutto"
+      ? Math.round(enteredAmount * 100) / 100
+      : Math.round((enteredAmount * (1 + tax / 100)) * 100) / 100;
+    const net = invoicePriceMode === "brutto"
+      ? Math.round((enteredAmount / (1 + tax / 100 || 1)) * 100) / 100
+      : Math.round(enteredAmount * 100) / 100;
 
     const selectedTicket = invoiceTicketId
       ? tickets.find((ticket) => ticket.id === Number(invoiceTicketId))
       : null;
-
-    const gross = Math.round((net * (1 + tax / 100)) * 100) / 100;
 
     const payload = {
       type: invoiceType,
@@ -11951,6 +11996,7 @@ PRO-EFFEKT`,
           invoiceTechnicianSignature,
           invoiceCustomerSignature,
           invoiceStockLines,
+          invoicePriceMode,
         );
         const archived = await archiveInvoiceDocument(
           data as InvoiceItem,
@@ -18106,6 +18152,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         if (selectedTicket && !invoiceTitle) {
                           setInvoiceTitle(`${selectedTicket.issue} · ${selectedTicket.device}`);
                         }
+                        if (selectedTicket?.customer_id) {
+                          const selectedCustomer = customers.find((item) => item.id === selectedTicket.customer_id);
+                          setInvoicePriceMode(getDefaultBusinessPriceMode(selectedCustomer));
+                        }
                       }}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
@@ -18145,7 +18195,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                     : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
                                 </select>
                                 <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
-                                <input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unitPrice: e.target.value })} placeholder="Preis €" className="rounded-xl border border-slate-300 px-3 py-3" />
+                                <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
                                 <button type="button" onClick={() => setInvoiceStockLines(invoiceStockLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
                               </div>
                               <p className="mt-2 text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</p>
@@ -18161,29 +18211,37 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       )}
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <input
-                        value={invoiceAmountNet}
-                        onChange={(e) => setInvoiceAmountNet(e.target.value)}
-                        placeholder="Netto-Betrag"
-                        type="number"
-                        step="0.01"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div>
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
+                        <select value={invoicePriceMode} onChange={(e) => setInvoicePriceMode(e.target.value as "netto" | "brutto")} className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold">
+                          <option value="netto">Nettopreise</option>
+                          <option value="brutto">Bruttopreise</option>
+                        </select>
+                      </div>
 
-                      <input
-                        value={invoiceTaxRate}
-                        onChange={(e) => setInvoiceTaxRate(e.target.value)}
-                        placeholder="MwSt %"
-                        type="number"
-                        step="0.01"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <div>
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">{invoicePriceMode === "brutto" ? "Brutto-Betrag" : "Netto-Betrag"}</label>
+                        <div className="flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                          <input value={invoiceAmountNet} onChange={(e) => setInvoiceAmountNet(e.target.value)} placeholder="0,00" type="number" min="0" step="0.01" className="min-w-0 flex-1 border-0 px-5 py-4 outline-none" />
+                          <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">€</span>
+                        </div>
+                      </div>
 
-                      <select
+                      <div>
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Mehrwertsteuer</label>
+                        <div className="flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                          <input value={invoiceTaxRate} onChange={(e) => setInvoiceTaxRate(e.target.value)} placeholder="19" type="number" min="0" step="0.01" className="min-w-0 flex-1 border-0 px-5 py-4 outline-none" />
+                          <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">%</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Status</label>
+                        <select
                         value={invoiceStatus}
                         onChange={(e) => setInvoiceStatus(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
                         <option>Entwurf</option>
                         <option>Offen</option>
@@ -18191,6 +18249,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         <option>Bezahlt</option>
                         <option>Storniert</option>
                       </select>
+                      </div>
                     </div>
 
                     <textarea
@@ -18439,6 +18498,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         onChange={(e) => {
                           setCommercialDocumentCustomerId(e.target.value);
                           setCommercialDocumentTicketId("");
+                          const selectedCustomer = customers.find((item) => item.id === Number(e.target.value));
+                          setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
                         }}
                         className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
                       >
@@ -18463,6 +18524,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           const selectedTicket = tickets.find((ticket) => ticket.id === Number(nextId));
                           if (selectedTicket?.customer_id) {
                             setCommercialDocumentCustomerId(String(selectedTicket.customer_id));
+                            const selectedCustomer = customers.find((item) => item.id === selectedTicket.customer_id);
+                            setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
                           }
                           if (selectedTicket && !commercialDocumentTitle.trim()) {
                             setCommercialDocumentTitle(`${selectedTicket.issue}${selectedTicket.device ? ` · ${selectedTicket.device}` : ""}`);
@@ -18520,6 +18583,24 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     </div>
                   </div>
 
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
+                      <select value={commercialDocumentPriceMode} onChange={(e) => setCommercialDocumentPriceMode(e.target.value as "netto" | "brutto")} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                        <option value="netto">Nettopreise</option>
+                        <option value="brutto">Bruttopreise</option>
+                      </select>
+                      <p className="mt-2 text-xs font-semibold text-slate-500">B2B wird standardmäßig netto, Endkunde standardmäßig brutto vorbelegt. Die Auswahl bleibt änderbar.</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Mehrwertsteuer</label>
+                      <div className="mt-2 flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                        <input value={commercialDocumentTaxRate} onChange={(e) => setCommercialDocumentTaxRate(e.target.value)} type="number" min="0" step="0.01" placeholder="19" className="min-w-0 flex-1 border-0 px-5 py-4 font-semibold outline-none" />
+                        <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">%</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -18547,7 +18628,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                   : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
                               </select>
                               <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
-                              <input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis €" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
                               <button type="button" onClick={() => setCommercialDocumentLines(commercialDocumentLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
                             </div>
                             <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -21984,15 +22065,18 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
                         <span className="block min-h-[2.5rem] text-xs font-semibold leading-5 text-slate-500">
                           In Euro, z. B. 49,90
                         </span>
-                        <input
-                          value={contractMonthlyAmount}
-                          onChange={(e) => setContractMonthlyAmount(e.target.value)}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="49,90"
-                          className="w-full min-w-0 rounded-2xl border border-slate-300 px-5 py-4"
-                        />
+                        <div className="flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                          <input
+                            value={contractMonthlyAmount}
+                            onChange={(e) => setContractMonthlyAmount(e.target.value)}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="49,90"
+                            className="min-w-0 flex-1 border-0 px-5 py-4 outline-none"
+                          />
+                          <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">€</span>
+                        </div>
                       </label>
 
                       <label className="min-w-0 space-y-2">
