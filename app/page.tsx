@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.25 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.26 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -15766,7 +15766,13 @@ PRO-EFFEKT`,
                   <input
                     value={communicationSearchTerm}
                     onChange={(e) => setCommunicationSearchTerm(e.target.value)}
-                    placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
+                    type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-communication-query"
+placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                     className="rounded-2xl border border-cyan-200 bg-white px-4 py-3 text-sm font-bold text-slate-900"
                   />
                   <select
@@ -16152,7 +16158,13 @@ PRO-EFFEKT`,
                             <input
                               value={ticketAkteDocumentSearch}
                               onChange={(event) => setTicketAkteDocumentSearch(event.target.value)}
-                              placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
+                              type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-ticket-document-query"
+placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
                             />
 
@@ -16993,7 +17005,13 @@ PRO-EFFEKT`,
                               setSelectedDeviceId("");
                               setUploadDeviceSearch("");
                             }}
-                            placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
+                            type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-upload-customer-query"
+placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                           />
                         )}
@@ -17323,7 +17341,13 @@ PRO-EFFEKT`,
                     <input
                       value={documentSearchTerm}
                       onChange={(e) => setDocumentSearchTerm(e.target.value)}
-                      placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
+                      type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-document-query"
+placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                     />
 
@@ -18467,7 +18491,13 @@ PRO-EFFEKT`,
                     <input
                       value={customerDeviceAssignSearch}
                       onChange={(event) => setCustomerDeviceAssignSearch(event.target.value)}
-                      placeholder="Bibliothek suchen: Hersteller, Kategorie, Modellbezeichnung"
+                      type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-customer-device-library-query"
+placeholder="Bibliothek suchen: Hersteller, Kategorie, Modellbezeichnung"
                       className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-sky-500"
                     />
 
@@ -18740,7 +18770,13 @@ PRO-EFFEKT`,
                   <input
                     value={customerDirectorySearch}
                     onChange={(e) => setCustomerDirectorySearch(e.target.value)}
-                    placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
+                    type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-customer-directory-query"
+placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                     className="block min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                   />
 
@@ -19140,14 +19176,26 @@ PRO-EFFEKT`,
                         setManufacturerDirectorySearch(e.target.value);
                         setCatalogManufacturerId("");
                       }}
-                      placeholder="Hersteller suchen"
+                      type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-manufacturer-directory-query"
+placeholder="Hersteller suchen"
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                     />
 
                     <input
                       value={deviceModelDirectorySearch}
                       onChange={(e) => setDeviceModelDirectorySearch(e.target.value)}
-                      placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
+                      type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-model-directory-query"
+placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                     />
                   </div>
@@ -19743,7 +19791,19 @@ PRO-EFFEKT`,
                       <input
                         value={deviceCustomerSearch}
                         onChange={(e) => setDeviceCustomerSearch(e.target.value)}
-                        placeholder="Kunde suchen..."
+                        type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-device-customer-query"
+type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-inspection-customer-query"
+placeholder="Kunde suchen..."
                         className="min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
                       />
 
@@ -19934,7 +19994,13 @@ PRO-EFFEKT`,
                 <input
                   value={deviceDirectorySearch}
                   onChange={(e) => setDeviceDirectorySearch(e.target.value)}
-                  placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Hersteller, Standort"
+                  type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-device-directory-query"
+placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Hersteller, Standort"
                   className="mt-5 w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
                 />
 
@@ -20542,7 +20608,13 @@ PRO-EFFEKT`,
                       <input
                         value={abnahmeDeviceSearch}
                         onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
-                        placeholder="Gerät / Anlage / Modell suchen..."
+                        type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-inspection-device-query"
+placeholder="Gerät / Anlage / Modell suchen..."
                         className="w-full rounded-2xl border border-slate-300 px-5 py-4"
                       />
 
@@ -21885,7 +21957,13 @@ PRO-EFFEKT`,
                   <input
                     value={qrSearchTerm}
                     onChange={(e) => setQrSearchTerm(e.target.value)}
-                    placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
+                    type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-qr-device-query"
+placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                     className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                   />
                 </div>
@@ -22144,7 +22222,13 @@ PRO-EFFEKT`,
                             setDevice("");
                             setTicketDeviceSearch("");
                           }}
-                          placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
+                          type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-ticket-customer-query"
+placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                           className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         />
 
@@ -22618,7 +22702,13 @@ PRO-EFFEKT`,
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Telefon, Gerät oder Seriennummer suchen..."
+                      type="search"
+autoComplete="off"
+autoCorrect="off"
+spellCheck={false}
+enterKeyHint="search"
+name="trybun-ticket-directory-query"
+placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Telefon, Gerät oder Seriennummer suchen..."
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
 
