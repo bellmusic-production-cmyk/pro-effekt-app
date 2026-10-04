@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.19 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.20 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -12930,18 +12930,25 @@ PRO-EFFEKT`,
   const filteredCustomerDirectory = (() => {
     const search = customerDirectorySearch.toLowerCase().trim();
 
-    if (!search || search.length < 2) {
-      return [];
+    const matchingCustomers = customers
+      .filter((customerItem) =>
+        customerTypeFilter === "Alle" ||
+        (customerItem.customer_type || "B2B") === customerTypeFilter,
+      )
+      .sort((a, b) =>
+        (getCustomerDisplayName(a) || a.company || "").localeCompare(
+          getCustomerDisplayName(b) || b.company || "",
+          "de",
+          { sensitivity: "base" },
+        ),
+      );
+
+    if (!search) {
+      return matchingCustomers.slice(0, 5);
     }
 
-    return customers
-      .filter((customerItem) => {
-        const matchesType =
-          customerTypeFilter === "Alle" ||
-          (customerItem.customer_type || "B2B") === customerTypeFilter;
-
-        return matchesType && getCustomerSearchText(customerItem).includes(search);
-      })
+    return matchingCustomers
+      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
       .slice(0, 80);
   })();
 
@@ -18337,7 +18344,7 @@ PRO-EFFEKT`,
                 <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-bold leading-6 text-sky-700 md:text-base">
                   {customerDirectorySearchIsActive
                     ? `${filteredCustomerDirectory.length} Treffer werden angezeigt. Bitte Suche verfeinern, falls der Kunde nicht dabei ist.`
-                    : `Bitte mindestens 1 Zeichen eingeben. Insgesamt sind ${customers.length} Kunden geladen und per Suche abrufbar.`}
+                    : `${Math.min(filteredCustomerDirectory.length, 5)} Kunden alphabetisch angezeigt · insgesamt ${customers.length} Kunden geladen.`}
                 </div>
 
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -18350,11 +18357,10 @@ PRO-EFFEKT`,
                       ) : (
                         <div>
                           <p className="text-xl font-black text-slate-800">
-                            Kundenliste bereit
+                            Noch keine Kunden für diese Auswahl
                           </p>
                           <p className="mt-2 max-w-3xl text-base font-semibold leading-7 text-slate-500">
-                            Alle geladenen Kundenstammdaten sind über die Suche abrufbar. Aus Übersichtsgründen wird die Liste erst nach Eingabe eines Suchbegriffs angezeigt.
-                            Nutze oben Firma, Kundennummer, Ort, E-Mail, Telefon oder Adresse.
+                            Sobald Kunden vorhanden sind, werden hier die ersten fünf alphabetisch angezeigt.
                           </p>
                         </div>
                       )}
