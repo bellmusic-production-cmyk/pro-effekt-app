@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.21 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.22 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -18819,43 +18819,76 @@ PRO-EFFEKT`,
                   </div>
 
                   <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                    <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-                      Hersteller auswählen
-                    </label>
-                    <select
-                      value={catalogManufacturerId}
-                      onChange={(e) => setCatalogManufacturerId(e.target.value)}
-                      className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-lg font-black text-[#07111d]"
-                    >
-                      <option value="">
-                        Hersteller auswählen ({filteredManufacturerDirectory.length})
-                      </option>
-                      {filteredManufacturerDirectory.map((item) => {
-                        const modelCount = deviceModels.filter(
-                          (modelItem) => modelItem.manufacturer_id === item.id,
-                        ).length;
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                        Hersteller-Treffer
+                      </label>
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+                        {filteredManufacturerDirectory.length} gefunden
+                      </span>
+                    </div>
 
-                        return (
-                          <option key={item.id} value={item.id}>
-                            {item.name} · {modelCount} Modell(e)
-                          </option>
-                        );
-                      })}
-                    </select>
+                    {filteredManufacturerDirectory.length === 0 ? (
+                      <p className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold text-slate-500">
+                        Keine passenden Hersteller gefunden.
+                      </p>
+                    ) : (
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {filteredManufacturerDirectory.slice(0, 6).map((item) => {
+                          const modelCount = deviceModels.filter(
+                            (modelItem) => modelItem.manufacturer_id === item.id,
+                          ).length;
+                          const selected = String(item.id) === catalogManufacturerId;
+
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => setCatalogManufacturerId(String(item.id))}
+                              className={`rounded-2xl border p-4 text-left transition ${
+                                selected
+                                  ? "border-sky-400 bg-sky-50 shadow-sm"
+                                  : "border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/60"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="truncate text-base font-black text-[#07111d]">
+                                    {item.name}
+                                  </div>
+                                  <div className="mt-1 text-xs font-bold text-slate-500">
+                                    {modelCount} Modell(e)
+                                  </div>
+                                </div>
+                                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${
+                                  selected
+                                    ? "bg-sky-500 text-white"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}>
+                                  {selected ? "Geöffnet" : "Öffnen"}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {filteredManufacturerDirectory.length > 6 && (
+                      <p className="mt-3 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
+                        Die ersten 6 Treffer werden angezeigt. Bitte die Suche verfeinern, wenn der gewünschte Hersteller nicht dabei ist.
+                      </p>
+                    )}
 
                     <p className="mt-3 text-sm font-semibold text-slate-500">
-                      Dadurch bleibt die Seite kurz: Es wird immer nur der ausgewählte Hersteller geöffnet.
+                      Hersteller direkt anklicken. Es wird immer nur der ausgewählte Hersteller mit seinen Modellen geöffnet.
                     </p>
                   </div>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {filteredManufacturerDirectory.length === 0 ? (
+                    {filteredManufacturerDirectory.length === 0 ? null : !catalogManufacturerId ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
-                        Keine Hersteller gefunden.
-                      </p>
-                    ) : !catalogManufacturerId ? (
-                      <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
-                        Bitte oben einen Hersteller auswählen, um die zugehörigen Modelle und Herstellerdaten anzuzeigen.
+                        Bitte einen Hersteller-Treffer anklicken, um die zugehörigen Modelle und Herstellerdaten anzuzeigen.
                       </p>
                     ) : (
                       filteredManufacturerDirectory
