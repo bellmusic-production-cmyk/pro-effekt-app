@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.18 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.19 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11053,10 +11053,20 @@ PRO-EFFEKT`,
       }
     }
 
+    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} Duplikat(e) übersprungen${invalidRows.length ? ` · ${invalidRows.length} fehlerhafte Zeile(n) nicht importiert` : ""}${errors.length ? ` · ${errors.length} Importfehler` : ""}`;
+
+    if (errors.length === 0) {
+      // Nach einem erfolgreichen Import die Vorschau schließen, bevor die Kunden neu geladen werden.
+      // So werden die gerade importierten Datensätze nicht sofort als "Duplikat" neu bewertet.
+      setCustomerImportFileName("");
+      setCustomerImportHeaders([]);
+      setCustomerImportRows([]);
+      setCustomerImportMapping(emptyCustomerImportMapping());
+    }
+
+    setCustomerImportMessage(summary);
     await loadCustomers();
     setCustomerImportBusy(false);
-    const summary = `${created} neu · ${updated} aktualisiert · ${skipped} Duplikat(e) übersprungen${invalidRows.length ? ` · ${invalidRows.length} fehlerhafte Zeile(n) nicht importiert` : ""}${errors.length ? ` · ${errors.length} Importfehler` : ""}`;
-    setCustomerImportMessage(summary);
 
     if (errors.length > 0) {
       alert(`Import abgeschlossen: ${summary}\n\n${errors.slice(0, 8).join("\n")}${errors.length > 8 ? "\n…" : ""}`);
