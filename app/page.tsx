@@ -506,28 +506,56 @@ const customerPortalFinalFeatures = [
   "Foto / Video / Lieferschein hochladen",
 ];
 
-const abnahmeProtocolQuestions = [
-  "Sichtprüfung",
-  "Allgemeiner Betrieb des Gerätes",
-  "Rahmen / Schweißnähte geprüft",
-  "Schmierung der beweglichen Teile",
-  "Mechanische Prüfung / Standfestigkeit geprüft",
-  "Schraubverbindungen geprüft",
-  "Polster / Verkleidung / Sattel / Lenker",
-  "Funktionsprüfung allgemein / Schutzeinrichtung",
-  "Seile / Zugseile geprüft",
-  "Einstellungen / Lager geprüft",
-  "Laufgurt geprüft / eingestellt",
-  "Sicherheitsprüfung / Funktionsprüfung",
+const protocolTypeOptions = [
+  "Abnahme",
+  "Prüfung",
+  "Wartung",
+  "Inbetriebnahme",
+  "Übergabe",
+  "Inspektion",
 ];
+
+const protocolTemplateOptions: Record<string, string[]> = {
+  "Allgemeine Prüfung": [
+    "Allgemeiner Zustand",
+    "Funktion / Betrieb",
+    "Sicherheit / Schutzmaßnahmen",
+    "Befestigung / Montage",
+    "Anschlüsse / Verbindungen",
+    "Kennzeichnung / Dokumentation",
+  ],
+  "Abnahme / Übergabe": [
+    "Liefer- / Leistungsumfang vollständig",
+    "Montage / Installation ordnungsgemäß",
+    "Funktion geprüft",
+    "Sicherheitseinrichtungen geprüft",
+    "Dokumentation übergeben",
+    "Einweisung / Übergabe erfolgt",
+  ],
+  "Wartung / Inspektion": [
+    "Allgemeiner Zustand",
+    "Verschleiß / Beschädigungen",
+    "Funktion geprüft",
+    "Sicherheitsrelevante Bauteile geprüft",
+    "Reinigung / Pflege durchgeführt",
+    "Wartungsmaßnahmen dokumentiert",
+  ],
+  "Inbetriebnahme": [
+    "Montage / Installation abgeschlossen",
+    "Anschlüsse geprüft",
+    "Konfiguration / Einstellung geprüft",
+    "Funktionsprüfung durchgeführt",
+    "Sicherheitsprüfung durchgeführt",
+    "Inbetriebnahme dokumentiert",
+  ],
+};
 
 type AbnahmeProtocolCheck = {
   question: string;
-  ja: boolean;
-  ok: boolean;
-  vs: boolean;
-  df: boolean;
+  result: "offen" | "ok" | "mangel" | "nicht_geprueft" | "nicht_zutreffend";
   comment: string;
+  measurement: string;
+  unit: string;
 };
 
 type AbnahmeDeviceRow = {
@@ -539,6 +567,7 @@ type AbnahmeDeviceRow = {
   result: string;
   defects: string;
 };
+
 
 
 export default function Home() {
@@ -682,9 +711,14 @@ export default function Home() {
   const [abnahmeAddressObject, setAbnahmeAddressObject] = useState("");
   const [abnahmeOrderNumber, setAbnahmeOrderNumber] = useState("");
   const [abnahmeCustomerNumber, setAbnahmeCustomerNumber] = useState("");
-  const [abnahmeContractType, setAbnahmeContractType] = useState("Wartungsvertrag");
-  const [abnahmeDguvChecked, setAbnahmeDguvChecked] = useState(true);
-  const [abnahmeUvvChecked, setAbnahmeUvvChecked] = useState(true);
+  const [abnahmeProtocolType, setAbnahmeProtocolType] = useState("Abnahme");
+  const [abnahmeProtocolTemplate, setAbnahmeProtocolTemplate] = useState("Allgemeine Prüfung");
+  const [abnahmeReference, setAbnahmeReference] = useState("");
+  const [abnahmeOverallResult, setAbnahmeOverallResult] = useState("Ohne Beanstandung");
+  const [abnahmeMeasures, setAbnahmeMeasures] = useState("");
+  const [abnahmeContractType, setAbnahmeContractType] = useState("Kein Vertrag / nicht angegeben");
+  const [abnahmeDguvChecked, setAbnahmeDguvChecked] = useState(false);
+  const [abnahmeUvvChecked, setAbnahmeUvvChecked] = useState(false);
   const [abnahmePage, setAbnahmePage] = useState("1");
   const [abnahmePagesTotal, setAbnahmePagesTotal] = useState("1");
   const [abnahmeManufacturer, setAbnahmeManufacturer] = useState("");
@@ -693,13 +727,12 @@ export default function Home() {
   const [abnahmeDefects, setAbnahmeDefects] = useState("");
   const [abnahmeDeviceResult, setAbnahmeDeviceResult] = useState("OK");
   const [abnahmeChecks, setAbnahmeChecks] = useState<AbnahmeProtocolCheck[]>(
-    abnahmeProtocolQuestions.map((question) => ({
+    protocolTemplateOptions["Allgemeine Prüfung"].map((question) => ({
       question,
-      ja: false,
-      ok: false,
-      vs: false,
-      df: false,
+      result: "offen",
       comment: "",
+      measurement: "",
+      unit: "",
     })),
   );
   const [abnahmeBadgeApplied, setAbnahmeBadgeApplied] = useState(false);
@@ -8970,9 +9003,14 @@ PRO-EFFEKT`,
     setAbnahmeAddressObject("");
     setAbnahmeOrderNumber("");
     setAbnahmeCustomerNumber("");
-    setAbnahmeContractType("Wartungsvertrag");
-    setAbnahmeDguvChecked(true);
-    setAbnahmeUvvChecked(true);
+    setAbnahmeProtocolType("Abnahme");
+    setAbnahmeProtocolTemplate("Allgemeine Prüfung");
+    setAbnahmeReference("");
+    setAbnahmeOverallResult("Ohne Beanstandung");
+    setAbnahmeMeasures("");
+    setAbnahmeContractType("Kein Vertrag / nicht angegeben");
+    setAbnahmeDguvChecked(false);
+    setAbnahmeUvvChecked(false);
     setAbnahmePage("1");
     setAbnahmePagesTotal("1");
     setAbnahmeManufacturer("");
@@ -8981,13 +9019,12 @@ PRO-EFFEKT`,
     setAbnahmeDefects("");
     setAbnahmeDeviceResult("OK");
     setAbnahmeChecks(
-      abnahmeProtocolQuestions.map((question) => ({
+      protocolTemplateOptions["Allgemeine Prüfung"].map((question) => ({
         question,
-        ja: false,
-        ok: false,
-        vs: false,
-        df: false,
+        result: "offen",
         comment: "",
+        measurement: "",
+        unit: "",
       })),
     );
     setAbnahmeBadgeApplied(false);
@@ -9006,14 +9043,45 @@ PRO-EFFEKT`,
 
   function updateAbnahmeCheck(
     index: number,
-    field: "ja" | "ok" | "vs" | "df" | "comment",
-    value: boolean | string,
+    field: "question" | "result" | "comment" | "measurement" | "unit",
+    value: string,
   ) {
     setAbnahmeChecks((prev) =>
       prev.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [field]: value } : item,
       ),
     );
+  }
+
+  function applyAbnahmeTemplate(templateName: string) {
+    setAbnahmeProtocolTemplate(templateName);
+    const questions = protocolTemplateOptions[templateName] || protocolTemplateOptions["Allgemeine Prüfung"];
+    setAbnahmeChecks(
+      questions.map((question) => ({
+        question,
+        result: "offen",
+        comment: "",
+        measurement: "",
+        unit: "",
+      })),
+    );
+  }
+
+  function addAbnahmeCheck() {
+    setAbnahmeChecks((prev) => [
+      ...prev,
+      {
+        question: "Neuer Prüfpunkt",
+        result: "offen",
+        comment: "",
+        measurement: "",
+        unit: "",
+      },
+    ]);
+  }
+
+  function removeAbnahmeCheck(index: number) {
+    setAbnahmeChecks((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   }
 
   function fillAbnahmeFromDevice(deviceId: string) {
@@ -9205,10 +9273,10 @@ PRO-EFFEKT`,
         (item, index) => `
           <tr>
             <td class="question">${index + 1}. ${item.question}</td>
-            <td>${item.ja ? "X" : ""}</td>
-            <td>${item.ok ? "X" : ""}</td>
-            <td>${item.vs ? "X" : ""}</td>
-            <td>${item.df ? "X" : ""}</td>
+            <td>${item.result === "ok" ? "X" : ""}</td>
+            <td>${item.result === "mangel" ? "X" : ""}</td>
+            <td>${item.result === "nicht_geprueft" ? "X" : ""}</td>
+            <td>${item.result === "nicht_zutreffend" ? "X" : ""}</td>
             <td>${index + 1}</td>
             <td>${protocolDeviceRows.length > 1 ? "siehe Geräteliste" : protocolDeviceRows[0]?.manufacturer || ""}</td>
             <td>${protocolDeviceRows.length > 1 ? `${protocolDeviceRows.length} Geräte / Geräte / Modelle` : protocolDeviceRows[0]?.model || ""}</td>
@@ -9697,10 +9765,10 @@ PRO-EFFEKT`,
     const colW = [141, 12, 12, 12, 12, 85];
 
     drawCell(colX[0], y, colW[0], 6, "Prüfpunkt", 5.8, true);
-    drawCell(colX[1], y, colW[1], 6, "Ja", 5.8, true, "center");
+    drawCell(colX[1], y, colW[1], 6, "Mangel", 5.8, true, "center");
     drawCell(colX[2], y, colW[2], 6, "OK", 5.8, true, "center");
-    drawCell(colX[3], y, colW[3], 6, "VS", 5.8, true, "center");
-    drawCell(colX[4], y, colW[4], 6, "DF", 5.8, true, "center");
+    drawCell(colX[3], y, colW[3], 6, "N/G", 5.8, true, "center");
+    drawCell(colX[4], y, colW[4], 6, "N/Z", 5.8, true, "center");
     drawCell(colX[5], y, colW[5], 6, "Mangel / Bemerkung", 5.8, true);
 
     y += 6;
@@ -9708,10 +9776,10 @@ PRO-EFFEKT`,
     abnahmeChecks.forEach((item, index) => {
       const rowHeight = 6.8;
       drawCell(colX[0], y, colW[0], rowHeight, `${index + 1}. ${item.question}`, 5.4);
-      drawCell(colX[1], y, colW[1], rowHeight, item.ja ? "X" : "", 6, true, "center");
-      drawCell(colX[2], y, colW[2], rowHeight, item.ok ? "X" : "", 6, true, "center");
-      drawCell(colX[3], y, colW[3], rowHeight, item.vs ? "X" : "", 6, true, "center");
-      drawCell(colX[4], y, colW[4], rowHeight, item.df ? "X" : "", 6, true, "center");
+      drawCell(colX[1], y, colW[1], rowHeight, item.result === "ok" ? "X" : "", 6, true, "center");
+      drawCell(colX[2], y, colW[2], rowHeight, item.result === "mangel" ? "X" : "", 6, true, "center");
+      drawCell(colX[3], y, colW[3], rowHeight, item.result === "nicht_geprueft" ? "X" : "", 6, true, "center");
+      drawCell(colX[4], y, colW[4], rowHeight, item.result === "nicht_zutreffend" ? "X" : "", 6, true, "center");
       drawCell(
         colX[5],
         y,
@@ -9817,7 +9885,7 @@ PRO-EFFEKT`,
 
     try {
       const pdfBlob = await createAbnahmeProtocolPdfBlob();
-      const rawFileName = `Abnahmeprotokoll-DGUV-Sicherheitspruefung-${Date.now().toString().slice(-6)}.pdf`;
+      const rawFileName = `Pruef-Abnahmeprotokoll-${Date.now().toString().slice(-6)}.pdf`;
       const fileName = rawFileName
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
@@ -9859,7 +9927,7 @@ PRO-EFFEKT`,
 
       await createDeviceHistory(
         null,
-        "Abnahmeprotokoll Reparatur & Wartung als PDF archiviert",
+        "Prüf-/Abnahmeprotokoll als PDF archiviert",
         `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
         "PDF",
       );
@@ -9893,7 +9961,7 @@ PRO-EFFEKT`,
         : null;
 
       const pdfBlob = await createAbnahmeProtocolPdfBlob();
-      const rawFileName = `Abnahmeprotokoll-DGUV-Sicherheitspruefung-${Date.now()
+      const rawFileName = `Pruef-Abnahmeprotokoll-${Date.now()
         .toString()
         .slice(-6)}.pdf`;
       const fileName = rawFileName
@@ -9955,7 +10023,7 @@ PRO-EFFEKT`,
 
       await createDeviceHistory(
         null,
-        "Abnahmeprotokoll Reparatur & Wartung als PDF archiviert",
+        "Prüf-/Abnahmeprotokoll als PDF archiviert",
         `${fileName} · nächste Prüfung: ${abnahmeNextInspection || "nicht angegeben"}`,
         "PDF",
       );
@@ -11181,7 +11249,7 @@ PRO-EFFEKT`,
       Kunden: "Kunden",
       Geräte: "Hersteller-/Gerätebibliothek",
       "QR-Scan": "QR-Scan",
-      Abnahmeprotokoll: "Abnahmeprotokoll",
+      Abnahmeprotokoll: "Prüfungen & Abnahmen",
       Ersatzteile: "Ersatzteile",
       Dokumente: "Dokumente",
       Rechnungen: "Rechnungen",
@@ -18206,692 +18274,312 @@ PRO-EFFEKT`,
 
           {activePage === "Abnahmeprotokoll" && (
             <div className="space-y-6">
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Digitales Prüfprotokoll
-                </p>
-                <h3 className="mt-2 text-3xl font-black md:text-4xl">
-                  Abnahmeprotokoll Reparatur & Wartung
-                </h3>
-                <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
-                  Ein gemeinsames Formular für Wartung, DGUV202-044 und Sicherheitsprüfung.-Prüfung.
-                  Der Techniker arbeitet die Prüfpunkte direkt am Handy ab, Kunde und Techniker unterschreiben digital.
-                </p>
+              <div className="overflow-hidden rounded-[32px] bg-[#07111d] p-6 text-white shadow-xl md:p-8">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
+                      Digitale Dokumentation
+                    </p>
+                    <h3 className="mt-2 text-3xl font-black md:text-4xl">
+                      Prüfungen & Abnahmen
+                    </h3>
+                    <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
+                      Branchenneutrales Prüf-, Abnahme- und Übergabeprotokoll für Geräte, Anlagen,
+                      Installationen und technische Leistungen. Prüfpunkte lassen sich je Vorgang frei anpassen.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Protokollart</p>
+                    <p className="mt-1 text-lg font-black text-sky-300">{abnahmeProtocolType}</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Prüfauftrag & Auswahl</h3>
-                  <p className="mt-2 text-sm font-semibold text-slate-500">
-                    Kunde, Gerät und Auftragsdaten für das Abnahmeprotokoll auswählen.
-                  </p>
+              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.4fr]">
+                <div className="space-y-6">
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">1 · Vorgang</p>
+                    <h4 className="mt-1 text-xl font-black text-slate-900">Protokoll & Auftrag</h4>
 
-                  <div className="mt-5 space-y-4">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        value={abnahmeDate}
-                        onChange={(e) => setAbnahmeDate(e.target.value)}
-                        type="date"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                    <div className="mt-5 grid gap-3">
+                      <label className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Protokollart</label>
+                      <select
+                        value={abnahmeProtocolType}
+                        onChange={(e) => setAbnahmeProtocolType(e.target.value)}
+                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      >
+                        {protocolTypeOptions.map((item) => <option key={item}>{item}</option>)}
+                      </select>
+
+                      <label className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-slate-500">Vorlage</label>
+                      <select
+                        value={abnahmeProtocolTemplate}
+                        onChange={(e) => applyAbnahmeTemplate(e.target.value)}
+                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      >
+                        {Object.keys(protocolTemplateOptions).map((item) => <option key={item}>{item}</option>)}
+                      </select>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <input
+                          value={abnahmeDate}
+                          onChange={(e) => setAbnahmeDate(e.target.value)}
+                          type="date"
+                          min={APP_DATE_MIN}
+                          max={APP_DATE_MAX}
+                          className="rounded-2xl border border-slate-300 px-5 py-4"
+                        />
+                        <input
+                          value={abnahmeOrderNumber}
+                          onChange={(e) => setAbnahmeOrderNumber(e.target.value)}
+                          placeholder="Auftrag / Ticket / Vorgangsnummer"
+                          className="rounded-2xl border border-slate-300 px-5 py-4"
+                        />
+                      </div>
 
                       <input
-                        value={abnahmeOrderNumber}
-                        onChange={(e) => setAbnahmeOrderNumber(e.target.value)}
-                        placeholder="Auftragsnummer"
+                        value={abnahmeReference}
+                        onChange={(e) => setAbnahmeReference(e.target.value)}
+                        placeholder="Referenz / Projekt / Objekt (optional)"
                         className="rounded-2xl border border-slate-300 px-5 py-4"
                       />
                     </div>
+                  </div>
 
-                    {/* PRO-EFFEKT ABNAHME DIREKTSUCHE START */}
-                    <div className="grid gap-4 xl:grid-cols-2">
-                      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                        <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                          Auftraggeber / Rechnungsempfänger suchen
-                        </label>
-                        <input
-                          value={abnahmeCustomerSearch}
-                          onChange={(e) => {
-                            setAbnahmeCustomerSearch(e.target.value);
-                            if (abnahmeCustomerResultsRef.current) {
-                              abnahmeCustomerResultsRef.current.scrollTop = 0;
-                              abnahmeCustomerResultsRef.current.scrollLeft = 0;
-                            }
-                          }}
-                          placeholder="Kundennummer, Name, Firma, Ort, PLZ, E-Mail, Telefon"
-                          className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-sky-500"
-                        />
-                        <p className="mt-2 text-xs font-bold text-slate-500">
-                          {abnahmeCustomerSearch.trim().length < 2 ? "Bitte mindestens 2 Zeichen oder Kundennummer eingeben." : `${abnahmeCustomers.length} Treffer · nach Relevanz sortiert`}
-                        </p>
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">2 · Auftraggeber</p>
+                    <h4 className="mt-1 text-xl font-black text-slate-900">Kunde & Einsatzort</h4>
 
-                        <div
-                          key={`abnahme-customer-results-${abnahmeCustomerSearch.trim().toLowerCase()}`}
-                          ref={abnahmeCustomerResultsRef}
-                          className="mt-3 max-h-80 space-y-2 overflow-y-auto overflow-x-hidden"
-                        >
-                          {abnahmeCustomerSearch.trim().length < 2 ? (
-                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                              Bitte mindestens 2 Zeichen eingeben. Suche nach Name, Firma, Ort, Telefon oder Kundennummer.
-                            </div>
-                          ) : abnahmeCustomers.length === 0 ? (
-                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-red-600">
-                              Kein Kunde gefunden.
-                            </div>
-                          ) : (
-                            abnahmeCustomers.map((customerItem, customerResultIndex) => (
+                    <div className="mt-5 space-y-3">
+                      <input
+                        value={abnahmeCustomerSearch}
+                        onChange={(e) => {
+                          setAbnahmeCustomerSearch(e.target.value);
+                          setAbnahmeCustomerDevicesOpen(true);
+                        }}
+                        placeholder="Kunde suchen..."
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+
+                      {abnahmeCustomerDevicesOpen && abnahmeCustomerSearch.trim() && (
+                        <div ref={abnahmeCustomerResultsRef} className="max-h-56 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                          {customers
+                            .filter((item) => getCustomerSearchText(item).toLowerCase().includes(abnahmeCustomerSearch.toLowerCase().trim()))
+                            .slice(0, 12)
+                            .map((item) => (
                               <button
-                                key={`${abnahmeCustomerSearch.trim().toLowerCase()}-${customerResultIndex}-${customerItem.id}`}
+                                key={item.id}
                                 type="button"
-                                onClick={() => {
-                                  setAbnahmeCustomerId(String(customerItem.id));
-                                  setAbnahmeCustomerSearch(getCustomerLabel(customerItem));
-                                  setAbnahmeAddressObject(buildCustomerAddress(customerItem));
-                                  setAbnahmeCustomerNumber(customerItem.customer_number || String(customerItem.id));
-                                }}
-                                className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
-                                  String(customerItem.id) === abnahmeCustomerId
-                                    ? "border-sky-500 bg-sky-50"
-                                    : "border-slate-200 bg-white hover:border-sky-400"
-                                }`}
+                                onClick={() => prepareAbnahmeFromCustomer(item)}
+                                className="mb-1 w-full rounded-xl bg-white px-4 py-3 text-left text-sm font-bold hover:bg-sky-50"
                               >
-                                <p className="font-black text-slate-900">
-                                  {getCustomerLabel(customerItem)}
-                                </p>
-                                <p className="mt-1 break-words text-sm font-black text-sky-600">
-                                  Kundennr.: {customerItem.customer_number || "nicht hinterlegt"}
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
-                                  {buildCustomerAddress(customerItem) || "Keine Adresse hinterlegt"}
-                                </p>
-                                <p className="mt-1 break-words text-xs font-bold text-slate-400">
-                                  {customerItem.email || "Keine E-Mail"}
-                                  {customerItem.phone ? ` · ${customerItem.phone}` : ""}
-                                </p>
+                                {getCustomerLabel(item)}
                               </button>
-                            ))
-                          )}
+                            ))}
                         </div>
-                      </div>
+                      )}
 
-                      <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                        <label className="block text-sm font-black uppercase tracking-[0.12em] text-slate-500">
-                          Gerät / Modell neutral suchen und auswählen
-                        </label>
-                        <input
-                          value={abnahmeDeviceSearch}
-                          onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
-                          placeholder="Hersteller, Kategorie oder Modell suchen"
-                          className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none focus:border-sky-500"
-                        />
-                        <p className="mt-2 text-xs font-bold text-slate-500">
-                          {abnahmeDevices.length} Treffer aus Hersteller-/Gerätebibliothek · ohne Seriennummer und Kundenzuordnung
-                        </p>
-
-                        <div
-                          key={`abnahme-device-results-${abnahmeDeviceSearch.trim().toLowerCase()}`}
-                          ref={abnahmeDeviceResultsRef}
-                          className="mt-3 max-h-80 space-y-2 overflow-y-auto overflow-x-hidden"
-                        >
-                          {abnahmeDevices.length === 0 ? (
-                            <div className="rounded-2xl bg-white p-4 text-sm font-bold text-red-600">
-                              Kein Gerät gefunden.
-                            </div>
-                          ) : (
-                            abnahmeDevices.slice(0, 40).map((deviceItem, deviceResultIndex) => (
-                              <button
-                                key={`${abnahmeDeviceSearch.trim().toLowerCase()}-${deviceResultIndex}-${deviceItem.id}`}
-                                type="button"
-                                onClick={() => {
-                                  toggleAbnahmeDevice(String(deviceItem.id));
-                                }}
-                                className={`w-full min-w-0 rounded-2xl border p-4 text-left transition ${
-                                  abnahmeSelectedDeviceIds.includes(String(deviceItem.id))
-                                    ? "border-sky-500 bg-sky-50"
-                                    : "border-slate-200 bg-white hover:border-sky-400"
-                                }`}
-                              >
-                                <p className="font-black text-slate-900">
-                                  {deviceItem.name}
-                                </p>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
-                                  {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                  {getAbnahmeDeviceCategoryLabel(deviceItem) ? ` · ${getAbnahmeDeviceCategoryLabel(deviceItem)}` : ""}
-                                  {deviceItem.model || getDeviceModelNameById(deviceItem.model_id) ? ` · ${deviceItem.model || getDeviceModelNameById(deviceItem.model_id)}` : ""}
-                                </p>
-                                <p className="mt-1 break-words text-xs font-bold text-slate-400">
-                                  Bibliotheksmodell · keine Seriennummer · keine Kundenzuordnung
-                                </p>
-                                <p className="mt-2 text-xs font-black text-sky-600">
-                                  {abnahmeSelectedDeviceIds.includes(String(deviceItem.id)) ? "✓ Ausgewählt" : "+ Zum Protokoll hinzufügen"}
-                                </p>
-                              </button>
-                            ))
-                          )}
-                        </div>
-
-                        {selectedAbnahmeDevices.length > 0 && (
-                          <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4">
-                            <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
-                              Ausgewählte Geräte / Geräte / Modelle ({selectedAbnahmeDevices.length})
-                            </p>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {selectedAbnahmeDevices.map((item) => (
-                                <button
-                                  key={`selected-abnahme-device-${item.id}`}
-                                  type="button"
-                                  onClick={() => toggleAbnahmeDevice(String(item.id))}
-                                  className="rounded-full bg-white px-4 py-2 text-xs font-black text-slate-800 shadow-sm"
-                                >
-                                  {getAbnahmeNeutralDeviceLabel(item)} ×
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <input
+                        value={abnahmeAddressObject}
+                        onChange={(e) => setAbnahmeAddressObject(e.target.value)}
+                        placeholder="Einsatzort / Objekt / Adresse"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      />
+                      <input
+                        value={abnahmeCustomerResponsible}
+                        onChange={(e) => setAbnahmeCustomerResponsible(e.target.value)}
+                        placeholder="Ansprechpartner / Verantwortlicher"
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      />
                     </div>
-                    {/* PRO-EFFEKT ABNAHME DIREKTSUCHE ENDE */}
+                  </div>
 
-                    {abnahmeCustomerId && getDevicesForCustomer(Number(abnahmeCustomerId)).length > 0 && (
-                      <div className="rounded-[24px] border border-sky-100 bg-sky-50 p-4">
-                        <button
-                          type="button"
-                          onClick={() => setAbnahmeCustomerDevicesOpen((prev) => !prev)}
-                          className="flex w-full items-center justify-between gap-3 text-left"
-                        >
-                          <div>
-                            <h4 className="text-lg font-black text-slate-900">
-                              Kundengeräte ins Protokoll übernehmen
-                            </h4>
-                            <p className="mt-1 text-sm font-semibold text-slate-600">
-                              Alle dem Kunden zugewiesenen Geräte als kompakte Dropdown-Liste.
-                            </p>
-                          </div>
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">3 · Prüfobjekt</p>
+                    <h4 className="mt-1 text-xl font-black text-slate-900">Gerät, Anlage oder Objekt</h4>
 
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className="rounded-full bg-white px-4 py-2 text-sm font-black text-sky-600">
-                              {getDevicesForCustomer(Number(abnahmeCustomerId)).length} Gerät(e)
-                            </span>
-                            <span className="rounded-full bg-white px-3 py-2 text-sm font-black text-sky-600">
-                              {abnahmeCustomerDevicesOpen ? "▲" : "⌄"}
-                            </span>
-                          </div>
-                        </button>
+                    <div className="mt-5 space-y-3">
+                      <input
+                        value={abnahmeDeviceSearch}
+                        onChange={(e) => setAbnahmeDeviceSearch(e.target.value)}
+                        placeholder="Gerät / Anlage / Modell suchen..."
+                        className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      />
 
-                        {abnahmeCustomerDevicesOpen && (
-                          <div className="mt-4 max-h-96 space-y-2 overflow-y-auto overflow-x-hidden rounded-2xl bg-white/70 p-2">
-                            {getDevicesForCustomer(Number(abnahmeCustomerId)).map((deviceItem) => {
-                              const alreadySelected = abnahmeSelectedDeviceIds.includes(String(deviceItem.id));
-
+                      {abnahmeCustomerId && (
+                        <div ref={abnahmeDeviceResultsRef} className="max-h-60 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                          {devices
+                            .filter((item) => !item.customer_id || String(item.customer_id) === abnahmeCustomerId)
+                            .filter((item) =>
+                              !abnahmeDeviceSearch.trim() ||
+                              [item.name, item.manufacturer, item.model, item.serial_number, item.location]
+                                .filter(Boolean).join(" ").toLowerCase()
+                                .includes(abnahmeDeviceSearch.toLowerCase().trim())
+                            )
+                            .slice(0, 16)
+                            .map((item) => {
+                              const selected = abnahmeSelectedDeviceIds.includes(String(item.id));
                               return (
                                 <button
-                                  key={`abnahme-customer-device-${deviceItem.id}`}
+                                  key={item.id}
                                   type="button"
-                                  onClick={() => toggleAbnahmeDevice(String(deviceItem.id))}
-                                  className={`w-full rounded-2xl border p-3 text-left transition ${
-                                    alreadySelected
-                                      ? "border-sky-500 bg-sky-50"
-                                      : "border-slate-200 bg-white hover:border-sky-400"
+                                  onClick={() => fillAbnahmeFromDevice(String(item.id))}
+                                  className={`mb-1 w-full rounded-xl border px-4 py-3 text-left text-sm font-bold ${
+                                    selected ? "border-sky-300 bg-sky-100 text-sky-900" : "border-transparent bg-white hover:bg-sky-50"
                                   }`}
                                 >
-                                  <div className="flex min-w-0 items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="break-words text-sm font-black text-slate-900">
-                                        {deviceItem.name}
-                                      </p>
-                                      <p className="mt-1 break-words text-xs font-bold text-slate-500">
-                                        {deviceItem.manufacturer || getManufacturerNameById(deviceItem.manufacturer_id) || "Hersteller unbekannt"}
-                                        {deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
-                                      </p>
-                                      {deviceItem.location && (
-                                        <p className="mt-1 break-words text-xs font-semibold text-slate-400">
-                                          Standort: {deviceItem.location}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    <span
-                                      className={`shrink-0 rounded-full px-3 py-2 text-xs font-black ${
-                                        alreadySelected
-                                          ? "bg-sky-500 text-white"
-                                          : "bg-sky-100 text-sky-600"
-                                      }`}
-                                    >
-                                      {alreadySelected ? "✓" : "+"}
-                                    </span>
-                                  </div>
+                                  {selected ? "✓ " : ""}{item.name} · {item.serial_number || "ohne Seriennummer"}
                                 </button>
                               );
                             })}
-                          </div>
-                        )}
+                        </div>
+                      )}
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <input value={abnahmeManufacturer} onChange={(e) => setAbnahmeManufacturer(e.target.value)} placeholder="Hersteller" className="rounded-2xl border border-slate-300 px-5 py-4" />
+                        <input value={abnahmeModel} onChange={(e) => setAbnahmeModel(e.target.value)} placeholder="Typ / Modell / Bezeichnung" className="rounded-2xl border border-slate-300 px-5 py-4" />
+                        <input value={abnahmeSerial} onChange={(e) => setAbnahmeSerial(e.target.value)} placeholder="Serien- / Anlagen-Nr." className="rounded-2xl border border-slate-300 px-5 py-4" />
+                        <select value={abnahmeDeviceResult} onChange={(e) => setAbnahmeDeviceResult(e.target.value)} className="rounded-2xl border border-slate-300 px-5 py-4 font-bold">
+                          <option>OK</option>
+                          <option>Hinweis</option>
+                          <option>Mangel</option>
+                          <option>Nicht geprüft</option>
+                        </select>
                       </div>
-                    )}
-
-{/* Kunde wird über die direkte Kundensuche oben ausgewählt.
-                       Das alte Dropdown „Kunde manuell auswählen“ wurde entfernt,
-                       weil es dieselbe Funktion doppelt und unübersichtlich angeboten hat. */}
-<select
-                      value={abnahmeDeviceId}
-                      onChange={(e) => toggleAbnahmeDevice(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                    >
-                      <option value="">Gerät / Modell zur Auswahl hinzufügen</option>
-                      {abnahmeDevices.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.manufacturer || getManufacturerNameById(item.manufacturer_id) || "Hersteller unbekannt"} · {item.model || getDeviceModelNameById(item.model_id) || item.name}
-                          </option>
-                        ))}
-                    </select>
-
-                    <select
-                      value={abnahmeTicketId}
-                      onChange={(e) => setAbnahmeTicketId(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                    >
-                      <option value="">Optional Ticket verknüpfen</option>
-                      {filteredTickets.map((ticket) => (
-                        <option key={ticket.id} value={ticket.id}>
-                          {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
-                        </option>
-                      ))}
-                    </select>
-
-                    <textarea
-                      value={abnahmeAddressObject}
-                      onChange={(e) => setAbnahmeAddressObject(e.target.value)}
-
-                    
-
-
-                      placeholder="Adresse / Objekt"
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
-<div className="grid gap-3 md:grid-cols-3">
-                      <input
-                        value={abnahmeCustomerNumber}
-                        onChange={(e) => setAbnahmeCustomerNumber(e.target.value)}
-                        placeholder="Kunden-Nr."
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-
-                      <input
-                        value={abnahmePage}
-                        onChange={(e) => setAbnahmePage(e.target.value)}
-                        placeholder="Seite"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-
-                      <input
-                        value={abnahmePagesTotal}
-                        onChange={(e) => setAbnahmePagesTotal(e.target.value)}
-                        placeholder="Seiten insgesamt"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-                    </div>
-
-                    <select
-                      value={abnahmeContractType}
-                      onChange={(e) => setAbnahmeContractType(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                    >
-                      <option>Wartungsvertrag</option>
-                      <option>Einmalige Wartung</option>
-                      <option>Abnahme</option>
-                    </select>
-
-                    <div className="grid grid-cols-1 gap-3">
-                      <label className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-bold shadow-sm">
-                        <input
-                          type="checkbox"
-                          checked={abnahmeDguvChecked}
-                          onChange={(e) => setAbnahmeDguvChecked(e.target.checked)}
-                          className="mt-1 h-5 w-5 shrink-0 accent-sky-500"
-                        />
-                        <span className="min-w-0 flex-1 text-base leading-snug text-slate-900 [overflow-wrap:anywhere]">
-                          DGUV202-044
-                        </span>
-                      </label>
-
-                      <label className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 font-bold shadow-sm">
-                        <input
-                          type="checkbox"
-                          checked={abnahmeUvvChecked}
-                          onChange={(e) => setAbnahmeUvvChecked(e.target.checked)}
-                          className="mt-1 h-5 w-5 shrink-0 accent-sky-500"
-                        />
-                        <span className="min-w-0 flex-1 text-base leading-snug text-slate-900 [overflow-wrap:anywhere]">
-                          Sicherheitsprüfung-Unfallverhütungsvorschrift Prüfung
-                        </span>
-                      </label>
                     </div>
                   </div>
                 </div>
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Geräte- und Ergebnisdaten</h3>
-                  <p className="mt-2 text-sm font-semibold text-slate-500">
-                    Ausgewählte Geräte erscheinen hier einzeln und können vor dem PDF korrigiert werden.
-                  </p>
-
-                  {abnahmeDeviceRows.length === 0 ? (
-                    <div className="mt-5 grid gap-3 md:grid-cols-2">
-                      <input
-                        value={abnahmeManufacturer}
-                        onChange={(e) => setAbnahmeManufacturer(e.target.value)}
-                        placeholder="Hersteller"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-
-                      <input
-                        value={abnahmeModel}
-                        onChange={(e) => setAbnahmeModel(e.target.value)}
-                        placeholder="Modell / NR"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-
-                      <input
-                        value={abnahmeSerial}
-                        onChange={(e) => setAbnahmeSerial(e.target.value)}
-                        placeholder="Seriennummer"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-
-                      <select
-                        value={abnahmeDeviceResult}
-                        onChange={(e) => setAbnahmeDeviceResult(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                      >
-                        <option>OK</option>
-                        <option>DF</option>
-                        <option>Rep</option>
-                      </select>
-
-                      <textarea
-                        value={abnahmeDefects}
-                        onChange={(e) => setAbnahmeDefects(e.target.value)}
-                        placeholder="Mängel / Feststellungen"
-                        rows={5}
-                        className="md:col-span-2 rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                <div className="space-y-6">
+                  <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">4 · Prüfung</p>
+                        <h4 className="mt-1 text-2xl font-black text-slate-900">Prüfpunkte</h4>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">
+                          Neutral aufgebaut und für jeden Betrieb frei anpassbar.
+                        </p>
+                      </div>
+                      <button type="button" onClick={addAbnahmeCheck} className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white">
+                        + Prüfpunkt
+                      </button>
                     </div>
-                  ) : (
-                    <div className="mt-5 space-y-4">
-                      {abnahmeDeviceRows.map((row, rowIndex) => (
-                        <div
-                          key={row.rowId}
-                          className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
-                        >
-                          <div className="mb-3 flex items-center justify-between gap-3">
-                            <p className="text-sm font-black text-sky-600">
-                              Gerät {rowIndex + 1}
-                            </p>
 
-                            <button
-                              type="button"
-                              onClick={() => toggleAbnahmeDevice(row.deviceId)}
-                              className="rounded-full bg-red-100 px-3 py-2 text-xs font-black text-red-700"
-                            >
-                              Entfernen
-                            </button>
+                    <div className="mt-5 space-y-3">
+                      {abnahmeChecks.map((item, index) => (
+                        <div key={`${index}-${item.question}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <div className="flex gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-black text-white">{index + 1}</div>
+                            <input
+                              value={item.question}
+                              onChange={(e) => updateAbnahmeCheck(index, "question", e.target.value)}
+                              className="min-w-0 flex-1 border-0 bg-transparent text-base font-black text-slate-900 outline-none"
+                            />
+                            <button type="button" onClick={() => removeAbnahmeCheck(index)} className="rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600">Entfernen</button>
                           </div>
 
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <input
-                              value={row.manufacturer}
-                              onChange={(e) =>
-                                updateAbnahmeDeviceRow(row.rowId, "manufacturer", e.target.value)
-                              }
-                              placeholder="Hersteller"
-                              className="rounded-2xl border border-slate-300 bg-white px-5 py-4"
-                            />
-
-                            <input
-                              value={row.model}
-                              onChange={(e) =>
-                                updateAbnahmeDeviceRow(row.rowId, "model", e.target.value)
-                              }
-                              placeholder="Modell / NR"
-                              className="rounded-2xl border border-slate-300 bg-white px-5 py-4"
-                            />
-
-                            <input
-                              value={row.serial}
-                              onChange={(e) =>
-                                updateAbnahmeDeviceRow(row.rowId, "serial", e.target.value)
-                              }
-                              placeholder="Seriennummer"
-                              className="rounded-2xl border border-slate-300 bg-white px-5 py-4"
-                            />
-
+                          <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.7fr_0.45fr]">
                             <select
-                              value={row.result}
-                              onChange={(e) =>
-                                updateAbnahmeDeviceRow(row.rowId, "result", e.target.value)
-                              }
-                              className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                              value={item.result}
+                              onChange={(e) => updateAbnahmeCheck(index, "result", e.target.value)}
+                              className={`rounded-xl border px-4 py-3 text-sm font-black ${
+                                item.result === "ok" ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+                                item.result === "mangel" ? "border-red-200 bg-red-50 text-red-700" :
+                                item.result === "nicht_geprueft" ? "border-amber-200 bg-amber-50 text-amber-700" :
+                                item.result === "nicht_zutreffend" ? "border-slate-200 bg-slate-100 text-slate-600" :
+                                "border-slate-300 bg-white text-slate-500"
+                              }`}
                             >
-                              <option>OK</option>
-                              <option>DF</option>
-                              <option>Rep</option>
+                              <option value="offen">Noch offen</option>
+                              <option value="ok">In Ordnung</option>
+                              <option value="mangel">Mangel</option>
+                              <option value="nicht_geprueft">Nicht geprüft</option>
+                              <option value="nicht_zutreffend">Nicht zutreffend</option>
                             </select>
-
-                            <textarea
-                              value={row.defects}
-                              onChange={(e) =>
-                                updateAbnahmeDeviceRow(row.rowId, "defects", e.target.value)
-                              }
-                              placeholder="Mängel / Feststellungen"
-                              rows={3}
-                              className="md:col-span-2 rounded-2xl border border-slate-300 bg-white px-5 py-4"
-                            />
+                            <input value={item.measurement} onChange={(e) => updateAbnahmeCheck(index, "measurement", e.target.value)} placeholder="Messwert (optional)" className="rounded-xl border border-slate-300 px-4 py-3 text-sm" />
+                            <input value={item.unit} onChange={(e) => updateAbnahmeCheck(index, "unit", e.target.value)} placeholder="Einheit" className="rounded-xl border border-slate-300 px-4 py-3 text-sm" />
                           </div>
+
+                          <textarea
+                            value={item.comment}
+                            onChange={(e) => updateAbnahmeCheck(index, "comment", e.target.value)}
+                            placeholder="Bemerkung / Feststellung"
+                            className="mt-3 min-h-[72px] w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"
+                          />
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Prüffragen nach Vorlage</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-500">
-                  Jeder Punkt wird wie im Papierformular mit Ja, OK, VS, DF und optionalem Mangeltext dokumentiert.
-                </p>
-
-                <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                  {abnahmeChecks.map((item, index) => (
-                    <div
-                      key={item.question}
-                      className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-xs font-black text-sky-500">
-                            Punkt {index + 1}
-                          </p>
-                          <h4 className="mt-1 text-lg font-black">
-                            {item.question}
-                          </h4>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-2">
-                          {(["ja", "ok", "vs", "df"] as const).map((field) => (
-                            <label
-                              key={field}
-                              className="flex items-center justify-center gap-2 rounded-xl bg-white px-3 py-3 text-sm font-black uppercase"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={Boolean(item[field])}
-                                onChange={(e) =>
-                                  updateAbnahmeCheck(index, field, e.target.checked)
-                                }
-                              />
-                              {field.toUpperCase()}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <input
-                        value={item.comment}
-                        onChange={(e) =>
-                          updateAbnahmeCheck(index, "comment", e.target.value)
-                        }
-                        placeholder="Mangel / Bemerkung zu diesem Prüfpunkt"
-                        className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-3"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-6 xl:grid-cols-2">
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Abschluss</h3>
-
-                  <div className="mt-5 space-y-4">
-                    <label className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 font-bold">
-                      <input
-                        type="checkbox"
-                        checked={abnahmeBadgeApplied}
-                        onChange={(e) => setAbnahmeBadgeApplied(e.target.checked)}
-                      />
-                      Prüfplakette angebracht
-                    </label>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        value={abnahmeTechnicianName}
-                        onChange={(e) => setAbnahmeTechnicianName(e.target.value)}
-                        placeholder="Techniker"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-
-                      <input
-                        value={abnahmeTechnicianShort}
-                        onChange={(e) => setAbnahmeTechnicianShort(e.target.value)}
-                        placeholder="Kürzel"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
-                    </div>
-
-                    <textarea
-                      value={abnahmeRecommendation}
-                      onChange={(e) => setAbnahmeRecommendation(e.target.value)}
-                      placeholder="Empfehlung"
-                      rows={3}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
-
-                    <input
-                      value={abnahmeRepairRecommendedAt}
-                      onChange={(e) => setAbnahmeRepairRecommendedAt(e.target.value)}
-                      placeholder="Folge Reparatur-Auftrag empfohlen bei"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <select
-                        value={abnahmeOfferFollows}
-                        onChange={(e) => setAbnahmeOfferFollows(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                      >
-                        <option>Ja</option>
-                        <option>Nein</option>
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">5 · Ergebnis</p>
+                    <h4 className="mt-1 text-xl font-black text-slate-900">Abschluss & Maßnahmen</h4>
+                    <div className="mt-5 grid gap-3">
+                      <select value={abnahmeOverallResult} onChange={(e) => setAbnahmeOverallResult(e.target.value)} className="rounded-2xl border border-slate-300 px-5 py-4 font-black">
+                        <option>Ohne Beanstandung</option>
+                        <option>Mit Hinweisen</option>
+                        <option>Mängel festgestellt</option>
+                        <option>Nicht bestanden</option>
                       </select>
-
-                      <input
-                        value={abnahmeNextInspection}
-                        onChange={(e) => setAbnahmeNextInspection(e.target.value)}
-                        type="date"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
-                      />
+                      <textarea value={abnahmeDefects} onChange={(e) => setAbnahmeDefects(e.target.value)} placeholder="Festgestellte Mängel / Abweichungen" className="min-h-[100px] rounded-2xl border border-slate-300 px-5 py-4" />
+                      <textarea value={abnahmeMeasures} onChange={(e) => setAbnahmeMeasures(e.target.value)} placeholder="Durchgeführte Maßnahmen" className="min-h-[100px] rounded-2xl border border-slate-300 px-5 py-4" />
+                      <textarea value={abnahmeRecommendation} onChange={(e) => setAbnahmeRecommendation(e.target.value)} placeholder="Empfehlungen / Folgemaßnahmen" className="min-h-[100px] rounded-2xl border border-slate-300 px-5 py-4" />
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="mb-2 block text-xs font-black uppercase tracking-[0.12em] text-slate-500">Nächster Prüf-/Servicetermin</label>
+                          <input value={abnahmeNextInspection} onChange={(e) => setAbnahmeNextInspection(e.target.value)} type="date" min={APP_DATE_MIN} max={APP_DATE_MAX} className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-xs font-black uppercase tracking-[0.12em] text-slate-500">Ausführender Mitarbeiter</label>
+                          <input value={abnahmeTechnicianName} onChange={(e) => setAbnahmeTechnicianName(e.target.value)} placeholder={userProfile?.full_name || "Name"} className="w-full rounded-2xl border border-slate-300 px-5 py-4" />
+                        </div>
+                      </div>
                     </div>
-
-                    <input
-                      value={abnahmeCustomerResponsible}
-                      onChange={(e) => setAbnahmeCustomerResponsible(e.target.value)}
-                      placeholder="Kunde / Verantwortlicher"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
-                    />
                   </div>
-                </div>
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Unterschriften am Handy</h3>
-                  <p className="mt-2 text-sm font-semibold text-slate-500">
-                    Direkt mit Finger oder Stift unterschreiben.
-                  </p>
-
-                  <div className="mt-5 space-y-5">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="font-black">Techniker</p>
-                        <button
-                          onClick={() => clearSignatureCanvas("technician")}
-                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black"
-                        >
-                          Löschen
-                        </button>
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">6 · Freigabe</p>
+                    <h4 className="mt-1 text-xl font-black text-slate-900">Digitale Unterschriften</h4>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <p className="mb-2 text-sm font-black text-slate-700">Techniker / Prüfer</p>
+                        <canvas
+                          ref={abnahmeTechnicianCanvasRef}
+                          onPointerDown={(e) => startAbnahmeSignature("technician", e)}
+                          onPointerMove={(e) => drawAbnahmeSignature("technician", e)}
+                          onPointerUp={() => stopAbnahmeSignature("technician")}
+                          onPointerLeave={() => stopAbnahmeSignature("technician")}
+                          className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
+                        />
+                        <button type="button" onClick={() => clearSignatureCanvas("technician")} className="mt-2 text-xs font-black text-slate-500">Unterschrift löschen</button>
                       </div>
-                      <canvas
-                        ref={abnahmeTechnicianCanvasRef}
-                        onPointerDown={(e) => startSignature("technician", e)}
-                        onPointerMove={(e) => drawSignature("technician", e)}
-                        onPointerUp={() => finishSignature("technician")}
-                        onPointerCancel={() => finishSignature("technician")}
-                        className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
-                      />
+                      <div>
+                        <p className="mb-2 text-sm font-black text-slate-700">Kunde / Auftraggeber</p>
+                        <canvas
+                          ref={abnahmeCustomerCanvasRef}
+                          onPointerDown={(e) => startAbnahmeSignature("customer", e)}
+                          onPointerMove={(e) => drawAbnahmeSignature("customer", e)}
+                          onPointerUp={() => stopAbnahmeSignature("customer")}
+                          onPointerLeave={() => stopAbnahmeSignature("customer")}
+                          className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
+                        />
+                        <button type="button" onClick={() => clearSignatureCanvas("customer")} className="mt-2 text-xs font-black text-slate-500">Unterschrift löschen</button>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="font-black">Kunde</p>
-                        <button
-                          onClick={() => clearSignatureCanvas("customer")}
-                          className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black"
-                        >
-                          Löschen
-                        </button>
-                      </div>
-                      <canvas
-                        ref={abnahmeCustomerCanvasRef}
-                        onPointerDown={(e) => startSignature("customer", e)}
-                        onPointerMove={(e) => drawSignature("customer", e)}
-                        onPointerUp={() => finishSignature("customer")}
-                        onPointerCancel={() => finishSignature("customer")}
-                        className="h-36 w-full touch-none rounded-2xl border border-slate-300 bg-white"
-                      />
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <button type="button" onClick={printAbnahmeProtocol} className="rounded-2xl bg-sky-600 px-6 py-4 font-black text-white shadow-lg shadow-sky-900/15">
+                        PDF erstellen & archivieren
+                      </button>
+                      <button type="button" onClick={() => archiveAbnahmeProtocolHtml()} className="rounded-2xl bg-slate-900 px-6 py-4 font-black text-white">
+                        Nur archivieren
+                      </button>
+                      <button type="button" onClick={resetAbnahmeProtocolForm} className="rounded-2xl bg-slate-100 px-6 py-4 font-black text-slate-700">
+                        Formular zurücksetzen
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-3">
-                <button
-                  onClick={printAbnahmeProtocol}
-                  className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
-                >
-                  PDF speichern & Druckansicht öffnen
-                </button>
-
-                <button
-                  onClick={() => archiveAbnahmeProtocolHtml()}
-                  className="rounded-2xl bg-blue-100 px-6 py-4 font-black text-blue-700"
-                >
-                  Nur im Archiv speichern
-                </button>
-
-                <button
-                  onClick={resetAbnahmeProtocolForm}
-                  className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
-                >
-                  Formular leeren
-                </button>
               </div>
             </div>
           )}
