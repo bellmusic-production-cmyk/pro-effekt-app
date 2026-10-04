@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.16 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.17 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -218,12 +218,17 @@ type SparePart = {
 
 type PartUsage = {
   id: number;
+  company_id?: number | null;
   part_id: number | null;
   device_id: number | null;
   ticket_id: number | null;
   quantity: number;
   note: string | null;
   used_by: string | null;
+  is_voided?: boolean | null;
+  voided_at?: string | null;
+  voided_by?: string | null;
+  void_reason?: string | null;
   created_at: string;
 };
 
@@ -8757,6 +8762,61 @@ PRO-EFFEKT`,
 
     await loadServiceParts();
     await loadPartUsages();
+  }
+
+  async function voidPartUsage(usage: PartUsage) {
+    if (!isAdmin && !isTechnician) {
+      alert("Nur Admins und Techniker können Verbrauchsbuchungen stornieren.");
+      return;
+    }
+
+    if (usage.is_voided) {
+      alert("Diese Verbrauchsbuchung wurde bereits storniert.");
+      return;
+    }
+
+    const partName = getPartNameById(usage.part_id);
+    const reasonInput = window.prompt(
+      `Grund für die Stornierung von ${usage.quantity} × ${partName}:`,
+      "Fehlbuchung",
+    );
+
+    if (reasonInput === null) return;
+
+    const reason = reasonInput.trim();
+    if (!reason) {
+      alert("Bitte einen Grund für die Stornierung angeben.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Die Buchung bleibt in der Historie erhalten und der Bestand wird um ${usage.quantity} zurückgebucht. Wirklich stornieren?`,
+      )
+    ) {
+      return;
+    }
+
+    const { error } = await supabase.rpc("void_part_usage", {
+      p_usage_id: usage.id,
+      p_reason: reason,
+    });
+
+    if (error) {
+      alert(`Buchung konnte nicht storniert werden: ${error.message}`);
+      return;
+    }
+
+    if (usage.device_id) {
+      await createDeviceHistory(
+        usage.device_id,
+        "Ersatzteilbuchung storniert",
+        `${usage.quantity} × ${partName} · Grund: ${reason}`,
+        "Ersatzteil",
+      );
+    }
+
+    await Promise.all([loadServiceParts(), loadPartUsages()]);
   }
 
   async function generateMaintenanceFromContract(contract: ServiceContract) {
@@ -22913,13 +22973,24 @@ PRO-EFFEKT`,
                     partUsages.map((usage) => (
                       <div
                         key={usage.id}
-                        className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                        className={`min-w-0 overflow-hidden rounded-2xl border p-4 ${
+                          usage.is_voided
+                            ? "border-red-200 bg-red-50/60"
+                            : "border-slate-200 bg-slate-50"
+                        }`}
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                          <div>
-                            <p className="font-black">
-                              {getPartNameById(usage.part_id)}
-                            </p>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-black">
+                                {getPartNameById(usage.part_id)}
+                              </p>
+                              {usage.is_voided && (
+                                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-700">
+                                  Storniert
+                                </span>
+                              )}
+                            </div>
                             <p className="mt-1 text-sm text-slate-600">
                               Menge: {usage.quantity} · Gerät:{" "}
                               {getDeviceNameById(usage.device_id)}
@@ -22929,10 +23000,30 @@ PRO-EFFEKT`,
                                 {usage.note}
                               </p>
                             )}
+                            {usage.is_voided && (
+                              <div className="mt-3 rounded-xl bg-white/80 p-3 text-sm text-red-700">
+                                <p className="font-bold">
+                                  Storniert{usage.voided_at ? ` am ${formatDate(usage.voided_at)}` : ""}
+                                </p>
+                                {usage.void_reason && (
+                                  <p className="mt-1">Grund: {usage.void_reason}</p>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <p className="text-sm font-bold text-slate-500">
-                            {formatDate(usage.created_at)}
-                          </p>
+                          <div className="flex flex-col items-start gap-2 md:items-end">
+                            <p className="text-sm font-bold text-slate-500">
+                              {formatDate(usage.created_at)}
+                            </p>
+                            {(isAdmin || isTechnician) && !usage.is_voided && (
+                              <button
+                                onClick={() => voidPartUsage(usage)}
+                                className="rounded-xl bg-red-100 px-4 py-2 text-sm font-bold text-red-700"
+                              >
+                                Stornieren
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
