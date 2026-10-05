@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.88 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.89 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -252,6 +252,7 @@ type DeviceHistory = {
 
 type MaintenancePlan = {
   id: number;
+  company_id?: number | null;
   device_id: number | null;
   customer_id?: number | null;
   title: string | null;
@@ -16550,6 +16551,25 @@ ${tenantBrandName}`,
     if (!plan.next_due) return false;
     if ((plan.status || "Geplant") === "Abgeschlossen") return false;
 
+    if (companyData?.id) {
+      const linkedDevice = plan.device_id
+        ? devices.find((item) => item.id === Number(plan.device_id))
+        : null;
+      const linkedCustomer = plan.customer_id
+        ? customers.find((item) => item.id === Number(plan.customer_id))
+        : null;
+
+      const planCompanyId =
+        plan.company_id ??
+        linkedDevice?.company_id ??
+        linkedCustomer?.company_id ??
+        null;
+
+      if (planCompanyId != null && Number(planCompanyId) !== Number(companyData.id)) {
+        return false;
+      }
+    }
+
     const today = new Date();
     const dueDate = new Date(plan.next_due);
 
@@ -16669,7 +16689,9 @@ ${tenantBrandName}`,
     });
 
   const lowStockParts = activeServiceParts.filter(
-    (part) => Number(part.stock || 0) <= Number(part.min_stock || 0),
+    (part) =>
+      (!companyData?.id || Number(part.company_id) === Number(companyData.id)) &&
+      Number(part.stock || 0) <= Number(part.min_stock || 0),
   );
 
   // Leitstand: Ersatzteilverwendung und Lagerwarnung sind zwei verschiedene Dinge.
@@ -16713,11 +16735,64 @@ ${tenantBrandName}`,
     };
   })();
 
-  const recentServiceReports = documents
-    .filter((documentItem) => documentItem.category === "Serviceberichte")
-    .slice(0, 5);
+  const dashboardCompanyId = Number(companyData?.id || 0);
 
-  const acceptanceProtocolDocuments = documents.filter(
+  function belongsToDashboardCompany(
+    directCompanyId?: number | null,
+    customerId?: number | null,
+    deviceId?: number | null,
+    ticketId?: number | null,
+  ) {
+    if (!dashboardCompanyId) return false;
+
+    if (directCompanyId != null) {
+      return Number(directCompanyId) === dashboardCompanyId;
+    }
+
+    if (customerId != null) {
+      const linkedCustomer = customers.find((item) => item.id === Number(customerId));
+      if (linkedCustomer?.company_id != null) {
+        return Number(linkedCustomer.company_id) === dashboardCompanyId;
+      }
+    }
+
+    if (deviceId != null) {
+      const linkedDevice = devices.find((item) => item.id === Number(deviceId));
+      if (linkedDevice?.company_id != null) {
+        return Number(linkedDevice.company_id) === dashboardCompanyId;
+      }
+    }
+
+    if (ticketId != null) {
+      const linkedTicket = tickets.find((item) => item.id === Number(ticketId));
+      if (linkedTicket?.company_id != null) {
+        return Number(linkedTicket.company_id) === dashboardCompanyId;
+      }
+    }
+
+    return false;
+  }
+
+  const dashboardDocuments = documents.filter((documentItem) =>
+    belongsToDashboardCompany(
+      documentItem.company_id,
+      documentItem.customer_id,
+      documentItem.device_id,
+      documentItem.ticket_id,
+    ),
+  );
+
+  const recentServiceReports = dashboardDocuments
+    .filter((documentItem) => documentItem.category === "Serviceberichte")
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(b.created_at || 0).getTime() -
+        new Date(a.created_at || 0).getTime(),
+    )
+    .slice(0, 4);
+
+  const acceptanceProtocolDocuments = dashboardDocuments.filter(
     (documentItem) => documentItem.category === "Abnahmeprotokolle",
   );
 
@@ -16747,13 +16822,31 @@ ${tenantBrandName}`,
   });
 
   const devicesWithoutInspectionDate = devices.filter(
-    (deviceItem) => !deviceItem.next_check && !deviceItem.inspection_expires,
+    (deviceItem) =>
+      (!companyData?.id ||
+        (deviceItem.company_id != null &&
+          Number(deviceItem.company_id) === Number(companyData.id))) &&
+      !deviceItem.next_check &&
+      !deviceItem.inspection_expires,
   );
 
   const nextAcceptanceProtocolDueItems = acceptanceProtocolDocuments
-    .filter((documentItem) => documentItem.next_inspection_date)
-    .sort((a, b) => String(a.next_inspection_date || "").localeCompare(String(b.next_inspection_date || "")))
-    .slice(0, 6);
+    .filter((documentItem) => {
+      if (!documentItem.next_inspection_date) return false;
+
+      const today = new Date();
+      const nextDate = new Date(documentItem.next_inspection_date);
+      today.setHours(0, 0, 0, 0);
+      nextDate.setHours(0, 0, 0, 0);
+
+      return nextDate.getTime() >= today.getTime();
+    })
+    .sort((a, b) =>
+      String(a.next_inspection_date || "").localeCompare(
+        String(b.next_inspection_date || ""),
+      ),
+    )
+    .slice(0, 4);
 
   const calendarTickets = sortTicketsByAppointment(
     visibleRoleTickets.filter((ticket) => {
@@ -17705,7 +17798,7 @@ ${tenantBrandName}`,
     setDocumentDeviceFilter("Alle");
 
     if (typeof window !== "undefined" && session?.user?.id) {
-      window.localStorage.setItem(`trybun-active-page-${session.user.id}`, "Geräte");
+      window.localStorage.setItem(`trybun-active-page-${session.user.id}`, "Dokumente");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -21413,168 +21506,220 @@ ${tenantBrandName}`,
                 </div>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-3">
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Überfällige Sicherheitsprüfung/Wartungen</h3>
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {overdueAdminMaintenancePlans.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine überfälligen Sicherheitsprüfung/Wartungen.
-                      </div>
-                    ) : (
-                      overdueAdminMaintenancePlans.slice(0, 5).map((plan) => (
-                        <div
-                          key={plan.id}
-                          className="rounded-2xl border border-red-100 bg-red-50 p-4"
-                        >
-                          <p className="text-sm font-black text-red-700">
-                            {plan.next_due || "kein Datum"}
-                          </p>
-                          <p className="mt-1 font-bold text-slate-900">
-                            {plan.title || "Wartung"}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-600">
-                            Kunde: {getCustomerNameById(plan.customer_id || null)}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Ersatzteilbestand</h3>
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {lowStockParts.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine kritischen Ersatzteile.
-                      </div>
-                    ) : (
-                      lowStockParts.slice(0, 5).map((part) => (
-                        <div
-                          key={part.id}
-                          className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4"
-                        >
-                          <p className="break-words font-black text-slate-900">{part.name}</p>
-                          <p className="mt-1 text-sm font-bold text-yellow-700">
-                            Bestand: {part.stock ?? 0} · Minimum: {part.min_stock ?? 0}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Letzte Serviceberichte</h3>
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {recentServiceReports.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Noch keine Serviceberichte archiviert.
-                      </div>
-                    ) : (
-                      recentServiceReports.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 p-5 md:p-6"
-                        >
-                          <p className="break-words font-black text-slate-900">
-                            {doc.file_name}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {formatDate(doc.created_at)}
-                          </p>
-                          <button
-                            onClick={() => openDocument(doc)}
-                            className="mt-3 rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
-                          >
-                            Öffnen
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="grid gap-6 xl:grid-cols-2">
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-4">
+              <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
+                <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5 md:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                      <h3 className="text-xl font-black">Abnahmeprotokolle / Prüffristen</h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        Übersicht aus hochgeladenen und automatisch erzeugten Abnahmeprotokollen.
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
+                        Prüfungen & Nachweise
+                      </p>
+                      <h3 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-slate-950">
+                        Relevante Servicenachweise im Blick
+                      </h3>
+                      <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
+                        Ausschließlich Daten der aktuell angemeldeten Firma: Abnahmeprotokolle,
+                        anstehende Prüffristen und zuletzt archivierte Serviceberichte.
                       </p>
                     </div>
-                    <button
-                      onClick={() => openAbnahmeDocuments("Alle")}
-                      className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
-                    >
-                      Abnahme öffnen
-                    </button>
-                  </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-4">
-                    <button onClick={() => openAbnahmeDocuments("Alle")} className="rounded-2xl bg-sky-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Gesamt</p>
-                      <p className="mt-2 text-2xl font-black text-slate-900">{acceptanceProtocolDocuments.length}</p>
-                      <p className="mt-2 text-xs font-black text-sky-600">Öffnen</p>
-                    </button>
-                    <button onClick={() => openAbnahmeDocuments("Dieser Monat")} className="rounded-2xl bg-blue-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dieser Monat</p>
-                      <p className="mt-2 text-2xl font-black text-slate-900">{acceptanceProtocolsThisMonth.length}</p>
-                      <p className="mt-2 text-xs font-black text-blue-700">Öffnen</p>
-                    </button>
-                    <button onClick={() => openAbnahmeDocuments("Bald fällig")} className="rounded-2xl bg-yellow-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-yellow-700">Bald fällig</p>
-                      <p className="mt-2 text-2xl font-black text-slate-900">{upcomingAcceptanceProtocols.length}</p>
-                      <p className="mt-2 text-xs font-black text-yellow-700">Öffnen</p>
-                    </button>
-                    <button onClick={() => openAbnahmeDocuments("Überfällig")} className="rounded-2xl bg-red-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-red-700">Überfällig</p>
-                      <p className="mt-2 text-2xl font-black text-slate-900">{overdueAcceptanceProtocols.length}</p>
-                      <p className="mt-2 text-xs font-black text-red-700">Öffnen</p>
+                    <button
+                      type="button"
+                      onClick={() => openAbnahmeDocuments("Alle")}
+                      className="min-h-[44px] w-full rounded-[8px] bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 sm:w-auto"
+                    >
+                      Prüfungen & Abnahmen öffnen
                     </button>
                   </div>
                 </div>
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Nächste Prüfungen aus Protokollen</h3>
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
-                    {nextAcceptanceProtocolDueItems.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
-                        Keine Prüffristen aus Abnahmeprotokollen hinterlegt.
+                <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+                  <button
+                    type="button"
+                    onClick={() => openAbnahmeDocuments("Alle")}
+                    className="bg-white p-4 text-left transition hover:bg-slate-50 sm:p-5"
+                  >
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-700">
+                      Abnahmeprotokolle
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">
+                      {acceptanceProtocolDocuments.length}
+                    </p>
+                    <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                      Archivierte Nachweise
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openAbnahmeDocuments("Dieser Monat")}
+                    className="bg-white p-4 text-left transition hover:bg-slate-50 sm:p-5"
+                  >
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-indigo-700">
+                      Dieser Monat
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">
+                      {acceptanceProtocolsThisMonth.length}
+                    </p>
+                    <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                      Neu erfasste Protokolle
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openAbnahmeDocuments("Bald fällig")}
+                    className="bg-white p-4 text-left transition hover:bg-amber-50/40 sm:p-5"
+                  >
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
+                      Bald fällig
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">
+                      {upcomingAcceptanceProtocols.length}
+                    </p>
+                    <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                      Innerhalb der nächsten 30 Tage
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openAbnahmeDocuments("Überfällig")}
+                    className="bg-white p-4 text-left transition hover:bg-rose-50/40 sm:p-5"
+                  >
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-rose-700">
+                      Überfällig
+                    </p>
+                    <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">
+                      {overdueAcceptanceProtocols.length}
+                    </p>
+                    <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                      Prüffrist bereits überschritten
+                    </p>
+                  </button>
+                </div>
+
+                <div className="grid border-t border-slate-200 xl:grid-cols-2">
+                  <div className="border-b border-slate-200 p-4 sm:p-5 md:p-6 xl:border-b-0 xl:border-r">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-950">Nächste Prüfungen</p>
+                        <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                          Nur zukünftige Prüftermine aus Abnahmeprotokollen.
+                        </p>
                       </div>
-                    ) : (
-                      nextAcceptanceProtocolDueItems.map((documentItem) => (
-                        <div key={documentItem.id} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div>
-                              <p className="text-xs font-black text-sky-600">{documentItem.next_inspection_date || "-"}</p>
-                              <p className="mt-1 font-black text-slate-900">{getDocumentCustomerName(documentItem)}</p>
-                              <p className="mt-1 text-sm font-semibold text-slate-500">
-                                {getDeviceNameById(documentItem.device_id)} · {documentItem.file_name}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => openDocument(documentItem)}
-                              className="rounded-2xl bg-blue-100 px-4 py-2 text-sm font-black text-blue-700"
-                            >
-                              Öffnen
-                            </button>
-                          </div>
+                      <span className="rounded-[7px] bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-700">
+                        {nextAcceptanceProtocolDueItems.length}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {nextAcceptanceProtocolDueItems.length === 0 ? (
+                        <div className="rounded-[9px] border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-500">
+                          Keine kommenden Prüffristen aus Abnahmeprotokollen hinterlegt.
                         </div>
-                      ))
+                      ) : (
+                        nextAcceptanceProtocolDueItems.map((documentItem) => (
+                          <button
+                            key={documentItem.id}
+                            type="button"
+                            onClick={() => openDocument(documentItem)}
+                            className="block w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-sky-300 hover:bg-sky-50/40"
+                          >
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-sky-700">
+                                  {documentItem.next_inspection_date || "-"}
+                                </p>
+                                <p className="mt-1 truncate text-sm font-bold text-slate-950">
+                                  {getDocumentCustomerName(documentItem)}
+                                </p>
+                                <p className="mt-1 truncate text-xs font-medium text-slate-500">
+                                  {getDeviceNameById(documentItem.device_id) || "Gerät nicht zugeordnet"}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-xs font-bold text-sky-700">
+                                Öffnen →
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+
+                    {overdueAcceptanceProtocols.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openAbnahmeDocuments("Überfällig")}
+                        className="mt-3 flex min-h-[42px] w-full items-center justify-between rounded-[8px] border border-rose-100 bg-rose-50 px-3 text-sm font-bold text-rose-800 transition hover:bg-rose-100"
+                      >
+                        <span>{overdueAcceptanceProtocols.length} überfällige Prüffrist{overdueAcceptanceProtocols.length === 1 ? "" : "en"}</span>
+                        <span>Prüfen →</span>
+                      </button>
                     )}
                   </div>
-                </div>
-              </div>
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Geräte ohne Prüffrist</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-500">
-                  Geräte ohne nächstes Prüfdatum oder Ablaufdatum: {devicesWithoutInspectionDate.length}
-                </p>
-              </div>
+                  <div className="p-4 sm:p-5 md:p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-950">Letzte Serviceberichte</p>
+                        <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                          Zuletzt archivierte Serviceberichte, nach Datum sortiert.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActivePage("Dokumente");
+                          setActiveDocumentCategory("Serviceberichte");
+                          setDocumentQuickFilter("Alle");
+                          setDocumentSearchTerm("");
+                          if (typeof window !== "undefined" && session?.user?.id) {
+                            window.localStorage.setItem(
+                              `trybun-active-page-${session.user.id}`,
+                              "Dokumente",
+                            );
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }
+                        }}
+                        className="shrink-0 text-xs font-bold text-slate-600 transition hover:text-slate-950"
+                      >
+                        Alle öffnen
+                      </button>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {recentServiceReports.length === 0 ? (
+                        <div className="rounded-[9px] border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-500">
+                          Noch keine Serviceberichte archiviert.
+                        </div>
+                      ) : (
+                        recentServiceReports.map((doc) => (
+                          <button
+                            key={doc.id}
+                            type="button"
+                            onClick={() => openDocument(doc)}
+                            className="block w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/30"
+                          >
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-slate-950">
+                                  {doc.file_name}
+                                </p>
+                                <p className="mt-1 text-xs font-medium text-slate-500">
+                                  {formatDate(doc.created_at)}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-xs font-bold text-indigo-700">
+                                Öffnen →
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
