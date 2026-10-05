@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.47 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.48 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -15524,7 +15524,7 @@ PRO-EFFEKT`,
   }
 
   return (
-    <main className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
+    <main className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-[#f5f5f7] lg:pb-0">
         <style>{`
           .trybun-premium-ui {
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -15628,6 +15628,92 @@ PRO-EFFEKT`,
             overflow-wrap: anywhere;
           }
 
+          /* v4.12.48 · ruhige Premium-Veredelung ohne Strukturänderung */
+          .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+          .trybun-premium-ui select,
+          .trybun-premium-ui textarea {
+            border-color: #d2d2d7 !important;
+            background-color: rgba(255, 255, 255, 0.96) !important;
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.9),
+              0 1px 2px rgba(15, 23, 42, 0.025);
+            transition:
+              border-color 160ms ease,
+              box-shadow 160ms ease,
+              background-color 160ms ease;
+          }
+
+          .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+          .trybun-premium-ui select:focus,
+          .trybun-premium-ui textarea:focus {
+            outline: none !important;
+            border-color: #0a84ff !important;
+            box-shadow:
+              0 0 0 4px rgba(10, 132, 255, 0.11),
+              0 1px 2px rgba(15, 23, 42, 0.04) !important;
+            background-color: #ffffff !important;
+          }
+
+          .trybun-premium-ui input::placeholder,
+          .trybun-premium-ui textarea::placeholder {
+            color: #8e8e93 !important;
+            opacity: 0.95;
+          }
+
+          .trybun-premium-ui .bg-white.shadow-sm {
+            box-shadow:
+              0 1px 2px rgba(15, 23, 42, 0.025),
+              0 10px 30px rgba(15, 23, 42, 0.045) !important;
+          }
+
+          .trybun-premium-ui .bg-white.shadow-xl,
+          .trybun-premium-ui .bg-white.shadow-2xl {
+            box-shadow:
+              0 2px 6px rgba(15, 23, 42, 0.04),
+              0 18px 50px rgba(15, 23, 42, 0.08) !important;
+          }
+
+          .trybun-premium-ui table thead {
+            background: rgba(248, 250, 252, 0.86);
+          }
+
+          .trybun-premium-ui table tbody tr {
+            transition: background-color 140ms ease;
+          }
+
+          @media (hover: hover) and (pointer: fine) {
+            .trybun-premium-ui button:not(:disabled) {
+              transition:
+                transform 140ms ease,
+                box-shadow 160ms ease,
+                background-color 160ms ease,
+                border-color 160ms ease,
+                color 160ms ease;
+            }
+
+            .trybun-premium-ui button:not(:disabled):hover {
+              transform: translateY(-1px);
+            }
+
+            .trybun-premium-ui button:not(:disabled):active {
+              transform: translateY(0) scale(0.99);
+            }
+
+            .trybun-premium-ui table tbody tr:hover {
+              background-color: rgba(248, 250, 252, 0.72);
+            }
+          }
+
+          @media (max-width: 767px) {
+            .trybun-premium-ui .bg-white.shadow-sm,
+            .trybun-premium-ui .bg-white.shadow-xl,
+            .trybun-premium-ui .bg-white.shadow-2xl {
+              box-shadow:
+                0 1px 2px rgba(15, 23, 42, 0.025),
+                0 6px 18px rgba(15, 23, 42, 0.04) !important;
+            }
+          }
+
           @media (min-width: 1024px) {
             .trybun-premium-ui {
               letter-spacing: -0.006em;
@@ -15662,7 +15748,7 @@ PRO-EFFEKT`,
           }
         `}</style>
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
-        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-[#07111d] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
+        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/[0.08] bg-[#08111f] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
           <div className="rounded-[30px] border border-white/10 bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
             <div className="flex items-center gap-4">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[26px] border border-sky-400/20 bg-[#0b1726]">
@@ -15768,7 +15854,7 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="fixed left-80 right-0 top-0 z-[60] hidden border-b border-slate-200/70 bg-white/95 px-8 py-3 shadow-md shadow-slate-300/40 backdrop-blur-xl lg:block">
+          <div className="fixed left-80 right-0 top-0 z-[60] hidden border-b border-black/[0.06] bg-white/80 px-8 py-3 shadow-[0_1px_0_rgba(15,23,42,0.03),0_8px_30px_rgba(15,23,42,0.04)] backdrop-blur-2xl lg:block">
             <div className="flex h-[132px] w-full items-center justify-center overflow-hidden">
               <img
                 src={SOFTWARE_LOGO_PATH}
@@ -15782,7 +15868,7 @@ PRO-EFFEKT`,
           </div>
           <div className="mb-6 hidden h-[156px] lg:block" aria-hidden="true" />
 
-          <div className="fixed left-0 right-0 top-0 z-[60] border-b border-slate-200/70 bg-white/95 px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-md shadow-slate-200/70 backdrop-blur-xl sm:px-4 lg:hidden">
+          <div className="fixed left-0 right-0 top-0 z-[60] border-b border-black/[0.06] bg-white/85 px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-[0_1px_0_rgba(15,23,42,0.03),0_8px_24px_rgba(15,23,42,0.05)] backdrop-blur-2xl sm:px-4 lg:hidden">
             <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-3xl bg-white">
                 <img
