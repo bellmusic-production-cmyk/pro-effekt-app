@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.49 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.50 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -15854,7 +15854,7 @@ PRO-EFFEKT`,
         </aside>
 
         <section className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-5 pt-0 sm:px-5 lg:p-8 xl:p-10">
-          <div className="fixed left-80 right-0 top-0 z-[60] hidden border-b border-black/[0.06] bg-white/80 px-8 py-3 shadow-[0_1px_0_rgba(15,23,42,0.03),0_8px_30px_rgba(15,23,42,0.04)] backdrop-blur-2xl lg:block">
+          <div className="fixed left-80 right-0 top-0 z-[60] hidden bg-white px-8 py-3 lg:block">
             <div className="flex h-[132px] w-full items-center justify-center overflow-hidden">
               <img
                 src={SOFTWARE_LOGO_PATH}
@@ -15868,7 +15868,7 @@ PRO-EFFEKT`,
           </div>
           <div className="mb-6 hidden h-[156px] lg:block" aria-hidden="true" />
 
-          <div className="fixed left-0 right-0 top-0 z-[60] border-b border-black/[0.06] bg-white/85 px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] shadow-[0_1px_0_rgba(15,23,42,0.03),0_8px_24px_rgba(15,23,42,0.05)] backdrop-blur-2xl sm:px-4 lg:hidden">
+          <div className="fixed left-0 right-0 top-0 z-[60] bg-white px-3 pb-3 pt-[max(env(safe-area-inset-top),12px)] sm:px-4 lg:hidden">
             <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-3xl bg-white">
                 <img
