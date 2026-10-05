@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.61 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.62 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7915,6 +7915,15 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         done: Boolean(relatedCustomer && serviceAddress),
       },
       {
+        key: "contact",
+        label: "Ansprechpartner erreichbar",
+        description: contactAvailable
+          ? "Kontaktmöglichkeit für den Einsatz ist vorhanden."
+          : "Telefon, E-Mail oder Ansprechpartner ergänzen.",
+        weight: 10,
+        done: contactAvailable,
+      },
+      {
         key: "device",
         label: "Serviceobjekt eindeutig",
         description: deviceIdentityAvailable
@@ -7929,7 +7938,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         description: ticket.assigned_to
           ? getTechnicianNameById(ticket.assigned_to)
           : "Techniker festlegen.",
-        weight: 20,
+        weight: 15,
         done: Boolean(ticket.assigned_to),
       },
       {
@@ -7939,7 +7948,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
           ticket.service_date && ticket.service_time
             ? formatServiceAppointment(ticket.service_date, ticket.service_time)
             : "Datum und Uhrzeit festlegen.",
-        weight: 20,
+        weight: 15,
         done: Boolean(ticket.service_date && ticket.service_time),
       },
       {
@@ -8098,18 +8107,45 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         name: getPartNameById(item.partId),
       }));
 
-    const similarIssueTerms = String(ticket.issue || "")
-      .toLowerCase()
-      .split(/[^a-zA-Z0-9äöüÄÖÜß]+/)
-      .map((term) => term.trim())
-      .filter((term) => term.length >= 4);
+    const serviceCopilotStopWords = new Set([
+      "service",
+      "wartung",
+      "prüfung",
+      "pruefung",
+      "gerät",
+      "geraet",
+      "anlage",
+      "ticket",
+      "kunde",
+      "fehler",
+      "störung",
+      "stoerung",
+      "reparatur",
+      "kontrolle",
+    ]);
 
-    const similarTickets = relatedTickets
-      .filter((item) => {
-        const haystack = `${item.issue || ""} ${item.description || ""}`.toLowerCase();
-        return similarIssueTerms.some((term) => haystack.includes(term));
-      })
-      .slice(0, 3);
+    const similarIssueTerms = Array.from(
+      new Set(
+        String(ticket.issue || "")
+          .toLowerCase()
+          .split(/[^a-zA-Z0-9äöüÄÖÜß]+/)
+          .map((term) => term.trim())
+          .filter(
+            (term) =>
+              term.length >= 4 &&
+              !serviceCopilotStopWords.has(term),
+          ),
+      ),
+    );
+
+    const similarTickets = similarIssueTerms.length === 0
+      ? []
+      : relatedTickets
+          .filter((item) => {
+            const haystack = `${item.issue || ""} ${item.description || ""}`.toLowerCase();
+            return similarIssueTerms.some((term) => haystack.includes(term));
+          })
+          .slice(0, 3);
 
     const latestService = recentCompletedTickets[0] || null;
 
@@ -15143,15 +15179,23 @@ PRO-EFFEKT`,
         ["Abgeschlossen", "Erledigt"].includes(ticket.status || ""),
       )
       .filter((ticket) => {
-        const activeInvoice = invoices.some(
+        const billedInvoice = invoices.some(
           (invoice) =>
             invoice.type === "Rechnung" &&
             invoice.ticket_id === ticket.id &&
-            invoice.status !== "Storniert",
+            !["Storniert", "Entwurf"].includes(invoice.status || ""),
         );
-        return !activeInvoice;
+        return !billedInvoice;
       })
       .map((ticket) => {
+        const invoiceDraft =
+          invoices.find(
+            (invoice) =>
+              invoice.type === "Rechnung" &&
+              invoice.ticket_id === ticket.id &&
+              invoice.status === "Entwurf",
+          ) || null;
+
         const ticketPartUsages = partUsages.filter(
           (usage) => usage.ticket_id === ticket.id && !usage.is_voided,
         );
@@ -15198,13 +15242,15 @@ PRO-EFFEKT`,
 
         return {
           ticket,
+          invoiceDraft,
           signals,
           materialValue,
           completedTime,
-          priority:
-            ticketPartUsages.length > 0 ||
-            ticketInventoryIssues.length > 0 ||
-            hasDeliveryDocument
+          priority: invoiceDraft
+            ? "draft"
+            : ticketPartUsages.length > 0 ||
+                ticketInventoryIssues.length > 0 ||
+                hasDeliveryDocument
               ? "high"
               : hasServiceReport
                 ? "medium"
@@ -15213,8 +15259,9 @@ PRO-EFFEKT`,
       })
       .sort((a, b) => {
         const priorityOrder: Record<string, number> = {
-          high: 3,
-          medium: 2,
+          high: 4,
+          medium: 3,
+          draft: 2,
           normal: 1,
         };
         const priorityDiff =
@@ -19844,8 +19891,9 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     ) : (
                       visibleNotifications.map((item) => (
                         <div
+                          id={`invoice-item-${item.id}`}
                           key={item.id}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 scroll-mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
@@ -20009,14 +20057,18 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                         ? "bg-amber-100 text-amber-800"
                                         : guardItem.priority === "medium"
                                           ? "bg-sky-100 text-sky-700"
-                                          : "bg-slate-200 text-slate-700"
+                                          : guardItem.priority === "draft"
+                                            ? "bg-violet-100 text-violet-700"
+                                            : "bg-slate-200 text-slate-700"
                                     }`}
                                   >
                                     {guardItem.priority === "high"
                                       ? "Abrechnung prüfen"
                                       : guardItem.priority === "medium"
                                         ? "Service abgeschlossen"
-                                        : "Ohne Rechnung"}
+                                        : guardItem.priority === "draft"
+                                          ? "Rechnungsentwurf offen"
+                                          : "Ohne Rechnung"}
                                   </span>
                                   <p className="text-xs font-black text-slate-500">
                                     {ticket.ticket_number || `Ticket #${ticket.id}`}
@@ -20068,13 +20120,27 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               </div>
 
                               <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-64 lg:grid-cols-1">
-                                <button
-                                  type="button"
-                                  onClick={() => prepareInvoiceFromRevenueGuard(ticket)}
-                                  className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
-                                >
-                                  Rechnungsentwurf vorbereiten
-                                </button>
+                                {guardItem.invoiceDraft ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      document
+                                        .getElementById(`invoice-item-${guardItem.invoiceDraft?.id}`)
+                                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                    }}
+                                    className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white"
+                                  >
+                                    Vorhandenen Entwurf öffnen
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => prepareInvoiceFromRevenueGuard(ticket)}
+                                    className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
+                                  >
+                                    Rechnungsentwurf vorbereiten
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -20103,7 +20169,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   )}
 
                   <p className="mt-4 text-xs font-semibold leading-5 text-slate-500">
-                    Revenue Guard erkennt Abrechnungslücken anhand der in TRYBUN vorhandenen Daten. Ob eine Leistung tatsächlich berechnet werden darf, richtet sich weiterhin nach Vertrag, Garantie und individueller Vereinbarung.
+                    Revenue Guard erkennt Abrechnungslücken anhand der in TRYBUN vorhandenen Daten. Ein bloßer Rechnungsentwurf bleibt sichtbar, bis die Rechnung einen weiterführenden Status erhält. Ob eine Leistung tatsächlich berechnet werden darf, richtet sich weiterhin nach Vertrag, Garantie und individueller Vereinbarung.
                   </p>
                 </div>
               )}
@@ -23969,7 +24035,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     </p>
                   </div>
                   <div className="rounded-xl bg-white p-4">
-                    <p className="text-xs font-bold text-slate-500">Ersatzteil-EK · 12 Monate</p>
+                    <p className="text-xs font-bold text-slate-500">Ersatzteil-EK-Richtwert · 12 Monate</p>
                     <p className="mt-1 text-2xl font-black text-slate-950">
                       {selectedDeviceLifecycle.partCost12m > 0
                         ? `${selectedDeviceLifecycle.partCost12m.toLocaleString("de-DE", {
@@ -24020,7 +24086,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 </div>
 
                 <p className="mt-4 text-xs font-semibold leading-5 text-slate-500">
-                  Grundlage sind ausschließlich die in TRYBUN dokumentierten Daten. Das angezeigte Alter beschreibt deshalb aktuell die Zeit seit Anlage des Serviceobjekts in TRYBUN und nicht zwingend das technische Baujahr.
+                  Grundlage sind ausschließlich die in TRYBUN dokumentierten Daten. Das angezeigte Alter beschreibt deshalb aktuell die Zeit seit Anlage des Serviceobjekts in TRYBUN und nicht zwingend das technische Baujahr. Der Ersatzteil-EK-Richtwert wird aus den dokumentierten Mengen und den aktuell hinterlegten Einkaufspreisen berechnet und ist kein historischer Kostenbeleg.
                 </p>
               </div>
 
