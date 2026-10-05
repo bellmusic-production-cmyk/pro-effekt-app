@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.72 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.73 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4500,6 +4500,30 @@ async function loadApplicationData() {
     return loadedCompany?.id || null;
   }
 
+  async function buildTenantDocumentStorageTarget(
+    relativePath: string,
+    customerId?: number | null,
+    deviceId?: number | null,
+    ticketId?: number | null,
+  ) {
+    const documentCompanyId = await resolveDocumentCompanyId(
+      customerId || null,
+      deviceId || null,
+      ticketId || null,
+    );
+
+    if (!documentCompanyId) return null;
+
+    const safeRelativePath = String(relativePath || "")
+      .replace(/^\/+/, "")
+      .replace(/^company-\d+\//, "");
+
+    return {
+      companyId: documentCompanyId,
+      filePath: `company-${documentCompanyId}/${safeRelativePath}`,
+    };
+  }
+
   async function loadDeviceHistory() {
     if (isOfflineRuntime()) return;
     const { data, error } = await supabase
@@ -4695,26 +4719,42 @@ async function loadApplicationData() {
   async function uploadTicketChatAttachment(ticketId: number, file: File | null) {
     if (!file) return { name: null as string | null, url: null as string | null };
 
-    const safeName = file.name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    const ticket = tickets.find((item) => item.id === ticketId) || null;
+    if (!ticket) {
+      throw new Error("Ticket konnte für den Dateianhang nicht gefunden werden.");
+    }
 
-    const filePath = `ticket-chat/${ticketId}/${Date.now()}-${safeName}`;
+    const relatedDevice = getDeviceForTicket(ticket);
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `ticket-chat/${ticketId}/${Date.now()}-${file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "_")}`,
+      ticket.customer_id || relatedDevice?.customer_id || null,
+      relatedDevice?.id || null,
+      ticket.id,
+    );
+
+    if (!storageTarget) {
+      throw new Error("Dateianhang konnte keiner Firma zugeordnet werden.");
+    }
 
     const uploadResult = await supabase.storage
       .from("documents")
-      .upload(filePath, file, { upsert: false, contentType: file.type || "application/octet-stream" });
+      .upload(storageTarget.filePath, file, {
+        upsert: false,
+        contentType: file.type || "application/octet-stream",
+      });
 
     if (uploadResult.error) {
       throw new Error(uploadResult.error.message);
     }
 
-    const publicUrlResult = supabase.storage.from("documents").getPublicUrl(filePath);
-
+    // Im Chat wird bewusst nur der geschützte Storage-Pfad gespeichert.
+    // Beim späteren Öffnen muss immer eine kurzlebige Signed URL erzeugt werden.
     return {
       name: file.name,
-      url: publicUrlResult.data.publicUrl,
+      url: storageTarget.filePath,
     };
   }
 
@@ -5465,9 +5505,25 @@ async function loadApplicationData() {
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory =
       uploadCategory === "Abnahmeprotokolle" ? "abnahmeprotokolle" : uploadCategory.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = isCustomer
+    const relativePath = isCustomer
       ? `kundenportal/customer-${userProfile?.customer_id || "unknown"}/${finalTicketId ? `ticket-${finalTicketId}/` : ""}${Date.now()}-${safeFileName}`
       : `${safeCategory}/${Date.now()}-${safeFileName}`;
+
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      relativePath,
+      uploadCustomerId ? Number(uploadCustomerId) : null,
+      finalDeviceId,
+      finalTicketId,
+    );
+
+    if (!storageTarget) {
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -5476,18 +5532,6 @@ async function loadApplicationData() {
     if (uploadResult.error) {
       setUploading(false);
       alert("Upload fehlgeschlagen.");
-      return;
-    }
-
-    const documentCompanyId = await resolveDocumentCompanyId(
-      uploadCustomerId ? Number(uploadCustomerId) : null,
-      finalDeviceId,
-      finalTicketId,
-    );
-    if (!documentCompanyId) {
-      await supabase.storage.from("documents").remove([filePath]);
-      setUploading(false);
-      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
       return;
     }
 
@@ -5608,7 +5652,23 @@ async function loadApplicationData() {
     const safeCategory =
       uploadCategory === "Abnahmeprotokolle" ? "Abnahmeprotokolle" : uploadCategory;
 
-    const filePath = `${safeCategory}/${Date.now()}-${safeFileName}`;
+    const deviceCustomerId =
+      devices.find((deviceItem) => deviceItem.id === deviceId)?.customer_id || null;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `${safeCategory}/${Date.now()}-${safeFileName}`,
+      deviceCustomerId,
+      deviceId,
+      null,
+    );
+
+    if (!storageTarget) {
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -5617,15 +5677,6 @@ async function loadApplicationData() {
     if (uploadResult.error) {
       setUploading(false);
       alert("Upload fehlgeschlagen.");
-      return;
-    }
-
-    const deviceCustomerId = devices.find((deviceItem) => deviceItem.id === deviceId)?.customer_id || null;
-    const documentCompanyId = await resolveDocumentCompanyId(deviceCustomerId, deviceId, null);
-    if (!documentCompanyId) {
-      await supabase.storage.from("documents").remove([filePath]);
-      setUploading(false);
-      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
       return;
     }
 
@@ -5792,7 +5843,22 @@ async function loadApplicationData() {
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory =
       uploadCategory === "Abnahmeprotokolle" ? "Abnahmeprotokolle" : uploadCategory;
-    const filePath = `${safeCategory}/${Date.now()}-${ticket.ticket_number}-${safeFileName}`;
+    const ticketCustomerId = ticket.customer_id || relatedDevice?.customer_id || null;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `${safeCategory}/${Date.now()}-${ticket.ticket_number}-${safeFileName}`,
+      ticketCustomerId,
+      relatedDevice?.id || null,
+      ticket.id,
+    );
+
+    if (!storageTarget) {
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -5801,15 +5867,6 @@ async function loadApplicationData() {
     if (uploadResult.error) {
       setUploading(false);
       alert(`Upload fehlgeschlagen: ${uploadResult.error.message}`);
-      return;
-    }
-
-    const ticketCustomerId = ticket.customer_id || relatedDevice?.customer_id || null;
-    const documentCompanyId = await resolveDocumentCompanyId(ticketCustomerId, relatedDevice?.id || null, ticket.id);
-    if (!documentCompanyId) {
-      await supabase.storage.from("documents").remove([filePath]);
-      setUploading(false);
-      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
       return;
     }
 
@@ -5856,7 +5913,20 @@ async function loadApplicationData() {
   ) {
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory = category || "Sonstige Dokumente";
-    const filePath = `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`,
+      customerId,
+      deviceId,
+      ticket.id,
+    );
+
+    if (!storageTarget) {
+      alert("Ticket wurde erstellt, aber das Dokument konnte keiner Firma zugeordnet werden.");
+      return;
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -5864,13 +5934,6 @@ async function loadApplicationData() {
 
     if (uploadResult.error) {
       alert(`Ticket wurde erstellt, aber Dokument-Upload fehlgeschlagen: ${uploadResult.error.message}`);
-      return;
-    }
-
-    const documentCompanyId = await resolveDocumentCompanyId(customerId, deviceId, ticket.id);
-    if (!documentCompanyId) {
-      await supabase.storage.from("documents").remove([filePath]);
-      alert("Ticket wurde erstellt, aber das Dokument konnte keiner Firma zugeordnet werden.");
       return;
     }
 
@@ -5916,7 +5979,22 @@ async function loadApplicationData() {
 
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory = ticketAkteUploadCategory || "Sonstige Dokumente";
-    const filePath = `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`,
+      finalCustomerId,
+      relatedDevice?.id || null,
+      ticket.id,
+    );
+
+    if (!storageTarget) {
+      setUploading(false);
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      event.target.value = "";
+      return;
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -5925,15 +6003,6 @@ async function loadApplicationData() {
     if (uploadResult.error) {
       setUploading(false);
       alert(`Upload fehlgeschlagen: ${uploadResult.error.message}`);
-      event.target.value = "";
-      return;
-    }
-
-    const documentCompanyId = await resolveDocumentCompanyId(finalCustomerId, relatedDevice?.id || null, ticket.id);
-    if (!documentCompanyId) {
-      await supabase.storage.from("documents").remove([filePath]);
-      setUploading(false);
-      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
       event.target.value = "";
       return;
     }
@@ -7084,7 +7153,20 @@ async function loadApplicationData() {
     const customerId = ticket.customer_id || relatedDevice?.customer_id || null;
     const pdfBlob = await createServiceReportPdfBlob(ticket);
     const fileName = `Servicebericht-${ticket.ticket_number || ticket.id}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    const filePath = `Serviceberichte/${Date.now()}-${fileName}`;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `Serviceberichte/${Date.now()}-${fileName}`,
+      customerId,
+      relatedDevice?.id || null,
+      ticket.id,
+    );
+
+    if (!storageTarget) {
+      console.error("Servicebericht konnte keiner Firma zugeordnet werden.");
+      return null;
+    }
+
+    const filePath = storageTarget.filePath;
+    const documentCompanyId = storageTarget.companyId;
 
     const uploadResult = await supabase.storage
       .from("documents")
@@ -7102,6 +7184,7 @@ async function loadApplicationData() {
       .from("documents")
       .insert([
         {
+          company_id: documentCompanyId,
           file_name: fileName,
           file_path: filePath,
           category: "Serviceberichte",
@@ -11320,7 +11403,18 @@ PRO-EFFEKT`,
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `Verträge/${Date.now()}-${safeFileName}`;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `Verträge/${Date.now()}-${safeFileName}`,
+      contract.customer_id || null,
+      null,
+      null,
+    );
+    if (!storageTarget) {
+      throw new Error("Vertrag konnte keiner Firma zugeordnet werden.");
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const pdfBlob = await createBrandedBusinessPdfBlob({
       documentType: "Vertrag",
@@ -11347,12 +11441,6 @@ PRO-EFFEKT`,
       .from("documents")
       .upload(filePath, pdfBlob, { contentType: "application/pdf", upsert: false });
     if (uploadResult.error) throw uploadResult.error;
-
-    const documentCompanyId = await resolveDocumentCompanyId(contract.customer_id || null, null, null);
-    if (!documentCompanyId) {
-      await supabase.storage.from("documents").remove([filePath]);
-      throw new Error("Vertrag konnte keiner Firma zugeordnet werden.");
-    }
 
     const insertResult = await supabase.from("documents").insert([{
       company_id: documentCompanyId,
@@ -12842,7 +12930,25 @@ PRO-EFFEKT`,
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `abnahmeprotokoll-${Date.now()}-${fileName}`;
+      const protocolCustomerId =
+        Number(abnahmeCustomerId) ||
+        selectedTicket?.customer_id ||
+        selectedDevice?.customer_id ||
+        null;
+      const storageTarget = await buildTenantDocumentStorageTarget(
+        `Abnahmeprotokolle/${Date.now()}-${fileName}`,
+        protocolCustomerId,
+        selectedDevice?.id || null,
+        selectedTicket?.id || null,
+      );
+
+      if (!storageTarget) {
+        alert("Prüf-/Abnahmeprotokoll konnte keiner Firma zugeordnet werden.");
+        return;
+      }
+
+      const documentCompanyId = storageTarget.companyId;
+      const filePath = storageTarget.filePath;
 
       const uploadResult = await supabase.storage
         .from("documents")
@@ -12853,22 +12959,6 @@ PRO-EFFEKT`,
 
       if (uploadResult.error) {
         alert(`PDF-Protokoll konnte nicht archiviert werden: ${uploadResult.error.message}`);
-        return;
-      }
-
-      const protocolCustomerId =
-        Number(abnahmeCustomerId) ||
-        selectedTicket?.customer_id ||
-        selectedDevice?.customer_id ||
-        null;
-      const documentCompanyId = await resolveDocumentCompanyId(
-        protocolCustomerId,
-        selectedDevice?.id || null,
-        selectedTicket?.id || null,
-      );
-      if (!documentCompanyId) {
-        await supabase.storage.from("documents").remove([filePath]);
-        alert("Prüf-/Abnahmeprotokoll konnte keiner Firma zugeordnet werden.");
         return;
       }
 
@@ -12934,7 +13024,25 @@ PRO-EFFEKT`,
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-zA-Z0-9._-]/g, "_")
         .toLowerCase();
-      const filePath = `abnahmeprotokoll-${Date.now()}-${fileName}`;
+      const protocolCustomerId =
+        Number(abnahmeCustomerId) ||
+        selectedTicket?.customer_id ||
+        selectedDevice?.customer_id ||
+        null;
+      const storageTarget = await buildTenantDocumentStorageTarget(
+        `Abnahmeprotokolle/${Date.now()}-${fileName}`,
+        protocolCustomerId,
+        selectedDevice?.id || null,
+        selectedTicket?.id || null,
+      );
+
+      if (!storageTarget) {
+        alert("Prüf-/Abnahmeprotokoll konnte keiner Firma zugeordnet werden.");
+        return;
+      }
+
+      const documentCompanyId = storageTarget.companyId;
+      const filePath = storageTarget.filePath;
 
       const uploadResult = await supabase.storage
         .from("documents")
@@ -12961,22 +13069,6 @@ PRO-EFFEKT`,
         alert(
           `PDF konnte nicht im Archiv gespeichert werden. Die Druckansicht wurde trotzdem geöffnet. Details: ${uploadResult.error.message}`,
         );
-        return;
-      }
-
-      const protocolCustomerId =
-        Number(abnahmeCustomerId) ||
-        selectedTicket?.customer_id ||
-        selectedDevice?.customer_id ||
-        null;
-      const documentCompanyId = await resolveDocumentCompanyId(
-        protocolCustomerId,
-        selectedDevice?.id || null,
-        selectedTicket?.id || null,
-      );
-      if (!documentCompanyId) {
-        await supabase.storage.from("documents").remove([filePath]);
-        alert("Prüf-/Abnahmeprotokoll konnte keiner Firma zugeordnet werden.");
         return;
       }
 
@@ -13649,7 +13741,20 @@ PRO-EFFEKT`,
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `${category}/${Date.now()}-${safeFileName}`;
+    const storageTarget = await buildTenantDocumentStorageTarget(
+      `${category}/${Date.now()}-${safeFileName}`,
+      customer.id,
+      null,
+      selectedTicket?.id || null,
+    );
+
+    if (!storageTarget) {
+      alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
+      return;
+    }
+
+    const documentCompanyId = storageTarget.companyId;
+    const filePath = storageTarget.filePath;
 
     const customerName = getCustomerLabel(customer);
     const customerAddress = buildCustomerAddress(customer) || "Keine Adresse hinterlegt";
@@ -13713,18 +13818,6 @@ PRO-EFFEKT`,
       if (uploadResult.error) {
         if (inventoryPosted) await rollbackInventorySource(commercialDocumentType, number, "Dokument konnte nicht archiviert werden");
         alert(`${commercialDocumentType} konnte nicht erstellt werden: ${uploadResult.error.message}`);
-        return;
-      }
-
-      const documentCompanyId = await resolveDocumentCompanyId(
-        customer.id,
-        null,
-        selectedTicket?.id || null,
-      );
-      if (!documentCompanyId) {
-        if (inventoryPosted) await rollbackInventorySource(commercialDocumentType, number, "Dokument konnte keiner Firma zugeordnet werden");
-        await supabase.storage.from("documents").remove([filePath]);
-        alert("Dokument konnte keiner Firma zugeordnet werden. Bitte Seite neu laden und erneut versuchen.");
         return;
       }
 
@@ -14121,7 +14214,19 @@ PRO-EFFEKT`,
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${category}/${Date.now()}-${safeFileName}`;
+      const storageTarget = await buildTenantDocumentStorageTarget(
+        `${category}/${Date.now()}-${safeFileName}`,
+        item.customer_id || null,
+        null,
+        item.ticket_id || null,
+      );
+
+      if (!storageTarget) {
+        return false;
+      }
+
+      const documentCompanyId = storageTarget.companyId;
+      const filePath = storageTarget.filePath;
 
       const uploadResult = await supabase.storage
         .from("documents")
@@ -14132,16 +14237,6 @@ PRO-EFFEKT`,
 
       if (uploadResult.error) {
         console.error(uploadResult.error.message);
-        return false;
-      }
-
-      const documentCompanyId = await resolveDocumentCompanyId(
-        item.customer_id || null,
-        null,
-        item.ticket_id || null,
-      );
-      if (!documentCompanyId) {
-        await supabase.storage.from("documents").remove([filePath]);
         return false;
       }
 
