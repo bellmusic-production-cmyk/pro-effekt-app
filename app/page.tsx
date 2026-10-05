@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.71 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.72 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -81,6 +81,7 @@ type OfflineTechnicianSnapshot = {
   version: 1;
   user_id: string;
   saved_at: string;
+  expires_at: string;
   tickets: Ticket[];
   devices: Device[];
   customers: Customer[];
@@ -1702,6 +1703,12 @@ export default function Home() {
     deviceHistory,
     maintenancePlans,
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    purgeExpiredOfflineTechnicianSnapshots();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -3515,8 +3522,62 @@ export default function Home() {
     await sendChatNotificationEmail(notificationItem);
   }
 
-function getOfflineTechnicianSnapshotKey(userId?: string | null) {
+const OFFLINE_TECHNICIAN_SNAPSHOT_TTL_MS = 24 * 60 * 60 * 1000;
+
+  function getOfflineTechnicianSnapshotKey(userId?: string | null) {
     return `trybun-offline-technician-snapshot-${userId || "session"}`;
+  }
+
+  function clearOfflineUserData(userId?: string | null) {
+    if (typeof window === "undefined" || !userId) return;
+
+    const keysToRemove: string[] = [];
+
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key) continue;
+
+      if (
+        key === getOfflineTechnicianSnapshotKey(userId) ||
+        key === `trybun-offline-service-${userId}` ||
+        key.includes(userId)
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+  }
+
+  function purgeExpiredOfflineTechnicianSnapshots() {
+    if (typeof window === "undefined") return;
+
+    const now = Date.now();
+    const keysToRemove: string[] = [];
+
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key || !key.startsWith("trybun-offline-technician-snapshot-")) continue;
+
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) {
+          keysToRemove.push(key);
+          continue;
+        }
+
+        const parsed = JSON.parse(raw) as Partial<OfflineTechnicianSnapshot>;
+        const expiresAt = parsed.expires_at ? new Date(parsed.expires_at).getTime() : 0;
+
+        if (!expiresAt || Number.isNaN(expiresAt) || expiresAt <= now) {
+          keysToRemove.push(key);
+        }
+      } catch {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => window.localStorage.removeItem(key));
   }
 
   function readOfflineTechnicianSnapshot(
@@ -3536,10 +3597,22 @@ function getOfflineTechnicianSnapshotKey(userId?: string | null) {
       if (
         parsed?.version !== 1 ||
         parsed.user_id !== userId ||
+        !parsed.expires_at ||
         !Array.isArray(parsed.tickets) ||
         !Array.isArray(parsed.devices) ||
         !Array.isArray(parsed.customers)
       ) {
+        window.localStorage.removeItem(getOfflineTechnicianSnapshotKey(userId));
+        return null;
+      }
+
+      const expiresAt = new Date(parsed.expires_at).getTime();
+
+      if (
+        Number.isNaN(expiresAt) ||
+        expiresAt <= Date.now()
+      ) {
+        window.localStorage.removeItem(getOfflineTechnicianSnapshotKey(userId));
         return null;
       }
 
@@ -3560,7 +3633,7 @@ function getOfflineTechnicianSnapshotKey(userId?: string | null) {
     if (!snapshot) {
       setOfflineSnapshotSavedAt(null);
       setOfflineSyncMessage(
-        "Offline-Modus aktiv · Für dieses Gerät ist noch kein Offline-Einsatzbestand gespeichert. TRYBUN speichert ihn automatisch nach dem nächsten Online-Aufruf.",
+        "Offline-Modus aktiv · Kein aktueller Offline-Einsatzbestand verfügbar. TRYBUN speichert nach dem nächsten Online-Aufruf automatisch einen neuen Stand.",
       );
       return false;
     }
@@ -3677,10 +3750,14 @@ function getOfflineTechnicianSnapshotKey(userId?: string | null) {
           customerIds.has(Number(plan.customer_id))),
     );
 
+    const savedAt = new Date();
     const snapshot: OfflineTechnicianSnapshot = {
       version: 1,
       user_id: userId,
-      saved_at: new Date().toISOString(),
+      saved_at: savedAt.toISOString(),
+      expires_at: new Date(
+        savedAt.getTime() + OFFLINE_TECHNICIAN_SNAPSHOT_TTL_MS,
+      ).toISOString(),
       tickets: assignedTickets,
       devices: relatedDevices,
       customers: relatedCustomers,
@@ -3789,6 +3866,8 @@ async function loadApplicationData() {
     setPreviewName("");
 
     if (typeof window !== "undefined") {
+      clearOfflineUserData(userId);
+
       const keysToRemove: string[] = [];
 
       for (let index = 0; index < window.localStorage.length; index += 1) {
@@ -3996,69 +4075,84 @@ async function loadApplicationData() {
   }
 
   async function logout() {
-    try {
-      const currentUserId = session?.user?.id || userProfile?.id || null;
+    const currentUserId = session?.user?.id || userProfile?.id || null;
 
-      await supabase.auth.signOut();
-
-      setSession(null);
-      setTickets([]);
-      setDevices([]);
-      setCustomers([]);
-      setManufacturers([]);
-      setDeviceModels([]);
-      setDocuments([]);
-      setDeviceHistory([]);
-      setMaintenancePlans([]);
-      setServiceParts([]);
-      setPartUsages([]);
-      setInventoryMovements([]);
-      setInvoices([]);
-      setNotifications([]);
-      setTicketChatMessages([]);
-      setTicketChatDrafts({});
-      setTicketChatFiles({});
-      setContracts([]);
-      setTechnicians([]);
-      setUserProfile(null);
+    // Datenschutz zuerst: UI und lokale Offline-Daten werden sofort entfernt.
+    // Die Server-Abmeldung darf diesen Schritt bei schlechtem Netz nicht blockieren.
+    setSession(null);
+    setTickets([]);
+    setDevices([]);
+    setCustomers([]);
+    setManufacturers([]);
+    setDeviceModels([]);
+    setDocuments([]);
+    setDeviceHistory([]);
+    setMaintenancePlans([]);
+    setServiceParts([]);
+    setPartUsages([]);
+    setInventoryMovements([]);
+    setInvoices([]);
+    setNotifications([]);
+    setTicketChatMessages([]);
+    setTicketChatDrafts({});
+    setTicketChatFiles({});
+    setContracts([]);
+    setTechnicians([]);
+    setUserProfile(null);
     setCompanyData(null);
-      setProfileLoading(false);
-      setAppDataLoaded(false);
-      setLegalAccepted(false);
-      setSelectedDeviceView(null);
-      setSelectedTicketView(null);
-      setServiceSigningTicket(null);
-      setPreviewUrl("");
-      setPreviewName("");
+    setProfileLoading(false);
+    setAppDataLoaded(false);
+    setLegalAccepted(false);
+    setSelectedDeviceView(null);
+    setSelectedTicketView(null);
+    setServiceSigningTicket(null);
+    setPreviewUrl("");
+    setPreviewName("");
+    setOfflineSnapshotSavedAt(null);
+    setOfflineSyncMessage("");
 
-      resetTicketForm();
-      resetDeviceForm();
-      resetCustomerForm();
+    resetTicketForm();
+    resetDeviceForm();
+    resetCustomerForm();
 
-      if (typeof window !== "undefined") {
-        const keysToRemove: string[] = [];
+    if (typeof window !== "undefined") {
+      clearOfflineUserData(currentUserId);
 
-        for (let index = 0; index < window.localStorage.length; index += 1) {
-          const key = window.localStorage.key(index);
-          if (!key) continue;
+      const keysToRemove: string[] = [];
 
-          if (
-            key.startsWith("trybun-user-profile-") ||
-            key.startsWith("trybun-legal-accepted-") ||
-            key.startsWith("trybun-active-page-") ||
-            (currentUserId && key.includes(currentUserId))
-          ) {
-            keysToRemove.push(key);
-          }
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (!key) continue;
+
+        if (
+          key.startsWith("trybun-user-profile-") ||
+          key.startsWith("trybun-legal-accepted-") ||
+          key.startsWith("trybun-active-page-") ||
+          (currentUserId && key.includes(currentUserId))
+        ) {
+          keysToRemove.push(key);
         }
-
-        keysToRemove.forEach((key) => window.localStorage.removeItem(key));
-        window.sessionStorage.clear();
-        window.location.href = "/";
       }
+
+      keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+      window.sessionStorage.clear();
+    }
+
+    try {
+      const signOutTimeout = new Promise<never>((_, reject) => {
+        window.setTimeout(
+          () => reject(new Error("Supabase signOut timeout")),
+          1500,
+        );
+      });
+
+      await Promise.race([supabase.auth.signOut(), signOutTimeout]);
     } catch (error) {
-      console.error(error);
-      alert("Logout fehlgeschlagen. Bitte Seite neu laden.");
+      console.error("Server-Abmeldung konnte nicht bestätigt werden:", error);
+    } finally {
+      if (typeof window !== "undefined") {
+        window.location.replace("/");
+      }
     }
   }
 
