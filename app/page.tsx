@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.63 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.64 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -17123,9 +17123,27 @@ PRO-EFFEKT`,
           .trybun-premium-ui h1,
           .trybun-premium-ui h2,
           .trybun-premium-ui h3,
+          .trybun-premium-ui h4,
+          .trybun-premium-ui h5,
+          .trybun-premium-ui h6,
           .trybun-premium-ui .fe-login-brand {
-            letter-spacing: -0.035em;
-            line-height: 1.08;
+            letter-spacing: -0.028em;
+            line-height: 1.12;
+            font-weight: 700 !important;
+          }
+
+          /* v4.12.64 · ruhigere professionelle Typografie
+             Die bestehende visuelle Hierarchie bleibt erhalten, wirkt aber weniger schwer. */
+          .trybun-premium-ui .font-black {
+            font-weight: 700 !important;
+          }
+
+          .trybun-premium-ui .font-bold {
+            font-weight: 600 !important;
+          }
+
+          .trybun-premium-ui .font-semibold {
+            font-weight: 500 !important;
           }
 
           .trybun-premium-ui p,
@@ -17146,7 +17164,7 @@ PRO-EFFEKT`,
             padding-top: 0.82rem !important;
             padding-bottom: 0.82rem !important;
             font-size: 15px !important;
-            font-weight: 650 !important;
+            font-weight: 500 !important;
             letter-spacing: -0.012em;
             overflow: visible;
           }
@@ -17157,8 +17175,8 @@ PRO-EFFEKT`,
             padding-top: 0.95rem !important;
             padding-bottom: 0.95rem !important;
             font-size: 15px !important;
-            font-weight: 600 !important;
-            letter-spacing: -0.01em;
+            font-weight: 500 !important;
+            letter-spacing: -0.008em;
           }
 
           .trybun-premium-ui select {
@@ -17172,13 +17190,13 @@ PRO-EFFEKT`,
             color: #0f172a;
             background: #ffffff;
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 500;
           }
 
           .trybun-premium-ui button,
           .trybun-premium-ui summary {
-            line-height: 1.2;
-            letter-spacing: -0.012em;
+            line-height: 1.25;
+            letter-spacing: -0.008em;
           }
 
           .trybun-premium-ui aside button,
@@ -17210,11 +17228,11 @@ PRO-EFFEKT`,
             overflow-wrap: anywhere;
           }
 
-          /* v4.12.51 · einheitliche Seitenköpfe und reduzierte Rundungen */
+          /* v4.12.64 · ruhigere Geometrie mit kleineren Ecken */
           .trybun-premium-ui .trybun-page-header {
-            border-radius: 18px !important;
+            border-radius: 12px !important;
             background-color: #07111d !important;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.09) !important;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
           }
 
           .trybun-premium-ui [class*="rounded-[36px]"],
@@ -17223,32 +17241,45 @@ PRO-EFFEKT`,
           .trybun-premium-ui [class*="rounded-[30px]"],
           .trybun-premium-ui [class*="rounded-[28px]"],
           .trybun-premium-ui [class*="rounded-[26px]"],
-          .trybun-premium-ui [class*="rounded-[24px]"] {
-            border-radius: 16px !important;
-          }
-
-          .trybun-premium-ui .rounded-3xl {
-            border-radius: 16px !important;
-          }
-
-          .trybun-premium-ui .rounded-2xl {
+          .trybun-premium-ui [class*="rounded-[24px]"],
+          .trybun-premium-ui [class*="rounded-[20px]"],
+          .trybun-premium-ui [class*="rounded-[18px]"],
+          .trybun-premium-ui [class*="rounded-[16px]"] {
             border-radius: 12px !important;
           }
 
+          .trybun-premium-ui .rounded-3xl {
+            border-radius: 12px !important;
+          }
+
+          .trybun-premium-ui .rounded-2xl {
+            border-radius: 9px !important;
+          }
+
           .trybun-premium-ui .rounded-xl {
-            border-radius: 10px !important;
+            border-radius: 8px !important;
+          }
+
+          .trybun-premium-ui .rounded-lg {
+            border-radius: 7px !important;
           }
 
           @media (max-width: 767px) {
             .trybun-premium-ui .trybun-page-header {
-              border-radius: 16px !important;
-              padding: 1.15rem !important;
+              border-radius: 10px !important;
+              padding: 1.1rem !important;
             }
 
             .trybun-premium-ui .trybun-page-header h2,
             .trybun-premium-ui .trybun-page-header h3 {
-              font-size: 1.75rem !important;
-              line-height: 1.08 !important;
+              font-size: 1.7rem !important;
+              line-height: 1.12 !important;
+              font-weight: 700 !important;
+            }
+
+            .trybun-premium-ui button,
+            .trybun-premium-ui summary {
+              font-weight: 600;
             }
           }
 
