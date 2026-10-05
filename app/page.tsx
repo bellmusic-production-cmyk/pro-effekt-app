@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.70 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.71 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1702,6 +1702,78 @@ export default function Home() {
     deviceHistory,
     maintenancePlans,
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const protectTrybunFieldsFromBrowserAutofill = (root: ParentNode = document) => {
+      const fields = root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+        "input, textarea",
+      );
+
+      fields.forEach((field) => {
+        if (field.dataset.trybunAuth === "true") return;
+
+        if (field instanceof HTMLInputElement) {
+          const type = String(field.type || "text").toLowerCase();
+
+          if (
+            [
+              "password",
+              "checkbox",
+              "radio",
+              "file",
+              "hidden",
+              "submit",
+              "button",
+              "reset",
+              "date",
+              "datetime-local",
+              "month",
+              "week",
+              "time",
+              "range",
+              "color",
+            ].includes(type)
+          ) {
+            return;
+          }
+        }
+
+        // Chromium ignoriert autocomplete="off" bei gespeicherten Adressen /
+        // Zugangsdaten teilweise. "new-password" verhindert diese Heuristik
+        // zuverlässig, ohne den Inhalt oder die Bedienung des Feldes zu ändern.
+        field.setAttribute("autocomplete", "new-password");
+        field.setAttribute("data-lpignore", "true");
+        field.setAttribute("data-1p-ignore", "true");
+        field.setAttribute("data-bwignore", "true");
+      });
+    };
+
+    protectTrybunFieldsFromBrowserAutofill();
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+
+          if (node.matches("input, textarea")) {
+            protectTrybunFieldsFromBrowserAutofill(node.parentNode || document);
+            return;
+          }
+
+          protectTrybunFieldsFromBrowserAutofill(node);
+        });
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -17495,6 +17567,7 @@ PRO-EFFEKT`,
                 placeholder="Neues Passwort (mindestens 8 Zeichen)"
                 type="password"
                 autoComplete="new-password"
+                data-trybun-auth="true"
                 className="h-14 w-full rounded-2xl border border-sky-500/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-500"
               />
               <input
@@ -17503,6 +17576,7 @@ PRO-EFFEKT`,
                 placeholder="Passwort wiederholen"
                 type="password"
                 autoComplete="new-password"
+                data-trybun-auth="true"
                 className="h-14 w-full rounded-2xl border border-sky-500/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-500"
               />
               <button
@@ -17546,6 +17620,9 @@ PRO-EFFEKT`,
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="E-Mail-Adresse"
                 type="email"
+                name="trybun-login-email"
+                autoComplete="username"
+                data-trybun-auth="true"
                 className="h-14 w-full rounded-2xl border border-sky-500/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-500"
               />
 
@@ -17554,6 +17631,9 @@ PRO-EFFEKT`,
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Passwort"
                 type="password"
+                name="trybun-login-password"
+                autoComplete="current-password"
+                data-trybun-auth="true"
                 className="h-14 w-full rounded-2xl border border-sky-500/25 bg-[#0b1b2b] px-5 font-semibold text-white outline-none placeholder:text-slate-500 focus:border-sky-500"
               />
 
