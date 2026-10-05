@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.55 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.56 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -16129,6 +16129,82 @@ PRO-EFFEKT`,
     );
   }
 
+  const selectedDeviceCustomer = selectedDeviceView?.customer_id
+    ? customers.find((item) => item.id === selectedDeviceView.customer_id) || null
+    : null;
+
+  const selectedDeviceTickets = selectedDeviceView
+    ? tickets.filter((ticket) => {
+        const sameDevice = String(ticket.device || "").trim() === String(selectedDeviceView.name || "").trim();
+        const customerCompatible =
+          !ticket.customer_id ||
+          !selectedDeviceView.customer_id ||
+          Number(ticket.customer_id) === Number(selectedDeviceView.customer_id);
+        return sameDevice && customerCompatible;
+      })
+    : [];
+
+  const selectedDeviceDocuments = selectedDeviceView
+    ? documents.filter((doc) => doc.device_id === selectedDeviceView.id)
+    : [];
+
+  const selectedDevicePartUsages = selectedDeviceView
+    ? partUsages.filter(
+        (usage) => usage.device_id === selectedDeviceView.id && !usage.is_voided,
+      )
+    : [];
+
+  const selectedDeviceHistoryEntries = selectedDeviceView
+    ? deviceHistory.filter((entry) => entry.device_id === selectedDeviceView.id)
+    : [];
+
+  const selectedDeviceMaintenancePlan = selectedDeviceView
+    ? getMaintenancePlanForDevice(selectedDeviceView.id)
+    : null;
+
+  const selectedDeviceOpenTickets = selectedDeviceTickets.filter(
+    (ticket) => !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || ""),
+  );
+
+  const selectedDeviceCompletedTickets = selectedDeviceTickets.filter((ticket) =>
+    ["Abgeschlossen", "Erledigt"].includes(ticket.status || ""),
+  );
+
+  const selectedDevicePartQuantity = selectedDevicePartUsages.reduce(
+    (sum, usage) => sum + Number(usage.quantity || 0),
+    0,
+  );
+
+  const selectedDeviceNextDue =
+    selectedDeviceMaintenancePlan?.next_due || selectedDeviceView?.next_check || null;
+
+  const selectedDeviceIsOverdue = (() => {
+    if (!selectedDeviceNextDue) return false;
+    const dueDate = new Date(selectedDeviceNextDue);
+    if (Number.isNaN(dueDate.getTime())) return false;
+    dueDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return dueDate.getTime() < today.getTime();
+  })();
+
+  const selectedDevicePassportStatus = selectedDeviceView
+    ? String(selectedDeviceView.status || "").toLowerCase().includes("außer betrieb")
+      ? { label: "Außer Betrieb", className: "bg-red-100 text-red-700" }
+      : selectedDeviceIsOverdue
+        ? { label: "Service überfällig", className: "bg-orange-100 text-orange-700" }
+        : selectedDeviceOpenTickets.length > 0
+          ? { label: "Service aktiv", className: "bg-sky-100 text-sky-700" }
+          : { label: "Betriebsbereit", className: "bg-emerald-100 text-emerald-700" }
+    : { label: "-", className: "bg-slate-100 text-slate-600" };
+
+  const selectedDeviceLastServiceTicket = [...selectedDeviceCompletedTickets]
+    .sort((a, b) => {
+      const aTime = new Date(a.completed_at || a.service_date || a.created_at || 0).getTime();
+      const bTime = new Date(b.completed_at || b.service_date || b.created_at || 0).getTime();
+      return bTime - aTime;
+    })[0] || null;
+
   const standardPageHeaders: Record<string, { eyebrow: string; title: string; description: string }> = {
     Benachrichtigungen: {
       eyebrow: "Kommunikation",
@@ -22308,48 +22384,117 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
             </div>
           )}
           {activePage === "Geräte" && selectedDeviceView && (
-            <div className="mb-6 rounded-[24px] bg-white p-4 shadow-sm">
+            <div className="mb-6 space-y-6">
+              <div className="trybun-page-header border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
+                      Digitaler TRYBUN Gerätepass
+                    </p>
+                    <h2 className="mt-2 break-words text-3xl font-black sm:text-4xl">
+                      {selectedDeviceView.name}
+                    </h2>
+                    <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
+                      {[
+                        selectedDeviceCustomer?.company || selectedDeviceCustomer?.contact_person,
+                        selectedDeviceView.manufacturer || getManufacturerNameById(selectedDeviceView.manufacturer_id),
+                        getCleanModelName(selectedDeviceView.model_id) || selectedDeviceView.model,
+                        selectedDeviceView.serial_number ? `SN ${selectedDeviceView.serial_number}` : null,
+                      ].filter(Boolean).join(" · ") || "Zentrale Lebenslaufakte dieses Serviceobjekts"}
+                    </p>
+                  </div>
+                  <span className={`w-fit shrink-0 rounded-full px-4 py-2 text-sm font-black ${selectedDevicePassportStatus.className}`}>
+                    {selectedDevicePassportStatus.label}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Offene Tickets</p>
+                  <p className="mt-2 text-3xl font-black text-slate-950">{selectedDeviceOpenTickets.length}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{selectedDeviceCompletedTickets.length} abgeschlossen</p>
+                </div>
+                <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Dokumente</p>
+                  <p className="mt-2 text-3xl font-black text-slate-950">{selectedDeviceDocuments.length}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">direkt zugeordnet</p>
+                </div>
+                <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Ersatzteile</p>
+                  <p className="mt-2 text-3xl font-black text-slate-950">{selectedDevicePartQuantity}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">aktive Verwendungen</p>
+                </div>
+                <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Historie</p>
+                  <p className="mt-2 text-3xl font-black text-slate-950">{selectedDeviceHistoryEntries.length}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">Lebenslauf-Einträge</p>
+                </div>
+              </div>
+
+              <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <p className="text-sm font-bold text-sky-500">
-                    Geräte-Detailansicht
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Identität & Zustand</p>
+                      <h3 className="mt-1 text-2xl font-black text-slate-950">Serviceobjekt</h3>
+                    </div>
+                    <p className="text-sm font-bold text-slate-500">Pass-ID #{selectedDeviceView.id}</p>
+                  </div>
 
-                  <h3 className="mt-2 text-4xl font-black">
-                    {selectedDeviceView.name}
-                  </h3>
-
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">Seriennummer</p>
-
-                      <p className="mt-1 font-bold">
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Kunde</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
+                        {selectedDeviceCustomer?.company || selectedDeviceCustomer?.contact_person || "Nicht zugeordnet"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Hersteller</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
+                        {selectedDeviceView.manufacturer || getManufacturerNameById(selectedDeviceView.manufacturer_id) || "Nicht hinterlegt"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Modell</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
+                        {getCleanModelName(selectedDeviceView.model_id) || selectedDeviceView.model || "Nicht hinterlegt"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Seriennummer</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
                         {selectedDeviceView.serial_number || "Nicht vorhanden"}
                       </p>
                     </div>
-
-                    <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">Standort</p>
-
-                      <p className="mt-1 font-bold">
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Standort</p>
+                      <p className="mt-1 break-words font-black text-slate-900">
                         {selectedDeviceView.location || "Nicht vorhanden"}
                       </p>
                     </div>
-
-                    <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">Nächste Prüfung</p>
-
-                      <p className="mt-1 font-bold">
-                        {selectedDeviceView.next_check || "Nicht geplant"}
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Nächster Service / Prüfung</p>
+                      <p className={`mt-1 font-black ${selectedDeviceIsOverdue ? "text-orange-700" : "text-slate-900"}`}>
+                        {selectedDeviceNextDue ? formatDate(selectedDeviceNextDue) : "Nicht geplant"}
                       </p>
                     </div>
-
-                    <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">Status</p>
-
-                      <p className="mt-1 font-bold">
-                        {selectedDeviceView.status || "Aktiv"}
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Gerätestatus</p>
+                      <p className="mt-1 font-black text-slate-900">{selectedDeviceView.status || "Aktiv"}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Letzter Serviceabschluss</p>
+                      <p className="mt-1 font-black text-slate-900">
+                        {selectedDeviceLastServiceTicket
+                          ? formatDate(selectedDeviceLastServiceTicket.completed_at || selectedDeviceLastServiceTicket.service_date || selectedDeviceLastServiceTicket.created_at)
+                          : "Noch kein Abschluss"}
                       </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-bold text-slate-500">Angelegt</p>
+                      <p className="mt-1 font-black text-slate-900">{formatDate(selectedDeviceView.created_at)}</p>
                     </div>
                   </div>
 
@@ -22633,19 +22778,51 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
               </div>
 
               <div className="mt-10">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">Lebenslauf</p>
+                    <h4 className="mt-1 text-xl font-black">Verwendete Ersatzteile</h4>
+                  </div>
+                  <p className="text-sm font-bold text-slate-500">{selectedDevicePartQuantity} Einheiten gesamt</p>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {selectedDevicePartUsages.length === 0 ? (
+                    <div className="rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                      Noch keine Ersatzteilverwendung für dieses Serviceobjekt dokumentiert.
+                    </div>
+                  ) : (
+                    selectedDevicePartUsages
+                      .slice()
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .slice(0, 12)
+                      .map((usage) => (
+                        <div key={usage.id} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-slate-900">{getPartNameById(usage.part_id)}</p>
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {formatDate(usage.created_at)}{usage.note ? ` · ${usage.note}` : ""}
+                            </p>
+                          </div>
+                          <span className="w-fit shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-700">
+                            {usage.quantity}×
+                          </span>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-10">
                 <h4 className="text-xl font-black">Zugeordnete Dokumente</h4>
 
                 <div className="mt-4 space-y-3">
-                  {documents.filter(
-                    (doc) => doc.device_id === selectedDeviceView.id,
-                  ).length === 0 ? (
+                  {selectedDeviceDocuments.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Keine Dokumente vorhanden.
                     </div>
                   ) : (
-                    documents
-                      .filter((doc) => doc.device_id === selectedDeviceView.id)
-                      .map((doc) => (
+                    selectedDeviceDocuments.map((doc) => (
                         <div
                           key={doc.id}
                           className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -22674,18 +22851,12 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 <h4 className="text-xl font-black">Tickets zu diesem Gerät</h4>
 
                 <div className="mt-4 space-y-3">
-                  {tickets.filter(
-                    (ticket) => ticket.device === selectedDeviceView.name,
-                  ).length === 0 ? (
+                  {selectedDeviceTickets.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Keine Tickets für dieses Gerät vorhanden.
                     </div>
                   ) : (
-                    tickets
-                      .filter(
-                        (ticket) => ticket.device === selectedDeviceView.name,
-                      )
-                      .map((ticket) => (
+                    selectedDeviceTickets.map((ticket) => (
                         <div
                           key={ticket.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -22752,18 +22923,12 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 <h4 className="text-xl font-black">Gerätehistorie</h4>
 
                 <div className="mt-4 space-y-3">
-                  {deviceHistory.filter(
-                    (entry) => entry.device_id === selectedDeviceView.id,
-                  ).length === 0 ? (
+                  {selectedDeviceHistoryEntries.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Noch keine Historie vorhanden.
                     </div>
                   ) : (
-                    deviceHistory
-                      .filter(
-                        (entry) => entry.device_id === selectedDeviceView.id,
-                      )
-                      .map((entry) => (
+                    selectedDeviceHistoryEntries.map((entry) => (
                         <div
                           key={entry.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -22791,6 +22956,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                       ))
                   )}
                 </div>
+              </div>
               </div>
             </div>
           )}
