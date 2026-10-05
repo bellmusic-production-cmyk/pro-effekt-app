@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.89 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.90 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -342,6 +342,7 @@ type InventoryMovement = {
 
 type InvoiceItem = {
   id: number;
+  company_id?: number | null;
   type: string;
   number: string;
   ticket_id?: number | null;
@@ -352,7 +353,30 @@ type InvoiceItem = {
   amount_gross: number;
   status: string;
   note?: string | null;
+  source_type?: string | null;
+  source_number?: string | null;
+  source_document_id?: number | null;
+  source_invoice_id?: number | null;
+  due_date?: string | null;
+  paid_at?: string | null;
   created_at: string;
+};
+
+type AccountingRecord = {
+  key: string;
+  kind: "Rechnung" | "Angebot" | "Auftrag" | "Lieferschein" | "Vertrag";
+  number: string;
+  title: string;
+  customerId: number | null;
+  customerName: string;
+  status: string;
+  date: string;
+  amountNet?: number | null;
+  amountGross?: number | null;
+  taxRate?: number | null;
+  sourceId: number;
+  source: "invoice" | "document" | "contract";
+  ticketId?: number | null;
 };
 
 type NotificationItem = {
@@ -389,6 +413,7 @@ type TicketChatMessage = {
 
 type ServiceContract = {
   id: number;
+  company_id?: number | null;
   customer_id?: number | null;
   title: string;
   contract_number: string;
@@ -683,6 +708,7 @@ const navItems = [
   "Gerätebestand",
   "Dokumente",
   "Auftrag / Lieferschein erstellen",
+  "Buchhaltung",
   "Rechnungen",
   "Verträge",
   "Benachrichtigungen",
@@ -1593,6 +1619,8 @@ export default function Home() {
 
   const [invoiceType, setInvoiceType] = useState("Rechnung");
   const [invoiceTicketId, setInvoiceTicketId] = useState("");
+  const [invoiceCustomerId, setInvoiceCustomerId] = useState("");
+  const [invoiceCustomerSearch, setInvoiceCustomerSearch] = useState("");
   const [invoiceTitle, setInvoiceTitle] = useState("");
   const [invoiceAmountNet, setInvoiceAmountNet] = useState("");
   const [invoiceTaxRate, setInvoiceTaxRate] = useState("19");
@@ -1603,6 +1631,20 @@ export default function Home() {
   const [invoiceCustomerSignature, setInvoiceCustomerSignature] = useState("");
   const [invoiceStockLines, setInvoiceStockLines] = useState<StockDocumentLine[]>([]);
   const [invoiceDirectStockIssue, setInvoiceDirectStockIssue] = useState(false);
+  const [invoiceDueDate, setInvoiceDueDate] = useState("");
+  const [invoiceSourceType, setInvoiceSourceType] = useState("");
+  const [invoiceSourceNumber, setInvoiceSourceNumber] = useState("");
+  const [invoiceSourceDocumentId, setInvoiceSourceDocumentId] = useState<number | null>(null);
+  const [invoiceSourceInvoiceId, setInvoiceSourceInvoiceId] = useState<number | null>(null);
+
+  const [accountingSearch, setAccountingSearch] = useState("");
+  const [accountingTypeFilter, setAccountingTypeFilter] = useState("Alle");
+  const [accountingStatusFilter, setAccountingStatusFilter] = useState("Alle");
+  const [accountingPeriod, setAccountingPeriod] = useState<"Alle" | "Woche" | "Monat" | "Jahr">("Monat");
+  const [calculatorAmount, setCalculatorAmount] = useState("");
+  const [calculatorTaxRate, setCalculatorTaxRate] = useState("19");
+  const [calculatorMode, setCalculatorMode] = useState<"netto" | "brutto">("netto");
+  const [calculatorPercent, setCalculatorPercent] = useState("");
 
   const [calendarDate, setCalendarDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -12458,6 +12500,8 @@ ${tenantBrandName}`,
   function resetInvoiceForm() {
     setInvoiceType("Rechnung");
     setInvoiceTicketId("");
+    setInvoiceCustomerId("");
+    setInvoiceCustomerSearch("");
     setInvoiceTitle("");
     setInvoiceAmountNet("");
     setInvoiceTaxRate("19");
@@ -12468,6 +12512,11 @@ ${tenantBrandName}`,
     setInvoiceCustomerSignature("");
     setInvoiceStockLines([]);
     setInvoiceDirectStockIssue(false);
+    setInvoiceDueDate("");
+    setInvoiceSourceType("");
+    setInvoiceSourceNumber("");
+    setInvoiceSourceDocumentId(null);
+    setInvoiceSourceInvoiceId(null);
   }
 
   function getInvoiceCustomerName(item: InvoiceItem) {
@@ -12479,6 +12528,423 @@ ${tenantBrandName}`,
     return ticket?.customer || "Nicht zugeordnet";
   }
 
+
+  const invoiceCustomerResults = (() => {
+    const search = invoiceCustomerSearch.trim();
+
+    const base = customers
+      .filter(
+        (item) =>
+          !companyData?.id ||
+          item.company_id == null ||
+          Number(item.company_id) === Number(companyData.id),
+      );
+
+    if (!search) {
+      return base
+        .slice()
+        .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+        .slice(0, 12);
+    }
+
+    return base
+      .filter((item) =>
+        matchesTrybunPrefixSearch(
+          [
+            item.company,
+            getCustomerDisplayName(item),
+            item.customer_number,
+            item.contact_person,
+            item.city,
+            item.email,
+            item.phone,
+          ],
+          search,
+        ),
+      )
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.company, getCustomerDisplayName(a), a.contact_person, a.first_name, a.last_name],
+              [a.customer_number, a.supplier_number],
+              [a.city, a.postal_code],
+              [a.email, a.phone],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.company, getCustomerDisplayName(b), b.contact_person, b.first_name, b.last_name],
+              [b.customer_number, b.supplier_number],
+              [b.city, b.postal_code],
+              [b.email, b.phone],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de");
+      })
+      .slice(0, 20);
+  })();
+
+  function getCommercialDocumentNumber(documentItem: DocumentItem) {
+    const match = String(documentItem.file_name || "").match(
+      /^(?:Auftrag|Lieferschein)-(.+?)\.pdf$/i,
+    );
+    return match?.[1] || String(documentItem.file_name || "").replace(/\.pdf$/i, "");
+  }
+
+  function isAccountingDateInPeriod(dateValue: string) {
+    if (accountingPeriod === "Alle") return true;
+
+    const value = new Date(dateValue);
+    if (Number.isNaN(value.getTime())) return false;
+
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+
+    if (accountingPeriod === "Woche") {
+      const day = start.getDay() || 7;
+      start.setDate(start.getDate() - day + 1);
+    } else if (accountingPeriod === "Monat") {
+      start.setDate(1);
+    } else if (accountingPeriod === "Jahr") {
+      start.setMonth(0, 1);
+    }
+
+    return value.getTime() >= start.getTime() && value.getTime() <= now.getTime();
+  }
+
+  function invoiceBelongsToCurrentCompany(item: InvoiceItem) {
+    if (!companyData?.id) return false;
+
+    if (item.company_id != null) {
+      return Number(item.company_id) === Number(companyData.id);
+    }
+
+    if (item.customer_id) {
+      const customer = customers.find((entry) => entry.id === item.customer_id);
+      if (customer?.company_id != null) {
+        return Number(customer.company_id) === Number(companyData.id);
+      }
+    }
+
+    if (item.ticket_id) {
+      const ticket = tickets.find((entry) => entry.id === item.ticket_id);
+      if (ticket?.company_id != null) {
+        return Number(ticket.company_id) === Number(companyData.id);
+      }
+    }
+
+    // Altbestand: RLS ist weiterhin die harte DB-Grenze.
+    return true;
+  }
+
+  const accountingInvoices = invoices.filter(invoiceBelongsToCurrentCompany);
+
+  const accountingCommercialDocuments = documents.filter(
+    (item) =>
+      ["Aufträge", "Lieferscheine"].includes(item.category) &&
+      (!companyData?.id ||
+        (item.company_id != null &&
+          Number(item.company_id) === Number(companyData.id))),
+  );
+
+  const accountingContracts = contracts.filter((contract) => {
+    if (!companyData?.id) return false;
+    if (contract.company_id != null) {
+      return Number(contract.company_id) === Number(companyData.id);
+    }
+
+    const customer = contract.customer_id
+      ? customers.find((item) => item.id === contract.customer_id)
+      : null;
+
+    return customer?.company_id == null
+      ? true
+      : Number(customer.company_id) === Number(companyData.id);
+  });
+
+  const accountingRecords: AccountingRecord[] = [
+    ...accountingInvoices.map((item) => ({
+      key: `invoice-${item.id}`,
+      kind: (item.type === "Angebot" ? "Angebot" : "Rechnung") as "Angebot" | "Rechnung",
+      number: item.number,
+      title: item.title,
+      customerId: item.customer_id || null,
+      customerName: getInvoiceCustomerName(item),
+      status: item.status || "Entwurf",
+      date: item.created_at,
+      amountNet: Number(item.amount_net || 0),
+      amountGross: Number(item.amount_gross || 0),
+      taxRate: Number(item.tax_rate || 0),
+      sourceId: item.id,
+      source: "invoice" as const,
+      ticketId: item.ticket_id || null,
+    })),
+    ...accountingCommercialDocuments.map((item) => {
+      const kind = item.category === "Lieferscheine" ? "Lieferschein" : "Auftrag";
+      const sourceNumber = getCommercialDocumentNumber(item);
+      const movements = inventoryMovements.filter(
+        (movement) =>
+          !movement.is_voided &&
+          movement.source_type === kind &&
+          movement.source_number === sourceNumber &&
+          (!companyData?.id || Number(movement.company_id) === Number(companyData.id)),
+      );
+      const materialNet = movements.reduce(
+        (sum, movement) =>
+          sum +
+          Number(movement.quantity || 0) * Number(movement.unit_price || 0),
+        0,
+      );
+
+      return {
+        key: `document-${item.id}`,
+        kind: kind as "Auftrag" | "Lieferschein",
+        number: sourceNumber,
+        title: item.file_name,
+        customerId: item.customer_id || null,
+        customerName: item.customer_id ? getCustomerNameById(item.customer_id) : "Nicht zugeordnet",
+        status: kind === "Lieferschein" ? "Geliefert" : "Erstellt",
+        date: item.created_at,
+        amountNet: materialNet > 0 ? materialNet : null,
+        amountGross: null,
+        taxRate: null,
+        sourceId: item.id,
+        source: "document" as const,
+        ticketId: item.ticket_id || null,
+      };
+    }),
+    ...accountingContracts.map((contract) => ({
+      key: `contract-${contract.id}`,
+      kind: "Vertrag" as const,
+      number: contract.contract_number,
+      title: contract.title,
+      customerId: contract.customer_id || null,
+      customerName: contract.customer_id ? getCustomerNameById(contract.customer_id) : "Nicht zugeordnet",
+      status: contract.status || "Aktiv",
+      date: contract.created_at,
+      amountNet: contract.monthly_amount != null ? Number(contract.monthly_amount) : null,
+      amountGross: null,
+      taxRate: null,
+      sourceId: contract.id,
+      source: "contract" as const,
+      ticketId: null,
+    })),
+  ];
+
+  const filteredAccountingRecords = accountingRecords
+    .filter((item) => accountingTypeFilter === "Alle" || item.kind === accountingTypeFilter)
+    .filter((item) => accountingStatusFilter === "Alle" || item.status === accountingStatusFilter)
+    .filter((item) => isAccountingDateInPeriod(item.date))
+    .filter((item) => {
+      if (!accountingSearch.trim()) return true;
+      return matchesTrybunPrefixSearch(
+        [item.number, item.kind, item.title, item.customerName, item.status],
+        accountingSearch,
+      );
+    })
+    .sort((a, b) => {
+      if (accountingSearch.trim()) {
+        const rankDifference =
+          getTrybunSearchRank(
+            [[a.number, a.title], [a.customerName], [a.kind], [a.status]],
+            accountingSearch,
+          ) -
+          getTrybunSearchRank(
+            [[b.number, b.title], [b.customerName], [b.kind], [b.status]],
+            accountingSearch,
+          );
+        if (rankDifference !== 0) return rankDifference;
+      }
+
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+  const accountingRevenueInvoices = accountingInvoices.filter(
+    (item) =>
+      item.type === "Rechnung" &&
+      item.status !== "Storniert" &&
+      isAccountingDateInPeriod(item.created_at),
+  );
+
+  const accountingNetRevenue = accountingRevenueInvoices.reduce(
+    (sum, item) => sum + Number(item.amount_net || 0),
+    0,
+  );
+  const accountingGrossRevenue = accountingRevenueInvoices.reduce(
+    (sum, item) => sum + Number(item.amount_gross || 0),
+    0,
+  );
+  const accountingTaxRevenue = accountingGrossRevenue - accountingNetRevenue;
+  const accountingOpenAmount = accountingRevenueInvoices
+    .filter((item) => !["Bezahlt", "Storniert"].includes(item.status))
+    .reduce((sum, item) => sum + Number(item.amount_gross || 0), 0);
+
+  const accountingConversionCandidates = [
+    ...accountingInvoices
+      .filter(
+        (item) =>
+          item.type === "Angebot" &&
+          item.status !== "Storniert" &&
+          !accountingInvoices.some(
+            (invoice) =>
+              invoice.type === "Rechnung" &&
+              Number(invoice.source_invoice_id) === Number(item.id),
+          ),
+      )
+      .map((item) => ({
+        key: `offer-${item.id}`,
+        label: `${item.number} · ${getInvoiceCustomerName(item)}`,
+        kind: "Angebot" as const,
+        sourceId: item.id,
+      })),
+    ...accountingCommercialDocuments
+      .filter(
+        (item) =>
+          !accountingInvoices.some(
+            (invoice) =>
+              invoice.type === "Rechnung" &&
+              Number(invoice.source_document_id) === Number(item.id),
+          ),
+      )
+      .map((item) => ({
+        key: `document-${item.id}`,
+        label: `${item.category === "Lieferscheine" ? "Lieferschein" : "Auftrag"} ${getCommercialDocumentNumber(item)} · ${
+          item.customer_id ? getCustomerNameById(item.customer_id) : "Nicht zugeordnet"
+        }`,
+        kind: (item.category === "Lieferscheine" ? "Lieferschein" : "Auftrag") as
+          | "Lieferschein"
+          | "Auftrag",
+        sourceId: item.id,
+      })),
+  ];
+
+  function openAdminInvoiceWorkspace() {
+    setActivePage("Rechnungen");
+    if (typeof window !== "undefined" && session?.user?.id) {
+      window.localStorage.setItem(
+        `trybun-active-page-${session.user.id}`,
+        "Rechnungen",
+      );
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("invoice-create")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
+
+  function prepareInvoiceFromAccountingSource(
+    kind: "Angebot" | "Auftrag" | "Lieferschein",
+    sourceId: number,
+  ) {
+    resetInvoiceForm();
+    setInvoiceType("Rechnung");
+    setInvoiceStatus("Entwurf");
+
+    if (kind === "Angebot") {
+      const offer = accountingInvoices.find((item) => item.id === sourceId);
+      if (!offer) return;
+
+      const customer = offer.customer_id
+        ? customers.find((item) => item.id === offer.customer_id)
+        : null;
+
+      setInvoiceCustomerId(offer.customer_id ? String(offer.customer_id) : "");
+      setInvoiceCustomerSearch(customer ? getCustomerLabel(customer) : "");
+      setInvoiceTicketId(offer.ticket_id ? String(offer.ticket_id) : "");
+      setInvoiceTitle(offer.title || `Rechnung aus Angebot ${offer.number}`);
+      setInvoiceAmountNet(String(Number(offer.amount_net || 0).toFixed(2)));
+      setInvoiceTaxRate(String(Number(offer.tax_rate || 19)));
+      setInvoicePriceMode("netto");
+      setInvoiceNote(
+        `Übernommen aus Angebot ${offer.number}.${offer.note ? `\n${offer.note}` : ""}`,
+      );
+      setInvoiceSourceType("Angebot");
+      setInvoiceSourceNumber(offer.number);
+      setInvoiceSourceInvoiceId(offer.id);
+      setInvoiceSourceDocumentId(null);
+      openAdminInvoiceWorkspace();
+      return;
+    }
+
+    const documentItem = accountingCommercialDocuments.find(
+      (item) => item.id === sourceId,
+    );
+    if (!documentItem) return;
+
+    const sourceNumber = getCommercialDocumentNumber(documentItem);
+    const customer = documentItem.customer_id
+      ? customers.find((item) => item.id === documentItem.customer_id)
+      : null;
+    const sourceMovements = inventoryMovements.filter(
+      (movement) =>
+        !movement.is_voided &&
+        movement.source_type === kind &&
+        movement.source_number === sourceNumber &&
+        (!companyData?.id || Number(movement.company_id) === Number(companyData.id)),
+    );
+
+    const stockLines: StockDocumentLine[] = sourceMovements
+      .map((movement) => {
+        const itemId =
+          movement.item_type === "spare_part"
+            ? movement.spare_part_id
+            : movement.device_model_id;
+
+        if (!itemId) return null;
+
+        return {
+          key: `accounting-${kind}-${movement.id}`,
+          itemType: movement.item_type,
+          itemId: String(itemId),
+          quantity: String(Math.abs(Number(movement.quantity || 0)) || 1),
+          unitPrice: movement.unit_price != null ? String(Number(movement.unit_price)) : "",
+          description: movement.description || "",
+        } satisfies StockDocumentLine;
+      })
+      .filter(Boolean) as StockDocumentLine[];
+
+    setInvoiceCustomerId(documentItem.customer_id ? String(documentItem.customer_id) : "");
+    setInvoiceCustomerSearch(customer ? getCustomerLabel(customer) : "");
+    setInvoiceTicketId(documentItem.ticket_id ? String(documentItem.ticket_id) : "");
+    setInvoiceTitle(`Abrechnung aus ${kind} ${sourceNumber}`);
+    setInvoicePriceMode(getDefaultBusinessPriceMode(customer));
+    setInvoiceTaxRate("19");
+    setInvoiceStockLines(stockLines);
+    setInvoiceDirectStockIssue(false);
+    setInvoiceNote(
+      `${kind} ${sourceNumber} als Abrechnungsgrundlage übernommen. ${
+        kind === "Lieferschein"
+          ? "Der Lagerabgang wurde bereits über den Lieferschein gebucht und wird mit der Rechnung nicht erneut gebucht."
+          : "Reservierte Positionen bitte vor Rechnungsstellung fachlich prüfen."
+      }`,
+    );
+    setInvoiceSourceType(kind);
+    setInvoiceSourceNumber(sourceNumber);
+    setInvoiceSourceDocumentId(documentItem.id);
+    setInvoiceSourceInvoiceId(null);
+    openAdminInvoiceWorkspace();
+  }
+
+  const calculatorEntered = Number(calculatorAmount.replace(",", ".")) || 0;
+  const calculatorTax = Math.max(0, Number(calculatorTaxRate.replace(",", ".")) || 0);
+  const calculatorPercentValue = Number(calculatorPercent.replace(",", ".")) || 0;
+  const calculatorNet =
+    calculatorMode === "netto"
+      ? calculatorEntered
+      : calculatorEntered / (1 + calculatorTax / 100 || 1);
+  const calculatorGross =
+    calculatorMode === "brutto"
+      ? calculatorEntered
+      : calculatorEntered * (1 + calculatorTax / 100);
+  const calculatorVat = calculatorGross - calculatorNet;
+  const calculatorPercentAmount = calculatorEntered * (calculatorPercentValue / 100);
 
   function getAbnahmeDeviceCategoryLabel(item?: Device | null) {
     if (!item) return "";
@@ -14479,6 +14945,12 @@ ${tenantBrandName}`,
 
     setInvoiceType("Rechnung");
     setInvoiceTicketId(String(ticket.id));
+    setInvoiceCustomerId(relatedCustomer?.id ? String(relatedCustomer.id) : "");
+    setInvoiceCustomerSearch(relatedCustomer ? getCustomerLabel(relatedCustomer) : "");
+    setInvoiceSourceType("Serviceeinsatz");
+    setInvoiceSourceNumber(ticket.ticket_number || "");
+    setInvoiceSourceDocumentId(null);
+    setInvoiceSourceInvoiceId(null);
     setInvoiceTitle(
       `${ticket.issue || "Serviceeinsatz"}${ticket.device ? ` · ${ticket.device}` : ""}`,
     );
@@ -14520,6 +14992,12 @@ ${tenantBrandName}`,
       return;
     }
 
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     if (!invoiceTitle.trim()) {
       alert("Bitte einen Titel eingeben.");
       return;
@@ -14557,18 +15035,55 @@ ${tenantBrandName}`,
     const selectedTicket = invoiceTicketId
       ? tickets.find((ticket) => ticket.id === Number(invoiceTicketId))
       : null;
+    const selectedCustomer = invoiceCustomerId
+      ? customers.find((customer) => customer.id === Number(invoiceCustomerId))
+      : null;
+
+    if (!selectedCustomer && !selectedTicket?.customer_id) {
+      alert("Bitte einen Kunden auswählen.");
+      return;
+    }
+
+    if (
+      selectedTicket?.customer_id &&
+      selectedCustomer &&
+      Number(selectedTicket.customer_id) !== Number(selectedCustomer.id)
+    ) {
+      alert("Das ausgewählte Ticket gehört nicht zum ausgewählten Kunden.");
+      return;
+    }
+
+    const resolvedCustomerId = selectedTicket?.customer_id || selectedCustomer?.id || null;
+    const resolvedCustomer = resolvedCustomerId
+      ? customers.find((item) => item.id === Number(resolvedCustomerId))
+      : null;
+
+    if (
+      resolvedCustomer?.company_id != null &&
+      Number(resolvedCustomer.company_id) !== Number(currentCompany.id)
+    ) {
+      alert("Der ausgewählte Kunde gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
 
     const payload = {
+      company_id: currentCompany.id,
       type: invoiceType,
       number: `${invoiceType === "Angebot" ? "A" : "R"}-${Date.now().toString().slice(-6)}`,
       ticket_id: selectedTicket?.id || null,
-      customer_id: selectedTicket?.customer_id || null,
+      customer_id: resolvedCustomerId,
       title: invoiceTitle.trim(),
       amount_net: net,
       tax_rate: tax,
       amount_gross: gross,
       status: invoiceStatus,
       note: invoiceNote.trim() || null,
+      source_type: invoiceSourceType || null,
+      source_number: invoiceSourceNumber || null,
+      source_document_id: invoiceSourceDocumentId,
+      source_invoice_id: invoiceSourceInvoiceId,
+      due_date: invoiceType === "Rechnung" && invoiceDueDate ? invoiceDueDate : null,
+      paid_at: invoiceStatus === "Bezahlt" ? new Date().toISOString() : null,
     };
 
     const { data, error } = await supabase
@@ -14628,10 +15143,26 @@ ${tenantBrandName}`,
   }
 
   async function updateInvoiceStatus(invoiceId: number, nextStatus: string) {
-    const { error } = await supabase
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    const currentInvoice = invoices.find((item) => item.id === invoiceId) || null;
+    let updateQuery = supabase
       .from("invoices")
-      .update({ status: nextStatus })
+      .update({
+        status: nextStatus,
+        paid_at: nextStatus === "Bezahlt" ? new Date().toISOString() : null,
+      })
       .eq("id", invoiceId);
+
+    if (currentInvoice?.company_id != null) {
+      updateQuery = updateQuery.eq("company_id", currentCompany.id);
+    }
+
+    const { error } = await updateQuery;
 
     if (error) {
       alert(`Status konnte nicht geändert werden: ${error.message}`);
@@ -14640,7 +15171,13 @@ ${tenantBrandName}`,
 
     setInvoices((prev) =>
       prev.map((item) =>
-        item.id === invoiceId ? { ...item, status: nextStatus } : item,
+        item.id === invoiceId
+          ? {
+              ...item,
+              status: nextStatus,
+              paid_at: nextStatus === "Bezahlt" ? new Date().toISOString() : null,
+            }
+          : item,
       ),
     );
   }
@@ -14687,10 +15224,22 @@ ${tenantBrandName}`,
       }
     }
 
-    const { error } = await supabase
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    let deleteQuery = supabase
       .from("invoices")
       .delete()
       .eq("id", invoiceId);
+
+    if (invoiceItem.company_id != null) {
+      deleteQuery = deleteQuery.eq("company_id", currentCompany.id);
+    }
+
+    const { error } = await deleteQuery;
 
     if (error) {
       alert(
@@ -17272,8 +17821,32 @@ ${tenantBrandName}`,
       return invoices.filter((item) => item.customer_id === userProfile?.customer_id);
     }
 
+    if (isAdmin && companyData?.id) {
+      return invoices.filter((item) => {
+        if (item.company_id != null) {
+          return Number(item.company_id) === Number(companyData.id);
+        }
+
+        if (item.customer_id) {
+          const customer = customers.find((entry) => entry.id === item.customer_id);
+          if (customer?.company_id != null) {
+            return Number(customer.company_id) === Number(companyData.id);
+          }
+        }
+
+        if (item.ticket_id) {
+          const ticket = tickets.find((entry) => entry.id === item.ticket_id);
+          if (ticket?.company_id != null) {
+            return Number(ticket.company_id) === Number(companyData.id);
+          }
+        }
+
+        return true;
+      });
+    }
+
     return invoices;
-  }, [invoices, isCustomer, userProfile]);
+  }, [invoices, isCustomer, isAdmin, userProfile, companyData, customers, tickets]);
 
   const revenueGuardItems = useMemo(() => {
     if (!isAdmin) return [];
@@ -17698,7 +18271,18 @@ ${tenantBrandName}`,
     {
       title: "Dokumente",
       icon: "",
-      items: ["Dokumente", "Abnahmeprotokoll", "Auftrag / Lieferschein erstellen", "Verträge", "Rechnungen"],
+      items: [
+        "Dokumente",
+        "Abnahmeprotokoll",
+        "Auftrag / Lieferschein erstellen",
+        "Verträge",
+        ...(!isAdmin ? ["Rechnungen"] : []),
+      ],
+    },
+    {
+      title: "Buchhaltung",
+      icon: "",
+      items: ["Buchhaltung"],
     },
     {
       title: "Kommunikation",
@@ -17731,6 +18315,7 @@ ${tenantBrandName}`,
       Gerätebestand: "Gerätebestand",
       Dokumente: "Dokumente",
       "Auftrag / Lieferschein erstellen": "Auftrag & Lieferschein erstellen",
+      Buchhaltung: "Buchhaltung",
       Rechnungen: "Rechnungen",
       Verträge: "Verträge",
       Benachrichtigungen: "Kommunikation",
@@ -19836,6 +20421,11 @@ ${tenantBrandName}`,
       eyebrow: "Kommunikation",
       title: "Kommunikation",
       description: "Nachrichten, Versandstatus und Kundenkommunikation zentral im Blick behalten.",
+    },
+    Buchhaltung: {
+      eyebrow: "Management",
+      title: "Buchhaltung",
+      description: "Rechnungen, Angebote, Aufträge, Lieferscheine und Verträge zentral steuern und abrechnen.",
     },
     Rechnungen: {
       eyebrow: "Dokumente",
@@ -23392,6 +23982,452 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
             </>
           )}
 
+          {activePage === "Buchhaltung" && isAdmin && (
+            <div className="space-y-6">
+              <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+                <div className="border-b border-slate-200 bg-slate-50/80 p-4 sm:p-5 md:p-6">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">
+                        TRYBUN Finance Hub
+                      </p>
+                      <h3 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-slate-950 sm:text-3xl">
+                        Kaufmännische Zentrale
+                      </h3>
+                      <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-600">
+                        Rechnungen, Angebote, Aufträge, Lieferscheine und Verträge der aktuell angemeldeten Firma zentral finden,
+                        prüfen und in die nächste Belegstufe überführen.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetInvoiceForm();
+                          setInvoiceType("Rechnung");
+                          openAdminInvoiceWorkspace();
+                        }}
+                        className="min-h-[44px] rounded-[8px] bg-slate-950 px-4 py-2.5 text-sm font-bold text-white"
+                      >
+                        + Rechnung
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          resetInvoiceForm();
+                          setInvoiceType("Angebot");
+                          openAdminInvoiceWorkspace();
+                        }}
+                        className="min-h-[44px] rounded-[8px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800"
+                      >
+                        + Angebot
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="bg-white p-4 sm:p-5">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                      Netto-Umsatz
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                      {accountingNetRevenue.toLocaleString("de-DE", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} €
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">{accountingPeriod}</p>
+                  </div>
+                  <div className="bg-white p-4 sm:p-5">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-700">
+                      Brutto-Umsatz
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                      {accountingGrossRevenue.toLocaleString("de-DE", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} €
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      inkl. {accountingTaxRevenue.toLocaleString("de-DE", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} € MwSt.
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 sm:p-5">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
+                      Offene Forderungen
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                      {accountingOpenAmount.toLocaleString("de-DE", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} €
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      Rechnungen nicht bezahlt
+                    </p>
+                  </div>
+                  <div className="bg-white p-4 sm:p-5">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-indigo-700">
+                      Umwandlung möglich
+                    </p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                      {accountingConversionCandidates.length}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-slate-500">
+                      Angebote / Aufträge / Lieferscheine
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                      Belegsuche
+                    </p>
+                    <h3 className="mt-1 text-xl font-bold text-slate-950">Geschäftsvorgänge durchsuchen</h3>
+                  </div>
+                  <span className="w-fit rounded-[8px] bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600">
+                    {filteredAccountingRecords.length} Treffer
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_160px]">
+                  <input
+                    type="search"
+                    value={accountingSearch}
+                    onChange={(e) => setAccountingSearch(e.target.value)}
+                    placeholder="Nummer, Kunde, Belegart oder Bezeichnung suchen..."
+                    className="min-h-[48px] rounded-[9px] border border-slate-300 px-4 font-semibold outline-none focus:border-sky-500"
+                  />
+                  <select
+                    value={accountingTypeFilter}
+                    onChange={(e) => setAccountingTypeFilter(e.target.value)}
+                    className="min-h-[48px] rounded-[9px] border border-slate-300 bg-white px-3 text-sm font-bold"
+                  >
+                    <option>Alle</option>
+                    <option>Rechnung</option>
+                    <option>Angebot</option>
+                    <option>Auftrag</option>
+                    <option>Lieferschein</option>
+                    <option>Vertrag</option>
+                  </select>
+                  <select
+                    value={accountingStatusFilter}
+                    onChange={(e) => setAccountingStatusFilter(e.target.value)}
+                    className="min-h-[48px] rounded-[9px] border border-slate-300 bg-white px-3 text-sm font-bold"
+                  >
+                    <option>Alle</option>
+                    <option>Entwurf</option>
+                    <option>Offen</option>
+                    <option>Gesendet</option>
+                    <option>Bezahlt</option>
+                    <option>Storniert</option>
+                    <option>Erstellt</option>
+                    <option>Geliefert</option>
+                    <option>Aktiv</option>
+                  </select>
+                  <select
+                    value={accountingPeriod}
+                    onChange={(e) =>
+                      setAccountingPeriod(e.target.value as "Alle" | "Woche" | "Monat" | "Jahr")
+                    }
+                    className="min-h-[48px] rounded-[9px] border border-slate-300 bg-white px-3 text-sm font-bold"
+                  >
+                    <option value="Woche">Diese Woche</option>
+                    <option value="Monat">Dieser Monat</option>
+                    <option value="Jahr">Dieses Jahr</option>
+                    <option value="Alle">Alle Zeiträume</option>
+                  </select>
+                </div>
+
+                <div className="mt-5 space-y-2">
+                  {filteredAccountingRecords.length === 0 ? (
+                    <div className="rounded-[9px] border border-slate-200 bg-slate-50 p-4 text-sm font-medium text-slate-500">
+                      Für diese Auswahl wurden keine Geschäftsvorgänge gefunden.
+                    </div>
+                  ) : (
+                    filteredAccountingRecords.slice(0, 80).map((record) => (
+                      <div
+                        key={record.key}
+                        className="grid gap-3 rounded-[10px] border border-slate-200 bg-white p-3 sm:p-4 lg:grid-cols-[150px_minmax(0,1fr)_180px_160px_auto] lg:items-center"
+                      >
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-sky-700">
+                            {record.kind}
+                          </p>
+                          <p className="mt-1 text-sm font-bold text-slate-950">{record.number}</p>
+                          <p className="mt-1 text-xs font-medium text-slate-500">{formatDate(record.date)}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-950">{record.title}</p>
+                          <p className="mt-1 truncate text-xs font-medium text-slate-500">{record.customerName}</p>
+                        </div>
+                        <div>
+                          {record.amountGross != null ? (
+                            <>
+                              <p className="text-sm font-bold text-slate-950">
+                                {Number(record.amountGross).toLocaleString("de-DE", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })} €
+                              </p>
+                              {record.amountNet != null && (
+                                <p className="mt-1 text-xs font-medium text-slate-500">
+                                  netto {Number(record.amountNet).toLocaleString("de-DE", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })} €
+                                </p>
+                              )}
+                            </>
+                          ) : record.amountNet != null ? (
+                            <p className="text-sm font-bold text-slate-700">
+                              {record.kind === "Vertrag" ? "Monatlich " : "Materialwert "}
+                              {Number(record.amountNet).toLocaleString("de-DE", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} €
+                            </p>
+                          ) : (
+                            <p className="text-xs font-medium text-slate-400">Kein Betrag hinterlegt</p>
+                          )}
+                        </div>
+                        <span className="w-fit rounded-[7px] bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                          {record.status}
+                        </span>
+                        <div className="flex flex-wrap gap-2 lg:justify-end">
+                          {record.source === "invoice" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const item = invoices.find((invoice) => invoice.id === record.sourceId);
+                                if (item) printInvoice(item);
+                              }}
+                              className="rounded-[7px] border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+                            >
+                              PDF
+                            </button>
+                          )}
+                          {record.source === "document" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const item = documents.find((doc) => doc.id === record.sourceId);
+                                if (item) openDocument(item);
+                              }}
+                              className="rounded-[7px] border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+                            >
+                              Öffnen
+                            </button>
+                          )}
+                          {record.source === "contract" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActivePage("Verträge");
+                                if (typeof window !== "undefined" && session?.user?.id) {
+                                  window.localStorage.setItem(
+                                    `trybun-active-page-${session.user.id}`,
+                                    "Verträge",
+                                  );
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }
+                              }}
+                              className="rounded-[7px] border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+                            >
+                              Vertrag
+                            </button>
+                          )}
+                          {record.kind === "Angebot" &&
+                            !accountingInvoices.some(
+                              (item) =>
+                                item.type === "Rechnung" &&
+                                Number(item.source_invoice_id) === Number(record.sourceId),
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() => prepareInvoiceFromAccountingSource("Angebot", record.sourceId)}
+                                className="rounded-[7px] bg-sky-600 px-3 py-2 text-xs font-bold text-white"
+                              >
+                                → Rechnung
+                              </button>
+                            )}
+                          {(record.kind === "Auftrag" || record.kind === "Lieferschein") &&
+                            !accountingInvoices.some(
+                              (item) =>
+                                item.type === "Rechnung" &&
+                                Number(item.source_document_id) === Number(record.sourceId),
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  prepareInvoiceFromAccountingSource(
+                                    record.kind as "Auftrag" | "Lieferschein",
+                                    record.sourceId,
+                                  )
+                                }
+                                className="rounded-[7px] bg-sky-600 px-3 py-2 text-xs font-bold text-white"
+                              >
+                                → Rechnung
+                              </button>
+                            )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+                <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
+                        Abrechnungsworkflow
+                      </p>
+                      <h3 className="mt-1 text-xl font-bold text-slate-950">Belege, die zur Rechnung werden können</h3>
+                      <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                        TRYBUN übernimmt Kunde, Ticket und vorhandene Warenpositionen. Bereits gebuchte Lieferschein-Bestände werden nicht erneut ausgebucht.
+                      </p>
+                    </div>
+                    <span className="rounded-[8px] bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">
+                      {accountingConversionCandidates.length}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {accountingConversionCandidates.length === 0 ? (
+                      <div className="rounded-[9px] border border-emerald-100 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                        Aktuell keine offenen Belegumwandlungen.
+                      </div>
+                    ) : (
+                      accountingConversionCandidates.slice(0, 12).map((item) => (
+                        <div
+                          key={item.key}
+                          className="flex flex-col gap-3 rounded-[9px] border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{item.kind}</p>
+                            <p className="mt-1 text-sm font-bold text-slate-950">{item.label}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              prepareInvoiceFromAccountingSource(item.kind, item.sourceId)
+                            }
+                            className="min-h-[40px] rounded-[7px] bg-slate-950 px-4 py-2 text-xs font-bold text-white"
+                          >
+                            Als Rechnung vorbereiten
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-700">
+                    Taschenrechner
+                  </p>
+                  <h3 className="mt-1 text-xl font-bold text-slate-950">Netto · Brutto · MwSt.</h3>
+
+                  <div className="mt-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCalculatorMode("netto")}
+                        className={`min-h-[42px] rounded-[8px] text-sm font-bold ${
+                          calculatorMode === "netto" ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        Netto eingeben
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCalculatorMode("brutto")}
+                        className={`min-h-[42px] rounded-[8px] text-sm font-bold ${
+                          calculatorMode === "brutto" ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        Brutto eingeben
+                      </button>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                      <div className="flex overflow-hidden rounded-[9px] border border-slate-300 bg-white">
+                        <input
+                          type="number"
+                          value={calculatorAmount}
+                          onChange={(e) => setCalculatorAmount(e.target.value)}
+                          placeholder="0,00"
+                          className="min-w-0 flex-1 border-0 px-4 py-3 outline-none"
+                        />
+                        <span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-bold text-slate-600">€</span>
+                      </div>
+                      <div className="flex overflow-hidden rounded-[9px] border border-slate-300 bg-white">
+                        <input
+                          type="number"
+                          value={calculatorTaxRate}
+                          onChange={(e) => setCalculatorTaxRate(e.target.value)}
+                          placeholder="19"
+                          className="min-w-0 flex-1 border-0 px-4 py-3 outline-none"
+                        />
+                        <span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-bold text-slate-600">%</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-[8px] bg-slate-50 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">Netto</p>
+                        <p className="mt-1 text-sm font-bold text-slate-950">{calculatorNet.toFixed(2)} €</p>
+                      </div>
+                      <div className="rounded-[8px] bg-sky-50 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-sky-700">MwSt.</p>
+                        <p className="mt-1 text-sm font-bold text-slate-950">{calculatorVat.toFixed(2)} €</p>
+                      </div>
+                      <div className="rounded-[8px] bg-slate-50 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">Brutto</p>
+                        <p className="mt-1 text-sm font-bold text-slate-950">{calculatorGross.toFixed(2)} €</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-3">
+                      <label className="text-xs font-bold text-slate-500">Prozent / Rabatt / Aufschlag</label>
+                      <div className="mt-2 flex overflow-hidden rounded-[9px] border border-slate-300 bg-white">
+                        <input
+                          type="number"
+                          value={calculatorPercent}
+                          onChange={(e) => setCalculatorPercent(e.target.value)}
+                          placeholder="z. B. 10"
+                          className="min-w-0 flex-1 border-0 px-4 py-3 outline-none"
+                        />
+                        <span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-bold text-slate-600">%</span>
+                      </div>
+                      <p className="mt-2 text-sm font-bold text-slate-800">
+                        {calculatorPercentValue
+                          ? `${calculatorPercentValue.toLocaleString("de-DE")} % von ${calculatorEntered.toFixed(2)} € = ${calculatorPercentAmount.toFixed(2)} €`
+                          : "Prozentwert optional eingeben."}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <section className="rounded-[14px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                <p className="text-sm font-bold text-slate-900">Buchhaltung in TRYBUN</p>
+                <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                  Diese Zentrale bündelt die operative Service-Abrechnung und das Belegarchiv. Sie ersetzt keine Finanzbuchhaltung,
+                  Lohnbuchhaltung oder Steuerberatung. Die Daten bleiben mandantengetrennt und der Bereich ist ausschließlich für Administratoren sichtbar.
+                </p>
+              </section>
+            </div>
+          )}
+
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
 
@@ -23600,6 +24636,72 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       <option>Angebot</option>
                     </select>
 
+                    <div className="rounded-[14px] border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
+                        Kunde / Rechnungsempfänger
+                      </p>
+                      <input
+                        value={invoiceCustomerSearch}
+                        onChange={(e) => {
+                          setInvoiceCustomerSearch(e.target.value);
+                          if (invoiceCustomerId) setInvoiceCustomerId("");
+                        }}
+                        type="search"
+                        autoComplete="off"
+                        placeholder="Firma, Name oder Kundennummer suchen..."
+                        className="mt-3 min-h-[48px] w-full rounded-[9px] border border-slate-300 bg-white px-4 font-semibold outline-none focus:border-sky-500"
+                      />
+
+                      {invoiceCustomerId ? (
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-[9px] border border-sky-100 bg-white p-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-950">
+                              {getCustomerNameById(Number(invoiceCustomerId))}
+                            </p>
+                            <p className="mt-1 text-xs font-medium text-slate-500">
+                              {customers.find((item) => item.id === Number(invoiceCustomerId))?.customer_type || "B2B"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInvoiceCustomerId("");
+                              setInvoiceCustomerSearch("");
+                              setInvoiceTicketId("");
+                            }}
+                            className="rounded-[7px] bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600"
+                          >
+                            Ändern
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="mt-3 max-h-52 space-y-2 overflow-y-auto">
+                          {invoiceCustomerResults.map((customer) => (
+                            <button
+                              key={customer.id}
+                              type="button"
+                              onClick={() => {
+                                setInvoiceCustomerId(String(customer.id));
+                                setInvoiceCustomerSearch(getCustomerLabel(customer));
+                                setInvoicePriceMode(getDefaultBusinessPriceMode(customer));
+                                setInvoiceTicketId("");
+                              }}
+                              className="block w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-sky-300 hover:bg-sky-50"
+                            >
+                              <p className="text-sm font-bold text-slate-950">
+                                {getCustomerLabel(customer)}
+                              </p>
+                              <p className="mt-1 text-xs font-medium text-slate-500">
+                                {customer.customer_number || "Ohne Kundennummer"}
+                                {customer.city ? ` · ${customer.city}` : ""}
+                                {customer.customer_type ? ` · ${customer.customer_type}` : ""}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <select
                       value={invoiceTicketId}
                       onChange={(e) => {
@@ -23612,17 +24714,25 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         }
                         if (selectedTicket?.customer_id) {
                           const selectedCustomer = customers.find((item) => item.id === selectedTicket.customer_id);
+                          setInvoiceCustomerId(String(selectedTicket.customer_id));
+                          setInvoiceCustomerSearch(selectedCustomer ? getCustomerLabel(selectedCustomer) : "");
                           setInvoicePriceMode(getDefaultBusinessPriceMode(selectedCustomer));
                         }
                       }}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
                       <option value="">Kein Ticket verknüpfen</option>
-                      {tickets.map((ticket) => (
-                        <option key={ticket.id} value={ticket.id}>
-                          {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
-                        </option>
-                      ))}
+                      {tickets
+                        .filter(
+                          (ticket) =>
+                            !invoiceCustomerId ||
+                            Number(ticket.customer_id) === Number(invoiceCustomerId),
+                        )
+                        .map((ticket) => (
+                          <option key={ticket.id} value={ticket.id}>
+                            {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
+                          </option>
+                        ))}
                     </select>
 
                     <input
@@ -23709,6 +24819,20 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       </select>
                       </div>
                     </div>
+
+                    {invoiceType === "Rechnung" && (
+                      <div>
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                          Zahlungsziel / Fällig am
+                        </label>
+                        <input
+                          type="date"
+                          value={invoiceDueDate}
+                          onChange={(e) => setInvoiceDueDate(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold sm:max-w-sm"
+                        />
+                      </div>
+                    )}
 
                     <textarea
                       value={invoiceNote}
