@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.58 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.59 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -12690,6 +12690,62 @@ PRO-EFFEKT`,
   }
 
 
+  function prepareInvoiceFromRevenueGuard(ticket: Ticket) {
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const ticketPartUsages = partUsages.filter(
+      (usage) => usage.ticket_id === ticket.id && !usage.is_voided,
+    );
+    const ticketInventoryIssues = inventoryMovements.filter(
+      (movement) =>
+        movement.ticket_id === ticket.id &&
+        !movement.is_voided &&
+        String(movement.movement_type || "").toLowerCase() === "issue",
+    );
+
+    const materialLabels = ticketPartUsages
+      .map((usage) => {
+        const partName = getPartNameById(usage.part_id);
+        return `${Number(usage.quantity || 0)} × ${partName}`;
+      })
+      .filter(Boolean);
+
+    setInvoiceType("Rechnung");
+    setInvoiceTicketId(String(ticket.id));
+    setInvoiceTitle(
+      `${ticket.issue || "Serviceeinsatz"}${ticket.device ? ` · ${ticket.device}` : ""}`,
+    );
+    setInvoiceAmountNet("");
+    setInvoiceTaxRate("19");
+    setInvoicePriceMode(getDefaultBusinessPriceMode(relatedCustomer));
+    setInvoiceStatus("Entwurf");
+    setInvoiceDirectStockIssue(false);
+    setInvoiceStockLines([]);
+    setInvoiceTechnicianSignature("");
+    setInvoiceCustomerSignature("");
+    setInvoiceNote(
+      [
+        `Revenue Guard · Abrechnung zu ${ticket.ticket_number || `Ticket #${ticket.id}`}`,
+        ticket.service_report
+          ? `Servicebericht: ${ticket.service_report}`
+          : "Servicebericht: noch nicht hinterlegt",
+        materialLabels.length > 0
+          ? `Dokumentierte Ersatzteile: ${materialLabels.join(", ")}`
+          : ticketInventoryIssues.length > 0
+            ? `${ticketInventoryIssues.length} Lagerbewegung(en) zum Ticket vorhanden.`
+            : "Keine dokumentierte Ersatzteilverwendung.",
+        "Bitte Arbeitszeit, Materialpreise und weitere abrechenbare Leistungen vor dem Speichern prüfen.",
+      ].join("\n"),
+    );
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("invoice-create")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
+
   async function saveInvoice() {
     if (!isAdmin) {
       alert("Nur Admins können Rechnungen und Angebote erstellen.");
@@ -14895,6 +14951,106 @@ PRO-EFFEKT`,
 
     return invoices;
   }, [invoices, isCustomer, userProfile]);
+
+  const revenueGuardItems = useMemo(() => {
+    if (!isAdmin) return [];
+
+    return tickets
+      .filter((ticket) =>
+        ["Abgeschlossen", "Erledigt"].includes(ticket.status || ""),
+      )
+      .filter((ticket) => {
+        const activeInvoice = invoices.some(
+          (invoice) =>
+            invoice.type === "Rechnung" &&
+            invoice.ticket_id === ticket.id &&
+            invoice.status !== "Storniert",
+        );
+        return !activeInvoice;
+      })
+      .map((ticket) => {
+        const ticketPartUsages = partUsages.filter(
+          (usage) => usage.ticket_id === ticket.id && !usage.is_voided,
+        );
+        const ticketInventoryIssues = inventoryMovements.filter(
+          (movement) =>
+            movement.ticket_id === ticket.id &&
+            !movement.is_voided &&
+            String(movement.movement_type || "").toLowerCase() === "issue",
+        );
+        const ticketDocuments = documents.filter(
+          (documentItem) => documentItem.ticket_id === ticket.id,
+        );
+        const hasDeliveryDocument = ticketDocuments.some(
+          (documentItem) => documentItem.category === "Lieferscheine",
+        );
+        const hasServiceReport =
+          Boolean(ticket.service_report) ||
+          ticketDocuments.some(
+            (documentItem) => documentItem.category === "Serviceberichte",
+          );
+
+        const signals = [
+          ticketPartUsages.length > 0
+            ? `${ticketPartUsages.length} Ersatzteilposition${ticketPartUsages.length === 1 ? "" : "en"}`
+            : "",
+          ticketInventoryIssues.length > 0
+            ? `${ticketInventoryIssues.length} Lagerabgang${ticketInventoryIssues.length === 1 ? "" : "e"}`
+            : "",
+          hasDeliveryDocument ? "Lieferschein vorhanden" : "",
+          hasServiceReport ? "Servicebericht vorhanden" : "",
+        ].filter(Boolean);
+
+        const materialValue = ticketInventoryIssues.reduce(
+          (sum, movement) =>
+            sum +
+            Math.abs(Number(movement.quantity || 0)) *
+              Number(movement.unit_price || 0),
+          0,
+        );
+
+        const completedTime = new Date(
+          ticket.completed_at || ticket.service_date || ticket.created_at || 0,
+        ).getTime();
+
+        return {
+          ticket,
+          signals,
+          materialValue,
+          completedTime,
+          priority:
+            ticketPartUsages.length > 0 ||
+            ticketInventoryIssues.length > 0 ||
+            hasDeliveryDocument
+              ? "high"
+              : hasServiceReport
+                ? "medium"
+                : "normal",
+        };
+      })
+      .sort((a, b) => {
+        const priorityOrder: Record<string, number> = {
+          high: 3,
+          medium: 2,
+          normal: 1,
+        };
+        const priorityDiff =
+          (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        return priorityDiff || b.completedTime - a.completedTime;
+      });
+  }, [
+    isAdmin,
+    tickets,
+    invoices,
+    partUsages,
+    inventoryMovements,
+    documents,
+  ]);
+
+  const revenueGuardMaterialValue = revenueGuardItems.reduce(
+    (sum, item) => sum + item.materialValue,
+    0,
+  );
 
   const visibleDocuments = useMemo(() => {
     if (isCustomer) {
@@ -19287,6 +19443,168 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
 
+              {isAdmin && (
+                <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                        TRYBUN Revenue Guard
+                      </p>
+                      <h3 className="mt-1 text-2xl font-black text-slate-950">
+                        Noch nicht abgerechnete Serviceeinsätze
+                      </h3>
+                      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                        Abgeschlossene Tickets ohne aktive Rechnung werden automatisch geprüft. Material, Lieferscheine und Serviceberichte dienen als Hinweise auf möglichen Abrechnungsbedarf.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                      <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
+                        <p className="text-xs font-bold text-slate-500">Offene Prüfung</p>
+                        <p className="mt-1 text-2xl font-black text-slate-950">
+                          {revenueGuardItems.length}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
+                        <p className="text-xs font-bold text-slate-500">Erfasster Materialwert</p>
+                        <p className="mt-1 text-2xl font-black text-slate-950">
+                          {revenueGuardMaterialValue > 0
+                            ? `${revenueGuardMaterialValue.toLocaleString("de-DE", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} €`
+                            : "–"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {revenueGuardItems.length === 0 ? (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
+                        Aktuell kein abgeschlossener Serviceeinsatz ohne zugeordnete Rechnung gefunden.
+                      </div>
+                    ) : (
+                      revenueGuardItems.slice(0, 12).map((guardItem) => {
+                        const ticket = guardItem.ticket;
+                        const customerName =
+                          getCustomerForTicket(ticket)?.company ||
+                          ticket.customer ||
+                          "Kunde";
+
+                        return (
+                          <div
+                            key={`revenue-guard-${ticket.id}`}
+                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4"
+                          >
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span
+                                    className={`rounded-full px-3 py-1 text-xs font-black ${
+                                      guardItem.priority === "high"
+                                        ? "bg-amber-100 text-amber-800"
+                                        : guardItem.priority === "medium"
+                                          ? "bg-sky-100 text-sky-700"
+                                          : "bg-slate-200 text-slate-700"
+                                    }`}
+                                  >
+                                    {guardItem.priority === "high"
+                                      ? "Abrechnung prüfen"
+                                      : guardItem.priority === "medium"
+                                        ? "Service abgeschlossen"
+                                        : "Ohne Rechnung"}
+                                  </span>
+                                  <p className="text-xs font-black text-slate-500">
+                                    {ticket.ticket_number || `Ticket #${ticket.id}`}
+                                  </p>
+                                </div>
+
+                                <h4 className="mt-2 break-words text-lg font-black text-slate-950">
+                                  {ticket.issue || "Serviceeinsatz"}
+                                </h4>
+                                <p className="mt-1 text-sm font-semibold text-slate-500">
+                                  {customerName}
+                                  {ticket.device ? ` · ${ticket.device}` : ""}
+                                  {" · "}
+                                  abgeschlossen{" "}
+                                  {formatDate(
+                                    ticket.completed_at ||
+                                      ticket.service_date ||
+                                      ticket.created_at,
+                                  )}
+                                </p>
+
+                                {guardItem.signals.length > 0 ? (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {guardItem.signals.map((signal) => (
+                                      <span
+                                        key={`${ticket.id}-${signal}`}
+                                        className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-600"
+                                      >
+                                        {signal}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="mt-3 text-xs font-semibold text-slate-500">
+                                    Keine Material- oder Dokumenthinweise gefunden. Arbeitsleistung trotzdem auf Abrechenbarkeit prüfen.
+                                  </p>
+                                )}
+
+                                {guardItem.materialValue > 0 && (
+                                  <p className="mt-3 text-sm font-black text-slate-700">
+                                    Erfasster Wert aus Ticket-Lagerbewegungen:{" "}
+                                    {guardItem.materialValue.toLocaleString("de-DE", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}{" "}
+                                    €
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-64 lg:grid-cols-1">
+                                <button
+                                  type="button"
+                                  onClick={() => prepareInvoiceFromRevenueGuard(ticket)}
+                                  className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
+                                >
+                                  Rechnungsentwurf vorbereiten
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedTicketView(ticket);
+                                    setActivePage("Service-Tickets");
+                                    if (typeof window !== "undefined") {
+                                      window.scrollTo({ top: 0, behavior: "smooth" });
+                                    }
+                                  }}
+                                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                                >
+                                  Ticket-Akte prüfen
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {revenueGuardItems.length > 12 && (
+                    <p className="mt-3 text-xs font-bold text-slate-500">
+                      Es werden die 12 wichtigsten Treffer angezeigt. Insgesamt sind {revenueGuardItems.length} abgeschlossene Einsätze zu prüfen.
+                    </p>
+                  )}
+
+                  <p className="mt-4 text-xs font-semibold leading-5 text-slate-500">
+                    Revenue Guard erkennt Abrechnungslücken anhand der in TRYBUN vorhandenen Daten. Ob eine Leistung tatsächlich berechnet werden darf, richtet sich weiterhin nach Vertrag, Garantie und individueller Vereinbarung.
+                  </p>
+                </div>
+              )}
+
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gesamt" value={visibleInvoices.length} />
                 <StatCard label="Entwürfe" value={visibleInvoices.filter((item) => item.status === "Entwurf").length} />
@@ -19296,7 +19614,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
               <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
                 {isAdmin && (
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
+                <div id="invoice-create" className="min-w-0 scroll-mt-6 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnung / Angebot erstellen</h3>
                   <p className="mt-2 text-slate-600">
                     Erstelle Angebote oder Rechnungen auf Basis eines Tickets oder frei als Admin.
