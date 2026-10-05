@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.53 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.54 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -62,6 +62,7 @@ type Device = {
   inspection_result?: string | null;
   inspection_comment?: string | null;
   inspection_done_by?: string | null;
+  custom_values?: Record<string, string | number | boolean | null> | null;
   created_at: string;
 };
 
@@ -388,6 +389,17 @@ type ServiceTerminology = {
   maintenancePlural: string;
 };
 
+type ServiceCustomFieldType = "text" | "number" | "date" | "select";
+
+type ServiceCustomFieldDefinition = {
+  id: string;
+  label: string;
+  type: ServiceCustomFieldType;
+  unit?: string;
+  required?: boolean;
+  options?: string[];
+};
+
 type CompanyData = {
   id: number;
   name: string;
@@ -402,6 +414,7 @@ type CompanyData = {
   pdf_footer?: string | null;
   service_profile?: ServiceProfileKey | null;
   service_labels?: Partial<ServiceTerminology> | null;
+  service_custom_fields?: ServiceCustomFieldDefinition[] | null;
   is_active?: boolean | null;
   created_at?: string | null;
 };
@@ -1200,6 +1213,15 @@ export default function Home() {
   const [serviceTerminologyInput, setServiceTerminologyInput] =
     useState<ServiceTerminology>(DEFAULT_SERVICE_TERMINOLOGY);
   const [serviceProfileSaving, setServiceProfileSaving] = useState(false);
+  const [serviceCustomFieldsInput, setServiceCustomFieldsInput] =
+    useState<ServiceCustomFieldDefinition[]>([]);
+  const [serviceCustomFieldsSaving, setServiceCustomFieldsSaving] = useState(false);
+  const [newServiceCustomFieldLabel, setNewServiceCustomFieldLabel] = useState("");
+  const [newServiceCustomFieldType, setNewServiceCustomFieldType] =
+    useState<ServiceCustomFieldType>("text");
+  const [newServiceCustomFieldUnit, setNewServiceCustomFieldUnit] = useState("");
+  const [newServiceCustomFieldRequired, setNewServiceCustomFieldRequired] = useState(false);
+  const [newServiceCustomFieldOptions, setNewServiceCustomFieldOptions] = useState("");
   const [companyBrandingSaving, setCompanyBrandingSaving] = useState(false);
   const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -1298,6 +1320,10 @@ export default function Home() {
   const [deviceStatus, setDeviceStatus] = useState("Aktiv");
   const [deviceNextCheck, setDeviceNextCheck] = useState("");
   const [deviceNote, setDeviceNote] = useState("");
+  const [deviceCustomValues, setDeviceCustomValues] =
+    useState<Record<string, string>>({});
+  const [deviceCustomValuesEditing, setDeviceCustomValuesEditing] = useState(false);
+  const [deviceCustomValuesSaving, setDeviceCustomValuesSaving] = useState(false);
 
   const [inspectionDeviceId, setInspectionDeviceId] = useState("");
   const [inspectionBadgeNumber, setInspectionBadgeNumber] = useState("");
@@ -1729,6 +1755,11 @@ export default function Home() {
       ...selectedPreset.terminology,
       ...(companyData.service_labels || {}),
     });
+    setServiceCustomFieldsInput(
+      Array.isArray(companyData.service_custom_fields)
+        ? companyData.service_custom_fields
+        : [],
+    );
   }, [companyData]);
 
 
@@ -2580,6 +2611,177 @@ export default function Home() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function createServiceCustomFieldId(label: string) {
+    const normalized = label
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 42);
+
+    const base = normalized || "feld";
+    let candidate = base;
+    let suffix = 2;
+
+    while (serviceCustomFieldsInput.some((field) => field.id === candidate)) {
+      candidate = `${base}_${suffix}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  }
+
+  function addServiceCustomField() {
+    const label = newServiceCustomFieldLabel.trim();
+
+    if (!label) {
+      alert("Bitte einen Feldnamen eingeben.");
+      return;
+    }
+
+    const options =
+      newServiceCustomFieldType === "select"
+        ? newServiceCustomFieldOptions
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : [];
+
+    if (newServiceCustomFieldType === "select" && options.length < 2) {
+      alert("Für ein Auswahlfeld bitte mindestens zwei Werte mit Komma getrennt eingeben.");
+      return;
+    }
+
+    setServiceCustomFieldsInput((current) => [
+      ...current,
+      {
+        id: createServiceCustomFieldId(label),
+        label,
+        type: newServiceCustomFieldType,
+        unit: newServiceCustomFieldUnit.trim() || undefined,
+        required: newServiceCustomFieldRequired,
+        options: options.length > 0 ? options : undefined,
+      },
+    ]);
+
+    setNewServiceCustomFieldLabel("");
+    setNewServiceCustomFieldType("text");
+    setNewServiceCustomFieldUnit("");
+    setNewServiceCustomFieldRequired(false);
+    setNewServiceCustomFieldOptions("");
+  }
+
+  function removeServiceCustomField(fieldId: string) {
+    const field = serviceCustomFieldsInput.find((item) => item.id === fieldId);
+    if (!field) return;
+
+    if (!confirm(`Zusatzfeld "${field.label}" entfernen? Bereits gespeicherte Gerätewerte bleiben intern erhalten, werden aber nicht mehr angezeigt.`)) {
+      return;
+    }
+
+    setServiceCustomFieldsInput((current) =>
+      current.filter((item) => item.id !== fieldId),
+    );
+  }
+
+  async function saveServiceCustomFields() {
+    if (!isAdmin) {
+      alert("Nur Admins können Zusatzfelder verwalten.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden.");
+      return;
+    }
+
+    setServiceCustomFieldsSaving(true);
+
+    const { data, error } = await supabase
+      .from("companies")
+      .update({ service_custom_fields: serviceCustomFieldsInput })
+      .eq("id", currentCompany.id)
+      .select("*")
+      .maybeSingle();
+
+    setServiceCustomFieldsSaving(false);
+
+    if (error) {
+      alert(`Zusatzfelder konnten nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    setCompanyData(
+      (data || {
+        ...currentCompany,
+        service_custom_fields: serviceCustomFieldsInput,
+      }) as CompanyData,
+    );
+    alert("Zusatzfelder gespeichert.");
+  }
+
+  async function saveSelectedDeviceCustomValues() {
+    if (!selectedDeviceView || !(isAdmin || isTechnician)) return;
+
+    const missingRequiredField = serviceCustomFieldsInput.find(
+      (field) =>
+        field.required &&
+        !String(deviceCustomValues[field.id] || "").trim(),
+    );
+
+    if (missingRequiredField) {
+      alert(`Bitte Pflichtfeld "${missingRequiredField.label}" ausfüllen.`);
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    setDeviceCustomValuesSaving(true);
+
+    const { data, error } = await supabase
+      .from("devices")
+      .update({ custom_values: deviceCustomValues })
+      .eq("id", selectedDeviceView.id)
+      .eq("company_id", currentCompany.id)
+      .select("*")
+      .maybeSingle();
+
+    setDeviceCustomValuesSaving(false);
+
+    if (error) {
+      alert(`Zusatzdaten konnten nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    const updatedDevice = (data || {
+      ...selectedDeviceView,
+      custom_values: deviceCustomValues,
+    }) as Device;
+
+    setSelectedDeviceView(updatedDevice);
+    setDevices((current) =>
+      current.map((item) =>
+        item.id === updatedDevice.id ? updatedDevice : item,
+      ),
+    );
+    setDeviceCustomValuesEditing(false);
+
+    await createDeviceHistory(
+      updatedDevice.id,
+      "Zusatzdaten aktualisiert",
+      "Betriebsspezifische Gerätedaten wurden aktualisiert.",
+      "Gerät",
+    );
   }
 
   async function saveServiceProfileSettings() {
@@ -5226,6 +5428,8 @@ async function loadApplicationData() {
     setDeviceStatus("Aktiv");
     setDeviceNextCheck("");
     setDeviceNote("");
+    setDeviceCustomValues({});
+    setDeviceCustomValuesEditing(false);
   }
 
   function resetCustomerForm() {
@@ -5328,6 +5532,15 @@ async function loadApplicationData() {
     setDeviceStatus(item.status || "Aktiv");
     setDeviceNextCheck(item.next_check || "");
     setDeviceNote(item.note || "");
+    setDeviceCustomValues(
+      Object.fromEntries(
+        Object.entries(item.custom_values || {}).map(([key, value]) => [
+          key,
+          value == null ? "" : String(value),
+        ]),
+      ),
+    );
+    setDeviceCustomValuesEditing(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -6781,6 +6994,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         status: deviceStatus,
         next_check: deviceNextCheck || null,
         note: deviceNote,
+        custom_values: deviceCustomValues,
       },
     ]);
 
@@ -6831,6 +7045,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         status: deviceStatus,
         next_check: deviceNextCheck || null,
         note: deviceNote,
+        custom_values: deviceCustomValues,
       })
       .eq("id", editingDevice.id)
       .eq("company_id", currentCompany.id);
@@ -20220,6 +20435,141 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 </div>
               </div>
 
+              <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                      Flexible Datenstruktur
+                    </p>
+                    <h3 className="mt-1 text-2xl font-black text-slate-950">
+                      Eigene Zusatzfelder
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                      Definieren Sie eigene Felder für Ihre Serviceobjekte. Die Felder erscheinen anschließend in der Geräteakte und können je Kundengerät gepflegt werden.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+                    {serviceCustomFieldsInput.length} Feld{serviceCustomFieldsInput.length === 1 ? "" : "er"}
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_150px]">
+                  <input
+                    value={newServiceCustomFieldLabel}
+                    onChange={(event) => setNewServiceCustomFieldLabel(event.target.value)}
+                    placeholder="Feldname, z. B. Leistung"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                  />
+                  <select
+                    value={newServiceCustomFieldType}
+                    onChange={(event) =>
+                      setNewServiceCustomFieldType(event.target.value as ServiceCustomFieldType)
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-800"
+                  >
+                    <option value="text">Text</option>
+                    <option value="number">Zahl</option>
+                    <option value="date">Datum</option>
+                    <option value="select">Auswahl</option>
+                  </select>
+                  <input
+                    value={newServiceCustomFieldUnit}
+                    onChange={(event) => setNewServiceCustomFieldUnit(event.target.value)}
+                    placeholder="Einheit, z. B. kW"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                  />
+                </div>
+
+                {newServiceCustomFieldType === "select" && (
+                  <input
+                    value={newServiceCustomFieldOptions}
+                    onChange={(event) => setNewServiceCustomFieldOptions(event.target.value)}
+                    placeholder="Auswahlwerte mit Komma trennen, z. B. Gas, Öl, Wärmepumpe"
+                    className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                  />
+                )}
+
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="inline-flex items-center gap-3 text-sm font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={newServiceCustomFieldRequired}
+                      onChange={(event) => setNewServiceCustomFieldRequired(event.target.checked)}
+                      className="h-5 w-5"
+                    />
+                    Pflichtfeld
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addServiceCustomField}
+                    className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white sm:w-auto"
+                  >
+                    Zusatzfeld hinzufügen
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {serviceCustomFieldsInput.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-500">
+                      Noch keine eigenen Zusatzfelder angelegt. TRYBUN funktioniert weiterhin mit den Standardfeldern.
+                    </div>
+                  ) : (
+                    serviceCustomFieldsInput.map((field) => (
+                      <div
+                        key={field.id}
+                        className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-black text-slate-950">{field.label}</p>
+                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-500">
+                              {field.type === "text"
+                                ? "Text"
+                                : field.type === "number"
+                                  ? "Zahl"
+                                  : field.type === "date"
+                                    ? "Datum"
+                                    : "Auswahl"}
+                            </span>
+                            {field.unit && (
+                              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-500">
+                                {field.unit}
+                              </span>
+                            )}
+                            {field.required && (
+                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-700">
+                                Pflicht
+                              </span>
+                            )}
+                          </div>
+                          {field.options && field.options.length > 0 && (
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {field.options.join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeServiceCustomField(field.id)}
+                          className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-black text-red-600 sm:w-auto"
+                        >
+                          Entfernen
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveServiceCustomFields}
+                  disabled={serviceCustomFieldsSaving}
+                  className="mt-5 w-full rounded-xl bg-sky-600 px-6 py-3.5 text-sm font-black text-white hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+                >
+                  {serviceCustomFieldsSaving ? "Zusatzfelder werden gespeichert …" : "Zusatzfelder speichern"}
+                </button>
+              </div>
+
               <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Firmenauftritt
@@ -21703,6 +22053,129 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                       {selectedDeviceView.note || "Keine Hinweise vorhanden."}
                     </p>
                   </div>
+
+                  {serviceCustomFieldsInput.length > 0 && (
+                    <div className="mt-6 rounded-[18px] border border-slate-200 bg-white p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
+                            Betriebsspezifische Daten
+                          </p>
+                          <h4 className="mt-1 text-lg font-black text-slate-950">
+                            Zusatzdaten
+                          </h4>
+                        </div>
+                        {(isAdmin || isTechnician) && !deviceCustomValuesEditing && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeviceCustomValues(
+                                Object.fromEntries(
+                                  Object.entries(selectedDeviceView.custom_values || {}).map(
+                                    ([key, value]) => [key, value == null ? "" : String(value)],
+                                  ),
+                                ),
+                              );
+                              setDeviceCustomValuesEditing(true);
+                            }}
+                            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-700 sm:w-auto"
+                          >
+                            Zusatzdaten bearbeiten
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {serviceCustomFieldsInput.map((field) => {
+                          const currentValue = deviceCustomValuesEditing
+                            ? deviceCustomValues[field.id] || ""
+                            : selectedDeviceView.custom_values?.[field.id] == null
+                              ? ""
+                              : String(selectedDeviceView.custom_values?.[field.id]);
+
+                          if (deviceCustomValuesEditing) {
+                            return (
+                              <label key={field.id} className="block min-w-0">
+                                <span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
+                                  {field.label}
+                                  {field.required ? " *" : ""}
+                                  {field.unit ? ` · ${field.unit}` : ""}
+                                </span>
+                                {field.type === "select" ? (
+                                  <select
+                                    value={currentValue}
+                                    onChange={(event) =>
+                                      setDeviceCustomValues((current) => ({
+                                        ...current,
+                                        [field.id]: event.target.value,
+                                      }))
+                                    }
+                                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                                  >
+                                    <option value="">Bitte wählen</option>
+                                    {(field.options || []).map((option) => (
+                                      <option key={option} value={option}>{option}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type={
+                                      field.type === "number"
+                                        ? "number"
+                                        : field.type === "date"
+                                          ? "date"
+                                          : "text"
+                                    }
+                                    value={currentValue}
+                                    onChange={(event) =>
+                                      setDeviceCustomValues((current) => ({
+                                        ...current,
+                                        [field.id]: event.target.value,
+                                      }))
+                                    }
+                                    className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                                  />
+                                )}
+                              </label>
+                            );
+                          }
+
+                          return (
+                            <div key={field.id} className="rounded-xl bg-slate-50 p-3">
+                              <p className="text-xs font-bold text-slate-500">{field.label}</p>
+                              <p className="mt-1 break-words font-black text-slate-900">
+                                {currentValue || "Nicht hinterlegt"}
+                                {currentValue && field.unit ? ` ${field.unit}` : ""}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {deviceCustomValuesEditing && (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={saveSelectedDeviceCustomValues}
+                            disabled={deviceCustomValuesSaving}
+                            className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {deviceCustomValuesSaving ? "Wird gespeichert …" : "Zusatzdaten speichern"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeviceCustomValuesEditing(false);
+                              setDeviceCustomValues({});
+                            }}
+                            className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700"
+                          >
+                            Abbrechen
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex w-full flex-col gap-3 xl:w-64">
@@ -22195,6 +22668,52 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     type="date"
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                   />
+
+                  {serviceCustomFieldsInput.length > 0 && (
+                    <div className="rounded-[18px] border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                        Betriebsspezifische Zusatzdaten
+                      </p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {serviceCustomFieldsInput.map((field) => (
+                          <label key={field.id} className="block min-w-0">
+                            <span className="text-xs font-bold text-slate-600">
+                              {field.label}{field.required ? " *" : ""}{field.unit ? ` · ${field.unit}` : ""}
+                            </span>
+                            {field.type === "select" ? (
+                              <select
+                                value={deviceCustomValues[field.id] || ""}
+                                onChange={(event) =>
+                                  setDeviceCustomValues((current) => ({
+                                    ...current,
+                                    [field.id]: event.target.value,
+                                  }))
+                                }
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+                              >
+                                <option value="">Bitte wählen</option>
+                                {(field.options || []).map((option) => (
+                                  <option key={option} value={option}>{option}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+                                value={deviceCustomValues[field.id] || ""}
+                                onChange={(event) =>
+                                  setDeviceCustomValues((current) => ({
+                                    ...current,
+                                    [field.id]: event.target.value,
+                                  }))
+                                }
+                                className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
+                              />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <textarea
                     value={deviceNote}
