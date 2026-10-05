@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.59 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.60 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -16591,6 +16591,156 @@ PRO-EFFEKT`,
         )
       : 0;
 
+  const selectedDeviceLifecycle = (() => {
+    if (!selectedDeviceView) {
+      return {
+        score: 0,
+        label: "Keine Bewertung",
+        className: "bg-slate-100 text-slate-600",
+        borderClassName: "border-slate-200 bg-slate-50",
+        reasons: [] as string[],
+        recommendations: [] as string[],
+        serviceEvents12m: 0,
+        partUsages12m: 0,
+        partCost12m: 0,
+        ageYears: 0,
+      };
+    }
+
+    const now = new Date();
+    const twelveMonthsAgo = new Date(now);
+    twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
+
+    const completedTickets12m = selectedDeviceCompletedTickets.filter((ticket) => {
+      const date = new Date(
+        ticket.completed_at || ticket.service_date || ticket.created_at || 0,
+      );
+      return !Number.isNaN(date.getTime()) && date >= twelveMonthsAgo;
+    });
+
+    const partUsages12m = selectedDevicePartUsages.filter((usage) => {
+      const date = new Date(usage.created_at || 0);
+      return !Number.isNaN(date.getTime()) && date >= twelveMonthsAgo;
+    });
+
+    const partCost12m = partUsages12m.reduce((sum, usage) => {
+      const part = serviceParts.find((item) => item.id === usage.part_id);
+      return (
+        sum +
+        Number(usage.quantity || 0) *
+          Number(part?.purchase_price || 0)
+      );
+    }, 0);
+
+    const createdAt = new Date(selectedDeviceView.created_at || 0);
+    const ageYears =
+      !Number.isNaN(createdAt.getTime()) && createdAt.getTime() > 0
+        ? Math.max(
+            0,
+            Math.round(
+              ((now.getTime() - createdAt.getTime()) /
+                (365.25 * 24 * 60 * 60 * 1000)) *
+                10,
+            ) / 10,
+          )
+        : 0;
+
+    let riskPoints = 0;
+    const reasons: string[] = [];
+    const recommendations: string[] = [];
+
+    if (selectedDeviceIsOverdue) {
+      riskPoints += 25;
+      reasons.push("Wartung oder Prüfung ist überfällig.");
+      recommendations.push("Fälligen Service kurzfristig einplanen.");
+    }
+
+    if (selectedDeviceOpenTickets.length >= 2) {
+      riskPoints += 20;
+      reasons.push(`${selectedDeviceOpenTickets.length} offene Tickets bestehen gleichzeitig.`);
+      recommendations.push("Offene Störungen bündeln und Ursachen prüfen.");
+    } else if (selectedDeviceOpenTickets.length === 1) {
+      riskPoints += 8;
+      reasons.push("Ein aktiver Servicefall ist offen.");
+    }
+
+    if (completedTickets12m.length >= 5) {
+      riskPoints += 30;
+      reasons.push(`${completedTickets12m.length} abgeschlossene Serviceeinsätze in den letzten 12 Monaten.`);
+      recommendations.push("Wiederholfehler und Austauschoption wirtschaftlich prüfen.");
+    } else if (completedTickets12m.length >= 3) {
+      riskPoints += 18;
+      reasons.push(`${completedTickets12m.length} Serviceeinsätze in den letzten 12 Monaten.`);
+      recommendations.push("Wiederkehrende Fehlerbilder in der Historie prüfen.");
+    } else if (completedTickets12m.length >= 1) {
+      riskPoints += 5;
+      reasons.push(`${completedTickets12m.length} Serviceeinsatz in den letzten 12 Monaten.`);
+    }
+
+    if (partUsages12m.length >= 5) {
+      riskPoints += 20;
+      reasons.push(`${partUsages12m.length} Ersatzteilverwendungen in den letzten 12 Monaten.`);
+      recommendations.push("Ersatzteilhäufigkeit und wirtschaftliche Reparaturgrenze prüfen.");
+    } else if (partUsages12m.length >= 3) {
+      riskPoints += 12;
+      reasons.push(`${partUsages12m.length} Ersatzteilverwendungen in den letzten 12 Monaten.`);
+    } else if (partUsages12m.length >= 1) {
+      riskPoints += 4;
+    }
+
+    if (String(selectedDeviceView.status || "").toLowerCase().includes("außer betrieb")) {
+      riskPoints += 30;
+      reasons.push("Serviceobjekt ist als außer Betrieb markiert.");
+      recommendations.push("Reparaturfreigabe oder Austauschentscheidung priorisieren.");
+    }
+
+    const lifecycleScore = Math.max(0, Math.min(100, 100 - riskPoints));
+
+    const status =
+      riskPoints >= 65
+        ? {
+            label: "Austausch prüfen",
+            className: "bg-red-100 text-red-700",
+            borderClassName: "border-red-200 bg-red-50",
+          }
+        : riskPoints >= 40
+          ? {
+              label: "Wartungsintensiv",
+              className: "bg-orange-100 text-orange-700",
+              borderClassName: "border-orange-200 bg-orange-50",
+            }
+          : riskPoints >= 20
+            ? {
+                label: "Beobachten",
+                className: "bg-amber-100 text-amber-700",
+                borderClassName: "border-amber-200 bg-amber-50",
+              }
+            : {
+                label: "Stabil",
+                className: "bg-emerald-100 text-emerald-700",
+                borderClassName: "border-emerald-200 bg-emerald-50",
+              };
+
+    if (reasons.length === 0) {
+      reasons.push("Keine auffällige Servicebelastung aus den vorhandenen Daten erkennbar.");
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push("Regulären Wartungs- und Prüfzyklus beibehalten.");
+    }
+
+    return {
+      score: lifecycleScore,
+      ...status,
+      reasons,
+      recommendations,
+      serviceEvents12m: completedTickets12m.length,
+      partUsages12m: partUsages12m.length,
+      partCost12m,
+      ageYears,
+    };
+  })();
+
   const standardPageHeaders: Record<string, { eyebrow: string; title: string; description: string }> = {
     Benachrichtigungen: {
       eyebrow: "Kommunikation",
@@ -23412,6 +23562,113 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     Noch kein Wartungsplan vorhanden.
                   </div>
                 )}
+              </div>
+
+              <div className={`mt-10 rounded-[18px] border p-4 shadow-sm sm:p-5 ${selectedDeviceLifecycle.borderClassName}`}>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
+                      TRYBUN Lifecycle Intelligence
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <h4 className="text-xl font-black text-slate-950">
+                        Lebenszyklus-Bewertung
+                      </h4>
+                      <span className={`rounded-full px-3 py-1.5 text-xs font-black ${selectedDeviceLifecycle.className}`}>
+                        {selectedDeviceLifecycle.label}
+                      </span>
+                    </div>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
+                      TRYBUN bewertet die bisherige Servicebelastung aus Wartungsfälligkeit, offenen Tickets, Servicehäufigkeit und Ersatzteilverwendungen. Die Bewertung ist eine Entscheidungshilfe und ersetzt keine technische oder kaufmännische Prüfung.
+                    </p>
+                  </div>
+
+                  <div className="w-full rounded-xl bg-white p-4 shadow-sm lg:w-56">
+                    <div className="flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold text-slate-500">Lifecycle Score</p>
+                        <p className="mt-1 text-3xl font-black text-slate-950">
+                          {selectedDeviceLifecycle.score}%
+                        </p>
+                      </div>
+                      <span className="text-xs font-black text-slate-400">100 = stabil</span>
+                    </div>
+                    <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className="h-full rounded-full bg-slate-900"
+                        style={{ width: `${selectedDeviceLifecycle.score}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl bg-white p-4">
+                    <p className="text-xs font-bold text-slate-500">Serviceeinsätze · 12 Monate</p>
+                    <p className="mt-1 text-2xl font-black text-slate-950">
+                      {selectedDeviceLifecycle.serviceEvents12m}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <p className="text-xs font-bold text-slate-500">Ersatzteilvorgänge · 12 Monate</p>
+                    <p className="mt-1 text-2xl font-black text-slate-950">
+                      {selectedDeviceLifecycle.partUsages12m}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <p className="text-xs font-bold text-slate-500">Ersatzteil-EK · 12 Monate</p>
+                    <p className="mt-1 text-2xl font-black text-slate-950">
+                      {selectedDeviceLifecycle.partCost12m > 0
+                        ? `${selectedDeviceLifecycle.partCost12m.toLocaleString("de-DE", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })} €`
+                        : "–"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <p className="text-xs font-bold text-slate-500">TRYBUN-Datenalter</p>
+                    <p className="mt-1 text-2xl font-black text-slate-950">
+                      {selectedDeviceLifecycle.ageYears > 0
+                        ? `${selectedDeviceLifecycle.ageYears.toLocaleString("de-DE")} J.`
+                        : "< 1 J."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                      Warum diese Bewertung?
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {selectedDeviceLifecycle.reasons.map((reason) => (
+                        <div key={reason} className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-700">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+                          <span>{reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                      Empfehlung
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {selectedDeviceLifecycle.recommendations.map((recommendation) => (
+                        <div key={recommendation} className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-700">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
+                          <span>{recommendation}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs font-semibold leading-5 text-slate-500">
+                  Grundlage sind ausschließlich die in TRYBUN dokumentierten Daten. Das angezeigte Alter beschreibt deshalb aktuell die Zeit seit Anlage des Serviceobjekts in TRYBUN und nicht zwingend das technische Baujahr.
+                </p>
               </div>
 
               <div className="mt-10 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
