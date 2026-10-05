@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.50 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.51 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -15523,6 +15523,66 @@ PRO-EFFEKT`,
     );
   }
 
+  const standardPageHeaders: Record<string, { eyebrow: string; title: string; description: string }> = {
+    Benachrichtigungen: {
+      eyebrow: "Kommunikation",
+      title: "Kommunikation",
+      description: "Nachrichten, Versandstatus und Kundenkommunikation zentral im Blick behalten.",
+    },
+    Rechnungen: {
+      eyebrow: "Dokumente",
+      title: "Rechnungen & Angebote",
+      description: "Angebote und Rechnungen erstellen, verwalten und den aktuellen Status überblicken.",
+    },
+    Dokumente: {
+      eyebrow: "Dokumente",
+      title: "Dokumentenarchiv",
+      description: "Dokumente zentral finden, erstellen, zuordnen und sicher archivieren.",
+    },
+    Kunden: {
+      eyebrow: "Stammdaten",
+      title: "Kunden",
+      description: "Geschäfts- und Privatkunden mit Kontakten, Adressen und Zuordnungen verwalten.",
+    },
+    Verträge: {
+      eyebrow: "Dokumente",
+      title: "Verträge",
+      description: "Serviceverträge, Laufzeiten, Wartungsintervalle und Konditionen verwalten.",
+    },
+    Wartungsplanung: {
+      eyebrow: "Service",
+      title: "Wartungsplanung",
+      description: "Fällige Wartungen, Intervalle und geplante Servicemaßnahmen übersichtlich steuern.",
+    },
+    "Service-Tickets": {
+      eyebrow: "Service",
+      title: "Service-Tickets",
+      description: "Tickets erfassen, priorisieren, disponieren und bis zum Abschluss begleiten.",
+    },
+    Kundenportal: {
+      eyebrow: "Serviceportal",
+      title: "Mein Servicebereich",
+      description: "Geräte, Tickets und Dokumente des eigenen Kundenbereichs auf einen Blick.",
+    },
+    Ersatzteile: {
+      eyebrow: "Lager",
+      title: "Ersatzteile",
+      description: "Ersatzteilbestand, Mindestbestände, Lagerorte und Verbrauch zentral verwalten.",
+    },
+    Prüfungen: {
+      eyebrow: "Service",
+      title: "Prüfungen & Prüfsiegel",
+      description: "Prüftermine, Prüfsiegel und Gültigkeiten für Kundengeräte verwalten.",
+    },
+    Einstellungen: {
+      eyebrow: "Management",
+      title: "Einstellungen",
+      description: "Benutzer, Rollen, Datenimporte und Firmeneinstellungen zentral verwalten.",
+    },
+  };
+
+  const standardPageHeader = standardPageHeaders[activePage] || null;
+
   return (
     <main className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-white lg:pb-0">
         <style>{`
@@ -15626,6 +15686,48 @@ PRO-EFFEKT`,
           .trybun-premium-ui .premium-readability,
           .trybun-premium-ui .premium-readability * {
             overflow-wrap: anywhere;
+          }
+
+          /* v4.12.51 · einheitliche Seitenköpfe und reduzierte Rundungen */
+          .trybun-premium-ui .trybun-page-header {
+            border-radius: 18px !important;
+            background-color: #07111d !important;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.09) !important;
+          }
+
+          .trybun-premium-ui [class*="rounded-[36px]"],
+          .trybun-premium-ui [class*="rounded-[34px]"],
+          .trybun-premium-ui [class*="rounded-[32px]"],
+          .trybun-premium-ui [class*="rounded-[30px]"],
+          .trybun-premium-ui [class*="rounded-[28px]"],
+          .trybun-premium-ui [class*="rounded-[26px]"],
+          .trybun-premium-ui [class*="rounded-[24px]"] {
+            border-radius: 16px !important;
+          }
+
+          .trybun-premium-ui .rounded-3xl {
+            border-radius: 16px !important;
+          }
+
+          .trybun-premium-ui .rounded-2xl {
+            border-radius: 12px !important;
+          }
+
+          .trybun-premium-ui .rounded-xl {
+            border-radius: 10px !important;
+          }
+
+          @media (max-width: 767px) {
+            .trybun-premium-ui .trybun-page-header {
+              border-radius: 16px !important;
+              padding: 1.15rem !important;
+            }
+
+            .trybun-premium-ui .trybun-page-header h2,
+            .trybun-premium-ui .trybun-page-header h3 {
+              font-size: 1.75rem !important;
+              line-height: 1.08 !important;
+            }
           }
 
           /* v4.12.48 · ruhige Premium-Veredelung ohne Strukturänderung */
@@ -16174,50 +16276,23 @@ PRO-EFFEKT`,
             </div>
           )}
 
-          {(["Service-Tickets", "Kunden", "Geräte", "Gerätebestand", "Ersatzteile", "QR-Scan", "Rechnungen", "Verträge", "Einstellungen"].includes(activePage)) && (
-            <div className="mb-6 rounded-[32px] bg-[#07111d] p-5 text-white shadow-sm lg:hidden">
+          {standardPageHeader && (
+            <div className="trybun-page-header mb-6 border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
-                {activePage === "Service-Tickets"
-                  ? "Service"
-                  : activePage === "Kunden"
-                    ? "Stammdaten"
-                    : activePage === "Geräte"
-                      ? "Lager"
-                    : activePage === "Gerätebestand"
-                      ? "Lager"
-                    : activePage === "Ersatzteile"
-                      ? "Lager"
-                    : activePage === "QR-Scan"
-                      ? "Lager"
-                      : activePage === "Einstellungen"
-                        ? "Verwaltung"
-                        : "Dokumente"}
+                {standardPageHeader.eyebrow}
               </p>
               <h2 className="mt-2 text-3xl font-black leading-tight">
-                {activePage === "Service-Tickets"
-                  ? "Service-Tickets"
-                  : activePage === "Kunden"
-                    ? "Kunden"
-                    : activePage === "Geräte"
-                      ? "Modelle"
-                    : activePage === "Gerätebestand"
-                      ? "Gerätebestand"
-                    : activePage === "Ersatzteile"
-                      ? "Ersatzteile"
-                    : activePage === "QR-Scan"
-                      ? "QR-Scan"
-                      : activePage === "Rechnungen"
-                        ? "Rechnungen"
-                        : activePage === "Verträge"
-                          ? "Verträge"
-                          : "Einstellungen"}
+                {standardPageHeader.title}
               </h2>
+              <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
+                {standardPageHeader.description}
+              </p>
             </div>
           )}
 
           {activePage === "Dashboard" && (
             <div className="space-y-6">
-<div className="overflow-hidden rounded-[32px] border border-slate-800 bg-slate-950 p-4 text-white shadow-xl shadow-slate-950/20 sm:p-6">
+<div className="trybun-page-header overflow-hidden border border-slate-800 bg-slate-950 p-4 text-white shadow-xl shadow-slate-950/20 sm:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <p className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-400">
@@ -16965,7 +17040,7 @@ PRO-EFFEKT`,
 
           {activePage === "Kalender" && (
             <div className="space-y-6">
-              <div className="overflow-hidden rounded-[34px] bg-[#07111d] text-white shadow-xl">
+              <div className="trybun-page-header overflow-hidden bg-[#07111d] text-white shadow-xl">
                 <div className="p-6 md:p-8">
                   <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                     <div>
@@ -17446,9 +17521,6 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
 
 
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gesamt" value={notifications.length} />
@@ -18220,9 +18292,6 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
           {activePage === "Rechnungen" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Gesamt" value={visibleInvoices.length} />
@@ -18474,7 +18543,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
               <div className="rounded-[28px] bg-white p-4 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-xl font-black">Dokumente</h3>
+                    <h3 className="text-xl font-black">Archiv & Kategorien</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
                       Kompakte Archivansicht mit Kategorien, Suche und aufklappbaren Details.
                     </p>
@@ -19849,7 +19918,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
               </div>
 
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Firmenauftritt
                 </p>
@@ -20000,11 +20069,8 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
           {activePage === "Auswertungen" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
 
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Business Dashboard
                 </p>
@@ -20850,7 +20916,7 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
 
                     {activePage === "Geräte" && !selectedDeviceView && (isAdmin || isTechnician) && (
             <div className="space-y-6">
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
@@ -22079,9 +22145,6 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
 
           {activePage === "Verträge" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Verträge gesamt" value={contracts.length} />
@@ -22380,7 +22443,7 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
 
           {activePage === "Abnahmeprotokoll" && (
             <div className="space-y-6">
-              <div className="overflow-hidden rounded-[32px] bg-[#07111d] p-6 text-white shadow-xl md:p-8">
+              <div className="trybun-page-header overflow-hidden bg-[#07111d] p-6 text-white shadow-xl md:p-8">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                   <div>
                     <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
@@ -22698,9 +22761,6 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
           {activePage === "Wartungsplanung" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
 
               <div className="grid gap-4 md:grid-cols-5">
                 <StatCard label="Sicherheitsprüfung/Wartungen gesamt" value={maintenancePlans.length} />
@@ -22973,7 +23033,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
           {activePage === "Einsatz" && (
             isAdmin ? (
             <div className="space-y-6 pb-24">
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Einsatzplanung
                 </p>
@@ -23306,7 +23366,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
             </div>
             ) : (
             <div className="space-y-5 pb-24">
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Mobile Techniker Premium
                 </p>
@@ -23754,11 +23814,8 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
           {activePage === "QR-Scan" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                TRYBUN · Betriebsbereit
-              </div>
 
-              <div className="rounded-[32px] bg-[#07111d] p-6 text-white shadow-sm">
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <div className="mb-5">
                   <SoftwareLogo />
                 </div>
@@ -25288,7 +25345,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
                     {activePage === "Gerätebestand" && (
             <div className="space-y-6">
-              <div className="rounded-[28px] bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
+              <div className="trybun-page-header bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Lager</p>
                 <h2 className="mt-2 text-3xl font-black">Gerätebestand</h2>
                 <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Lagerfähige Verkaufsgeräte nach Hersteller und Modell verwalten. Kundengeräte mit Seriennummer bleiben davon getrennt.</p>
@@ -25328,9 +25385,6 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
 {activePage === "Ersatzteile" && (
             <div className="space-y-6">
-              <div className="rounded-[24px] border-2 border-sky-500 bg-sky-50 p-4 text-sm font-black text-sky-700">
-                Ersatzteilverwaltung
-              </div>
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard
                   label="Ersatzteile aktiv"
