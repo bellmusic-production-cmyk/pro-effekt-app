@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.46 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.47 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -15527,47 +15527,24 @@ PRO-EFFEKT`,
     <main className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-slate-100 lg:pb-0">
         <style>{`
           .trybun-premium-ui {
-            --trybun-ink: #0b1320;
-            --trybun-navy: #07111d;
-            --trybun-navy-2: #0b1726;
-            --trybun-blue: #1677c8;
-            --trybun-blue-bright: #38a9f3;
-            --trybun-cyan: #21c7e8;
-            --trybun-line: rgba(148, 163, 184, 0.22);
-            --trybun-line-strong: rgba(148, 163, 184, 0.34);
-            --trybun-surface: rgba(255, 255, 255, 0.94);
-            --trybun-surface-soft: rgba(248, 250, 252, 0.92);
-            --trybun-shadow: 0 18px 50px rgba(15, 23, 42, 0.09), 0 2px 8px rgba(15, 23, 42, 0.04);
-            --trybun-shadow-hover: 0 24px 64px rgba(15, 23, 42, 0.13), 0 4px 14px rgba(15, 23, 42, 0.06);
-            --trybun-ring: 0 0 0 4px rgba(56, 169, 243, 0.14);
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            color: var(--trybun-ink);
             text-rendering: optimizeLegibility;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             font-variant-numeric: tabular-nums;
-            background:
-              radial-gradient(circle at 76% 0%, rgba(56, 169, 243, 0.08), transparent 30rem),
-              radial-gradient(circle at 30% 100%, rgba(33, 199, 232, 0.055), transparent 32rem),
-              #f4f7fb;
           }
 
-          .trybun-premium-ui * { box-sizing: border-box; }
-          .trybun-premium-ui ::selection { background: rgba(56, 169, 243, 0.2); color: #07111d; }
+          .trybun-premium-ui * {
+            box-sizing: border-box;
+          }
 
           .trybun-premium-ui h1,
           .trybun-premium-ui h2,
           .trybun-premium-ui h3,
-          .trybun-premium-ui h4,
           .trybun-premium-ui .fe-login-brand {
-            letter-spacing: -0.04em;
+            letter-spacing: -0.035em;
             line-height: 1.08;
-            text-wrap: balance;
           }
-
-          .trybun-premium-ui h1 { font-weight: 950; }
-          .trybun-premium-ui h2,
-          .trybun-premium-ui h3 { font-weight: 900; }
 
           .trybun-premium-ui p,
           .trybun-premium-ui label,
@@ -15581,23 +15558,13 @@ PRO-EFFEKT`,
           }
 
           .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-          .trybun-premium-ui select,
-          .trybun-premium-ui textarea {
-            border-color: rgba(148, 163, 184, 0.34) !important;
-            background-color: rgba(255, 255, 255, 0.96) !important;
-            color: #0f172a !important;
-            box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.025), 0 1px 2px rgba(15, 23, 42, 0.02);
-            transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease, transform .18s ease;
-          }
-
-          .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
           .trybun-premium-ui select {
-            min-height: 52px !important;
+            min-height: 50px !important;
             line-height: 1.35 !important;
             padding-top: 0.82rem !important;
             padding-bottom: 0.82rem !important;
             font-size: 15px !important;
-            font-weight: 680 !important;
+            font-weight: 650 !important;
             letter-spacing: -0.012em;
             overflow: visible;
           }
@@ -15608,28 +15575,9 @@ PRO-EFFEKT`,
             padding-top: 0.95rem !important;
             padding-bottom: 0.95rem !important;
             font-size: 15px !important;
-            font-weight: 620 !important;
+            font-weight: 600 !important;
             letter-spacing: -0.01em;
-            resize: vertical;
           }
-
-          .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
-          .trybun-premium-ui select:hover,
-          .trybun-premium-ui textarea:hover {
-            border-color: rgba(100, 116, 139, 0.48) !important;
-          }
-
-          .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
-          .trybun-premium-ui select:focus,
-          .trybun-premium-ui textarea:focus {
-            outline: none !important;
-            border-color: rgba(22, 119, 200, 0.72) !important;
-            box-shadow: var(--trybun-ring), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
-            background-color: #fff !important;
-          }
-
-          .trybun-premium-ui input::placeholder,
-          .trybun-premium-ui textarea::placeholder { color: #94a3b8; opacity: 1; }
 
           .trybun-premium-ui select {
             padding-right: 2.75rem !important;
@@ -15649,153 +15597,67 @@ PRO-EFFEKT`,
           .trybun-premium-ui summary {
             line-height: 1.2;
             letter-spacing: -0.012em;
-            transition: transform .16s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease, color .18s ease, opacity .18s ease;
-          }
-
-          .trybun-premium-ui button:not(:disabled):active { transform: translateY(1px) scale(.992); }
-          .trybun-premium-ui button:focus-visible,
-          .trybun-premium-ui summary:focus-visible {
-            outline: none;
-            box-shadow: var(--trybun-ring);
-          }
-          .trybun-premium-ui button:disabled { cursor: not-allowed; filter: saturate(.65); }
-
-          .trybun-premium-ui button[class*="bg-sky-"],
-          .trybun-premium-ui button[class*="bg-cyan-"],
-          .trybun-premium-ui button[class*="bg-blue-"],
-          .trybun-premium-ui button[class*="bg-indigo-"] {
-            box-shadow: 0 9px 24px rgba(14, 116, 190, 0.16);
-          }
-          .trybun-premium-ui button[class*="bg-emerald-"],
-          .trybun-premium-ui button[class*="bg-green-"] {
-            box-shadow: 0 9px 22px rgba(5, 150, 105, 0.13);
-          }
-          .trybun-premium-ui button[class*="bg-red-"] { box-shadow: 0 9px 22px rgba(220, 38, 38, 0.1); }
-
-          .trybun-premium-ui aside {
-            background:
-              radial-gradient(circle at 50% -10%, rgba(56, 169, 243, 0.14), transparent 22rem),
-              linear-gradient(180deg, #08131f 0%, #07111d 52%, #050c15 100%) !important;
-            border-right-color: rgba(148, 163, 184, 0.12) !important;
-            box-shadow: 20px 0 50px rgba(2, 8, 23, 0.08);
           }
 
           .trybun-premium-ui aside button,
-          .trybun-premium-ui aside summary { min-height: 52px; }
+          .trybun-premium-ui aside summary {
+            min-height: 52px;
+          }
+
           .trybun-premium-ui aside nav button,
-          .trybun-premium-ui aside nav summary { font-size: 14px; }
-          .trybun-premium-ui aside nav span { line-height: 1.25; }
-
-          .trybun-premium-ui aside nav button:hover,
-          .trybun-premium-ui aside nav summary:hover {
-            transform: translateX(2px);
+          .trybun-premium-ui aside nav summary {
+            font-size: 14px;
           }
 
-          .trybun-premium-ui [class*="rounded-[24px]"][class*="bg-white"],
-          .trybun-premium-ui [class*="rounded-[28px]"][class*="bg-white"],
-          .trybun-premium-ui [class*="rounded-[30px]"][class*="bg-white"],
-          .trybun-premium-ui [class*="rounded-[32px]"][class*="bg-white"],
-          .trybun-premium-ui [class*="rounded-[34px]"][class*="bg-white"] {
-            border-color: var(--trybun-line) !important;
-            background: var(--trybun-surface) !important;
-            box-shadow: var(--trybun-shadow) !important;
-            backdrop-filter: blur(14px);
-          }
-
-          .trybun-premium-ui [class*="rounded-[24px]"][class*="bg-slate-50"],
-          .trybun-premium-ui [class*="rounded-[28px]"][class*="bg-slate-50"],
-          .trybun-premium-ui [class*="rounded-[32px]"][class*="bg-slate-50"] {
-            border-color: rgba(148, 163, 184, 0.20) !important;
-            background: linear-gradient(180deg, rgba(248,250,252,.96), rgba(241,245,249,.84)) !important;
-          }
-
-          .trybun-premium-ui [class*="bg-[#07111d]"],
-          .trybun-premium-ui [class*="bg-slate-950"] {
-            background-image:
-              radial-gradient(circle at 90% -10%, rgba(56, 169, 243, 0.12), transparent 18rem),
-              linear-gradient(135deg, #07111d 0%, #0a1827 62%, #07111d 100%);
+          .trybun-premium-ui aside nav span {
+            line-height: 1.25;
           }
 
           .trybun-premium-ui table {
             font-size: 14px;
             line-height: 1.45;
-            border-collapse: separate;
-            border-spacing: 0;
           }
+
           .trybun-premium-ui th,
-          .trybun-premium-ui td { vertical-align: middle; }
-          .trybun-premium-ui thead th {
-            color: #64748b;
-            letter-spacing: .07em;
-            border-bottom: 1px solid rgba(148,163,184,.22);
+          .trybun-premium-ui td {
+            vertical-align: middle;
           }
-          .trybun-premium-ui tbody tr { transition: background-color .16s ease; }
-          .trybun-premium-ui tbody tr:hover { background-color: rgba(241, 245, 249, .72); }
 
-          .trybun-premium-ui details[open] > summary { color: #0f172a; }
           .trybun-premium-ui .premium-readability,
-          .trybun-premium-ui .premium-readability * { overflow-wrap: anywhere; }
-
-          .trybun-premium-ui ::-webkit-scrollbar { width: 10px; height: 10px; }
-          .trybun-premium-ui ::-webkit-scrollbar-track { background: transparent; }
-          .trybun-premium-ui ::-webkit-scrollbar-thumb {
-            background: rgba(100, 116, 139, .3);
-            border: 3px solid transparent;
-            background-clip: padding-box;
-            border-radius: 999px;
-          }
-          .trybun-premium-ui ::-webkit-scrollbar-thumb:hover { background-color: rgba(71, 85, 105, .42); }
-
-          @media (hover: hover) and (pointer: fine) {
-            .trybun-premium-ui [class*="rounded-[24px]"][class*="bg-white"].transition:hover,
-            .trybun-premium-ui [class*="rounded-[28px]"][class*="bg-white"].transition:hover,
-            .trybun-premium-ui [class*="rounded-[32px]"][class*="bg-white"].transition:hover {
-              box-shadow: var(--trybun-shadow-hover) !important;
-            }
+          .trybun-premium-ui .premium-readability * {
+            overflow-wrap: anywhere;
           }
 
           @media (min-width: 1024px) {
-            .trybun-premium-ui { letter-spacing: -0.006em; }
-            .trybun-premium-ui main,
-            .trybun-premium-ui section { scroll-behavior: smooth; }
-            .trybun-premium-ui > div > section {
-              background:
-                radial-gradient(circle at 82% 0%, rgba(56, 169, 243, .055), transparent 30rem),
-                #f4f7fb;
+            .trybun-premium-ui {
+              letter-spacing: -0.006em;
             }
+
+            .trybun-premium-ui main,
+            .trybun-premium-ui section {
+              scroll-behavior: smooth;
+            }
+
             .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-            .trybun-premium-ui select { min-height: 52px !important; font-size: 15px !important; }
-            .trybun-premium-ui textarea { font-size: 15px !important; }
+            .trybun-premium-ui select {
+              min-height: 52px !important;
+              font-size: 15px !important;
+            }
+
+            .trybun-premium-ui textarea {
+              font-size: 15px !important;
+            }
           }
 
           @media (max-width: 767px) {
-            .trybun-premium-ui {
-              background: #07111d;
-              letter-spacing: -0.004em;
-            }
             .trybun-premium-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-            .trybun-premium-ui select { min-height: 50px !important; font-size: 14px !important; }
-            .trybun-premium-ui textarea { font-size: 14px !important; }
-            .trybun-premium-ui [class*="rounded-[24px]"][class*="bg-white"],
-            .trybun-premium-ui [class*="rounded-[28px]"][class*="bg-white"],
-            .trybun-premium-ui [class*="rounded-[30px]"][class*="bg-white"],
-            .trybun-premium-ui [class*="rounded-[32px]"][class*="bg-white"],
-            .trybun-premium-ui [class*="rounded-[34px]"][class*="bg-white"] {
-              box-shadow: 0 10px 30px rgba(15, 23, 42, .075) !important;
-              backdrop-filter: none;
+            .trybun-premium-ui select {
+              min-height: 48px !important;
+              font-size: 14px !important;
             }
-            .trybun-premium-ui button { min-height: 46px; }
-            .trybun-premium-ui table { font-size: 13px; }
-          }
 
-          @media (prefers-reduced-motion: reduce) {
-            .trybun-premium-ui *,
-            .trybun-premium-ui *::before,
-            .trybun-premium-ui *::after {
-              scroll-behavior: auto !important;
-              transition-duration: .01ms !important;
-              animation-duration: .01ms !important;
-              animation-iteration-count: 1 !important;
+            .trybun-premium-ui textarea {
+              font-size: 14px !important;
             }
           }
         `}</style>
