@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.83 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.84 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -205,6 +205,21 @@ type CustomerLibraryDeviceDraft = {
   modelId: string;
   serial: string;
   location: string;
+  note: string;
+};
+
+type CustomerStockDeviceDraft = {
+  key: string;
+  modelId: string;
+  serial: string;
+  location: string;
+  note: string;
+};
+
+type CustomerPartReservationDraft = {
+  key: string;
+  partId: string;
+  quantity: string;
   note: string;
 };
 
@@ -1550,6 +1565,11 @@ export default function Home() {
   const [customerContact2Phone, setCustomerContact2Phone] = useState("");
   const [assignedDeviceIds, setAssignedDeviceIds] = useState<string[]>([]);
   const [customerAssignedLibraryModels, setCustomerAssignedLibraryModels] = useState<CustomerLibraryDeviceDraft[]>([]);
+  const [customerAssignedStockModels, setCustomerAssignedStockModels] = useState<CustomerStockDeviceDraft[]>([]);
+  const [customerPartReservations, setCustomerPartReservations] = useState<CustomerPartReservationDraft[]>([]);
+  const [customerAssignMode, setCustomerAssignMode] = useState<"models" | "stock" | "parts">("models");
+  const [customerAssignManufacturerFilter, setCustomerAssignManufacturerFilter] = useState("Alle");
+  const [customerAssignCategoryFilter, setCustomerAssignCategoryFilter] = useState("Alle");
   const [customerDeviceAssignSearch, setCustomerDeviceAssignSearch] = useState("");
 
   const [partName, setPartName] = useState("");
@@ -6469,6 +6489,11 @@ async function loadApplicationData(userIdOverride?: string) {
     setCustomerContact2Phone("");
     setAssignedDeviceIds([]);
     setCustomerAssignedLibraryModels([]);
+    setCustomerAssignedStockModels([]);
+    setCustomerPartReservations([]);
+    setCustomerAssignMode("models");
+    setCustomerAssignManufacturerFilter("Alle");
+    setCustomerAssignCategoryFilter("Alle");
     setCustomerDeviceAssignSearch("");
   }
 
@@ -6584,6 +6609,13 @@ async function loadApplicationData(userIdOverride?: string) {
         .filter((deviceItem) => deviceItem.customer_id === item.id)
         .map((deviceItem) => String(deviceItem.id)),
     );
+    setCustomerAssignedLibraryModels([]);
+    setCustomerAssignedStockModels([]);
+    setCustomerAssignMode("models");
+    setCustomerAssignManufacturerFilter("Alle");
+    setCustomerAssignCategoryFilter("Alle");
+    setCustomerDeviceAssignSearch("");
+    void loadCustomerPartReservations(item.id);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -8469,6 +8501,16 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     await createCustomerDevicesFromLibrary(data.id);
 
+    const stockAssignmentOk = await createCustomerDevicesFromStock(data.id);
+    const partReservationOk = await saveCustomerPartReservations(data.id);
+
+    if (!stockAssignmentOk || !partReservationOk) {
+      customerSavingRef.current = false;
+      setCustomerSaving(false);
+      await Promise.all([loadCustomers(), loadDevices(), loadDeviceModels(), loadServiceParts()]);
+      return;
+    }
+
     resetCustomerForm();
     await loadCustomers();
     await loadDevices();
@@ -8547,9 +8589,16 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
     await createCustomerDevicesFromLibrary(editingCustomer.id);
 
+    const stockAssignmentOk = await createCustomerDevicesFromStock(editingCustomer.id);
+    const partReservationOk = await saveCustomerPartReservations(editingCustomer.id);
+
+    if (!stockAssignmentOk || !partReservationOk) {
+      await Promise.all([loadCustomers(), loadDevices(), loadDeviceModels(), loadServiceParts()]);
+      return;
+    }
+
     resetCustomerForm();
-    await loadCustomers();
-    await loadDevices();
+    await Promise.all([loadCustomers(), loadDevices(), loadDeviceModels(), loadServiceParts()]);
   }
 
   async function deleteCustomer(customerId: number) {
@@ -10070,6 +10119,158 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
     setDevice("");
     setCustomDeviceName("");
+  }
+
+  async function loadCustomerPartReservations(customerId: number) {
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) return;
+
+    const { data, error } = await supabase
+      .from("customer_part_reservations")
+      .select("id, part_id, quantity, note")
+      .eq("company_id", currentCompany.id)
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Kundenmaterial konnte nicht geladen werden:", error.message);
+      setCustomerPartReservations([]);
+      return;
+    }
+
+    setCustomerPartReservations(
+      (data || []).map((item: any) => ({
+        key: `saved-${item.id}`,
+        partId: String(item.part_id),
+        quantity: String(item.quantity || 1),
+        note: item.note || "",
+      })),
+    );
+  }
+
+  function addCustomerStockModel(modelItem: DeviceModel) {
+    if (Number(modelItem.stock || 0) <= 0) {
+      alert("Dieses Gerät ist aktuell nicht auf Lager.");
+      return;
+    }
+
+    const alreadyQueued = customerAssignedStockModels.filter(
+      (item) => String(item.modelId) === String(modelItem.id),
+    ).length;
+
+    if (alreadyQueued >= Number(modelItem.stock || 0)) {
+      alert("Die ausgewählte Menge entspricht bereits dem verfügbaren Bestand.");
+      return;
+    }
+
+    setCustomerAssignedStockModels((prev) => [
+      ...prev,
+      {
+        key: `stock-${modelItem.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        modelId: String(modelItem.id),
+        serial: "",
+        location: "",
+        note: "",
+      },
+    ]);
+  }
+
+  function updateCustomerStockDraft(key: string, patch: Partial<CustomerStockDeviceDraft>) {
+    setCustomerAssignedStockModels((prev) =>
+      prev.map((item) => (item.key === key ? { ...item, ...patch } : item)),
+    );
+  }
+
+  function removeCustomerStockDraft(key: string) {
+    setCustomerAssignedStockModels((prev) => prev.filter((item) => item.key !== key));
+  }
+
+  function addCustomerPartReservation(part: SparePart) {
+    if (customerPartReservations.some((item) => String(item.partId) === String(part.id))) return;
+
+    setCustomerPartReservations((prev) => [
+      ...prev,
+      {
+        key: `part-${part.id}-${Date.now()}`,
+        partId: String(part.id),
+        quantity: "1",
+        note: "",
+      },
+    ]);
+  }
+
+  function updateCustomerPartReservation(
+    key: string,
+    patch: Partial<CustomerPartReservationDraft>,
+  ) {
+    setCustomerPartReservations((prev) =>
+      prev.map((item) => (item.key === key ? { ...item, ...patch } : item)),
+    );
+  }
+
+  function removeCustomerPartReservation(key: string) {
+    setCustomerPartReservations((prev) => prev.filter((item) => item.key !== key));
+  }
+
+  async function createCustomerDevicesFromStock(customerId: number) {
+    if (customerAssignedStockModels.length === 0) return true;
+
+    for (const draft of customerAssignedStockModels) {
+      const { error } = await supabase.rpc("assign_device_stock_to_customer", {
+        p_customer_id: customerId,
+        p_model_id: Number(draft.modelId),
+        p_serial: draft.serial.trim() || null,
+        p_location: draft.location.trim() || null,
+        p_note: draft.note.trim() || null,
+      });
+
+      if (error) {
+        alert(`Gerät aus dem Bestand konnte nicht zugeordnet werden: ${error.message}`);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  async function saveCustomerPartReservations(customerId: number) {
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) return false;
+
+    const { error: deleteError } = await supabase
+      .from("customer_part_reservations")
+      .delete()
+      .eq("company_id", currentCompany.id)
+      .eq("customer_id", customerId);
+
+    if (deleteError) {
+      alert(`Kundenmaterial konnte nicht aktualisiert werden: ${deleteError.message}`);
+      return false;
+    }
+
+    const rows = customerPartReservations
+      .map((item) => {
+        const quantity = Math.max(1, Number(String(item.quantity).replace(",", ".")) || 1);
+        return {
+          company_id: currentCompany.id,
+          customer_id: customerId,
+          part_id: Number(item.partId),
+          quantity,
+          note: item.note.trim() || null,
+        };
+      })
+      .filter((item) => Number.isFinite(item.part_id) && item.part_id > 0);
+
+    if (rows.length === 0) return true;
+
+    const { error } = await supabase.from("customer_part_reservations").insert(rows);
+
+    if (error) {
+      alert(`Kundenmaterial konnte nicht gespeichert werden: ${error.message}`);
+      return false;
+    }
+
+    return true;
   }
 
   function addCustomerLibraryModel(modelItem: DeviceModel) {
@@ -18181,31 +18382,145 @@ ${tenantBrandName}`,
     assignedDeviceIds.includes(String(deviceItem.id)),
   );
 
-  const customerDeviceAssignResults = (() => {
-    const search = customerDeviceAssignSearch.trim().toLowerCase();
+  const customerAssignManufacturerOptions = (() => {
+    const ids = new Set<number>();
 
-    if (!search || search.length < 2) return [];
+    if (customerAssignMode === "parts") {
+      activeServiceParts.forEach((item) => {
+        if (item.manufacturer_id) ids.add(item.manufacturer_id);
+      });
+    } else {
+      deviceModels.forEach((item) => {
+        if (item.manufacturer_id) ids.add(item.manufacturer_id);
+      });
+    }
+
+    return Array.from(ids)
+      .map((id) => ({ id, name: getManufacturerNameById(id) || "Hersteller unbekannt" }))
+      .sort((a, b) => a.name.localeCompare(b.name, "de"));
+  })();
+
+  const customerAssignCategoryOptions = (() => {
+    const values = new Set<string>();
+
+    if (customerAssignMode === "parts") {
+      activeServiceParts.forEach((item) => {
+        if (item.category?.trim()) values.add(item.category.trim());
+      });
+    } else {
+      deviceModels.forEach((item) => {
+        const value = getDeviceModelTypeName(item) || item.category;
+        if (value?.trim()) values.add(value.trim());
+      });
+    }
+
+    return Array.from(values).sort((a, b) => a.localeCompare(b, "de"));
+  })();
+
+  const customerModelAssignResults = (() => {
+    const search = customerDeviceAssignSearch.trim().toLowerCase();
 
     return deviceModels
       .filter((modelItem) => {
-        const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id);
+        if (
+          customerAssignManufacturerFilter !== "Alle" &&
+          String(modelItem.manufacturer_id || "") !== customerAssignManufacturerFilter
+        ) return false;
 
-        const searchText = [
-          manufacturerName,
-          getDeviceModelTypeName(modelItem),
+        const typeName = getDeviceModelTypeName(modelItem) || modelItem.category || "";
+        if (
+          customerAssignCategoryFilter !== "Alle" &&
+          typeName !== customerAssignCategoryFilter
+        ) return false;
+
+        if (!search) return true;
+
+        return [
+          getManufacturerNameById(modelItem.manufacturer_id),
+          typeName,
           getDeviceModelDisplayName(modelItem),
-          modelItem.category,
           modelItem.source,
           modelItem.note,
         ]
           .filter(Boolean)
           .join(" ")
-          .toLowerCase();
-
-        return searchText.includes(search);
+          .toLowerCase()
+          .includes(search);
       })
-      .sort((a, b) => getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"))
-      .slice(0, 25);
+      .sort((a, b) =>
+        getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"),
+      )
+      .slice(0, 30);
+  })();
+
+  const customerStockAssignResults = (() => {
+    const search = customerDeviceAssignSearch.trim().toLowerCase();
+
+    return deviceModels
+      .filter((modelItem) => Boolean(modelItem.is_stocked) && Number(modelItem.stock || 0) > 0)
+      .filter((modelItem) => {
+        if (
+          customerAssignManufacturerFilter !== "Alle" &&
+          String(modelItem.manufacturer_id || "") !== customerAssignManufacturerFilter
+        ) return false;
+
+        const typeName = getDeviceModelTypeName(modelItem) || modelItem.category || "";
+        if (
+          customerAssignCategoryFilter !== "Alle" &&
+          typeName !== customerAssignCategoryFilter
+        ) return false;
+
+        if (!search) return true;
+
+        return [
+          getManufacturerNameById(modelItem.manufacturer_id),
+          typeName,
+          getDeviceModelDisplayName(modelItem),
+          modelItem.storage_location,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .sort((a, b) =>
+        getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"),
+      )
+      .slice(0, 30);
+  })();
+
+  const customerPartAssignResults = (() => {
+    const search = customerDeviceAssignSearch.trim().toLowerCase();
+
+    return activeServiceParts
+      .filter((part) => {
+        if (
+          customerAssignManufacturerFilter !== "Alle" &&
+          String(part.manufacturer_id || "") !== customerAssignManufacturerFilter
+        ) return false;
+
+        if (
+          customerAssignCategoryFilter !== "Alle" &&
+          (part.category || "") !== customerAssignCategoryFilter
+        ) return false;
+
+        if (!search) return true;
+
+        return [
+          part.name,
+          part.sku,
+          part.category,
+          getManufacturerNameById(part.manufacturer_id),
+          part.manufacturer_part_number,
+          part.storage_location,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(search);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "de"))
+      .slice(0, 30);
   })();
 
 
@@ -24967,83 +25282,134 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   />
 
                   
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="rounded-[14px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
-                        <h4 className="text-lg font-black text-slate-900">
-                          Geräte diesem Kunden zuweisen
+                        <h4 className="text-lg font-bold text-slate-950">
+                          Produkte diesem Kunden zuweisen
                         </h4>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
-                          Suche in Hersteller & Modelle. Beim Zuordnen zum Kunden wird daraus ein eigenes Kundengerät mit eigener Seriennummer.
+                        <p className="mt-1 max-w-3xl text-sm font-medium leading-6 text-slate-600">
+                          Durchsuchen Sie Modellbibliothek, verfügbaren Gerätebestand oder Ersatzteile.
+                          Mehrfachauswahl ist möglich.
                         </p>
                       </div>
 
-                      <span className="rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-sky-600">
-                        {assignedDeviceIds.length + customerAssignedLibraryModels.length} ausgewählt
+                      <span className="w-fit rounded-[8px] border border-sky-100 bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700">
+                        {assignedDeviceIds.length +
+                          customerAssignedLibraryModels.length +
+                          customerAssignedStockModels.length +
+                          customerPartReservations.length} ausgewählt
                       </span>
                     </div>
 
-                    <input
-                      value={customerDeviceAssignSearch}
-                      onChange={(event) => setCustomerDeviceAssignSearch(event.target.value)}
-                      type="search"
-autoComplete="off"
-autoCorrect="off"
-spellCheck={false}
-enterKeyHint="search"
-name="trybun-customer-device-library-query"
-placeholder="Modelle suchen: Hersteller, Kategorie, Modellbezeichnung"
-                      className="mt-4 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-sky-500"
-                    />
+                    <div className="mt-4 grid grid-cols-3 gap-2 rounded-[10px] border border-slate-200 bg-white p-1.5">
+                      {[
+                        { key: "models", label: "Modelle" },
+                        { key: "stock", label: "Gerätebestand" },
+                        { key: "parts", label: "Ersatzteile" },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => {
+                            setCustomerAssignMode(item.key as "models" | "stock" | "parts");
+                            setCustomerAssignManufacturerFilter("Alle");
+                            setCustomerAssignCategoryFilter("Alle");
+                            setCustomerDeviceAssignSearch("");
+                          }}
+                          className={`min-h-[42px] rounded-[8px] px-2 py-2 text-xs font-bold transition sm:text-sm ${
+                            customerAssignMode === item.key
+                              ? "bg-slate-950 text-white shadow-sm"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
 
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-black text-slate-700">
-                          Ausgewählte Kundengeräte
-                        </p>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_0.8fr_1.4fr]">
+                      <select
+                        value={customerAssignManufacturerFilter}
+                        onChange={(event) => setCustomerAssignManufacturerFilter(event.target.value)}
+                        className="min-h-[46px] rounded-[9px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-sky-500"
+                      >
+                        <option value="Alle">Alle Hersteller</option>
+                        {customerAssignManufacturerOptions.map((item) => (
+                          <option key={item.id} value={String(item.id)}>{item.name}</option>
+                        ))}
+                      </select>
 
-                        {(assignedDeviceIds.length > 0 || customerAssignedLibraryModels.length > 0) && (
+                      <select
+                        value={customerAssignCategoryFilter}
+                        onChange={(event) => setCustomerAssignCategoryFilter(event.target.value)}
+                        className="min-h-[46px] rounded-[9px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-sky-500"
+                      >
+                        <option value="Alle">Alle Kategorien / Typen</option>
+                        {customerAssignCategoryOptions.map((item) => (
+                          <option key={item} value={item}>{item}</option>
+                        ))}
+                      </select>
+
+                      <input
+                        value={customerDeviceAssignSearch}
+                        onChange={(event) => setCustomerDeviceAssignSearch(event.target.value)}
+                        type="search"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        enterKeyHint="search"
+                        name="trybun-customer-product-query"
+                        placeholder={
+                          customerAssignMode === "parts"
+                            ? "Ersatzteil, Artikelnummer oder Lagerort suchen"
+                            : customerAssignMode === "stock"
+                              ? "Gerät, Modell oder Lagerort suchen"
+                              : "Hersteller, Kategorie oder Modell suchen"
+                        }
+                        className="min-h-[46px] w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500"
+                      />
+                    </div>
+
+                    <p className="mt-3 text-xs font-medium leading-5 text-slate-500">
+                      Sie müssen keinen Suchbegriff kennen: Ohne Eingabe werden passende Einträge direkt angezeigt.
+                    </p>
+
+                    {(assignedDeviceIds.length > 0 ||
+                      customerAssignedLibraryModels.length > 0 ||
+                      customerAssignedStockModels.length > 0 ||
+                      customerPartReservations.length > 0) && (
+                      <div className="mt-4 rounded-[10px] border border-sky-100 bg-white p-3 sm:p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold text-slate-900">Ausgewählte Zuordnungen</p>
                           <button
                             type="button"
                             onClick={() => {
                               setAssignedDeviceIds([]);
                               setCustomerAssignedLibraryModels([]);
+                              setCustomerAssignedStockModels([]);
+                              setCustomerPartReservations([]);
                             }}
-                            className="rounded-full bg-slate-100 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-red-100 hover:text-red-700"
+                            className="rounded-[7px] bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200"
                           >
                             Auswahl leeren
                           </button>
-                        )}
-                      </div>
+                        </div>
 
-                      {assignedCustomerDevices.length === 0 && customerAssignedLibraryModels.length === 0 ? (
-                        <p className="mt-3 text-sm font-semibold text-slate-400">
-                          Noch keine Geräte ausgewählt.
-                        </p>
-                      ) : (
                         <div className="mt-3 space-y-3">
                           {assignedCustomerDevices.map((deviceItem) => (
-                            <div
-                              key={deviceItem.id}
-                              className="rounded-2xl border border-sky-100 bg-sky-50 p-3"
-                            >
+                            <div key={deviceItem.id} className="rounded-[9px] border border-slate-200 bg-slate-50 p-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="break-words text-sm font-black text-sky-900">
-                                    {deviceItem.name}
-                                  </p>
-                                  <p className="mt-1 text-xs font-bold text-sky-600">
+                                  <p className="break-words text-sm font-bold text-slate-950">{deviceItem.name}</p>
+                                  <p className="mt-1 text-xs font-medium text-slate-500">
                                     Bestehendes Kundengerät{deviceItem.serial_number ? ` · SN: ${deviceItem.serial_number}` : ""}
                                   </p>
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    setAssignedDeviceIds((prev) =>
-                                      prev.filter((id) => id !== String(deviceItem.id)),
-                                    )
-                                  }
-                                  className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-sky-900 transition hover:bg-red-100 hover:text-red-700"
+                                  onClick={() => setAssignedDeviceIds((prev) => prev.filter((id) => id !== String(deviceItem.id)))}
+                                  className="shrink-0 rounded-[7px] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-700"
                                 >
                                   ×
                                 </button>
@@ -25056,87 +25422,124 @@ placeholder="Modelle suchen: Hersteller, Kategorie, Modellbezeichnung"
                             if (!modelItem) return null;
 
                             return (
-                              <div key={draft.key} className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+                              <div key={draft.key} className="rounded-[9px] border border-sky-100 bg-sky-50/70 p-3 sm:p-4">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
-                                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-500">
-                                      Neues Kundengerät {index + 1}
-                                    </p>
-                                    <p className="mt-1 break-words font-black text-sky-950">
-                                      {getTicketLibraryModelLabel(modelItem)}
-                                    </p>
+                                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-600">Neues Kundengerät · Modellbibliothek</p>
+                                    <p className="mt-1 break-words text-sm font-bold text-slate-950">{getTicketLibraryModelLabel(modelItem)}</p>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeCustomerLibraryDraft(draft.key)}
-                                    className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-sky-900 transition hover:bg-red-100 hover:text-red-700"
-                                  >
-                                    ×
-                                  </button>
+                                  <button type="button" onClick={() => removeCustomerLibraryDraft(draft.key)} className="shrink-0 rounded-[7px] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-700">×</button>
                                 </div>
+                                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                                  <input value={draft.serial} onChange={(event) => updateCustomerLibraryDraft(draft.key, { serial: event.target.value })} placeholder="Seriennummer" className="rounded-[8px] border border-sky-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-sky-500" />
+                                  <input value={draft.location} onChange={(event) => updateCustomerLibraryDraft(draft.key, { location: event.target.value })} placeholder="Standort optional" className="rounded-[8px] border border-sky-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-sky-500" />
+                                  <input value={draft.note} onChange={(event) => updateCustomerLibraryDraft(draft.key, { note: event.target.value })} placeholder="Notiz optional" className="rounded-[8px] border border-sky-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-sky-500" />
+                                </div>
+                              </div>
+                            );
+                          })}
 
-                                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                  <input
-                                    value={draft.serial}
-                                    onChange={(event) => updateCustomerLibraryDraft(draft.key, { serial: event.target.value })}
-                                    placeholder="Seriennummer nur für diesen Kunden"
-                                    className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-500"
-                                  />
-                                  <input
-                                    value={draft.location}
-                                    onChange={(event) => updateCustomerLibraryDraft(draft.key, { location: event.target.value })}
-                                    placeholder="Standort optional"
-                                    className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-500"
-                                  />
-                                  <input
-                                    value={draft.note}
-                                    onChange={(event) => updateCustomerLibraryDraft(draft.key, { note: event.target.value })}
-                                    placeholder="Notiz optional"
-                                    className="rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-500"
-                                  />
+                          {customerAssignedStockModels.map((draft) => {
+                            const modelItem = deviceModels.find((item) => String(item.id) === String(draft.modelId));
+                            if (!modelItem) return null;
+
+                            return (
+                              <div key={draft.key} className="rounded-[9px] border border-emerald-100 bg-emerald-50/70 p-3 sm:p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">Aus Gerätebestand · Bestand wird beim Speichern reduziert</p>
+                                    <p className="mt-1 break-words text-sm font-bold text-slate-950">{getTicketLibraryModelLabel(modelItem)}</p>
+                                  </div>
+                                  <button type="button" onClick={() => removeCustomerStockDraft(draft.key)} className="shrink-0 rounded-[7px] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-700">×</button>
+                                </div>
+                                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                                  <input value={draft.serial} onChange={(event) => updateCustomerStockDraft(draft.key, { serial: event.target.value })} placeholder="Seriennummer" className="rounded-[8px] border border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500" />
+                                  <input value={draft.location} onChange={(event) => updateCustomerStockDraft(draft.key, { location: event.target.value })} placeholder="Standort optional" className="rounded-[8px] border border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500" />
+                                  <input value={draft.note} onChange={(event) => updateCustomerStockDraft(draft.key, { note: event.target.value })} placeholder="Notiz optional" className="rounded-[8px] border border-emerald-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500" />
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {customerPartReservations.map((draft) => {
+                            const part = serviceParts.find((item) => String(item.id) === String(draft.partId));
+                            if (!part) return null;
+
+                            return (
+                              <div key={draft.key} className="rounded-[9px] border border-amber-100 bg-amber-50/70 p-3 sm:p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">Kundenmaterial vorgemerkt</p>
+                                    <p className="mt-1 break-words text-sm font-bold text-slate-950">{part.name}</p>
+                                    <p className="mt-1 text-xs font-medium text-slate-500">Lagerbestand: {Number(part.stock || 0)} {part.unit || "Stück"} · keine Bestandsbuchung</p>
+                                  </div>
+                                  <button type="button" onClick={() => removeCustomerPartReservation(draft.key)} className="shrink-0 rounded-[7px] bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-700">×</button>
+                                </div>
+                                <div className="mt-3 grid gap-2 md:grid-cols-[0.45fr_1fr]">
+                                  <input type="number" min="1" step="1" value={draft.quantity} onChange={(event) => updateCustomerPartReservation(draft.key, { quantity: event.target.value })} className="rounded-[8px] border border-amber-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500" />
+                                  <input value={draft.note} onChange={(event) => updateCustomerPartReservation(draft.key, { note: event.target.value })} placeholder="Hinweis / Einsatzbereich optional" className="rounded-[8px] border border-amber-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500" />
                                 </div>
                               </div>
                             );
                           })}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
-                    <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
-                      {customerDeviceAssignSearch.trim().length < 2 ? (
-                        <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Mindestens 2 Zeichen eingeben, z. B. Hersteller, Gerätekategorie oder Modell.
-                        </div>
-                      ) : customerDeviceAssignResults.length === 0 ? (
-                        <div className="rounded-2xl bg-white p-4 text-sm font-bold text-slate-500">
-                          Kein passendes Modell gefunden.
-                        </div>
-                      ) : (
-                        customerDeviceAssignResults.map((modelItem) => (
-                          <button
-                            key={modelItem.id}
-                            type="button"
-                            onClick={() => addCustomerLibraryModel(modelItem)}
-                            className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-sky-400 hover:bg-sky-50"
-                          >
-                            <p className="break-words font-black text-slate-900">
-                              {getDeviceModelDisplayName(modelItem)}
-                            </p>
-                            <p className="mt-1 break-words text-sm font-bold text-slate-500">
-                              {getManufacturerNameById(modelItem.manufacturer_id) || "Hersteller unbekannt"}
-                              {getDeviceModelTypeName(modelItem) ? ` · ${getDeviceModelTypeName(modelItem)}` : ""}
-                            </p>
-                            <p className="mt-2 text-xs font-black text-sky-600">
-                              + diesem Kunden als eigenes Gerät zuordnen
-                            </p>
+                    <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                      {customerAssignMode === "models" && (
+                        customerModelAssignResults.length === 0 ? (
+                          <div className="rounded-[9px] border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-500">Keine passenden Modelle gefunden.</div>
+                        ) : customerModelAssignResults.map((modelItem) => (
+                          <button key={modelItem.id} type="button" onClick={() => addCustomerLibraryModel(modelItem)} className="w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-sky-400 hover:bg-sky-50">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-bold text-slate-950">{getDeviceModelDisplayName(modelItem)}</p>
+                                <p className="mt-1 break-words text-xs font-medium text-slate-500">{getManufacturerNameById(modelItem.manufacturer_id) || "Hersteller unbekannt"}{getDeviceModelTypeName(modelItem) ? ` · ${getDeviceModelTypeName(modelItem)}` : ""}</p>
+                              </div>
+                              <span className="shrink-0 rounded-[7px] bg-sky-50 px-2 py-1 text-[11px] font-bold text-sky-700">Modell</span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+
+                      {customerAssignMode === "stock" && (
+                        customerStockAssignResults.length === 0 ? (
+                          <div className="rounded-[9px] border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-500">Kein verfügbares Lagergerät gefunden.</div>
+                        ) : customerStockAssignResults.map((modelItem) => (
+                          <button key={modelItem.id} type="button" onClick={() => addCustomerStockModel(modelItem)} className="w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-emerald-400 hover:bg-emerald-50">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-bold text-slate-950">{getDeviceModelDisplayName(modelItem)}</p>
+                                <p className="mt-1 break-words text-xs font-medium text-slate-500">{getManufacturerNameById(modelItem.manufacturer_id) || "Hersteller unbekannt"}{modelItem.storage_location ? ` · ${modelItem.storage_location}` : ""}</p>
+                              </div>
+                              <span className="shrink-0 rounded-[7px] bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">{Number(modelItem.stock || 0)} {modelItem.unit || "Stück"}</span>
+                            </div>
+                          </button>
+                        ))
+                      )}
+
+                      {customerAssignMode === "parts" && (
+                        customerPartAssignResults.length === 0 ? (
+                          <div className="rounded-[9px] border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-500">Kein passendes Ersatzteil gefunden.</div>
+                        ) : customerPartAssignResults.map((part) => (
+                          <button key={part.id} type="button" onClick={() => addCustomerPartReservation(part)} className="w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-amber-400 hover:bg-amber-50">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-bold text-slate-950">{part.name}</p>
+                                <p className="mt-1 break-words text-xs font-medium text-slate-500">{getManufacturerNameById(part.manufacturer_id) || "Hersteller offen"}{part.sku ? ` · ${part.sku}` : ""}{part.storage_location ? ` · ${part.storage_location}` : ""}</p>
+                              </div>
+                              <span className="shrink-0 rounded-[7px] bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800">{Number(part.stock || 0)} {part.unit || "Stück"}</span>
+                            </div>
                           </button>
                         ))
                       )}
                     </div>
 
-                    <p className="mt-4 rounded-2xl bg-white p-3 text-xs font-bold text-slate-500">
-                      Wichtig: Die Seriennummer wird nur beim Kundengerät gespeichert. Die Modellbibliothek bleibt neutral und seriennummernfrei.
-                    </p>
+                    <div className="mt-4 rounded-[9px] border border-slate-200 bg-white p-3 text-xs font-medium leading-5 text-slate-500">
+                      Modellbibliothek: erzeugt ein neues Kundengerät. Gerätebestand: reduziert beim Speichern den verfügbaren Bestand.
+                      Ersatzteile: werden als Kundenmaterial vorgemerkt und erst bei tatsächlicher Verwendung über den Servicefall/Lagerprozess gebucht.
+                    </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
