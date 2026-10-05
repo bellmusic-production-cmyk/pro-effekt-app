@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.91 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.92 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -798,10 +798,37 @@ const documentCategories = [
   "Sonstige Dokumente",
 ];
 
+const financialDocumentCategories = [
+  "Rechnungen",
+  "Angebote",
+  "Aufträge",
+  "Lieferscheine",
+  "Bestellungen",
+  "Verträge",
+];
+
+const technicianTicketUploadDocumentCategories = [
+  "Abnahmeprotokolle",
+  "Serviceberichte",
+  "Prüfberichte",
+  "Sicherheitsprüfungen",
+  "Wartungsprotokolle",
+  "Bedienungsanleitungen",
+  "Ersatzteillisten",
+  "Datenblätter",
+  "Schaltpläne",
+  "Herstellerinformationen",
+  "Garantieunterlagen",
+  "Fotos",
+  "Videos",
+  "Servicebilder",
+  "Schadensbilder",
+  "Sonstige Dokumente",
+];
+
 const customerUploadDocumentCategories = [
   "Fotos",
   "Videos",
-  "Lieferscheine",
   "Servicebilder",
   "Schadensbilder",
   "Sonstige Dokumente",
@@ -830,7 +857,7 @@ const customerPortalFinalFeatures = [
   "Eigene Tickets",
   "Eigene Dokumente",
   "Störung melden",
-  "Foto / Video / Lieferschein hochladen",
+  "Foto / Video direkt zum Ticket hochladen",
 ];
 
 const protocolTypeOptions = [
@@ -1741,9 +1768,9 @@ export default function Home() {
   );
   const [selectedTicketView, setSelectedTicketView] = useState<Ticket | null>(null);
   const [serviceSigningTicket, setServiceSigningTicket] = useState<Ticket | null>(null);
-  const [ticketAkteUploadCategory, setTicketAkteUploadCategory] = useState("Lieferscheine");
+  const [ticketAkteUploadCategory, setTicketAkteUploadCategory] = useState("Fotos");
   const [ticketAkteDocumentSearch, setTicketAkteDocumentSearch] = useState("");
-  const [ticketCreateUploadCategory, setTicketCreateUploadCategory] = useState("Lieferscheine");
+  const [ticketCreateUploadCategory, setTicketCreateUploadCategory] = useState("Fotos");
   const [ticketCreateFile, setTicketCreateFile] = useState<File | null>(null);
   const [qrSearchTerm, setQrSearchTerm] = useState("");
   const [qrSelectedDeviceId, setQrSelectedDeviceId] = useState("");
@@ -5825,6 +5852,12 @@ async function loadApplicationData(userIdOverride?: string) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!isAdmin) {
+      alert("Der zentrale Dokumenten-Upload ist ausschließlich für Administratoren vorgesehen. Bitte Dateien direkt über das zugehörige Ticket hochladen.");
+      event.target.value = "";
+      return;
+    }
+
     const selectedUploadDevice = selectedDeviceId
       ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId))
       : null;
@@ -6038,6 +6071,12 @@ async function loadApplicationData(userIdOverride?: string) {
 
     if (!file) return;
 
+    if (!isAdmin) {
+      alert("Techniker laden Einsatzfotos und Nachweise direkt über das zugehörige Ticket hoch.");
+      event.target.value = "";
+      return;
+    }
+
     setUploading(true);
 
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -6229,6 +6268,12 @@ async function loadApplicationData(userIdOverride?: string) {
 
     if (!file) return;
 
+    if (!uploadDocumentCategoriesForRole.includes(uploadCategory)) {
+      alert("Diese Dokumentkategorie darf in Ihrer Rolle nicht über ein Ticket hochgeladen werden.");
+      event.target.value = "";
+      return;
+    }
+
     const relatedDevice = devices.find((item) => item.name === ticket.device);
 
     setUploading(true);
@@ -6304,6 +6349,11 @@ async function loadApplicationData(userIdOverride?: string) {
     customerId: number | null,
     deviceId: number | null,
   ) {
+    if (!uploadDocumentCategoriesForRole.includes(category)) {
+      alert("Ticket wurde erstellt, aber diese Dokumentkategorie ist für Ihre Rolle nicht freigegeben.");
+      return;
+    }
+
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory = category || "Sonstige Dokumente";
     const storageTarget = await buildTenantDocumentStorageTarget(
@@ -6362,6 +6412,12 @@ async function loadApplicationData(userIdOverride?: string) {
   ) {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    if (!uploadDocumentCategoriesForRole.includes(ticketAkteUploadCategory)) {
+      alert("Diese Dokumentkategorie darf in Ihrer Rolle nicht über die Ticket-Akte hochgeladen werden.");
+      event.target.value = "";
+      return;
+    }
 
     const relatedDevice = getDeviceForTicket(ticket);
     const relatedCustomer = getCustomerForTicket(ticket);
@@ -17094,7 +17150,9 @@ ${tenantBrandName}`,
 
   const uploadDocumentCategoriesForRole = isCustomer
     ? customerUploadDocumentCategories
-    : documentCategories.filter((category) => category !== "Alle");
+    : isTechnician
+      ? technicianTicketUploadDocumentCategories
+      : documentCategories.filter((category) => category !== "Alle");
 
   const todayDateString = new Date().toISOString().split("T")[0];
 
@@ -18336,6 +18394,231 @@ ${tenantBrandName}`,
     );
   }
 
+  function renderCommercialDocumentWorkspace() {
+    return (
+                <div id="commercial-document-create" className="scroll-mt-24 rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Kaufmännischer Beleg</p>
+                    <h3 className="mt-1 text-xl font-black text-slate-950">Auftrag / Lieferschein erstellen</h3>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                      Erstelle Auftrag oder Lieferschein mit Kunde, Ticket, Positionen und Unterschriften. Die PDF-Fassung wird automatisch im zentralen Dokumentenarchiv abgelegt.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Dokumenttyp</label>
+                      <select
+                        value={commercialDocumentType}
+                        onChange={(e) => setCommercialDocumentType(e.target.value as "Auftrag" | "Lieferschein")}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="Auftrag">Auftrag</option>
+                        <option value="Lieferschein">Lieferschein</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kunde</label>
+                      <select
+                        value={commercialDocumentCustomerId}
+                        onChange={(e) => {
+                          setCommercialDocumentCustomerId(e.target.value);
+                          setCommercialDocumentTicketId("");
+                          const selectedCustomer = customers.find((item) => item.id === Number(e.target.value));
+                          setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="">Kunde auswählen</option>
+                        {[...customers]
+                          .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+                          .map((customerItem) => (
+                            <option key={customerItem.id} value={customerItem.id}>
+                              {getCustomerLabel(customerItem)}{customerItem.customer_number ? ` · ${customerItem.customer_number}` : ""}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ticket optional</label>
+                      <select
+                        value={commercialDocumentTicketId}
+                        onChange={(e) => {
+                          const nextId = e.target.value;
+                          setCommercialDocumentTicketId(nextId);
+                          const selectedTicket = tickets.find((ticket) => ticket.id === Number(nextId));
+                          if (selectedTicket?.customer_id) {
+                            setCommercialDocumentCustomerId(String(selectedTicket.customer_id));
+                            const selectedCustomer = customers.find((item) => item.id === selectedTicket.customer_id);
+                            setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
+                          }
+                          if (selectedTicket && !commercialDocumentTitle.trim()) {
+                            setCommercialDocumentTitle(`${selectedTicket.issue}${selectedTicket.device ? ` · ${selectedTicket.device}` : ""}`);
+                          }
+                        }}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      >
+                        <option value="">Kein Ticket verknüpfen</option>
+                        {tickets
+                          .filter((ticket) =>
+                            !commercialDocumentCustomerId ||
+                            !ticket.customer_id ||
+                            ticket.customer_id === Number(commercialDocumentCustomerId),
+                          )
+                          .map((ticket) => (
+                            <option key={ticket.id} value={ticket.id}>
+                              {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Datum</label>
+                      <input
+                        type="date"
+                        value={commercialDocumentDate}
+                        onChange={(e) => setCommercialDocumentDate(e.target.value)}
+                        min={APP_DATE_MIN}
+                        max={APP_DATE_MAX}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bezeichnung / Betreff</label>
+                      <input
+                        value={commercialDocumentTitle}
+                        onChange={(e) => setCommercialDocumentTitle(e.target.value)}
+                        placeholder={commercialDocumentType === "Auftrag" ? "z. B. Wartungsauftrag Heizungsanlage" : "z. B. Lieferung Ersatzteile"}
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Referenz optional</label>
+                      <input
+                        value={commercialDocumentReference}
+                        onChange={(e) => setCommercialDocumentReference(e.target.value)}
+                        placeholder="Bestellnummer / Vorgang / Kundenreferenz"
+                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
+                      <select value={commercialDocumentPriceMode} onChange={(e) => setCommercialDocumentPriceMode(e.target.value as "netto" | "brutto")} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                        <option value="netto">Nettopreise</option>
+                        <option value="brutto">Bruttopreise</option>
+                      </select>
+                      <p className="mt-2 text-xs font-semibold text-slate-500">B2B wird standardmäßig netto, Endkunde standardmäßig brutto vorbelegt. Die Auswahl bleibt änderbar.</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Mehrwertsteuer</label>
+                      <div className="mt-2 flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                        <input value={commercialDocumentTaxRate} onChange={(e) => setCommercialDocumentTaxRate(e.target.value)} type="number" min="0" step="0.01" placeholder="19" className="min-w-0 flex-1 border-0 px-5 py-4 font-semibold outline-none" />
+                        <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Lagerpositionen</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-600">Modelle/Verkaufsgeräte und Ersatzteile auswählen. Ein Lieferschein bucht diese Positionen aus dem Lager aus.</p>
+                      </div>
+                      <button type="button" onClick={() => setCommercialDocumentLines([...commercialDocumentLines, createStockDocumentLine()])} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">+ Position</button>
+                    </div>
+
+                    {commercialDocumentLines.length === 0 ? (
+                      <div className="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold text-slate-500">Noch keine Lagerposition. Freitext-Belege bleiben weiterhin möglich.</div>
+                    ) : (
+                      <div className="mt-4 space-y-3">
+                        {commercialDocumentLines.map((line) => (
+                          <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
+                            <div className="grid gap-3 lg:grid-cols-[150px_minmax(0,1fr)_110px_140px_auto]">
+                              <select value={line.itemType} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-xl border border-slate-300 px-3 py-3 font-bold">
+                                <option value="device_model">Modell / Gerät</option>
+                                <option value="spare_part">Ersatzteil</option>
+                              </select>
+                              <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold">
+                                <option value="">Artikel auswählen</option>
+                                {line.itemType === "device_model"
+                                  ? deviceModels.filter((item) => item.is_stocked).sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de")).map((item) => <option key={item.id} value={item.id}>{getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}</option>)
+                                  : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
+                              </select>
+                              <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
+                              <button type="button" onClick={() => setCommercialDocumentLines(commercialDocumentLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
+                            </div>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                              <input value={line.description} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { description: e.target.value })} placeholder="Positionsbeschreibung optional" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <span className="text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {commercialDocumentType === "Auftrag" && commercialDocumentLines.length > 0 && (
+                      <label className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4">
+                        <input type="checkbox" checked={commercialDocumentReserveStock} onChange={(e) => setCommercialDocumentReserveStock(e.target.checked)} className="mt-1 h-5 w-5" />
+                        <span><strong>Positionen reservieren</strong><span className="mt-1 block text-sm text-slate-500">Der physische Bestand bleibt unverändert; die Reservierung wird nachvollziehbar protokolliert.</span></span>
+                      </label>
+                    )}
+                    {commercialDocumentType === "Lieferschein" && commercialDocumentLines.length > 0 && (
+                      <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">Beim Erstellen des Lieferscheins werden die Positionen unmittelbar aus dem physischen Lagerbestand ausgebucht.</div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bemerkung / Inhalt</label>
+                    <textarea
+                      value={commercialDocumentNote}
+                      onChange={(e) => setCommercialDocumentNote(e.target.value)}
+                      rows={4}
+                      placeholder={commercialDocumentType === "Auftrag" ? "Auftragsumfang, Hinweise, gewünschte Ausführung ..." : "Gelieferte Positionen, Mengen, Hinweise ..."}
+                      className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                    />
+                  </div>
+
+                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Digitale Freigabe</p>
+                    <h4 className="mt-1 text-lg font-black text-slate-900">Unterschriften</h4>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">Optional direkt mit Finger, Stift oder Maus unterschreiben. Die Signaturen werden in die archivierte Dokumentfassung übernommen.</p>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <DocumentSignaturePad
+                        label="Mitarbeiter / Techniker"
+                        value={commercialDocumentTechnicianSignature}
+                        onChange={setCommercialDocumentTechnicianSignature}
+                      />
+                      <DocumentSignaturePad
+                        label="Kunde / Auftraggeber"
+                        value={commercialDocumentCustomerSignature}
+                        onChange={setCommercialDocumentCustomerSignature}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={createCommercialDocument}
+                    disabled={commercialDocumentBusy}
+                    className="mt-4 w-full rounded-2xl bg-sky-600 px-5 py-4 font-black text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    {commercialDocumentBusy ? "Dokument wird erstellt …" : `${commercialDocumentType} erstellen & archivieren`}
+                  </button>
+                </div>
+    );
+  }
+
   const visibleNavItems = isAdmin
     ? navItems.filter((item) => item !== "Einsatz")
     : isTechnician
@@ -18384,13 +18667,18 @@ ${tenantBrandName}`,
     {
       title: "Dokumente",
       icon: "",
-      items: [
-        "Dokumente",
-        "Abnahmeprotokoll",
-        "Auftrag / Lieferschein erstellen",
-        "Verträge",
-        ...(!isAdmin ? ["Rechnungen"] : []),
-      ],
+      items: ["Dokumente", "Abnahmeprotokoll"],
+    },
+    {
+      title: "Vor Ort",
+      icon: "",
+      items: isTechnician
+        ? [
+            "Auftrag / Lieferschein erstellen",
+            ...(canTechnicianPrepareContract ? ["Verträge"] : []),
+            ...(canTechnicianCreateInvoice ? ["Rechnungen"] : []),
+          ]
+        : [],
     },
     {
       title: "Buchhaltung",
@@ -18445,12 +18733,12 @@ ${tenantBrandName}`,
       if (!(isAdmin || isTechnician)) return;
 
       setCommercialDocumentType("Auftrag");
-      setActivePage("Dokumente");
+      const targetPage = isAdmin ? "Buchhaltung" : "Auftrag / Lieferschein erstellen";
+      setActivePage(targetPage);
       setMobileMenuOpen(false);
-      setDocumentQuickFilter("Alle");
 
       if (typeof window !== "undefined" && session?.user?.id) {
-        window.localStorage.setItem(`trybun-active-page-${session.user.id}`, "Dokumente");
+        window.localStorage.setItem(`trybun-active-page-${session.user.id}`, targetPage);
         window.setTimeout(() => {
           document
             .getElementById("commercial-document-create")
@@ -20547,8 +20835,8 @@ ${tenantBrandName}`,
     },
     Dokumente: {
       eyebrow: "Dokumente",
-      title: "Dokumentenarchiv",
-      description: "Dokumente zentral finden, erstellen, zuordnen und sicher archivieren.",
+      title: "Dokumente & Archiv",
+      description: "Dateien zentral archivieren, Kunden, Tickets und Geräten zuordnen und später zuverlässig wiederfinden.",
     },
     Kunden: {
       eyebrow: "Stammdaten",
@@ -23651,7 +23939,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         </div>
 
                         <div className="mt-4 rounded-2xl border border-blue-100 bg-white p-3">
-                          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Dokument direkt zur Ticket-Akte hinzufügen</p>
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Einsatznachweis direkt zur Ticket-Akte hinzufügen</p>
                           <div className="mt-3 grid gap-3 md:grid-cols-[220px_1fr]">
                             <select
                               value={ticketAkteUploadCategory}
@@ -24197,6 +24485,93 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   </div>
                 </div>
               </section>
+
+              <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                    Schnellaktionen
+                  </p>
+                  <h3 className="mt-1 text-xl font-bold text-slate-950">
+                    Kaufmännischen Vorgang starten
+                  </h3>
+                  <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+                    Neue Belege entstehen hier. Die erzeugten PDFs werden anschließend automatisch im Dokumentenarchiv abgelegt.
+                  </p>
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCommercialDocumentType("Auftrag");
+                      window.requestAnimationFrame(() =>
+                        document.getElementById("commercial-document-create")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        }),
+                      );
+                    }}
+                    className="min-h-[46px] rounded-[8px] bg-slate-950 px-4 py-3 text-sm font-bold text-white"
+                  >
+                    + Auftrag
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCommercialDocumentType("Lieferschein");
+                      window.requestAnimationFrame(() =>
+                        document.getElementById("commercial-document-create")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        }),
+                      );
+                    }}
+                    className="min-h-[46px] rounded-[8px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800"
+                  >
+                    + Lieferschein
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActivePage("Verträge");
+                      if (typeof window !== "undefined" && session?.user?.id) {
+                        window.localStorage.setItem(
+                          `trybun-active-page-${session.user.id}`,
+                          "Verträge",
+                        );
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
+                    }}
+                    className="min-h-[46px] rounded-[8px] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800"
+                  >
+                    + Vertrag
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetInvoiceForm();
+                      setInvoiceType("Angebot");
+                      openAdminInvoiceWorkspace();
+                    }}
+                    className="min-h-[46px] rounded-[8px] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800"
+                  >
+                    + Angebot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetInvoiceForm();
+                      setInvoiceType("Rechnung");
+                      openAdminInvoiceWorkspace();
+                    }}
+                    className="min-h-[46px] rounded-[8px] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800"
+                  >
+                    + Rechnung
+                  </button>
+                </div>
+              </section>
+
+              {renderCommercialDocumentWorkspace()}
 
               <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -25073,19 +25448,37 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
             </div>
           )}
 
+          {activePage === "Auftrag / Lieferschein erstellen" && isTechnician && (
+            <div className="space-y-6">
+              <div className="rounded-[12px] border border-sky-100 bg-sky-50 p-4 sm:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700">
+                  Vor-Ort-Beleg
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-950">
+                  Auftrag oder Lieferschein beim Kunden
+                </h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+                  Kunde, Ticket, Positionen und Unterschriften werden direkt erfasst. Die fertige PDF wird automatisch im Dokumentenarchiv der Firma abgelegt.
+                </p>
+              </div>
+
+              {renderCommercialDocumentWorkspace()}
+            </div>
+          )}
+
           {activePage === "Dokumente" && (
             <div className="space-y-6">
               <div className="rounded-[28px] bg-white p-4 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-xl font-black">Archiv & Kategorien</h3>
+                    <h3 className="text-xl font-black">Zentrales Dokumentenarchiv</h3>
                     <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Kompakte Archivansicht mit Kategorien, Suche und aufklappbaren Details.
+                      Alle archivierten Dateien mit Kunde, Ticket und Gerät nachvollziehen. Kaufmännische Belege werden in der Buchhaltung erstellt und hier nur archiviert.
                     </p>
                   </div>
 
-                  <p className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600">
-                    {filteredDocuments.length} Treffer
+                  <p className="rounded-[8px] bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600">
+                    {filteredDocuments.length} Dateien
                   </p>
                 </div>
 
@@ -25099,7 +25492,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         setDocumentPage(1);
                         setExpandedDocumentId(null);
 
-                        if (category !== "Alle") {
+                        if (category !== "Alle" && isAdmin) {
                           setUploadCategory(category);
                         }
                       }}
@@ -25115,279 +25508,27 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
               </div>
 
-              {(isAdmin || isTechnician) && (
-                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Dokumente erstellen</p>
-                  <h3 className="mt-1 text-xl font-black text-slate-950">Schnellaktionen</h3>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                    Auftrag, Lieferschein oder Prüf-/Abnahmeprotokoll direkt starten.
+              {!isAdmin && (
+                <div className="rounded-[12px] border border-sky-100 bg-sky-50 p-4 sm:p-5">
+                  <p className="text-sm font-bold text-sky-950">
+                    {isTechnician ? "Dokumentation direkt über die Ticket-Akte" : "Dateien direkt zum Ticket hochladen"}
                   </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCommercialDocumentType("Auftrag");
-                        window.requestAnimationFrame(() =>
-                          document.getElementById("commercial-document-create")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                        );
-                      }}
-                      className="rounded-2xl bg-sky-600 px-5 py-4 text-sm font-black text-white shadow-sm hover:bg-sky-700"
-                    >
-                      Auftrag erstellen
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCommercialDocumentType("Lieferschein");
-                        window.requestAnimationFrame(() =>
-                          document.getElementById("commercial-document-create")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                        );
-                      }}
-                      className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-black text-sky-700 hover:bg-sky-100"
-                    >
-                      Lieferschein erstellen
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openPage("Abnahmeprotokoll")}
-                      className="rounded-2xl border border-slate-300 bg-white px-5 py-4 text-sm font-black text-slate-700 hover:bg-slate-50"
-                    >
-                      Prüfung / Abnahme
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {(isAdmin || isTechnician) && (
-                <div id="commercial-document-create" className="scroll-mt-6 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Geschäftsdokumente</p>
-                    <h3 className="mt-1 text-xl font-black text-slate-950">Auftrag / Lieferschein erstellen</h3>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                      Erstelle einen Auftrag oder Lieferschein, ordne ihn einem Kunden und optional einem Ticket zu und archiviere ihn direkt unter Dokumente.
-                    </p>
-                  </div>
-
-                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Dokumenttyp</label>
-                      <select
-                        value={commercialDocumentType}
-                        onChange={(e) => setCommercialDocumentType(e.target.value as "Auftrag" | "Lieferschein")}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
-                      >
-                        <option value="Auftrag">Auftrag</option>
-                        <option value="Lieferschein">Lieferschein</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kunde</label>
-                      <select
-                        value={commercialDocumentCustomerId}
-                        onChange={(e) => {
-                          setCommercialDocumentCustomerId(e.target.value);
-                          setCommercialDocumentTicketId("");
-                          const selectedCustomer = customers.find((item) => item.id === Number(e.target.value));
-                          setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
-                        }}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
-                      >
-                        <option value="">Kunde auswählen</option>
-                        {[...customers]
-                          .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
-                          .map((customerItem) => (
-                            <option key={customerItem.id} value={customerItem.id}>
-                              {getCustomerLabel(customerItem)}{customerItem.customer_number ? ` · ${customerItem.customer_number}` : ""}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ticket optional</label>
-                      <select
-                        value={commercialDocumentTicketId}
-                        onChange={(e) => {
-                          const nextId = e.target.value;
-                          setCommercialDocumentTicketId(nextId);
-                          const selectedTicket = tickets.find((ticket) => ticket.id === Number(nextId));
-                          if (selectedTicket?.customer_id) {
-                            setCommercialDocumentCustomerId(String(selectedTicket.customer_id));
-                            const selectedCustomer = customers.find((item) => item.id === selectedTicket.customer_id);
-                            setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
-                          }
-                          if (selectedTicket && !commercialDocumentTitle.trim()) {
-                            setCommercialDocumentTitle(`${selectedTicket.issue}${selectedTicket.device ? ` · ${selectedTicket.device}` : ""}`);
-                          }
-                        }}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
-                      >
-                        <option value="">Kein Ticket verknüpfen</option>
-                        {tickets
-                          .filter((ticket) =>
-                            !commercialDocumentCustomerId ||
-                            !ticket.customer_id ||
-                            ticket.customer_id === Number(commercialDocumentCustomerId),
-                          )
-                          .map((ticket) => (
-                            <option key={ticket.id} value={ticket.id}>
-                              {ticket.ticket_number} · {ticket.customer} · {ticket.issue}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Datum</label>
-                      <input
-                        type="date"
-                        value={commercialDocumentDate}
-                        onChange={(e) => setCommercialDocumentDate(e.target.value)}
-                        min={APP_DATE_MIN}
-                        max={APP_DATE_MAX}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bezeichnung / Betreff</label>
-                      <input
-                        value={commercialDocumentTitle}
-                        onChange={(e) => setCommercialDocumentTitle(e.target.value)}
-                        placeholder={commercialDocumentType === "Auftrag" ? "z. B. Wartungsauftrag Heizungsanlage" : "z. B. Lieferung Ersatzteile"}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Referenz optional</label>
-                      <input
-                        value={commercialDocumentReference}
-                        onChange={(e) => setCommercialDocumentReference(e.target.value)}
-                        placeholder="Bestellnummer / Vorgang / Kundenreferenz"
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
-                      <select value={commercialDocumentPriceMode} onChange={(e) => setCommercialDocumentPriceMode(e.target.value as "netto" | "brutto")} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
-                        <option value="netto">Nettopreise</option>
-                        <option value="brutto">Bruttopreise</option>
-                      </select>
-                      <p className="mt-2 text-xs font-semibold text-slate-500">B2B wird standardmäßig netto, Endkunde standardmäßig brutto vorbelegt. Die Auswahl bleibt änderbar.</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Mehrwertsteuer</label>
-                      <div className="mt-2 flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
-                        <input value={commercialDocumentTaxRate} onChange={(e) => setCommercialDocumentTaxRate(e.target.value)} type="number" min="0" step="0.01" placeholder="19" className="min-w-0 flex-1 border-0 px-5 py-4 font-semibold outline-none" />
-                        <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">%</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Lagerpositionen</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-600">Modelle/Verkaufsgeräte und Ersatzteile auswählen. Ein Lieferschein bucht diese Positionen aus dem Lager aus.</p>
-                      </div>
-                      <button type="button" onClick={() => setCommercialDocumentLines([...commercialDocumentLines, createStockDocumentLine()])} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">+ Position</button>
-                    </div>
-
-                    {commercialDocumentLines.length === 0 ? (
-                      <div className="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold text-slate-500">Noch keine Lagerposition. Freitext-Belege bleiben weiterhin möglich.</div>
-                    ) : (
-                      <div className="mt-4 space-y-3">
-                        {commercialDocumentLines.map((line) => (
-                          <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
-                            <div className="grid gap-3 lg:grid-cols-[150px_minmax(0,1fr)_110px_140px_auto]">
-                              <select value={line.itemType} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-xl border border-slate-300 px-3 py-3 font-bold">
-                                <option value="device_model">Modell / Gerät</option>
-                                <option value="spare_part">Ersatzteil</option>
-                              </select>
-                              <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold">
-                                <option value="">Artikel auswählen</option>
-                                {line.itemType === "device_model"
-                                  ? deviceModels.filter((item) => item.is_stocked).sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de")).map((item) => <option key={item.id} value={item.id}>{getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}</option>)
-                                  : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
-                              </select>
-                              <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
-                              <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
-                              <button type="button" onClick={() => setCommercialDocumentLines(commercialDocumentLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
-                            </div>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                              <input value={line.description} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { description: e.target.value })} placeholder="Positionsbeschreibung optional" className="rounded-xl border border-slate-300 px-3 py-3" />
-                              <span className="text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {commercialDocumentType === "Auftrag" && commercialDocumentLines.length > 0 && (
-                      <label className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4">
-                        <input type="checkbox" checked={commercialDocumentReserveStock} onChange={(e) => setCommercialDocumentReserveStock(e.target.checked)} className="mt-1 h-5 w-5" />
-                        <span><strong>Positionen reservieren</strong><span className="mt-1 block text-sm text-slate-500">Der physische Bestand bleibt unverändert; die Reservierung wird nachvollziehbar protokolliert.</span></span>
-                      </label>
-                    )}
-                    {commercialDocumentType === "Lieferschein" && commercialDocumentLines.length > 0 && (
-                      <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">Beim Erstellen des Lieferscheins werden die Positionen unmittelbar aus dem physischen Lagerbestand ausgebucht.</div>
-                    )}
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bemerkung / Inhalt</label>
-                    <textarea
-                      value={commercialDocumentNote}
-                      onChange={(e) => setCommercialDocumentNote(e.target.value)}
-                      rows={4}
-                      placeholder={commercialDocumentType === "Auftrag" ? "Auftragsumfang, Hinweise, gewünschte Ausführung ..." : "Gelieferte Positionen, Mengen, Hinweise ..."}
-                      className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
-                    />
-                  </div>
-
-                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Digitale Freigabe</p>
-                    <h4 className="mt-1 text-lg font-black text-slate-900">Unterschriften</h4>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">Optional direkt mit Finger, Stift oder Maus unterschreiben. Die Signaturen werden in die archivierte Dokumentfassung übernommen.</p>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
-                      <DocumentSignaturePad
-                        label="Mitarbeiter / Techniker"
-                        value={commercialDocumentTechnicianSignature}
-                        onChange={setCommercialDocumentTechnicianSignature}
-                      />
-                      <DocumentSignaturePad
-                        label="Kunde / Auftraggeber"
-                        value={commercialDocumentCustomerSignature}
-                        onChange={setCommercialDocumentCustomerSignature}
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={createCommercialDocument}
-                    disabled={commercialDocumentBusy}
-                    className="mt-4 w-full rounded-2xl bg-sky-600 px-5 py-4 font-black text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                  >
-                    {commercialDocumentBusy ? "Dokument wird erstellt …" : `${commercialDocumentType} erstellen & archivieren`}
-                  </button>
+                  <p className="mt-1 text-sm font-medium leading-6 text-sky-800">
+                    {isTechnician
+                      ? "Fotos, Prüfberichte, Serviceberichte und sonstige Einsatznachweise werden direkt im jeweiligen Ticket hochgeladen. TRYBUN verknüpft sie automatisch mit Ticket, Kunde und Gerät und legt sie gleichzeitig im Archiv ab."
+                      : "Fotos, Videos und Schadensbilder werden im jeweiligen Ticket hochgeladen. Dadurch bleiben sie automatisch mit Ihrem Vorgang verknüpft und sind für die zuständige Firma nachvollziehbar."}
+                  </p>
                 </div>
               )}
 
               <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <div className="flex flex-col gap-4">
+                {isAdmin && (
+                  <div className="flex flex-col gap-4">
                   <div>
-                    <h3 className="text-xl font-black">Dokumente</h3>
+                    <h3 className="text-xl font-black">Dokument hochladen & archivieren</h3>
 
                     <p className="mt-2 text-slate-600">
-                      Abnahmeprotokoll oder Dokument hochladen, Kunde per Suche auswählen und Gerät optional zuordnen.
+                      Admin-Upload für externe oder nachträglich eingegangene Dokumente. Kunde, Ticket und Gerät können direkt zugeordnet werden.
                     </p>
                   </div>
 
@@ -25411,20 +25552,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
                       <div>
                         <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                          {isCustomer ? "Dein Kundenkonto" : "Kunde zuweisen"}
+                          Kunde zuweisen
                         </label>
 
-                        {isCustomer ? (
-                          <div className="mt-2 rounded-2xl border border-sky-200 bg-white px-5 py-4">
-                            <p className="font-black text-slate-900">
-                              {profileCustomer ? getCustomerLabel(profileCustomer) : "Dein Kundenkonto"}
-                            </p>
-                            <p className="mt-1 text-xs font-bold text-slate-500">
-                              Dokumente werden ausschließlich deinem Kundenkonto zugeordnet.
-                            </p>
-                          </div>
-                        ) : (
-                          <input
+                        <input
                             value={uploadCustomerSearch}
                             onChange={(e) => {
                               setUploadCustomerSearch(e.target.value);
@@ -25441,9 +25572,8 @@ name="trybun-upload-customer-query"
 placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
                           />
-                        )}
 
-                        {!isCustomer && selectedUploadCustomer && (
+                        {selectedUploadCustomer && (
                           <div className="mt-3 rounded-2xl border border-sky-200 bg-white p-3">
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
                               Ausgewählter Auftraggeber
@@ -25470,7 +25600,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                           </div>
                         )}
 
-                        {!isCustomer && !selectedUploadCustomer &&
+                        {!selectedUploadCustomer &&
                           uploadCustomerSearch.trim().length >= 1 &&
                           filteredUploadCustomers.length > 0 && (
                             <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
@@ -25507,7 +25637,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                             </p>
                           )}
 
-                        {!isCustomer && !selectedUploadCustomer && uploadCustomerSearch.trim().length < 1 && (
+                        {!selectedUploadCustomer && uploadCustomerSearch.trim().length < 1 && (
                           <p className="mt-3 text-xs font-bold text-slate-500">
                             Für Abnahmeprotokolle ist ein Kunde Pflicht.
                           </p>
@@ -25627,7 +25757,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                           )}
                       </div>
 
-                      {!isCustomer && uploadCategory === "Abnahmeprotokolle" && (
+                      {uploadCategory === "Abnahmeprotokolle" && (
                         <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 xl:col-span-3">
                           <p className="text-sm font-black text-yellow-800">
                             Prüffrist für handschriftliches Abnahmeprotokoll
@@ -25715,14 +25845,13 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                         </label>
 
                         <p className="mt-3 text-xs font-bold text-slate-500">
-                          {isCustomer
-                            ? "Dein Upload wird deinem Kundenkonto zugeordnet. Geschützte/interne Kategorien sind im Kundenportal gesperrt."
-                            : "Abnahmeprotokolle werden geschützt archiviert und dem Kunden zugeordnet."}
+                          Externe Rechnungen, Angebote, Lieferscheine, Verträge, Fotos oder andere Dateien können hier revisionsnah mit Kunde, Ticket und Gerät verknüpft archiviert werden.
                         </p>
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
+                )}
 
                 <div className="mt-8 grid gap-3 md:grid-cols-4">
                   <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -28870,6 +28999,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     Abnahmeprotokoll
                   </button>
 
+                  {isAdmin && (
                   <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="mb-3 text-sm font-bold text-slate-600">
                       Dokument direkt hochladen
@@ -28899,6 +29029,8 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                       />
                     </label>
                   </div>
+
+                  )}
 
                   <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-center">
                     <p className="mb-3 text-sm font-bold text-sky-600">
@@ -32666,7 +32798,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                               Dokument direkt zum Ticket hochladen
                             </p>
                             <p className="mt-1 text-xs font-semibold text-slate-500">
-                              Optional: z. B. Lieferschein, Foto, Rechnung oder sonstiges Dokument. Nach dem Speichern ist es direkt in der Ticket-Akte sichtbar.
+                              Optional: z. B. Foto, Schadensbild, Prüfbericht oder sonstiger Einsatznachweis. Nach dem Speichern ist die Datei direkt in der Ticket-Akte und im zentralen Archiv sichtbar.
                             </p>
                           </div>
 
