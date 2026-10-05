@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.60 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.61 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -8013,6 +8013,189 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       status,
       contactAvailable,
       ticketInventoryMovements,
+    };
+  }
+
+  function getServiceCopilotContext(ticket: Ticket) {
+    const relatedDevice = getDeviceForTicket(ticket);
+    const relatedCustomer = getCustomerForTicket(ticket);
+
+    const relatedTickets = relatedDevice
+      ? tickets
+          .filter((item) => {
+            if (item.id === ticket.id) return false;
+            const itemDevice = getDeviceForTicket(item);
+            return itemDevice?.id === relatedDevice.id;
+          })
+          .sort((a, b) => {
+            const aTime = new Date(a.completed_at || a.service_date || a.created_at || 0).getTime();
+            const bTime = new Date(b.completed_at || b.service_date || b.created_at || 0).getTime();
+            return bTime - aTime;
+          })
+      : [];
+
+    const completedRelatedTickets = relatedTickets.filter((item) =>
+      ["Abgeschlossen", "Erledigt"].includes(item.status || ""),
+    );
+
+    const recentCompletedTickets = completedRelatedTickets.slice(0, 4);
+
+    const relatedHistory = relatedDevice
+      ? deviceHistory
+          .filter((entry) => entry.device_id === relatedDevice.id)
+          .slice()
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          )
+          .slice(0, 6)
+      : [];
+
+    const relatedDocuments = relatedDevice
+      ? documents.filter(
+          (documentItem) =>
+            documentItem.device_id === relatedDevice.id ||
+            documentItem.ticket_id === ticket.id,
+        )
+      : documents.filter((documentItem) => documentItem.ticket_id === ticket.id);
+
+    const relatedPartUsages = relatedDevice
+      ? partUsages.filter(
+          (usage) => usage.device_id === relatedDevice.id && !usage.is_voided,
+        )
+      : partUsages.filter(
+          (usage) => usage.ticket_id === ticket.id && !usage.is_voided,
+        );
+
+    const partFrequency = new Map<
+      number,
+      { partId: number; quantity: number; uses: number; latest: string }
+    >();
+
+    relatedPartUsages.forEach((usage) => {
+      if (!usage.part_id) return;
+      const existing = partFrequency.get(usage.part_id);
+      const latest =
+        !existing ||
+        new Date(usage.created_at).getTime() >
+          new Date(existing.latest).getTime()
+          ? usage.created_at
+          : existing.latest;
+
+      partFrequency.set(usage.part_id, {
+        partId: usage.part_id,
+        quantity: Number(existing?.quantity || 0) + Number(usage.quantity || 0),
+        uses: Number(existing?.uses || 0) + 1,
+        latest,
+      });
+    });
+
+    const frequentParts = Array.from(partFrequency.values())
+      .sort((a, b) => b.uses - a.uses || b.quantity - a.quantity)
+      .slice(0, 4)
+      .map((item) => ({
+        ...item,
+        name: getPartNameById(item.partId),
+      }));
+
+    const similarIssueTerms = String(ticket.issue || "")
+      .toLowerCase()
+      .split(/[^a-zA-Z0-9äöüÄÖÜß]+/)
+      .map((term) => term.trim())
+      .filter((term) => term.length >= 4);
+
+    const similarTickets = relatedTickets
+      .filter((item) => {
+        const haystack = `${item.issue || ""} ${item.description || ""}`.toLowerCase();
+        return similarIssueTerms.some((term) => haystack.includes(term));
+      })
+      .slice(0, 3);
+
+    const latestService = recentCompletedTickets[0] || null;
+
+    const warnings: string[] = [];
+    const nextSteps: string[] = [];
+
+    if (!relatedDevice) {
+      warnings.push("Kein eindeutiges Serviceobjekt zugeordnet.");
+      nextSteps.push("Gerät oder Anlage eindeutig zuordnen.");
+    }
+
+    if (relatedDevice?.next_check) {
+      const nextCheck = new Date(relatedDevice.next_check);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      nextCheck.setHours(0, 0, 0, 0);
+
+      if (!Number.isNaN(nextCheck.getTime()) && nextCheck < today) {
+        warnings.push("Prüf- oder Wartungstermin ist überfällig.");
+        nextSteps.push("Prüffrist beim Einsatz mit prüfen.");
+      }
+    }
+
+    if (
+      String(relatedDevice?.status || "")
+        .toLowerCase()
+        .includes("außer betrieb")
+    ) {
+      warnings.push("Serviceobjekt ist aktuell als außer Betrieb markiert.");
+      nextSteps.push("Betriebsfreigabe erst nach technischer Prüfung dokumentieren.");
+    }
+
+    if (similarTickets.length > 0) {
+      warnings.push(
+        `${similarTickets.length} frühere Einsatz${similarTickets.length === 1 ? "" : "e"} mit ähnlichem Fehlerbild gefunden.`,
+      );
+      nextSteps.push("Frühere Maßnahmen vor Beginn vergleichen.");
+    }
+
+    if (frequentParts.length > 0) {
+      nextSteps.push(
+        `Häufig verwendetes Ersatzteil prüfen: ${frequentParts[0].name}.`,
+      );
+    }
+
+    if (relatedDocuments.length > 0) {
+      nextSteps.push("Vorhandene Geräte- und Einsatzdokumente vor Ort bereithalten.");
+    } else {
+      warnings.push("Keine gerätebezogene Dokumentation gefunden.");
+    }
+
+    if (latestService?.service_report) {
+      nextSteps.push("Letztes Serviceergebnis als Ausgangspunkt verwenden.");
+    }
+
+    if (nextSteps.length === 0) {
+      nextSteps.push("Fehlerbild vor Ort verifizieren und Ergebnis sauber dokumentieren.");
+    }
+
+    const summaryParts = [
+      relatedDevice
+        ? `${relatedDevice.name}${relatedDevice.serial_number ? ` · SN ${relatedDevice.serial_number}` : ""}`
+        : "Serviceobjekt nicht eindeutig zugeordnet",
+      completedRelatedTickets.length > 0
+        ? `${completedRelatedTickets.length} frühere abgeschlossene Einsätze`
+        : "keine abgeschlossenen Voreinsätze",
+      frequentParts.length > 0
+        ? `${frequentParts.length} relevante Ersatzteilhistorie${frequentParts.length === 1 ? "" : "n"}`
+        : "keine Ersatzteilhistorie",
+      relatedDocuments.length > 0
+        ? `${relatedDocuments.length} Dokument${relatedDocuments.length === 1 ? "" : "e"}`
+        : "keine Dokumente",
+    ];
+
+    return {
+      relatedDevice,
+      relatedCustomer,
+      summary: summaryParts.join(" · "),
+      recentCompletedTickets,
+      relatedHistory,
+      relatedDocuments,
+      frequentParts,
+      similarTickets,
+      latestService,
+      warnings,
+      nextSteps: Array.from(new Set(nextSteps)).slice(0, 5),
     };
   }
 
@@ -18785,6 +18968,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                 const customerTickets = getTicketsForCustomerContext(ticketCustomer?.id).slice(0, 8);
                 const customerDevices = ticketCustomer?.id ? getDevicesForCustomer(ticketCustomer.id) : [];
                 const firstTimeFix = getFirstTimeFixReadiness(currentTicket);
+                const serviceCopilot = getServiceCopilotContext(currentTicket);
 
                 return (
                   <div className="mb-6 rounded-[28px] border-2 border-sky-200 bg-white p-5 shadow-sm">
@@ -18989,6 +19173,175 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           </p>
                         </div>
                       )}
+                    </div>
+
+                    <div className="mt-5 rounded-[18px] border border-indigo-200 bg-indigo-50 p-4 sm:p-5">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-600">
+                            TRYBUN Service Copilot
+                          </p>
+                          <h4 className="mt-1 text-xl font-black text-slate-950">
+                            Kontext aus Ihrer eigenen Servicehistorie
+                          </h4>
+                          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-600">
+                            Der Copilot fasst ausschließlich bereits in TRYBUN vorhandene Geräte-, Ticket-, Dokument- und Ersatzteildaten zusammen. Er erfindet keine technische Diagnose.
+                          </p>
+                        </div>
+                        <span className="w-fit shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-black text-indigo-700">
+                          Datenbasierter Kontext
+                        </span>
+                      </div>
+
+                      <div className="mt-4 rounded-xl border border-indigo-100 bg-white p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                          Kurzlage
+                        </p>
+                        <p className="mt-2 text-sm font-bold leading-6 text-slate-800">
+                          {serviceCopilot.summary}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                        <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-700">
+                            Empfohlene nächste Prüfschritte
+                          </p>
+                          <div className="mt-3 space-y-2">
+                            {serviceCopilot.nextSteps.map((step, index) => (
+                              <div key={`${currentTicket.id}-copilot-step-${index}`} className="flex items-start gap-3">
+                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">
+                                  {index + 1}
+                                </span>
+                                <p className="text-sm font-semibold leading-6 text-slate-700">
+                                  {step}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-700">
+                            Hinweise aus der Historie
+                          </p>
+                          {serviceCopilot.warnings.length === 0 ? (
+                            <p className="mt-3 text-sm font-semibold text-slate-500">
+                              Keine auffälligen Hinweise aus den vorhandenen TRYBUN-Daten.
+                            </p>
+                          ) : (
+                            <div className="mt-3 space-y-2">
+                              {serviceCopilot.warnings.map((warning) => (
+                                <div key={warning} className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-700">
+                                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                                  <span>{warning}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+                        <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                              Frühere Einsätze
+                            </p>
+                            <span className="text-xs font-black text-slate-400">
+                              {serviceCopilot.recentCompletedTickets.length}
+                            </span>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {serviceCopilot.recentCompletedTickets.length === 0 ? (
+                              <p className="text-sm font-semibold text-slate-500">Keine abgeschlossenen Voreinsätze.</p>
+                            ) : (
+                              serviceCopilot.recentCompletedTickets.map((previousTicket) => (
+                                <button
+                                  key={`copilot-ticket-${previousTicket.id}`}
+                                  type="button"
+                                  onClick={() => setSelectedTicketView(previousTicket)}
+                                  className="block w-full rounded-xl bg-slate-50 p-3 text-left"
+                                >
+                                  <p className="text-xs font-black text-sky-600">
+                                    {previousTicket.ticket_number}
+                                  </p>
+                                  <p className="mt-1 line-clamp-2 text-sm font-black text-slate-900">
+                                    {previousTicket.issue}
+                                  </p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    {formatDate(previousTicket.completed_at || previousTicket.service_date || previousTicket.created_at)}
+                                  </p>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                              Häufige Ersatzteile
+                            </p>
+                            <span className="text-xs font-black text-slate-400">
+                              {serviceCopilot.frequentParts.length}
+                            </span>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {serviceCopilot.frequentParts.length === 0 ? (
+                              <p className="text-sm font-semibold text-slate-500">
+                                Noch keine Ersatzteilhistorie.
+                              </p>
+                            ) : (
+                              serviceCopilot.frequentParts.map((part) => (
+                                <div key={`copilot-part-${part.partId}`} className="rounded-xl bg-slate-50 p-3">
+                                  <p className="text-sm font-black text-slate-900">{part.name}</p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    {part.uses} Verwendung{part.uses === 1 ? "" : "en"} · {part.quantity} Einheit{part.quantity === 1 ? "" : "en"}
+                                  </p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                              Wissen & Dokumente
+                            </p>
+                            <span className="text-xs font-black text-slate-400">
+                              {serviceCopilot.relatedDocuments.length}
+                            </span>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {serviceCopilot.latestService?.service_report && (
+                              <div className="rounded-xl bg-slate-50 p-3">
+                                <p className="text-xs font-black text-slate-500">Letztes Serviceergebnis</p>
+                                <p className="mt-1 line-clamp-4 whitespace-pre-wrap text-sm font-semibold leading-5 text-slate-700">
+                                  {serviceCopilot.latestService.service_report}
+                                </p>
+                              </div>
+                            )}
+                            {serviceCopilot.relatedHistory.slice(0, 3).map((entry) => (
+                              <div key={`copilot-history-${entry.id}`} className="rounded-xl bg-slate-50 p-3">
+                                <p className="text-xs font-black text-slate-500">{entry.type}</p>
+                                <p className="mt-1 text-sm font-black text-slate-900">{entry.title}</p>
+                              </div>
+                            ))}
+                            {!serviceCopilot.latestService?.service_report &&
+                              serviceCopilot.relatedHistory.length === 0 && (
+                                <p className="text-sm font-semibold text-slate-500">
+                                  Noch kein verwertbares Servicewissen hinterlegt.
+                                </p>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-xs font-semibold leading-5 text-slate-500">
+                        Der Service Copilot ist in dieser Ausbaustufe vollständig datenbasiert und arbeitet ohne externe KI-Auswertung. Technische Entscheidungen bleiben beim qualifizierten Servicepersonal.
+                      </p>
                     </div>
 
                     <div className="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5">
@@ -25937,6 +26290,44 @@ placeholder="Gerät / Anlage / Modell suchen..."
                                 </p>
                               )}
                             </div>
+
+                            {(() => {
+                              const serviceCopilot = getServiceCopilotContext(ticket);
+                              return (
+                                <div className="mt-4 rounded-[18px] border border-indigo-200 bg-indigo-50 p-4">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                      <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-600">
+                                        Service Copilot
+                                      </p>
+                                      <p className="mt-1 text-sm font-black text-slate-900">
+                                        {serviceCopilot.recentCompletedTickets.length} Voreinsatz
+                                        {serviceCopilot.recentCompletedTickets.length === 1 ? "" : "e"} · {serviceCopilot.frequentParts.length} relevante Ersatzteilhistorie
+                                        {serviceCopilot.frequentParts.length === 1 ? "" : "n"}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedTicketView(ticket)}
+                                      className="w-full rounded-xl bg-white px-4 py-2.5 text-sm font-black text-indigo-700 shadow-sm sm:w-auto"
+                                    >
+                                      Copilot öffnen
+                                    </button>
+                                  </div>
+
+                                  <div className="mt-3 space-y-2">
+                                    {serviceCopilot.nextSteps.slice(0, 2).map((step, index) => (
+                                      <p
+                                        key={`${ticket.id}-mobile-copilot-${index}`}
+                                        className="text-sm font-semibold leading-5 text-slate-700"
+                                      >
+                                        {index + 1}. {step}
+                                      </p>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             <div className="mt-4 rounded-3xl bg-slate-50 p-4">
                               <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
