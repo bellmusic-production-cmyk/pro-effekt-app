@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.82 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.83 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -17038,7 +17038,7 @@ ${tenantBrandName}`,
   }
 
   const visibleNavItems = isAdmin
-    ? navItems
+    ? navItems.filter((item) => item !== "Einsatz")
     : isTechnician
       ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Gerätebestand", "Dokumente", "Auftrag / Lieferschein erstellen"]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
@@ -17094,7 +17094,7 @@ ${tenantBrandName}`,
     const labels: Record<string, string> = {
       Dashboard: "Start",
       Einsatz: "Einsatz",
-      Kalender: "Kalender",
+      Kalender: "Einsatzkalender",
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
       Geräte: "Hersteller & Modelle",
@@ -19613,7 +19613,7 @@ ${tenantBrandName}`,
                       Leitstand
                     </h3>
                     <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
-                      Steuern Sie den gesamten Service-Lifecycle zentral: Einsatzplanung, Gerätewissen, Nachweise, Wartungen, Material, Kommunikation und Abrechnung.
+                      Steuern Sie den gesamten Service-Lifecycle zentral: Einsatzkalender, Gerätewissen, Nachweise, Wartungen, Material, Kommunikation und Abrechnung.
                     </p>
                   </div>
 
@@ -19709,17 +19709,17 @@ ${tenantBrandName}`,
 
                           <button
                             type="button"
-                            onClick={() => openPage("Einsatz")}
+                            onClick={() => openPage("Kalender")}
                             className="rounded-2xl border border-sky-400/40 bg-sky-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.98]"
                           >
-                            📅 Einsatzplanung öffnen
+                            📅 Einsatzkalender öffnen
                           </button>
                         </div>
 
                         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                           <button
                             type="button"
-                            onClick={() => openPage("Einsatz")}
+                            onClick={() => openPage("Kalender")}
                             className="min-h-[148px] rounded-3xl border border-sky-500/45 bg-sky-950/20 p-4 text-left transition hover:bg-sky-950/35 active:scale-[0.98]"
                           >
                             <div className="flex items-start gap-3">
@@ -20015,12 +20015,12 @@ ${tenantBrandName}`,
                       </button>
 
                       <button
-                        onClick={() => openPage("Einsatz")}
+                        onClick={() => openPage("Kalender")}
                         className="rounded-3xl border border-slate-700 bg-slate-900 px-5 py-5 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
                       >
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">📍</span>
-                        <span className="mt-3 block text-lg">Einsätze</span>
-                        <span className="mt-1 block text-sm font-bold text-slate-300">Techniker-Workflow</span>
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">📅</span>
+                        <span className="mt-3 block text-lg">Einsatzkalender</span>
+                        <span className="mt-1 block text-sm font-bold text-slate-300">Disposition & Termine</span>
                       </button>
 
                       <button
@@ -20268,10 +20268,10 @@ ${tenantBrandName}`,
                       </p>
                     </div>
                     <button
-                      onClick={() => openPage("Einsatz")}
+                      onClick={() => openPage("Kalender")}
                       className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
                     >
-                      Einsatz öffnen
+                      Einsatzkalender öffnen
                     </button>
                   </div>
 
@@ -20536,7 +20536,7 @@ ${tenantBrandName}`,
                       </p>
                       <h3 className="mt-2 text-3xl font-black md:text-4xl">Einsatzkalender</h3>
                       <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                        Wochen- und Jahresplanung für Serviceeinsätze, Wartungen und Techniker.
+                        Zentrale Disposition für Serviceeinsätze, Wartungen und Techniker – planen, prüfen und im Kalender steuern.
                       </p>
                     </div>
 
@@ -20624,6 +20624,198 @@ ${tenantBrandName}`,
                   </div>
                 </div>
               </div>
+
+              {isAdmin && (
+                <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
+                  <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
+                          Dispo-Arbeitsvorrat
+                        </p>
+                        <h4 className="mt-1 text-xl font-bold tracking-[-0.025em] text-slate-950">
+                          Alles, was noch geplant oder geprüft werden muss
+                        </h4>
+                        <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                          Ungeplante Tickets, überfällige Einsätze und fällige Wartungen direkt am Einsatzkalender bearbeiten.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarDate(new Date().toISOString().split("T")[0])}
+                        className="min-h-[44px] w-full rounded-[8px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-800 transition hover:bg-slate-50 lg:w-auto"
+                      >
+                        Heute fokussieren
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="bg-white p-4 sm:p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">Ungeplant</p>
+                      <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">{unplannedDispatchTickets.length}</p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">Techniker oder Einsatzdatum fehlt</p>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-700">Am ausgewählten Tag</p>
+                      <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">{plannedDispatchTickets.length}</p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{calendarDate || "Kein Datum gewählt"}</p>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-rose-700">Überfällig</p>
+                      <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">{overdueDispatchTickets.length}</p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">Aktive Einsätze mit vergangenem Termin</p>
+                    </div>
+                    <div className="bg-white p-4 sm:p-5">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-indigo-700">Wartungen</p>
+                      <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">{dispatchPremiumMaintenanceSuggestions.length}</p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">Fällig, bald fällig oder überfällig</p>
+                    </div>
+                  </div>
+
+                  {(unplannedDispatchTickets.length > 0 ||
+                    overdueDispatchTickets.length > 0 ||
+                    dispatchPremiumMaintenanceSuggestions.length > 0) && (
+                    <div className="grid gap-0 border-t border-slate-200 xl:grid-cols-[1.35fr_0.9fr_0.9fr]">
+                      <div className="border-b border-slate-200 p-4 sm:p-5 xl:border-b-0 xl:border-r">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-slate-950">Schnellplanung</p>
+                            <p className="mt-1 text-xs font-medium text-slate-500">Techniker-Vorschlag + ausgewähltes Kalenderdatum</p>
+                          </div>
+                          <span className="rounded-[7px] bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
+                            {unplannedDispatchTickets.length}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {unplannedDispatchTickets.length === 0 ? (
+                            <div className="rounded-[8px] border border-emerald-100 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                              Alle offenen Tickets sind vollständig disponiert.
+                            </div>
+                          ) : (
+                            unplannedDispatchTickets.slice(0, 4).map((ticket) => {
+                              const suggestedTechnicianId = getSuggestedTechnicianForTicket(ticket);
+                              return (
+                                <div key={ticket.id} className="rounded-[9px] border border-slate-200 bg-slate-50 p-3">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-bold text-slate-950">
+                                        {ticket.ticket_number || "Servicefall"} · {ticket.issue || "Serviceeinsatz"}
+                                      </p>
+                                      <p className="mt-1 truncate text-xs font-medium text-slate-500">
+                                        {ticket.customer || "Kunde offen"} · Vorschlag: {getTechnicianNameById(suggestedTechnicianId) || "kein Techniker"}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => quickPlanTicketSuggested(ticket)}
+                                      className="min-h-[40px] shrink-0 rounded-[8px] bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+                                    >
+                                      Einplanen
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {unplannedDispatchTickets.length > 4 && (
+                          <button
+                            type="button"
+                            onClick={() => openPage("Service-Tickets")}
+                            className="mt-3 text-sm font-bold text-sky-700 hover:text-sky-600"
+                          >
+                            Alle ungeplanten Tickets öffnen →
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="border-b border-slate-200 p-4 sm:p-5 xl:border-b-0 xl:border-r">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-slate-950">Überfällige Einsätze</p>
+                            <p className="mt-1 text-xs font-medium text-slate-500">Termin prüfen und neu disponieren</p>
+                          </div>
+                          <span className="rounded-[7px] bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-800">
+                            {overdueDispatchTickets.length}
+                          </span>
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          {overdueDispatchTickets.length === 0 ? (
+                            <div className="rounded-[8px] border border-emerald-100 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                              Keine überfälligen aktiven Einsätze.
+                            </div>
+                          ) : (
+                            overdueDispatchTickets.slice(0, 4).map((ticket) => (
+                              <button
+                                key={ticket.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTicketView(ticket);
+                                  openPage("Service-Tickets");
+                                }}
+                                className="block w-full rounded-[9px] border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-rose-200 hover:bg-rose-50/40"
+                              >
+                                <p className="truncate text-sm font-bold text-slate-950">{ticket.ticket_number || "Servicefall"}</p>
+                                <p className="mt-1 truncate text-xs font-medium text-slate-500">
+                                  {ticket.service_date || "ohne Termin"} · {ticket.customer || "Kunde offen"}
+                                </p>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4 sm:p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold text-slate-950">Fällige Wartungen</p>
+                            <p className="mt-1 text-xs font-medium text-slate-500">Direkt als Servicefall übernehmen</p>
+                          </div>
+                          <span className="rounded-[7px] bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-800">
+                            {dispatchPremiumMaintenanceSuggestions.length}
+                          </span>
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          {dispatchPremiumMaintenanceSuggestions.length === 0 ? (
+                            <div className="rounded-[8px] border border-emerald-100 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                              Keine fällige Wartung zur Übernahme.
+                            </div>
+                          ) : (
+                            dispatchPremiumMaintenanceSuggestions.slice(0, 4).map((plan) => {
+                              const dueState = getMaintenanceDueState(plan);
+                              return (
+                                <div key={plan.id} className="rounded-[9px] border border-slate-200 bg-slate-50 p-3">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-bold text-slate-950">{plan.title || "Wartung"}</p>
+                                      <p className="mt-1 truncate text-xs font-medium text-slate-500">
+                                        {plan.next_due || "ohne Termin"}
+                                      </p>
+                                    </div>
+                                    <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${dueState.className}`}>
+                                      {dueState.label}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => quickCreateMaintenanceTicketAndPlan(plan)}
+                                    className="mt-3 min-h-[40px] w-full rounded-[8px] border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-800 transition hover:bg-indigo-50"
+                                  >
+                                    Als Ticket anlegen
+                                  </button>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
 
               <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-gradient-to-br from-slate-50 via-sky-50/30 to-indigo-50/40 shadow-xl shadow-slate-200/50">
                 <div className="border-b border-slate-200 bg-white/75 px-5 py-4 backdrop-blur">
@@ -20865,7 +21057,14 @@ ${tenantBrandName}`,
                                   <button
                                     key={ticket.id}
                                     type="button"
-                                    onClick={() => openPage("Einsatz")}
+                                    onClick={() => {
+                                      if (isAdmin) {
+                                        setSelectedTicketView(ticket);
+                                        openPage("Service-Tickets");
+                                      } else {
+                                        openPage("Einsatz");
+                                      }
+                                    }}
                                     className={`absolute z-10 overflow-hidden rounded-xl border p-2 text-left text-white shadow-lg transition hover:z-20 hover:-translate-y-0.5 hover:shadow-xl ${calendarTicketStyle(ticket)}`}
                                     style={{
                                       top: `${calendarTicketTop(ticket) + 3}px`,
@@ -20894,45 +21093,7 @@ ${tenantBrandName}`,
                 )}
               </div>
 
-              {unplannedDispatchTickets.length > 0 && !isCustomer && (
-                <div className="rounded-[28px] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Noch einzuplanen</p>
-                      <h4 className="mt-1 text-xl font-black text-slate-900">
-                        {unplannedDispatchTickets.length} offene Ticket{unplannedDispatchTickets.length === 1 ? "" : "s"} ohne vollständige Disposition
-                      </h4>
-                      <p className="mt-1 text-sm font-semibold text-slate-600">
-                        Techniker oder Einsatzdatum fehlt. Diese Tickets erscheinen erst nach vollständiger Planung im Kalender.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openPage("Service-Tickets")}
-                      className="rounded-2xl bg-amber-900 px-5 py-3 text-sm font-black text-white"
-                    >
-                      Tickets disponieren
-                    </button>
-                  </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {unplannedDispatchTickets.slice(0, 6).map((ticket) => (
-                      <div key={ticket.id} className="rounded-2xl border border-amber-200 bg-white p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-black text-amber-700">{ticket.ticket_number}</span>
-                          <span className={`rounded-full px-3 py-1 text-[10px] font-black ${statusClass(ticket.status)}`}>{ticket.status}</span>
-                        </div>
-                        <p className="mt-2 truncate font-black text-slate-900">{ticket.customer}</p>
-                        <p className="mt-1 truncate text-xs font-semibold text-slate-500">
-                          {!ticket.assigned_to ? "Techniker fehlt" : getTechnicianNameById(ticket.assigned_to)}
-                          {" · "}
-                          {!ticket.service_date ? "Termin fehlt" : ticket.service_date}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
