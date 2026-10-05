@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.68 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.69 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -76,6 +76,20 @@ type OfflineServiceAction =
       ticket_snapshot: Ticket;
       device_id?: number | null;
     };
+
+type OfflineTechnicianSnapshot = {
+  version: 1;
+  user_id: string;
+  saved_at: string;
+  tickets: Ticket[];
+  devices: Device[];
+  customers: Customer[];
+  manufacturers: Manufacturer[];
+  device_models: DeviceModel[];
+  documents: DocumentItem[];
+  device_history: DeviceHistory[];
+  maintenance_plans: MaintenancePlan[];
+};
 
 type Device = {
   id: number;
@@ -1653,10 +1667,41 @@ export default function Home() {
   const [pendingOfflineActions, setPendingOfflineActions] = useState(0);
   const [offlineSyncing, setOfflineSyncing] = useState(false);
   const [offlineSyncMessage, setOfflineSyncMessage] = useState("");
+  const [offlineSnapshotSavedAt, setOfflineSnapshotSavedAt] = useState<string | null>(null);
   const offlineSyncRunningRef = useRef(false);
 
   const [appointmentResponseNoteByTicket, setAppointmentResponseNoteByTicket] = useState<Record<number, string>>({});
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (
+      !appDataLoaded ||
+      !isOnline ||
+      userProfile?.role !== "technician" ||
+      !userProfile?.id
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      saveOfflineTechnicianSnapshot(userProfile.id);
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    appDataLoaded,
+    isOnline,
+    userProfile?.id,
+    userProfile?.role,
+    tickets,
+    devices,
+    customers,
+    manufacturers,
+    deviceModels,
+    documents,
+    deviceHistory,
+    maintenancePlans,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -3398,6 +3443,188 @@ export default function Home() {
     await sendChatNotificationEmail(notificationItem);
   }
 
+function getOfflineTechnicianSnapshotKey(userId?: string | null) {
+    return `trybun-offline-technician-snapshot-${userId || "session"}`;
+  }
+
+  function readOfflineTechnicianSnapshot(
+    userId?: string | null,
+  ): OfflineTechnicianSnapshot | null {
+    if (typeof window === "undefined" || !userId) return null;
+
+    try {
+      const raw = window.localStorage.getItem(
+        getOfflineTechnicianSnapshotKey(userId),
+      );
+
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as OfflineTechnicianSnapshot;
+
+      if (
+        parsed?.version !== 1 ||
+        parsed.user_id !== userId ||
+        !Array.isArray(parsed.tickets) ||
+        !Array.isArray(parsed.devices) ||
+        !Array.isArray(parsed.customers)
+      ) {
+        return null;
+      }
+
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function restoreOfflineTechnicianSnapshot(userId?: string | null) {
+    const snapshot = readOfflineTechnicianSnapshot(userId);
+
+    if (!snapshot) {
+      setOfflineSnapshotSavedAt(null);
+      setOfflineSyncMessage(
+        "Offline-Modus aktiv · Für dieses Gerät ist noch kein Offline-Einsatzbestand gespeichert. TRYBUN speichert ihn automatisch nach dem nächsten Online-Aufruf.",
+      );
+      return false;
+    }
+
+    setTickets(snapshot.tickets || []);
+    setDevices(snapshot.devices || []);
+    setCustomers(snapshot.customers || []);
+    setManufacturers(snapshot.manufacturers || []);
+    setDeviceModels(snapshot.device_models || []);
+    setDocuments(snapshot.documents || []);
+    setDeviceHistory(snapshot.device_history || []);
+    setMaintenancePlans(snapshot.maintenance_plans || []);
+    setOfflineSnapshotSavedAt(snapshot.saved_at);
+
+    const savedLabel = new Date(snapshot.saved_at).toLocaleString("de-DE", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+
+    setOfflineSyncMessage(
+      `Offline-Modus aktiv · ${snapshot.tickets.length} zugewiesene Einsatz${snapshot.tickets.length === 1 ? "" : "e"} aus dem Offline-Bestand vom ${savedLabel}.`,
+    );
+
+    return true;
+  }
+
+  function saveOfflineTechnicianSnapshot(userId?: string | null) {
+    if (
+      typeof window === "undefined" ||
+      !userId ||
+      userProfile?.role !== "technician" ||
+      isOfflineRuntime()
+    ) {
+      return;
+    }
+
+    const assignedTickets = tickets.filter(
+      (ticket) => String(ticket.assigned_to || "") === String(userId),
+    );
+
+    const ticketIds = new Set(assignedTickets.map((ticket) => ticket.id));
+    const relatedDevices = devices.filter((deviceItem) =>
+      assignedTickets.some((ticket) => getDeviceForTicket(ticket)?.id === deviceItem.id),
+    );
+    const deviceIds = new Set(relatedDevices.map((deviceItem) => deviceItem.id));
+
+    const customerIds = new Set<number>();
+
+    assignedTickets.forEach((ticket) => {
+      if (ticket.customer_id) customerIds.add(Number(ticket.customer_id));
+      if (ticket.billing_customer_id) {
+        customerIds.add(Number(ticket.billing_customer_id));
+      }
+    });
+
+    relatedDevices.forEach((deviceItem) => {
+      if (deviceItem.customer_id) {
+        customerIds.add(Number(deviceItem.customer_id));
+      }
+    });
+
+    const relatedCustomers = customers.filter((customerItem) =>
+      customerIds.has(customerItem.id),
+    );
+
+    const manufacturerIds = new Set(
+      relatedDevices
+        .map((deviceItem) => deviceItem.manufacturer_id)
+        .filter((id): id is number => id != null),
+    );
+
+    const modelIds = new Set(
+      relatedDevices
+        .map((deviceItem) => deviceItem.model_id)
+        .filter((id): id is number => id != null),
+    );
+
+    const relatedManufacturers = manufacturers.filter((manufacturerItem) =>
+      manufacturerIds.has(manufacturerItem.id),
+    );
+
+    const relatedModels = deviceModels.filter(
+      (modelItem) =>
+        modelIds.has(modelItem.id) ||
+        (modelItem.manufacturer_id != null &&
+          manufacturerIds.has(modelItem.manufacturer_id)),
+    );
+
+    const relatedDocuments = documents
+      .filter(
+        (documentItem) =>
+          (documentItem.ticket_id != null &&
+            ticketIds.has(Number(documentItem.ticket_id))) ||
+          (documentItem.device_id != null &&
+            deviceIds.has(Number(documentItem.device_id))) ||
+          (documentItem.customer_id != null &&
+            customerIds.has(Number(documentItem.customer_id))),
+      )
+      .map((documentItem) => ({
+        ...documentItem,
+        // Es werden nur Metadaten lokal bereitgehalten.
+        // Die Dokumentdatei selbst bleibt ausschließlich im geschützten Storage.
+        file_path: documentItem.file_path || "",
+      }));
+
+    const relatedHistory = deviceHistory.filter(
+      (entry) => entry.device_id != null && deviceIds.has(Number(entry.device_id)),
+    );
+
+    const relatedMaintenance = maintenancePlans.filter(
+      (plan) =>
+        (plan.device_id != null && deviceIds.has(Number(plan.device_id))) ||
+        (plan.customer_id != null &&
+          customerIds.has(Number(plan.customer_id))),
+    );
+
+    const snapshot: OfflineTechnicianSnapshot = {
+      version: 1,
+      user_id: userId,
+      saved_at: new Date().toISOString(),
+      tickets: assignedTickets,
+      devices: relatedDevices,
+      customers: relatedCustomers,
+      manufacturers: relatedManufacturers,
+      device_models: relatedModels,
+      documents: relatedDocuments,
+      device_history: relatedHistory,
+      maintenance_plans: relatedMaintenance,
+    };
+
+    try {
+      window.localStorage.setItem(
+        getOfflineTechnicianSnapshotKey(userId),
+        JSON.stringify(snapshot),
+      );
+      setOfflineSnapshotSavedAt(snapshot.saved_at);
+    } catch (error) {
+      console.error("Offline-Einsatzbestand konnte nicht gespeichert werden:", error);
+    }
+  }
+
 function isOfflineRuntime() {
     return typeof navigator !== "undefined" && !navigator.onLine;
   }
@@ -3405,10 +3632,16 @@ function isOfflineRuntime() {
 async function loadApplicationData() {
     if (isOfflineRuntime()) {
       setIsOnline(false);
+
+      const restored = restoreOfflineTechnicianSnapshot(session?.user?.id);
+
+      if (!restored) {
+        setOfflineSyncMessage(
+          "Offline-Modus aktiv · Live-Daten werden automatisch geladen, sobald wieder Internet verfügbar ist.",
+        );
+      }
+
       setAppDataLoaded(true);
-      setOfflineSyncMessage(
-        "Offline-Modus aktiv · Live-Daten werden automatisch geladen, sobald wieder Internet verfügbar ist.",
-      );
       return;
     }
 
@@ -5593,6 +5826,13 @@ async function loadApplicationData() {
   }
 
   async function openDocument(item: DocumentItem) {
+    if (isOfflineRuntime()) {
+      alert(
+        "Die Dokumentinformation ist offline verfügbar. Zum Öffnen der Datei wird eine Internetverbindung benötigt.",
+      );
+      return;
+    }
+
     const { data, error } = await supabase.storage
       .from("documents")
       .createSignedUrl(item.file_path, 300);
@@ -18056,7 +18296,9 @@ PRO-EFFEKT`,
                   {offlineSyncMessage ||
                     (pendingOfflineActions > 0
                       ? `${pendingOfflineActions} vorgemerkte Aktion${pendingOfflineActions === 1 ? "" : "en"}.`
-                      : "Alle vorgemerkten Einsatzdaten sind übertragen.")}
+                      : offlineSnapshotSavedAt && !isOnline
+                        ? "Gespeicherter Einsatzbestand ist auf diesem Gerät verfügbar."
+                        : "Alle vorgemerkten Einsatzdaten sind übertragen.")}
                 </p>
               </div>
               {isOnline && pendingOfflineActions > 0 && !offlineSyncing && (
