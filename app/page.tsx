@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.86 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.88 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2351,7 +2351,57 @@ export default function Home() {
 
 
 
-  const sortedTicketListTickets = sortTicketsByCreatedAtDesc(filteredTickets);
+  const sortedTicketListTickets = searchTerm.trim()
+    ? filteredTickets
+        .slice()
+        .sort((a, b) => {
+          const linkedCustomerA =
+            customers.find((item) => item.id === a.customer_id) ||
+            customers.find((item) => item.company === a.customer) ||
+            null;
+          const linkedCustomerB =
+            customers.find((item) => item.id === b.customer_id) ||
+            customers.find((item) => item.company === b.customer) ||
+            null;
+          const linkedDeviceA =
+            devices.find((item) => item.name === a.device) ||
+            devices.find((item) => String(item.serial_number || "") === String(a.device || "")) ||
+            null;
+          const linkedDeviceB =
+            devices.find((item) => item.name === b.device) ||
+            devices.find((item) => String(item.serial_number || "") === String(b.device || "")) ||
+            null;
+
+          const query = searchTerm.trim();
+          const rankDifference =
+            getTrybunSearchRank(
+              [
+                [a.ticket_number, a.issue],
+                [a.customer, linkedCustomerA?.company, linkedCustomerA ? getCustomerDisplayName(linkedCustomerA) : ""],
+                [a.device, linkedDeviceA?.name, linkedDeviceA?.model],
+                [linkedDeviceA?.serial_number],
+                [a.service_location_name, a.service_contact_name],
+                [a.description, a.service_address],
+              ],
+              query,
+            ) -
+            getTrybunSearchRank(
+              [
+                [b.ticket_number, b.issue],
+                [b.customer, linkedCustomerB?.company, linkedCustomerB ? getCustomerDisplayName(linkedCustomerB) : ""],
+                [b.device, linkedDeviceB?.name, linkedDeviceB?.model],
+                [linkedDeviceB?.serial_number],
+                [b.service_location_name, b.service_contact_name],
+                [b.description, b.service_address],
+              ],
+              query,
+            );
+
+          if (rankDifference !== 0) return rankDifference;
+
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        })
+    : sortTicketsByCreatedAtDesc(filteredTickets);
 
   const ticketListDisplayTickets =
     statusFilter === "Alle"
@@ -2483,6 +2533,40 @@ export default function Home() {
       })();
 
       return matchesCategory && matchesCustomer && matchesDevice && matchesSearch && matchesQuickFilter;
+    })
+    .sort((a, b) => {
+      if (search) {
+        const linkedTicketA = a.ticket_id
+          ? tickets.find((item) => item.id === a.ticket_id)
+          : null;
+        const linkedTicketB = b.ticket_id
+          ? tickets.find((item) => item.id === b.ticket_id)
+          : null;
+
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.file_name],
+              [a.category],
+              [getDocumentCustomerName(a), getDeviceNameById(a.device_id)],
+              [getDocumentTicketNumber(a), linkedTicketA?.issue],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.file_name],
+              [b.category],
+              [getDocumentCustomerName(b), getDeviceNameById(b.device_id)],
+              [getDocumentTicketNumber(b), linkedTicketB?.issue],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+      }
+
+      return String(b.created_at || "").localeCompare(String(a.created_at || ""));
     });
   }, [
     documents,
@@ -2745,6 +2829,38 @@ export default function Home() {
         );
 
       return matchesStatus && matchesType && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (search) {
+        const ticketA = tickets.find((ticket) => ticket.id === a.related_ticket_id);
+        const ticketB = tickets.find((ticket) => ticket.id === b.related_ticket_id);
+
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.subject],
+              [a.recipient],
+              [a.type],
+              [ticketA?.ticket_number],
+              [a.message, a.email_status, a.status, a.email_error],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.subject],
+              [b.recipient],
+              [b.type],
+              [ticketB?.ticket_number],
+              [b.message, b.email_status, b.status, b.email_error],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+      }
+
+      return String(b.created_at || "").localeCompare(String(a.created_at || ""));
     });
   }, [notifications, communicationStatusFilter, communicationTypeFilter, communicationSearchTerm, tickets]);
 
@@ -2795,7 +2911,36 @@ export default function Home() {
           search,
         );
       })
-      .sort((a, b) => getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de"));
+      .sort((a, b) => {
+        if (search) {
+          const linkedCustomerA = a.role === "customer" ? getCustomerForUserProfile(a) : null;
+          const linkedCustomerB = b.role === "customer" ? getCustomerForUserProfile(b) : null;
+
+          const rankDifference =
+            getTrybunSearchRank(
+              [
+                [getUserDisplayName(a)],
+                [a.company, userCompanyNames[a.id]],
+                [linkedCustomerA?.company, linkedCustomerA?.customer_number],
+                [linkedCustomerA?.email],
+              ],
+              search,
+            ) -
+            getTrybunSearchRank(
+              [
+                [getUserDisplayName(b)],
+                [b.company, userCompanyNames[b.id]],
+                [linkedCustomerB?.company, linkedCustomerB?.customer_number],
+                [linkedCustomerB?.email],
+              ],
+              search,
+            );
+
+          if (rankDifference !== 0) return rankDifference;
+        }
+
+        return getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de");
+      });
   }, [userProfiles, userManagementRoleFilter, userManagementSearch, userCompanyNames, customers]);
 
   const notificationTotalPages = Math.max(1, Math.ceil(communicationFilteredNotifications.length / notificationPageSize));
@@ -10580,6 +10725,21 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     );
   }
 
+  function getTrybunSearchRank(
+    groups: Array<Array<unknown>>,
+    query: string,
+  ) {
+    if (!query.trim()) return 0;
+
+    for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+      if (matchesTrybunPrefixSearch(groups[groupIndex], query)) {
+        return groupIndex * 10;
+      }
+    }
+
+    return 999;
+  }
+
   function getCustomerLabel(customer: Customer) {
     return (
       customer.company ||
@@ -16401,50 +16561,112 @@ ${tenantBrandName}`,
 
   const activeServiceParts = serviceParts.filter((part) => !part.is_archived);
 
-  const filteredActiveServiceParts = activeServiceParts.filter((part) => {
-    const matchesManufacturer =
-      partManufacturerFilter === "Alle" ||
-      String(part.manufacturer_id || "") === partManufacturerFilter;
-    const query = partSearchTerm.trim();
+  const filteredActiveServiceParts = activeServiceParts
+    .filter((part) => {
+      const matchesManufacturer =
+        partManufacturerFilter === "Alle" ||
+        String(part.manufacturer_id || "") === partManufacturerFilter;
+      const query = partSearchTerm.trim();
 
-    if (!matchesManufacturer) return false;
-    if (!query) return true;
+      if (!matchesManufacturer) return false;
+      if (!query) return true;
 
-    return matchesTrybunPrefixSearch(
-      [
-        part.name,
-        part.sku,
-        part.category,
-        part.storage_location,
-        part.note,
-        getManufacturerNameById(part.manufacturer_id),
-        part.manufacturer_part_number,
-      ],
-      query,
-    );
-  });
+      return matchesTrybunPrefixSearch(
+        [
+          part.name,
+          part.sku,
+          part.category,
+          part.storage_location,
+          part.note,
+          getManufacturerNameById(part.manufacturer_id),
+          part.manufacturer_part_number,
+        ],
+        query,
+      );
+    })
+    .sort((a, b) => {
+      const query = partSearchTerm.trim();
+
+      if (query) {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.name],
+              [a.sku, a.manufacturer_part_number],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [a.category],
+              [a.storage_location, a.note],
+            ],
+            query,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.name],
+              [b.sku, b.manufacturer_part_number],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [b.category],
+              [b.storage_location, b.note],
+            ],
+            query,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+      }
+
+      return a.name.localeCompare(b.name, "de");
+    });
 
   const stockedDeviceModels = deviceModels.filter((modelItem) => Boolean(modelItem.is_stocked));
-  const filteredInventoryModels = stockedDeviceModels.filter((modelItem) => {
-    if (
-      inventoryManufacturerFilter !== "Alle" &&
-      String(modelItem.manufacturer_id || "") !== inventoryManufacturerFilter
-    ) return false;
+  const filteredInventoryModels = stockedDeviceModels
+    .filter((modelItem) => {
+      if (
+        inventoryManufacturerFilter !== "Alle" &&
+        String(modelItem.manufacturer_id || "") !== inventoryManufacturerFilter
+      ) return false;
 
-    const query = inventorySearchTerm.trim();
-    if (!query) return true;
+      const query = inventorySearchTerm.trim();
+      if (!query) return true;
 
-    return matchesTrybunPrefixSearch(
-      [
-        getDeviceModelDisplayName(modelItem),
-        modelItem.category,
-        getDeviceModelTypeName(modelItem),
-        modelItem.storage_location,
-        getManufacturerNameById(modelItem.manufacturer_id),
-      ],
-      query,
-    );
-  });
+      return matchesTrybunPrefixSearch(
+        [
+          getDeviceModelDisplayName(modelItem),
+          modelItem.category,
+          getDeviceModelTypeName(modelItem),
+          modelItem.storage_location,
+          getManufacturerNameById(modelItem.manufacturer_id),
+        ],
+        query,
+      );
+    })
+    .sort((a, b) => {
+      const query = inventorySearchTerm.trim();
+
+      if (query) {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(a)],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [getDeviceModelTypeName(a), a.category],
+              [a.storage_location],
+            ],
+            query,
+          ) -
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(b)],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [getDeviceModelTypeName(b), b.category],
+              [b.storage_location],
+            ],
+            query,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+      }
+
+      return getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de");
+    });
 
   const lowStockParts = activeServiceParts.filter(
     (part) => Number(part.stock || 0) <= Number(part.min_stock || 0),
@@ -16897,9 +17119,35 @@ ${tenantBrandName}`,
         if (!search) return true;
         return matchesTrybunPrefixSearch([getQrDeviceSearchText(item)], search);
       })
-      .sort((a, b) =>
-        (a.name || "").localeCompare(b.name || "", "de", { sensitivity: "base" }),
-      );
+      .sort((a, b) => {
+        if (search) {
+          const rankDifference =
+            getTrybunSearchRank(
+              [
+                [a.name, a.model, getDeviceModelNameById(a.model_id)],
+                [a.serial_number],
+                [a.manufacturer, getManufacturerNameById(a.manufacturer_id)],
+                [a.location],
+                [a.status, a.note],
+              ],
+              search,
+            ) -
+            getTrybunSearchRank(
+              [
+                [b.name, b.model, getDeviceModelNameById(b.model_id)],
+                [b.serial_number],
+                [b.manufacturer, getManufacturerNameById(b.manufacturer_id)],
+                [b.location],
+                [b.status, b.note],
+              ],
+              search,
+            );
+
+          if (rankDifference !== 0) return rankDifference;
+        }
+
+        return (a.name || "").localeCompare(b.name || "", "de", { sensitivity: "base" });
+      });
 
     if (!search) {
       return matchedDevices.slice(0, 4);
@@ -17496,7 +17744,30 @@ ${tenantBrandName}`,
           search,
         ),
       )
-      .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.company, getCustomerDisplayName(a), a.contact_person, a.first_name, a.last_name],
+              [a.customer_number, a.supplier_number],
+              [a.city, a.postal_code, a.street],
+              [a.email, a.phone],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.company, getCustomerDisplayName(b), b.contact_person, b.first_name, b.last_name],
+              [b.customer_number, b.supplier_number],
+              [b.city, b.postal_code, b.street],
+              [b.email, b.phone],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de");
+      })
       .slice(0, 30);
   })();
 
@@ -17551,6 +17822,39 @@ ${tenantBrandName}`,
           ],
           search,
         );
+      })
+      .sort((a, b) => {
+        const linkedCustomerA = a.customer_id
+          ? customers.find((item) => item.id === a.customer_id)
+          : null;
+        const linkedCustomerB = b.customer_id
+          ? customers.find((item) => item.id === b.customer_id)
+          : null;
+
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.name, a.model, getDeviceModelNameById(a.model_id)],
+              [a.serial_number],
+              [a.manufacturer, getManufacturerNameById(a.manufacturer_id)],
+              [a.location, linkedCustomerA ? getCustomerLabel(linkedCustomerA) : ""],
+              [a.status, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.name, b.model, getDeviceModelNameById(b.model_id)],
+              [b.serial_number],
+              [b.manufacturer, getManufacturerNameById(b.manufacturer_id)],
+              [b.location, linkedCustomerB ? getCustomerLabel(linkedCustomerB) : ""],
+              [b.status, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return String(a.name || "").localeCompare(String(b.name || ""), "de");
       })
       .slice(0, 30);
   })();
@@ -17741,7 +18045,30 @@ ${tenantBrandName}`,
           search,
         );
       })
-      .sort((a, b) => getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"))
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(a)],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [getDeviceModelTypeName(a), a.category],
+              [a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(b)],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [getDeviceModelTypeName(b), b.category],
+              [b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de");
+      })
       .slice(0, 40);
   })();
 
@@ -17799,7 +18126,30 @@ ${tenantBrandName}`,
           search,
         ),
       )
-      .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.company, getCustomerDisplayName(a), a.contact_person, a.first_name, a.last_name],
+              [a.customer_number, a.supplier_number],
+              [a.city, a.postal_code, a.street],
+              [a.email, a.phone],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.company, getCustomerDisplayName(b), b.contact_person, b.first_name, b.last_name],
+              [b.customer_number, b.supplier_number],
+              [b.city, b.postal_code, b.street],
+              [b.email, b.phone],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de");
+      })
       .slice(0, 30);
   })();
 
@@ -17837,6 +18187,39 @@ ${tenantBrandName}`,
           search,
         );
       })
+      .sort((a, b) => {
+        const linkedCustomerA = a.customer_id
+          ? customers.find((item) => item.id === a.customer_id)
+          : null;
+        const linkedCustomerB = b.customer_id
+          ? customers.find((item) => item.id === b.customer_id)
+          : null;
+
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.name, a.model, getDeviceModelNameById(a.model_id)],
+              [a.serial_number],
+              [a.manufacturer, getManufacturerNameById(a.manufacturer_id)],
+              [a.location, linkedCustomerA ? getCustomerLabel(linkedCustomerA) : ""],
+              [a.status, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.name, b.model, getDeviceModelNameById(b.model_id)],
+              [b.serial_number],
+              [b.manufacturer, getManufacturerNameById(b.manufacturer_id)],
+              [b.location, linkedCustomerB ? getCustomerLabel(linkedCustomerB) : ""],
+              [b.status, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return String(a.name || "").localeCompare(String(b.name || ""), "de");
+      })
       .slice(0, 30);
   })();
 
@@ -17852,6 +18235,47 @@ ${tenantBrandName}`,
         .filter(Boolean),
     ),
   ).sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" }));
+
+  function getCustomerDirectorySearchRank(customerItem: Customer, query: string) {
+    return getTrybunSearchRank(
+      [
+        [
+          customerItem.company,
+          getCustomerDisplayName(customerItem),
+          customerItem.first_name,
+          customerItem.last_name,
+          customerItem.contact_person,
+        ],
+        [
+          customerItem.customer_number,
+          customerItem.supplier_number,
+          customerItem.vat_id,
+          customerItem.tax_number,
+        ],
+        [
+          customerItem.contact_1_name,
+          customerItem.contact_2_name,
+        ],
+        [
+          customerItem.city,
+          customerItem.postal_code,
+          customerItem.street,
+          customerItem.address,
+        ],
+        [
+          customerItem.email,
+          customerItem.email_2,
+          customerItem.phone,
+          customerItem.phone_2,
+          customerItem.contact_1_email,
+          customerItem.contact_1_phone,
+          customerItem.contact_2_email,
+          customerItem.contact_2_phone,
+        ],
+      ],
+      query,
+    );
+  }
 
   const customerDirectoryMatches = (() => {
     const search = customerDirectorySearch.trim();
@@ -17874,42 +18298,25 @@ ${tenantBrandName}`,
 
         if (!search) return true;
 
-        return matchesTrybunPrefixSearch(
-          [
-            customerItem.company,
-            getCustomerDisplayName(customerItem),
-            customerItem.customer_number,
-            customerItem.supplier_number,
-            customerItem.first_name,
-            customerItem.last_name,
-            customerItem.contact_person,
-            customerItem.city,
-            customerItem.postal_code,
-            customerItem.street,
-            customerItem.address,
-            customerItem.email,
-            customerItem.email_2,
-            customerItem.phone,
-            customerItem.phone_2,
-            customerItem.vat_id,
-            customerItem.tax_number,
-            customerItem.contact_1_name,
-            customerItem.contact_1_email,
-            customerItem.contact_1_phone,
-            customerItem.contact_2_name,
-            customerItem.contact_2_email,
-            customerItem.contact_2_phone,
-          ],
-          search,
-        );
+        return getCustomerDirectorySearchRank(customerItem, search) < 999;
       })
-      .sort((a, b) =>
-        (a.company || getCustomerDisplayName(a) || "").localeCompare(
+      .sort((a, b) => {
+        if (search) {
+          const rankDifference =
+            getCustomerDirectorySearchRank(a, search) -
+            getCustomerDirectorySearchRank(b, search);
+
+          if (rankDifference !== 0) {
+            return rankDifference;
+          }
+        }
+
+        return (a.company || getCustomerDisplayName(a) || "").localeCompare(
           b.company || getCustomerDisplayName(b) || "",
           "de",
           { sensitivity: "base" },
-        ),
-      );
+        );
+      });
   })();
 
   const filteredCustomerDirectory = customerDirectoryMatches.slice(0, 30);
@@ -18052,6 +18459,39 @@ ${tenantBrandName}`,
           search,
         );
       })
+      .sort((a, b) => {
+        const linkedCustomerA = a.customer_id
+          ? customers.find((item) => item.id === a.customer_id)
+          : null;
+        const linkedCustomerB = b.customer_id
+          ? customers.find((item) => item.id === b.customer_id)
+          : null;
+
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.name, a.model, getCleanModelName(a.model_id)],
+              [a.serial_number],
+              [a.manufacturer, getCleanManufacturerName(a.manufacturer_id)],
+              [a.location, linkedCustomerA ? getCustomerLabel(linkedCustomerA) : ""],
+              [a.status, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.name, b.model, getCleanModelName(b.model_id)],
+              [b.serial_number],
+              [b.manufacturer, getCleanManufacturerName(b.manufacturer_id)],
+              [b.location, linkedCustomerB ? getCustomerLabel(linkedCustomerB) : ""],
+              [b.status, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return String(a.name || "").localeCompare(String(b.name || ""), "de");
+      })
       .slice(0, deviceDirectoryResultLimit);
   })();
 
@@ -18093,6 +18533,35 @@ ${tenantBrandName}`,
         );
 
       return matchesManufacturer && matchesModel;
+    })
+    .sort((a, b) => {
+      if (manufacturerSearch) {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.name],
+              [a.contact_person],
+              [a.website, a.email, a.phone],
+              [a.address],
+              [a.note, a.parts_url],
+            ],
+            manufacturerSearch,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.name],
+              [b.contact_person],
+              [b.website, b.email, b.phone],
+              [b.address],
+              [b.note, b.parts_url],
+            ],
+            manufacturerSearch,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+      }
+
+      return a.name.localeCompare(b.name, "de");
     });
   })();
 
@@ -18112,19 +18581,44 @@ ${tenantBrandName}`,
       );
 
     const matching = search
-      ? filtered.filter((customerItem) =>
-          matchesTrybunPrefixSearch(
-            [
-              customerItem.company,
-              getCustomerDisplayName(customerItem),
-              customerItem.customer_number,
-              customerItem.city,
-              customerItem.email,
-              customerItem.phone,
-            ],
-            search,
-          ),
-        )
+      ? filtered
+          .filter((customerItem) =>
+            matchesTrybunPrefixSearch(
+              [
+                customerItem.company,
+                getCustomerDisplayName(customerItem),
+                customerItem.customer_number,
+                customerItem.city,
+                customerItem.email,
+                customerItem.phone,
+              ],
+              search,
+            ),
+          )
+          .sort((a, b) => {
+            const rankDifference =
+              getTrybunSearchRank(
+                [
+                  [a.company, getCustomerDisplayName(a), a.contact_person],
+                  [a.customer_number],
+                  [a.city, a.postal_code],
+                  [a.email, a.phone],
+                ],
+                search,
+              ) -
+              getTrybunSearchRank(
+                [
+                  [b.company, getCustomerDisplayName(b), b.contact_person],
+                  [b.customer_number],
+                  [b.city, b.postal_code],
+                  [b.email, b.phone],
+                ],
+                search,
+              );
+
+            if (rankDifference !== 0) return rankDifference;
+            return getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de");
+          })
       : filtered.slice(0, 12);
 
     const selectedCustomer = deviceCustomerId
@@ -18147,20 +18641,45 @@ ${tenantBrandName}`,
 
     if (!search) return baseModels;
 
-    return baseModels.filter((modelItem) => {
-      const linkedManufacturer = getManufacturerNameById(modelItem.manufacturer_id);
-      return matchesTrybunPrefixSearch(
-        [
-          linkedManufacturer,
-          getDeviceModelDisplayName(modelItem),
-          getDeviceModelTypeName(modelItem),
-          modelItem.category,
-          modelItem.source,
-          modelItem.note,
-        ],
-        search,
-      );
-    });
+    return baseModels
+      .filter((modelItem) => {
+        const linkedManufacturer = getManufacturerNameById(modelItem.manufacturer_id);
+        return matchesTrybunPrefixSearch(
+          [
+            linkedManufacturer,
+            getDeviceModelDisplayName(modelItem),
+            getDeviceModelTypeName(modelItem),
+            modelItem.category,
+            modelItem.source,
+            modelItem.note,
+          ],
+          search,
+        );
+      })
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(a)],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [getDeviceModelTypeName(a), a.category],
+              [a.source, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(b)],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [getDeviceModelTypeName(b), b.category],
+              [b.source, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de");
+      });
   })();
 
   const abnahmeCustomers = (() => {
@@ -18601,9 +19120,30 @@ ${tenantBrandName}`,
           search,
         );
       })
-      .sort((a, b) =>
-        getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"),
-      )
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(a)],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [getDeviceModelTypeName(a), a.category],
+              [a.source, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(b)],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [getDeviceModelTypeName(b), b.category],
+              [b.source, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de");
+      })
       .slice(0, 30);
   })();
 
@@ -18636,9 +19176,30 @@ ${tenantBrandName}`,
           search,
         );
       })
-      .sort((a, b) =>
-        getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"),
-      )
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(a)],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [getDeviceModelTypeName(a), a.category],
+              [a.source, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [getDeviceModelDisplayName(b)],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [getDeviceModelTypeName(b), b.category],
+              [b.source, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de");
+      })
       .slice(0, 30);
   })();
 
@@ -18671,7 +19232,32 @@ ${tenantBrandName}`,
           search,
         );
       })
-      .sort((a, b) => a.name.localeCompare(b.name, "de"))
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank(
+            [
+              [a.name],
+              [a.sku, a.manufacturer_part_number],
+              [getManufacturerNameById(a.manufacturer_id)],
+              [a.category],
+              [a.storage_location, a.note],
+            ],
+            search,
+          ) -
+          getTrybunSearchRank(
+            [
+              [b.name],
+              [b.sku, b.manufacturer_part_number],
+              [getManufacturerNameById(b.manufacturer_id)],
+              [b.category],
+              [b.storage_location, b.note],
+            ],
+            search,
+          );
+
+        if (rankDifference !== 0) return rankDifference;
+        return a.name.localeCompare(b.name, "de");
+      })
       .slice(0, 30);
   })();
 
@@ -25827,7 +26413,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         Kunden direkt browsen oder schrittweise filtern
                       </h4>
                       <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
-                        Die Treffer werden mit jedem Zeichen enger: „m“ → „mü“ → „mül“. Gesucht wird immer am Anfang relevanter Begriffe.
+                        Die Treffer werden mit jedem Zeichen enger: „m“ → „mü“ → „mül“. TRYBUN sortiert überall zuerst nach Name/Bezeichnung, danach nach Nummern und erst anschließend nach Ort, Kontakt oder Notizen.
                       </p>
                     </div>
                     <span className="w-fit rounded-[8px] border border-sky-100 bg-white px-3 py-2 text-sm font-bold text-sky-700">
