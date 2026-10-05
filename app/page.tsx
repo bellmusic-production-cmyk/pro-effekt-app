@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.92 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.93 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -25468,7 +25468,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
           {activePage === "Dokumente" && (
             <div className="space-y-6">
-              <div className="rounded-[28px] bg-white p-4 shadow-sm">
+              <div className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)] sm:p-5">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h3 className="text-xl font-black">Zentrales Dokumentenarchiv</h3>
@@ -25496,10 +25496,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           setUploadCategory(category);
                         }
                       }}
-                      className={`shrink-0 rounded-2xl px-4 py-3 text-sm font-black transition-all ${
+                      className={`shrink-0 rounded-[8px] border px-3.5 py-2.5 text-sm font-bold transition ${
                         activeDocumentCategory === category
-                          ? "bg-sky-500 text-white"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                          ? "border-sky-600 bg-sky-600 text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
                       {category} · {categoryCount(category)}
@@ -25521,372 +25521,505 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
               )}
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
+              <div className="min-w-0 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
                 {isAdmin && (
-                  <div className="flex flex-col gap-4">
                   <div>
-                    <h3 className="text-xl font-black">Dokument hochladen & archivieren</h3>
+                    <div className="border-b border-slate-200 bg-slate-50/70 px-4 py-4 sm:px-5 md:px-6">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
+                        Admin-Upload
+                      </p>
+                      <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-slate-950">
+                        Dokument hochladen & archivieren
+                      </h3>
+                      <p className="mt-1 max-w-3xl text-sm font-medium leading-6 text-slate-600">
+                        Externe oder nachträglich eingegangene Dateien sauber mit Kunde, Ticket und optional Gerät verknüpfen.
+                      </p>
+                    </div>
 
-                    <p className="mt-2 text-slate-600">
-                      Admin-Upload für externe oder nachträglich eingegangene Dokumente. Kunde, Ticket und Gerät können direkt zugeordnet werden.
-                    </p>
-                  </div>
-
-                  <div className="rounded-[24px] border border-sky-100 bg-sky-50 p-4">
-                    <div className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_minmax(0,1fr)_220px]">
-                      <div>
-                        <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                          Kategorie
-                        </label>
-                        <select
-                          value={uploadCategory}
-                          onChange={(e) => setUploadCategory(e.target.value)}
-                          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
-                        >
-                          {uploadDocumentCategoriesForRole
-                            .map((item) => (
+                    <div className="p-4 sm:p-5 md:p-6">
+                      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+                        <div>
+                          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+                            Kategorie
+                          </label>
+                          <select
+                            value={uploadCategory}
+                            onChange={(e) => setUploadCategory(e.target.value)}
+                            className="mt-2 min-h-[48px] w-full rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                          >
+                            {uploadDocumentCategoriesForRole.map((item) => (
                               <option key={item}>{item}</option>
                             ))}
-                        </select>
-                      </div>
+                          </select>
+                          <p className="mt-2 text-xs font-medium leading-5 text-slate-500">
+                            Kaufmännische Dokumente können extern erstellt und hier archiviert werden.
+                          </p>
+                        </div>
 
-                      <div>
-                        <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                          Kunde zuweisen
-                        </label>
+                        <div className="min-w-0">
+                          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+                            Kunde zuweisen
+                          </label>
 
-                        <input
+                          <input
                             value={uploadCustomerSearch}
                             onChange={(e) => {
                               setUploadCustomerSearch(e.target.value);
                               setSelectedUploadCustomerId("");
                               setSelectedDeviceId("");
                               setUploadDeviceSearch("");
+                              setCustomerUploadTicketId("");
                             }}
                             type="search"
-autoComplete="off"
-autoCorrect="off"
-spellCheck={false}
-enterKeyHint="search"
-name="trybun-upload-customer-query"
-placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
-                            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            enterKeyHint="search"
+                            name="trybun-upload-customer-query"
+                            placeholder="Firma, Kundennummer, Ort..."
+                            className="mt-2 min-h-[48px] w-full rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                           />
 
-                        {selectedUploadCustomer && (
-                          <div className="mt-3 rounded-2xl border border-sky-200 bg-white p-3">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                              Ausgewählter Auftraggeber
-                            </p>
-                            <p className="mt-1 font-black text-slate-900">
-                              {getCustomerLabel(selectedUploadCustomer)}
-                            </p>
-                            <p className="mt-1 text-xs font-semibold text-slate-500">
-                              {selectedUploadCustomer.customer_number ? `Kunden-Nr. ${selectedUploadCustomer.customer_number} · ` : ""}
-                              {buildCustomerAddress(selectedUploadCustomer) || "Keine Adresse"}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedUploadCustomerId("");
-                                setUploadCustomerSearch("");
-                                setSelectedDeviceId("");
-                                setUploadDeviceSearch("");
-                              }}
-                              className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
-                            >
-                              Auswahl ändern
-                            </button>
-                          </div>
-                        )}
-
-                        {!selectedUploadCustomer &&
-                          uploadCustomerSearch.trim().length >= 1 &&
-                          filteredUploadCustomers.length > 0 && (
-                            <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
-                              {filteredUploadCustomers.map((customerItem) => (
-                                <button
-                                  key={customerItem.id}
-                                  type="button"
-                                  onClick={() => {
-                                    const nextCustomerName = getCustomerLabel(customerItem);
-                                    setSelectedUploadCustomerId(String(customerItem.id));
-                                    setUploadCustomerSearch(nextCustomerName);
-                                    setSelectedDeviceId("");
-                                    setUploadDeviceSearch("");
-                                  }}
-                                  className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-sky-300 hover:bg-sky-50"
-                                >
-                                  <p className="font-black text-slate-900">
-                                    {getCustomerLabel(customerItem)}
-                                  </p>
-                                  <p className="mt-1 text-xs font-semibold text-slate-500">
-                                    {customerItem.customer_number ? `Kunden-Nr. ${customerItem.customer_number} · ` : ""}
-                                    {buildCustomerAddress(customerItem) || "Keine Adresse"}
-                                  </p>
-                                </button>
-                              ))}
+                          {selectedUploadCustomer && (
+                            <div className="mt-3 rounded-[9px] border border-sky-200 bg-sky-50/50 p-3">
+                              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-sky-700">
+                                Ausgewählter Kunde
+                              </p>
+                              <p className="mt-1 truncate text-sm font-bold text-slate-950">
+                                {getCustomerLabel(selectedUploadCustomer)}
+                              </p>
+                              <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                                {selectedUploadCustomer.customer_number
+                                  ? `Kunden-Nr. ${selectedUploadCustomer.customer_number} · `
+                                  : ""}
+                                {buildCustomerAddress(selectedUploadCustomer) || "Keine Adresse"}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedUploadCustomerId("");
+                                  setUploadCustomerSearch("");
+                                  setSelectedDeviceId("");
+                                  setUploadDeviceSearch("");
+                                  setCustomerUploadTicketId("");
+                                }}
+                                className="mt-3 rounded-[7px] border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                              >
+                                Auswahl ändern
+                              </button>
                             </div>
                           )}
 
-                        {!selectedUploadCustomer &&
-                          uploadCustomerSearch.trim().length >= 1 &&
-                          filteredUploadCustomers.length === 0 && (
-                            <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                              Kein Kunde gefunden.
-                            </p>
-                          )}
+                          {!selectedUploadCustomer &&
+                            uploadCustomerSearch.trim().length >= 1 &&
+                            filteredUploadCustomers.length > 0 && (
+                              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                                {filteredUploadCustomers.map((customerItem) => (
+                                  <button
+                                    key={customerItem.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const nextCustomerName = getCustomerLabel(customerItem);
+                                      setSelectedUploadCustomerId(String(customerItem.id));
+                                      setUploadCustomerSearch(nextCustomerName);
+                                      setSelectedDeviceId("");
+                                      setUploadDeviceSearch("");
+                                      setCustomerUploadTicketId("");
+                                    }}
+                                    className="w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-sky-300 hover:bg-sky-50/60"
+                                  >
+                                    <p className="truncate text-sm font-bold text-slate-950">
+                                      {getCustomerLabel(customerItem)}
+                                    </p>
+                                    <p className="mt-1 text-xs font-medium text-slate-500">
+                                      {customerItem.customer_number
+                                        ? `Kunden-Nr. ${customerItem.customer_number} · `
+                                        : ""}
+                                      {buildCustomerAddress(customerItem) || "Keine Adresse"}
+                                    </p>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
 
-                        {!selectedUploadCustomer && uploadCustomerSearch.trim().length < 1 && (
-                          <p className="mt-3 text-xs font-bold text-slate-500">
-                            Für Abnahmeprotokolle ist ein Kunde Pflicht.
-                          </p>
-                        )}
-                      </div>
+                          {!selectedUploadCustomer &&
+                            uploadCustomerSearch.trim().length >= 1 &&
+                            filteredUploadCustomers.length === 0 && (
+                              <p className="mt-3 rounded-[8px] bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+                                Kein Kunde gefunden.
+                              </p>
+                            )}
 
-                      {isCustomer && (
-                        <div>
-                          <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                            Ticket zuweisen
+                          {!selectedUploadCustomer &&
+                            uploadCategory === "Abnahmeprotokolle" &&
+                            uploadCustomerSearch.trim().length < 1 && (
+                              <p className="mt-2 text-xs font-semibold text-amber-700">
+                                Für ein Abnahmeprotokoll ist ein Kunde erforderlich.
+                              </p>
+                            )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+                            Ticket optional
                           </label>
                           <select
                             value={customerUploadTicketId}
-                            onChange={(e) => setCustomerUploadTicketId(e.target.value)}
-                            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                            onChange={(e) => {
+                              const nextTicketId = e.target.value;
+                              setCustomerUploadTicketId(nextTicketId);
+
+                              if (nextTicketId) {
+                                const linkedTicket = tickets.find(
+                                  (ticketItem) => ticketItem.id === Number(nextTicketId),
+                                );
+                                const linkedDevice = linkedTicket
+                                  ? getDeviceForTicket(linkedTicket)
+                                  : null;
+
+                                if (
+                                  linkedTicket?.customer_id &&
+                                  !selectedUploadCustomerId
+                                ) {
+                                  const linkedCustomer = customers.find(
+                                    (customerItem) =>
+                                      customerItem.id === linkedTicket.customer_id,
+                                  );
+
+                                  if (linkedCustomer) {
+                                    setSelectedUploadCustomerId(
+                                      String(linkedCustomer.id),
+                                    );
+                                    setUploadCustomerSearch(
+                                      getCustomerLabel(linkedCustomer),
+                                    );
+                                  }
+                                }
+
+                                if (linkedDevice) {
+                                  setSelectedDeviceId(String(linkedDevice.id));
+                                  setUploadDeviceSearch(linkedDevice.name);
+                                }
+                              }
+                            }}
+                            className="mt-2 min-h-[48px] w-full rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                           >
                             <option value="">Ohne Ticketbezug</option>
-                            {customerUploadTickets.map((ticketItem) => (
-                              <option key={ticketItem.id} value={ticketItem.id}>
-                                {ticketItem.ticket_number || "Serviceeinsatz"} · {ticketItem.issue || ticketItem.status}
-                              </option>
-                            ))}
+                            {tickets
+                              .filter(
+                                (ticketItem) =>
+                                  !selectedUploadCustomerId ||
+                                  Number(ticketItem.customer_id) ===
+                                    Number(selectedUploadCustomerId),
+                              )
+                              .map((ticketItem) => (
+                                <option key={ticketItem.id} value={ticketItem.id}>
+                                  {ticketItem.ticket_number || "Serviceeinsatz"} ·{" "}
+                                  {ticketItem.issue || ticketItem.status}
+                                </option>
+                              ))}
                           </select>
-                          <p className="mt-2 text-xs font-bold text-slate-500">
-                            Wird ein Ticket ausgewählt, erscheint der Upload direkt in der Ticket-Akte für den Techniker.
+                          <p className="mt-2 text-xs font-medium leading-5 text-slate-500">
+                            Bei Ticketbezug erscheint die Datei automatisch auch in der Ticket-Akte.
                           </p>
                         </div>
-                      )}
 
-                      <div>
-                        <label className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                          Gerät optional zuweisen
-                        </label>
-                        <input
-                          value={uploadDeviceSearch}
-                          onChange={(e) => {
-                            setUploadDeviceSearch(e.target.value);
-                            setSelectedDeviceId("");
-                          }}
-                          placeholder={
-                            selectedUploadCustomer
-                              ? "Gerät dieses Kunden suchen..."
-                              : "Gerät suchen..."
-                          }
-                          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
-                        />
+                        <div className="min-w-0">
+                          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
+                            Gerät optional
+                          </label>
+                          <input
+                            value={uploadDeviceSearch}
+                            onChange={(e) => {
+                              setUploadDeviceSearch(e.target.value);
+                              setSelectedDeviceId("");
+                            }}
+                            placeholder={
+                              selectedUploadCustomer
+                                ? "Gerät dieses Kunden suchen..."
+                                : "Gerät suchen..."
+                            }
+                            className="mt-2 min-h-[48px] w-full rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                          />
 
-                        {selectedUploadDevice && (
-                          <div className="mt-3 rounded-2xl border border-sky-200 bg-white p-3">
-                            <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
-                              Ausgewähltes Gerät
-                            </p>
-                            <p className="mt-1 font-black text-slate-900">
-                              {selectedUploadDevice.name}
-                            </p>
-                            <p className="mt-1 text-xs font-semibold text-slate-500">
-                              {selectedUploadDevice.serial_number ? `SN: ${selectedUploadDevice.serial_number} · ` : ""}
-                              {selectedUploadDevice.location || "Kein Standort"}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedDeviceId("");
-                                setUploadDeviceSearch("");
-                              }}
-                              className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600"
-                            >
-                              Gerät entfernen
-                            </button>
+                          {selectedUploadDevice && (
+                            <div className="mt-3 rounded-[9px] border border-sky-200 bg-sky-50/50 p-3">
+                              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-sky-700">
+                                Ausgewähltes Gerät
+                              </p>
+                              <p className="mt-1 truncate text-sm font-bold text-slate-950">
+                                {selectedUploadDevice.name}
+                              </p>
+                              <p className="mt-1 text-xs font-medium text-slate-500">
+                                {selectedUploadDevice.serial_number
+                                  ? `SN: ${selectedUploadDevice.serial_number} · `
+                                  : ""}
+                                {selectedUploadDevice.location || "Kein Standort"}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDeviceId("");
+                                  setUploadDeviceSearch("");
+                                }}
+                                className="mt-3 rounded-[7px] border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                              >
+                                Gerät entfernen
+                              </button>
+                            </div>
+                          )}
+
+                          {!selectedUploadDevice &&
+                            uploadDeviceSearch.trim().length >= 1 &&
+                            filteredUploadDevices.length > 0 && (
+                              <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                                {filteredUploadDevices.map((deviceItem) => {
+                                  const linkedCustomer = deviceItem.customer_id
+                                    ? customers.find(
+                                        (customerItem) =>
+                                          customerItem.id === deviceItem.customer_id,
+                                      )
+                                    : null;
+
+                                  return (
+                                    <button
+                                      key={deviceItem.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedDeviceId(String(deviceItem.id));
+                                        setUploadDeviceSearch(deviceItem.name);
+
+                                        if (
+                                          !selectedUploadCustomerId &&
+                                          linkedCustomer
+                                        ) {
+                                          setSelectedUploadCustomerId(
+                                            String(linkedCustomer.id),
+                                          );
+                                          setUploadCustomerSearch(
+                                            getCustomerLabel(linkedCustomer),
+                                          );
+                                        }
+                                      }}
+                                      className="w-full rounded-[9px] border border-slate-200 bg-white p-3 text-left transition hover:border-sky-300 hover:bg-sky-50/60"
+                                    >
+                                      <p className="truncate text-sm font-bold text-slate-950">
+                                        {deviceItem.name}
+                                      </p>
+                                      <p className="mt-1 text-xs font-medium text-slate-500">
+                                        {deviceItem.serial_number
+                                          ? `SN: ${deviceItem.serial_number} · `
+                                          : ""}
+                                        {deviceItem.location || "Kein Standort"}
+                                        {linkedCustomer
+                                          ? ` · ${getCustomerLabel(linkedCustomer)}`
+                                          : ""}
+                                      </p>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                          {!selectedUploadDevice &&
+                            uploadDeviceSearch.trim().length >= 1 &&
+                            filteredUploadDevices.length === 0 && (
+                              <p className="mt-3 rounded-[8px] bg-slate-50 p-3 text-sm font-semibold text-slate-500">
+                                Kein Gerät gefunden.
+                              </p>
+                            )}
+                        </div>
+
+                        {uploadCategory === "Abnahmeprotokolle" && (
+                          <div className="overflow-hidden rounded-[10px] border border-amber-200 bg-white lg:col-span-2 xl:col-span-4">
+                            <div className="border-b border-amber-100 bg-amber-50/70 px-4 py-3 sm:px-5">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-950">
+                                    Prüffrist für externes Abnahmeprotokoll
+                                  </p>
+                                  <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
+                                    Nur ausfüllen, wenn ein handschriftliches oder extern erstelltes Prüfprotokoll archiviert wird.
+                                  </p>
+                                </div>
+                                <span className="w-fit rounded-[7px] bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700 ring-1 ring-inset ring-amber-200">
+                                  aktualisiert Gerät & Termin
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="p-4 sm:p-5">
+                              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                <div>
+                                  <label className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                                    Prüfdatum
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={uploadInspectionDate}
+                                    onChange={(e) =>
+                                      setUploadInspectionDate(e.target.value)
+                                    }
+                                    className="mt-2 min-h-[46px] w-full rounded-[9px] border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-50"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                                    Intervall
+                                  </label>
+                                  <select
+                                    value={uploadInspectionIntervalMonths}
+                                    onChange={(e) =>
+                                      setUploadInspectionIntervalMonths(
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="mt-2 min-h-[46px] w-full rounded-[9px] border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-50"
+                                  >
+                                    <option value="6">6 Monate</option>
+                                    <option value="12">12 Monate</option>
+                                    <option value="24">24 Monate</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                                    Nächste Prüfung
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={uploadNextInspectionDate}
+                                    onChange={(e) =>
+                                      setUploadNextInspectionDate(e.target.value)
+                                    }
+                                    className="mt-2 min-h-[46px] w-full rounded-[9px] border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-50"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                                    Prüfsiegel
+                                  </label>
+                                  <input
+                                    value={uploadInspectionBadgeNumber}
+                                    onChange={(e) =>
+                                      setUploadInspectionBadgeNumber(
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder="optional"
+                                    className="mt-2 min-h-[46px] w-full rounded-[9px] border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-50"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                                    Bemerkung
+                                  </label>
+                                  <input
+                                    value={uploadInspectionNote}
+                                    onChange={(e) =>
+                                      setUploadInspectionNote(e.target.value)
+                                    }
+                                    placeholder="optional"
+                                    className="mt-2 min-h-[46px] w-full rounded-[9px] border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-50"
+                                  />
+                                </div>
+                              </div>
+
+                              <p className="mt-3 text-xs font-medium leading-5 text-slate-500">
+                                Bleibt „Nächste Prüfung“ leer, berechnet TRYBUN den Termin automatisch aus Prüfdatum und Intervall.
+                              </p>
+                            </div>
                           </div>
                         )}
 
-                        {!selectedUploadDevice &&
-                          uploadDeviceSearch.trim().length >= 1 &&
-                          filteredUploadDevices.length > 0 && (
-                            <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
-                              {filteredUploadDevices.map((deviceItem) => {
-                                const linkedCustomer = deviceItem.customer_id
-                                  ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
-                                  : null;
-
-                                return (
-                                  <button
-                                    key={deviceItem.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedDeviceId(String(deviceItem.id));
-                                      setUploadDeviceSearch(deviceItem.name);
-
-                                      if (!selectedUploadCustomerId && linkedCustomer) {
-                                        setSelectedUploadCustomerId(String(linkedCustomer.id));
-                                        setUploadCustomerSearch(getCustomerLabel(linkedCustomer));
-                                      }
-                                    }}
-                                    className="w-full rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-sky-300 hover:bg-sky-50"
-                                  >
-                                    <p className="font-black text-slate-900">
-                                      {deviceItem.name}
-                                    </p>
-                                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                                      {deviceItem.serial_number ? `SN: ${deviceItem.serial_number} · ` : ""}
-                                      {deviceItem.location || "Kein Standort"}
-                                      {linkedCustomer ? ` · ${getCustomerLabel(linkedCustomer)}` : ""}
-                                    </p>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                        {!selectedUploadDevice &&
-                          uploadDeviceSearch.trim().length >= 1 &&
-                          filteredUploadDevices.length === 0 && (
-                            <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                              Kein Gerät gefunden.
+                        <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 lg:col-span-2 lg:flex-row lg:items-center lg:justify-between xl:col-span-4">
+                          <div className="max-w-2xl">
+                            <p className="text-sm font-bold text-slate-900">
+                              Datei auswählen und archivieren
                             </p>
-                          )}
-                      </div>
-
-                      {uploadCategory === "Abnahmeprotokolle" && (
-                        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 xl:col-span-3">
-                          <p className="text-sm font-black text-yellow-800">
-                            Prüffrist für handschriftliches Abnahmeprotokoll
-                          </p>
-                          <p className="mt-1 text-xs font-bold text-yellow-700">
-                            Diese Angaben aktualisieren das Gerät und erzeugen automatisch einen Prüftermin.
-                          </p>
-
-                          <div className="mt-4 grid gap-3 md:grid-cols-5">
-                            <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Prüfdatum</label>
-                              <input
-                                type="date"
-                                value={uploadInspectionDate}
-                                onChange={(e) => setUploadInspectionDate(e.target.value)}
-                                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Intervall</label>
-                              <select
-                                value={uploadInspectionIntervalMonths}
-                                onChange={(e) => setUploadInspectionIntervalMonths(e.target.value)}
-                                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
-                              >
-                                <option value="6">6 Monate</option>
-                                <option value="12">12 Monate</option>
-                                <option value="24">24 Monate</option>
-                              </select>
-                            </div>
-
-                            <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Nächste Prüfung</label>
-                              <input
-                                type="date"
-                                value={uploadNextInspectionDate}
-                                onChange={(e) => setUploadNextInspectionDate(e.target.value)}
-                                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Prüfsiegel</label>
-                              <input
-                                value={uploadInspectionBadgeNumber}
-                                onChange={(e) => setUploadInspectionBadgeNumber(e.target.value)}
-                                placeholder="optional"
-                                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="text-xs font-black uppercase tracking-[0.14em] text-yellow-700">Bemerkung</label>
-                              <input
-                                value={uploadInspectionNote}
-                                onChange={(e) => setUploadInspectionNote(e.target.value)}
-                                placeholder="optional"
-                                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
-                              />
-                            </div>
+                            <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+                              Die Datei wird nach dem Upload direkt im zentralen Archiv gespeichert und mit den gewählten Bezügen verknüpft.
+                            </p>
                           </div>
 
-                          <p className="mt-3 text-xs font-bold text-yellow-700">
-                            Wenn „Nächste Prüfung“ leer bleibt, wird sie aus Prüfdatum + Intervall berechnet.
-                          </p>
+                          <label
+                            className={`flex min-h-[46px] w-full cursor-pointer items-center justify-center rounded-[8px] px-5 py-3 text-center text-sm font-bold text-white transition lg:w-auto lg:min-w-[190px] ${
+                              uploading
+                                ? "cursor-not-allowed bg-slate-400"
+                                : "bg-sky-600 hover:bg-sky-700"
+                            }`}
+                          >
+                            {uploading
+                              ? "Upload läuft..."
+                              : "Dokument hochladen"}
+
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(event) => {
+                                setCustomerUploadFile(
+                                  event.target.files?.[0] || null,
+                                );
+                                handleFileUpload(event);
+                              }}
+                              disabled={uploading}
+                            />
+                          </label>
                         </div>
-                      )}
-
-                      <div className="flex flex-col justify-end">
-                        <label className={`cursor-pointer rounded-2xl px-6 py-4 text-center font-black text-white ${
-                          uploading ? "bg-slate-400" : "bg-sky-500 hover:bg-sky-600"
-                        }`}>
-                          {uploading ? "Upload läuft..." : "Dokument hochladen"}
-
-                          <input
-                            type="file"
-                            className="hidden"
-                            onChange={(event) => {
-                              setCustomerUploadFile(event.target.files?.[0] || null);
-                              handleFileUpload(event);
-                            }}
-                            disabled={uploading}
-                          />
-                        </label>
-
-                        <p className="mt-3 text-xs font-bold text-slate-500">
-                          Externe Rechnungen, Angebote, Lieferscheine, Verträge, Fotos oder andere Dateien können hier revisionsnah mit Kunde, Ticket und Gerät verknüpft archiviert werden.
-                        </p>
                       </div>
                     </div>
                   </div>
-                  </div>
                 )}
 
-                <div className="mt-8 grid gap-3 md:grid-cols-4">
-                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">PDF</p>
-                    <p className="mt-2 text-2xl font-black text-red-600">
+                <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  <div className="rounded-[10px] border border-slate-200 bg-white p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-black uppercase tracking-[0.13em] text-slate-500">PDF</p>
+                      <span className="h-2 w-2 rounded-full bg-rose-500" />
+                    </div>
+                    <p className="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-950">
                       {filteredDocuments.filter((item) => getDocumentFileIcon(item) === "PDF").length}
                     </p>
                   </div>
-                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bilder</p>
-                    <p className="mt-2 text-2xl font-black text-emerald-600">
+                  <div className="rounded-[10px] border border-slate-200 bg-white p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-black uppercase tracking-[0.13em] text-slate-500">Bilder</p>
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    </div>
+                    <p className="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-950">
                       {filteredDocuments.filter((item) => getDocumentFileIcon(item) === "IMG").length}
                     </p>
                   </div>
-                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bald fällig</p>
-                    <p className="mt-2 text-2xl font-black text-yellow-700">
+                  <div className="rounded-[10px] border border-slate-200 bg-white p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-black uppercase tracking-[0.13em] text-slate-500">Bald fällig</p>
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    </div>
+                    <p className="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-950">
                       {filteredDocuments.filter((item) => getDocumentDueMeta(item)?.label.includes("fällig in")).length}
                     </p>
                   </div>
-                  <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Überfällig</p>
-                    <p className="mt-2 text-2xl font-black text-red-700">
+                  <div className="rounded-[10px] border border-slate-200 bg-white p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-black uppercase tracking-[0.13em] text-slate-500">Überfällig</p>
+                      <span className="h-2 w-2 rounded-full bg-red-500" />
+                    </div>
+                    <p className="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-950">
                       {filteredDocuments.filter((item) => getDocumentDueMeta(item)?.label.includes("überfällig")).length}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <div className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <h4 className="text-lg font-black">Archiv filtern</h4>
                     {documentQuickFilter !== "Alle" && (
                       <button
                         onClick={() => setDocumentQuickFilter("Alle")}
-                        className="rounded-2xl bg-sky-100 px-4 py-2 text-sm font-black text-sky-600"
+                        className="rounded-[7px] border border-sky-200 bg-white px-3 py-2 text-xs font-bold text-sky-700"
                       >
                         Filter: {documentQuickFilter} ×
                       </button>
@@ -25904,18 +26037,18 @@ spellCheck={false}
 enterKeyHint="search"
 name="trybun-document-query"
 placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
-                      className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      className="min-h-[46px] rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                     />
 
                     {isCustomer ? (
-                      <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 font-bold text-slate-600">
+                      <div className="min-h-[46px] rounded-[9px] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600">
                         Nur eigene Dokumente
                       </div>
                     ) : (
                       <select
                         value={documentCustomerFilter}
                         onChange={(e) => setDocumentCustomerFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                        className="min-h-[46px] rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                       >
                         <option value="Alle">Alle Kunden</option>
                         {abnahmeCustomers.map((item) => (
@@ -25929,7 +26062,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     <select
                       value={documentDeviceFilter}
                       onChange={(e) => setDocumentDeviceFilter(e.target.value)}
-                      className="rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                      className="min-h-[46px] rounded-[9px] border border-slate-300 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                     >
                       <option value="Alle">Alle Geräte</option>
                       {availableTicketDevices.map((item) => (
@@ -25947,7 +26080,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         setActiveDocumentCategory("Alle");
                         setDocumentQuickFilter("Alle");
                       }}
-                      className="rounded-2xl bg-slate-900 px-5 py-4 font-black text-white"
+                      className="min-h-[46px] rounded-[8px] bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
                     >
                       Reset
                     </button>
