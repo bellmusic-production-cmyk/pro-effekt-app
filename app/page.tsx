@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.73 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.74 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1261,6 +1261,30 @@ export default function Home() {
   const [passwordSetupSaving, setPasswordSetupSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+
+  const tenantBrandName =
+    companyData?.name?.trim() ||
+    userProfile?.company?.trim() ||
+    "TRYBUN";
+
+  const tenantLogoUrl =
+    companyData?.logo_url?.trim() ||
+    (tenantBrandName.toLowerCase() === "pro-effekt" ? PRO_EFFEKT_LOGO_PATH : "");
+
+  const tenantPrimaryColor =
+    companyData?.primary_color?.trim() || "#3B82F6";
+
+  const tenantSecondaryColor =
+    companyData?.secondary_color?.trim() || "#0B1020";
+
+  const tenantInitials =
+    tenantBrandName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "TR";
+
   const [companyNameInput, setCompanyNameInput] = useState("");
   const [companyLogoUrlInput, setCompanyLogoUrlInput] = useState("");
   const [companyPrimaryColorInput, setCompanyPrimaryColorInput] = useState("#3B82F6");
@@ -2807,6 +2831,7 @@ export default function Home() {
 
   async function loadCompany(userIdOverride?: string) {
     if (isOfflineRuntime()) return companyData;
+
     const userId = userIdOverride || session?.user?.id;
 
     if (!userId) {
@@ -2815,56 +2840,85 @@ export default function Home() {
     }
 
     try {
-      // Wichtig: Ein Benutzer kann in mehreren Mandanten/Firmen stehen.
-      // maybeSingle() ist hier falsch, weil es bei mehreren company_members einen Fehler liefert.
-      // Wir laden alle Mitgliedschaften und verwenden den neuesten aktiven Mandanten,
-      // ohne eine bestimmte Firma im TRYBUN-Code fest zu verdrahten.
       const { data: memberships, error: memberError } = await supabase
         .from("company_members")
         .select("company_id, role, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (memberError) {
-        console.error("Company Member konnte nicht geladen werden:", memberError.message);
-        setCompanyData(null);
-        return null;
+      if (!memberError) {
+        const companyIds = (memberships || [])
+          .map((member: any) => Number(member.company_id))
+          .filter((companyId: number) => Number.isFinite(companyId) && companyId > 0);
+
+        if (companyIds.length > 0) {
+          const { data: companiesResult, error: companyError } = await supabase
+            .from("companies")
+            .select("*")
+            .in("id", companyIds)
+            .eq("is_active", true);
+
+          if (!companyError) {
+            const companiesList = (companiesResult || []) as CompanyData[];
+            if (companiesList.length > 0) {
+              const preferredCompany =
+                companiesList.find((company) => company.id === companyIds[0]) ||
+                companiesList[0];
+              setCompanyData(preferredCompany);
+              return preferredCompany;
+            }
+          } else {
+            console.error("Firma konnte über Mitgliedschaft nicht geladen werden:", companyError.message);
+          }
+        }
+      } else {
+        console.error("Firmenmitgliedschaft konnte nicht geladen werden:", memberError.message);
       }
 
-      const companyIds = (memberships || [])
-        .map((member: any) => member.company_id)
-        .filter(Boolean);
+      const profileCompanyName = String(userProfile?.company || "").trim();
+      if (profileCompanyName) {
+        const { data: fallbackCompany, error: fallbackError } = await supabase
+          .from("companies")
+          .select("*")
+          .eq("name", profileCompanyName)
+          .eq("is_active", true)
+          .maybeSingle();
 
-      if (companyIds.length === 0) {
-        setCompanyData(null);
-        return null;
+        if (!fallbackError && fallbackCompany?.id) {
+          setCompanyData(fallbackCompany as CompanyData);
+          return fallbackCompany as CompanyData;
+        }
+
+        if (fallbackError) {
+          console.error("Firma konnte über Profil-Fallback nicht geladen werden:", fallbackError.message);
+        }
       }
 
-      const { data: companiesResult, error: companyError } = await supabase
-        .from("companies")
-        .select("*")
-        .in("id", companyIds)
-        .eq("is_active", true);
+      // Kundenportal: Firma über den zugeordneten Servicekunden ermitteln.
+      if (userProfile?.customer_id) {
+        const { data: customerCompany, error: customerCompanyError } = await supabase
+          .from("customers")
+          .select("company_id")
+          .eq("id", userProfile.customer_id)
+          .maybeSingle();
 
-      if (companyError) {
-        console.error("Company konnte nicht geladen werden:", companyError.message);
-        setCompanyData(null);
-        return null;
+        if (!customerCompanyError && customerCompany?.company_id) {
+          const { data: portalCompany, error: portalCompanyError } = await supabase
+            .from("companies")
+            .select("*")
+            .eq("id", customerCompany.company_id)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (!portalCompanyError && portalCompany?.id) {
+            setCompanyData(portalCompany as CompanyData);
+            return portalCompany as CompanyData;
+          }
+        }
       }
 
-      const companiesList = (companiesResult || []) as CompanyData[];
-
-      if (companiesList.length === 0) {
-        setCompanyData(null);
-        return null;
-      }
-
-      const preferredCompany =
-        companiesList.find((company) => company.id === companyIds[0]) ||
-        companiesList[0];
-
-      setCompanyData(preferredCompany);
-      return preferredCompany;
+      setCompanyData(null);
+      return null;
     } catch (error) {
       console.error("Company-Ladevorgang fehlgeschlagen:", error);
       setCompanyData(null);
@@ -6827,7 +6881,7 @@ async function loadApplicationData() {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number || ""}</title>
+          <title>${tenantBrandName} Servicebericht ${ticket.ticket_number || ""}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { margin: 0; color: #0284c7; letter-spacing: 1px; }
@@ -6844,8 +6898,8 @@ async function loadApplicationData() {
           </style>
         </head>
         <body>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatisch archivierter Servicebericht</p>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">${tenantLogoUrl ? `<img src="${tenantLogoUrl}" onerror="this.style.display=\'none\'" style="height:38px;max-width:160px;object-fit:contain;" />` : ""}<h1 style="margin:0;">${tenantBrandName}</h1></div>
+          <p class="muted">${tenantBrandName} · Service Management · Automatisch archivierter Servicebericht</p>
 
           <h2>Kunde & Gerät</h2>
           <div class="box grid">
@@ -6928,7 +6982,7 @@ async function loadApplicationData() {
             </div>
           </div>
 
-          <p class="muted" style="margin-top:28px;">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE}<br/>${DEMO_COMPANY_LINE_HTML}</p>
+          <p class="muted" style="margin-top:28px;">${tenantBrandName} · Service Management</p>
         </body>
       </html>
     `;
@@ -6958,8 +7012,8 @@ async function loadApplicationData() {
         .join(" ") ||
       relatedDevice?.location ||
       "-";
-    const companyDisplayName = companyData?.name || DEMO_COMPANY_NAME;
-    const companySubtitle = companyData?.website || DEMO_COMPANY_SUBTITLE;
+    const companyDisplayName = tenantBrandName;
+    const companySubtitle = companyData?.website || "Service Management";
     const companyContactLine = [companyData?.phone, companyData?.email, companyData?.website]
       .filter(Boolean)
       .join(" · ") || `${DEMO_COMPANY_PHONE} · ${DEMO_COMPANY_EMAIL}`;
@@ -7535,15 +7589,15 @@ async function loadApplicationData() {
       [relatedCustomer?.street, relatedCustomer?.house_number, relatedCustomer?.postal_code, relatedCustomer?.city].filter(Boolean).join(" ") ||
       relatedDevice?.location ||
       "-";
-    const companyDisplayName = companyData?.name || DEMO_COMPANY_NAME;
-    const companySubtitle = companyData?.website || DEMO_COMPANY_SUBTITLE;
+    const companyDisplayName = tenantBrandName;
+    const companySubtitle = companyData?.website || "Service Management";
 
     const reportHtml = `
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Servicebericht ${ticket.ticket_number}</title>
+          <title>${tenantBrandName} Servicebericht ${ticket.ticket_number}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { margin: 0; color: #38bdf8; letter-spacing: 4px; }
@@ -7563,7 +7617,7 @@ async function loadApplicationData() {
         <body>
           <div class="top">
             <div>
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">${companyDisplayName}</h1></div>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">${tenantLogoUrl ? `<img src="${tenantLogoUrl}" onerror="this.style.display=\'none\'" style="height:38px;max-width:160px;object-fit:contain;" />` : ""}<h1 style="margin:0;">${companyDisplayName}</h1></div>
               <p class="muted">${companySubtitle} · Servicebericht Premium</p>
               <span class="badge">Servicebericht / Prüfbericht</span>
             </div>
@@ -9451,7 +9505,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT QR ${item.name}</title>
+          <title>${tenantBrandName} QR ${item.name}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 30px; color: #0f172a; }
             .label { width: 360px; border: 2px solid #38bdf8; border-radius: 24px; padding: 22px; text-align: center; }
@@ -9465,7 +9519,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         </head>
         <body>
           <div class="label">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">${tenantLogoUrl ? `<img src="${tenantLogoUrl}" onerror="this.style.display=\'none\'" style="height:38px;max-width:160px;object-fit:contain;" />` : ""}<h1 style="margin:0;">${tenantBrandName}</h1></div>
             <p>Geräteakte / Service-QR</p>
             <img src="${qrUrl}" />
             <h2>${item.name}</h2>
@@ -9512,33 +9566,33 @@ function SoftwareLogo({ compact = false, hero = false }: { dark?: boolean; compa
 }
 
 function ProEffektLogo({ dark = false }: { dark?: boolean }) {
-    const logoSrc = companyData?.logo_url || "/pro-effekt-logo.png";
-    const brandName = companyData?.name || "TRYBUN";
+    const brandName = tenantBrandName;
+    const logoSrc = tenantLogoUrl;
 
     return (
       <div className="flex w-full flex-col items-center justify-center text-center">
-        <img
-          src={logoSrc}
-          alt={`${brandName} Logo`}
-          className="h-auto w-full max-w-[120px] object-contain mx-auto drop-shadow-md"
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-          }}
-        />
+        {logoSrc ? (
+          <img
+            src={logoSrc}
+            alt={`${brandName} Logo`}
+            className="mx-auto h-auto w-full max-w-[120px] object-contain drop-shadow-md"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+        ) : (
+          <div
+            className="mx-auto flex h-20 w-20 items-center justify-center text-xl font-bold text-white"
+            style={{ backgroundColor: tenantPrimaryColor, borderRadius: "12px" }}
+          >
+            {tenantInitials}
+          </div>
+        )}
 
-        <p
-          className={`mt-4 text-sm font-black uppercase tracking-[0.28em] ${
-            dark ? "text-[var(--pe-blue)]" : "text-sky-500"
-          }`}
-        >
+        <p className={`mt-4 text-sm font-black uppercase tracking-[0.20em] ${dark ? "text-white" : "text-slate-900"}`}>
           {brandName}
         </p>
-
-        <p
-          className={`mt-1 text-[10px] font-bold uppercase tracking-[0.22em] ${
-            dark ? "text-sky-400" : "text-sky-500"
-          }`}
-        >
+        <p className={`mt-1 text-[10px] font-bold uppercase tracking-[0.18em] ${dark ? "text-slate-400" : "text-slate-500"}`}>
           Service Management Platform
         </p>
       </div>
@@ -9708,7 +9762,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
 
   function getDeviceDirectUrl(item: Device) {
     if (typeof window === "undefined") {
-      return `PRO-EFFEKT Gerät ${item.id}`;
+      return `${tenantBrandName} Gerät ${item.id}`;
     }
 
     const url = new URL(window.location.href);
@@ -10924,7 +10978,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>PRO-EFFEKT Prüfbericht</title>
+          <title>${tenantBrandName} Prüfbericht</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; color: #0f172a; }
             h1 { color: #0284c7; margin-bottom: 4px; }
@@ -10937,8 +10991,8 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
           </style>
         </head>
         <body>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;"><img src="/pro-effekt-logo.png" onerror="this.style.display='none'" style="height:38px;max-width:160px;object-fit:contain;" /><h1 style="margin:0;">PRO-EFFEKT</h1></div>
-          <p class="muted">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE} · Automatischer Prüfbericht</p>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">${tenantLogoUrl ? `<img src="${tenantLogoUrl}" onerror="this.style.display=\'none\'" style="height:38px;max-width:160px;object-fit:contain;" />` : ""}<h1 style="margin:0;">${tenantBrandName}</h1></div>
+          <p class="muted">${tenantBrandName} · Service Management · Automatischer Prüfbericht</p>
 
           <h2>Prüfbericht</h2>
           <div class="box grid">
@@ -10967,7 +11021,7 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
             <div class="line">Kunde / Unterschrift</div>
           </div>
 
-          <p class="muted" style="margin-top:28px;">${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE}<br/>${DEMO_COMPANY_LINE_HTML}</p>
+          <p class="muted" style="margin-top:28px;">${tenantBrandName} · Service Management</p>
 
           <script>window.print();</script>
         </body>
@@ -11003,14 +11057,14 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
     const body = encodeURIComponent(
       `Hallo,
 
-anbei bzw. im PRO-EFFEKT Portal finden Sie den Prüfbericht für folgendes Gerät:
+anbei bzw. im ${tenantBrandName} Portal finden Sie den Prüfbericht für folgendes Gerät:
 
 Gerät: ${item.name}
 Seriennummer: ${item.serial_number || "nicht angegeben"}
 Standort: ${item.location || "nicht angegeben"}
 
 Viele Grüße
-PRO-EFFEKT`,
+${tenantBrandName}`,
     );
 
     window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
@@ -12493,7 +12547,7 @@ PRO-EFFEKT`,
           <div class="page">
             <div class="top">
               <div>
-                <img src="/pro-effekt-logo.png" class="logo" onerror="this.style.display='none'" />
+                ${tenantLogoUrl ? `<img src="${tenantLogoUrl}" class="logo" onerror="this.style.display=\'none\'" />` : ""}
               </div>
               <div>
                 <h1>Abnahmeprotokoll Reparatur & Wartung für technische Geräte und Anlagen</h1>
@@ -12596,9 +12650,9 @@ PRO-EFFEKT`,
 
             <div class="company">
               <div>
-                <img src="/pro-effekt-logo.png" class="company-logo" onerror="this.style.display='none'" />
-                <div class="footer-service-logo">${DEMO_COMPANY_NAME}</div>
-                <div class="footer-service-sub">${DEMO_COMPANY_SUBTITLE}</div>
+                ${tenantLogoUrl ? `<img src="${tenantLogoUrl}" class="company-logo" onerror="this.style.display=\'none\'" />` : ""}
+                <div class="footer-service-logo">${tenantBrandName}</div>
+                <div class="footer-service-sub">Service Management</div>
               </div>
 
               <div class="footer-details">
@@ -12730,7 +12784,7 @@ PRO-EFFEKT`,
 
     pdf.setFontSize(5.4);
     pdf.setFont("helvetica", "normal");
-    pdf.text(`${DEMO_COMPANY_NAME} · ${DEMO_COMPANY_SUBTITLE}`, pageWidth / 2, y + 4.2, { align: "center" });
+    pdf.text(`${tenantBrandName} · Service Management`, pageWidth / 2, y + 4.2, { align: "center" });
 
     y += 8;
     pdf.setFont("helvetica", "normal");
@@ -12892,9 +12946,9 @@ PRO-EFFEKT`,
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(7.0);
-    pdf.text(DEMO_COMPANY_NAME, 34, footerY);
+    pdf.text(tenantBrandName, 34, footerY);
     pdf.setFontSize(4.4);
-    pdf.text(DEMO_COMPANY_SUBTITLE, 34, footerY + 3.4);
+    pdf.text("Service Management", 34, footerY + 3.4);
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(5.0);
@@ -13359,7 +13413,7 @@ PRO-EFFEKT`,
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 14;
     const contentWidth = pageWidth - margin * 2;
-    const companyName = companyData?.name || DEMO_COMPANY_NAME || "TRYBUN";
+    const companyName = tenantBrandName;
     const companyAddress = companyData?.address || "";
     const companyContact = [companyData?.phone, companyData?.email, companyData?.website]
       .filter(Boolean)
@@ -16417,18 +16471,13 @@ PRO-EFFEKT`,
       <main className="min-h-screen bg-[#07111d] px-5 py-8 text-white">
         <div className="mx-auto max-w-5xl rounded-[36px] border border-sky-500/20 bg-[#0b1726] p-6 shadow-2xl shadow-black/40 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            <img
-              src="/pro-effekt-logo.png"
-              alt="Pro-Effekt"
-              className="h-auto w-full max-w-[120px] object-contain mx-auto"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
+            <div className="w-full max-w-[150px]">
+              <ProEffektLogo dark />
+            </div>
 
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.28em] text-sky-400">
-                PRO-EFFEKT
+              <p className="text-sm font-black uppercase tracking-[0.20em] text-sky-400">
+                {tenantBrandName}
               </p>
               <h1 className="mt-2 text-3xl font-black md:text-5xl">
                 Zustimmung erforderlich
@@ -16521,7 +16570,7 @@ PRO-EFFEKT`,
           </button>
 
           <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
-            {DEMO_COMPANY_NAME} · {DEMO_COMPANY_SUBTITLE} · Digitale Service-, Wartungs- und Dokumentationsplattform.
+            {tenantBrandName} · Digitale Service-, Wartungs- und Dokumentationsplattform.
           </p>
         </div>
       </main>
@@ -18237,7 +18286,10 @@ PRO-EFFEKT`,
   const standardPageHeader = standardPageHeaders[activePage] || null;
 
   return (
-    <main className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-white lg:pb-0">
+    <main
+      className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-white lg:pb-0"
+      style={{ ["--pe-blue" as any]: tenantPrimaryColor, ["--pe-black" as any]: tenantSecondaryColor }}
+    >
         <style>{`
           .trybun-premium-ui {
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -18591,23 +18643,27 @@ PRO-EFFEKT`,
       )}
 
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
-        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/[0.08] bg-[#08111f] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
+        <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/[0.08] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col" style={{ backgroundColor: tenantSecondaryColor }}>
           <div className="rounded-[30px] border border-white/10 bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[26px] border border-sky-400/20 bg-[#0b1726]">
-                <img
-                  src="/pro-effekt-logo.png"
-                  alt="Pro-Effekt Logo"
-                  className="h-16 w-16 object-contain"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center border border-white/10 bg-[#0b1726] p-2" style={{ borderRadius: "12px" }}>
+                {tenantLogoUrl ? (
+                  <img
+                    src={tenantLogoUrl}
+                    alt={`${tenantBrandName} Logo`}
+                    className="h-16 w-16 object-contain"
+                    onError={(event) => { event.currentTarget.style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center text-lg font-bold text-white" style={{ backgroundColor: tenantPrimaryColor, borderRadius: "10px" }}>
+                    {tenantInitials}
+                  </div>
+                )}
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-[11px] font-black uppercase tracking-[0.22em] text-sky-400">
-                  PRO-EFFEKT
+                <p className="truncate text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: tenantPrimaryColor }}>
+                  {tenantBrandName}
                 </p>
                 <p className="mt-1 truncate text-sm font-extrabold text-white">
                   Serviceportal
@@ -18739,21 +18795,26 @@ PRO-EFFEKT`,
           {mobileMenuOpen && (
             <div className="fixed inset-0 z-[70] bg-black/70 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
               <div
-                className="flex h-full max-h-[100dvh] w-[88vw] max-w-sm flex-col overflow-hidden bg-[#07111d] p-4 text-white shadow-2xl"
+                className="flex h-full max-h-[100dvh] w-[88vw] max-w-sm flex-col overflow-hidden p-4 text-white shadow-2xl"
+                style={{ backgroundColor: tenantSecondaryColor }}
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4 pt-[env(safe-area-inset-top)]">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black uppercase tracking-[0.24em] text-sky-400">PRO-EFFEKT</p>
-                    <div className="mt-3 flex h-24 w-full items-center justify-center overflow-hidden rounded-[28px] border border-sky-400/15 bg-[#0b1726] px-4">
-                      <img
-                        src="/pro-effekt-logo.png"
-                        alt="Pro-Effekt Logo"
-                        className="h-full w-full max-w-none scale-[1.35] object-contain"
-                        onError={(event) => {
-                          event.currentTarget.style.display = "none";
-                        }}
-                      />
+                    <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: tenantPrimaryColor }}>{tenantBrandName}</p>
+                    <div className="mt-3 flex h-24 w-full items-center justify-center overflow-hidden border border-white/10 bg-[#0b1726] px-4" style={{ borderRadius: "12px" }}>
+                      {tenantLogoUrl ? (
+                        <img
+                          src={tenantLogoUrl}
+                          alt={`${tenantBrandName} Logo`}
+                          className="h-full w-full object-contain"
+                          onError={(event) => { event.currentTarget.style.display = "none"; }}
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center text-lg font-bold text-white" style={{ backgroundColor: tenantPrimaryColor, borderRadius: "10px" }}>
+                          {tenantInitials}
+                        </div>
+                      )}
                     </div>
                     <p className="mt-3 text-center text-[11px] font-black uppercase tracking-[0.24em] text-sky-400">
                       Serviceportal
