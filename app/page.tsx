@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.80 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.81 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1989,7 +1989,7 @@ export default function Home() {
               const profileIsValid = await loadUserProfile(currentSession.user.id);
 
               if (!cancelled && profileIsValid) {
-                await loadApplicationData();
+                await loadApplicationData(currentSession.user.id);
               }
             })();
           }, 0);
@@ -2156,8 +2156,8 @@ export default function Home() {
     const intervalId = window.setInterval(verifyAccess, 60000);
 
     const handleFocus = () => {
-      verifyAccess();
-      void loadCompany(session?.user?.id);
+      void verifyAccess();
+      void loadCompany(session.user.id);
     };
 
     window.addEventListener("focus", handleFocus);
@@ -2902,8 +2902,12 @@ export default function Home() {
     }
 
     if (!userId) {
-      companyDataRef.current = null;
-      setCompanyData(null);
+      const preservedCompany = companyDataRef.current;
+
+      if (preservedCompany?.id) {
+        return preservedCompany;
+      }
+
       return null;
     }
 
@@ -3145,11 +3149,12 @@ export default function Home() {
       return;
     }
 
-    setCompanyData(
+    commitCompanyData(
       (data || {
         ...currentCompany,
         service_custom_fields: serviceCustomFieldsInput,
       }) as CompanyData,
+      session?.user?.id,
     );
     alert("Zusatzfelder gespeichert.");
   }
@@ -3329,11 +3334,12 @@ export default function Home() {
       return;
     }
 
-    setCompanyData(
+    commitCompanyData(
       (data || {
         ...currentCompany,
         service_templates: serviceTemplatesInput,
       }) as CompanyData,
+      session?.user?.id,
     );
     alert("Prüf- und Wartungsvorlagen gespeichert.");
   }
@@ -3404,7 +3410,10 @@ export default function Home() {
       return;
     }
 
-    setCompanyData((data || { ...currentCompany, ...payload }) as CompanyData);
+    commitCompanyData(
+      (data || { ...currentCompany, ...payload }) as CompanyData,
+      session?.user?.id,
+    );
     alert("Serviceprofil gespeichert.");
   }
 
@@ -3938,11 +3947,13 @@ function isOfflineRuntime() {
     return typeof navigator !== "undefined" && !navigator.onLine;
   }
 
-async function loadApplicationData() {
+async function loadApplicationData(userIdOverride?: string) {
+    const activeUserId = userIdOverride || session?.user?.id;
+
     if (isOfflineRuntime()) {
       setIsOnline(false);
 
-      const restored = restoreOfflineTechnicianSnapshot(session?.user?.id);
+      const restored = restoreOfflineTechnicianSnapshot(activeUserId);
 
       if (!restored) {
         setOfflineSyncMessage(
@@ -3957,7 +3968,7 @@ async function loadApplicationData() {
     setAppDataLoaded(false);
 
     await Promise.all([
-      loadCompany(session?.user?.id),
+      loadCompany(activeUserId),
       loadTickets(),
       loadDevices(),
       loadCustomers(),
@@ -19824,7 +19835,7 @@ ${tenantBrandName}`,
                               </p>
                             </div>
 
-                            <div className="flex w-fit items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm">
+                            <div className="flex w-fit items-center gap-2 rounded-[8px] border border-[#c3cede] bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm">
                               <span className="h-2 w-2 rounded-full bg-emerald-500" />
                               Live aus Ihren Servicedaten
                             </div>
@@ -23366,7 +23377,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
           {activePage === "Einstellungen" && isAdmin && (
             <div className="flex min-w-0 max-w-full flex-col gap-6 overflow-x-hidden">
-              <div className="rounded-[12px] border border-slate-200 bg-slate-50 px-4 py-4 sm:px-5">
+              <div className="rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)] px-4 py-4 sm:px-5">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                   Empfohlene Import-Reihenfolge
                 </p>
@@ -23409,7 +23420,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
                 {customerImportRows.length > 0 && (
                   <>
-                    <details className="mt-6 rounded-[12px] border border-slate-200 bg-slate-50">
+                    <details className="mt-6 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                       <summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                         <div>
                           <h4 className="text-base font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</h4>
@@ -23427,11 +23438,11 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         </p>
                         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                           {customerImportFields.map((field) => (
-                            <label key={field.key} className="block rounded-[10px] border border-slate-200 bg-white p-3">
+                            <label key={field.key} className="block rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]">
                               <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
                                 {field.label}{field.key === "company" ? " · Pflicht bei B2B" : ""}
                               </span>
-                              <select value={customerImportMapping[field.key]} onChange={(event) => setCustomerImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-sky-400">
+                              <select value={customerImportMapping[field.key]} onChange={(event) => setCustomerImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-[#c3cede] bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-sky-400">
                                 <option value="">Nicht importieren</option>
                                 {customerImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}
                               </select>
@@ -23505,7 +23516,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{deviceImportFileName || "Noch keine Datei"}</div>
                 </div>
                 {deviceImportRows.length > 0 && <>
-                  <details className="mt-6 rounded-[12px] border border-slate-200 bg-slate-50">
+                  <details className="mt-6 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                     <summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                       <div>
                         <h4 className="text-base font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</h4>
@@ -23519,7 +23530,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       <p className="mb-4 text-sm font-semibold text-slate-500">
                         Pflicht: Kundennummer, Seriennummer sowie eine Geräte- oder Modellbezeichnung.
                       </p>
-                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{deviceImportFields.map((field) => <label key={field.key} className="block rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{field.label}{field.key === "customer_number" || field.key === "serial_number" ? " · Pflicht" : ""}</span><select value={deviceImportMapping[field.key]} onChange={(event) => setDeviceImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-indigo-400"><option value="">Nicht importieren</option>{deviceImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
+                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{deviceImportFields.map((field) => <label key={field.key} className="block rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">{field.label}{field.key === "customer_number" || field.key === "serial_number" ? " · Pflicht" : ""}</span><select value={deviceImportMapping[field.key]} onChange={(event) => setDeviceImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-[#c3cede] bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-indigo-400"><option value="">Nicht importieren</option>{deviceImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
                     </div>
                   </details>
                   <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
@@ -23548,7 +23559,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{manufacturerImportFileName || "Noch keine Datei"}</div>
                 </div>
                 {manufacturerImportRows.length > 0 && <>
-                  <details className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50">
+                  <details className="mt-5 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                     <summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p>
@@ -23556,7 +23567,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       </div>
                       <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span>
                     </summary>
-                    <div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{manufacturerImportFields.map((field) => <label key={field.key} className="min-w-0 rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key === "name" ? " · Pflicht" : ""}</span><select value={manufacturerImportMapping[field.key] || ""} onChange={(event) => setManufacturerImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{manufacturerImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
+                    <div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{manufacturerImportFields.map((field) => <label key={field.key} className="min-w-0 rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key === "name" ? " · Pflicht" : ""}</span><select value={manufacturerImportMapping[field.key] || ""} onChange={(event) => setManufacturerImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-[#c3cede] px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{manufacturerImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
                   </details>
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
                     <label className="min-w-0 flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={manufacturerImportDuplicateMode} onChange={(event) => setManufacturerImportDuplicateMode(event.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Vorhandene überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label>
@@ -23583,7 +23594,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{deviceStockImportFileName || "Noch keine Datei"}</div>
                 </div>
                 {deviceStockImportRows.length > 0 && <>
-                  <details className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50">
+                  <details className="mt-5 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                     <summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p>
@@ -23591,7 +23602,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       </div>
                       <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span>
                     </summary>
-                    <div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{deviceStockImportFields.map((field) => <label key={field.key} className="min-w-0 rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key === "manufacturer" || field.key === "model" ? " · Pflicht" : ""}</span><select value={deviceStockImportMapping[field.key] || ""} onChange={(event) => setDeviceStockImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{deviceStockImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
+                    <div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{deviceStockImportFields.map((field) => <label key={field.key} className="min-w-0 rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key === "manufacturer" || field.key === "model" ? " · Pflicht" : ""}</span><select value={deviceStockImportMapping[field.key] || ""} onChange={(event) => setDeviceStockImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-[#c3cede] px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{deviceStockImportHeaders.map((header) => <option key={`${field.key}-${header}`} value={header}>{header}</option>)}</select></label>)}</div>
                   </details>
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
                     <label className="min-w-0 flex-1 text-xs font-black uppercase text-slate-500">Bereits im Gerätebestand<select value={deviceStockImportDuplicateMode} onChange={(event) => setDeviceStockImportDuplicateMode(event.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="update">Bestand aktualisieren</option><option value="skip">Überspringen</option></select></label>
@@ -23614,7 +23625,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </button>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Lieferanten-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleSupplierImportFile} disabled={supplierImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label><div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{supplierImportFileName || "Noch keine Datei"}</div></div>
-                {supplierImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(supplierImportMapping).filter(Boolean).length} von {supplierImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{supplierImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={supplierImportMapping[field.key]||""} onChange={e=>setSupplierImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{supplierImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={supplierImportDuplicateMode} onChange={e=>setSupplierImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSuppliersFromFile} disabled={supplierImportBusy || !supplierImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{supplierImportBusy?"Import läuft …":"Lieferanten importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Lieferanten-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{supplierImportPreview.filter((row)=>row.valid).length} gültig · {supplierImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[850px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Kundennummer</th><th className="px-4 py-3">Ansprechpartner</th><th className="px-4 py-3">E-Mail</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{supplierImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3">{row.dealerNumber||"-"}</td><td className="px-4 py-3">{row.contactPerson||"-"}</td><td className="px-4 py-3">{row.email||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
+                {supplierImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(supplierImportMapping).filter(Boolean).length} von {supplierImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{supplierImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={supplierImportMapping[field.key]||""} onChange={e=>setSupplierImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-[#c3cede] px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{supplierImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={supplierImportDuplicateMode} onChange={e=>setSupplierImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSuppliersFromFile} disabled={supplierImportBusy || !supplierImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{supplierImportBusy?"Import läuft …":"Lieferanten importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Lieferanten-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{supplierImportPreview.filter((row)=>row.valid).length} gültig · {supplierImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[850px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Kundennummer</th><th className="px-4 py-3">Ansprechpartner</th><th className="px-4 py-3">E-Mail</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{supplierImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3">{row.dealerNumber||"-"}</td><td className="px-4 py-3">{row.contactPerson||"-"}</td><td className="px-4 py-3">{row.email||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
                 {supplierImportMessage&&<div className="mt-4 rounded-2xl bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-700">{supplierImportMessage}</div>}
               </div>
 
@@ -23629,7 +23640,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </button>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ersatzteile-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleSparePartImportFile} disabled={sparePartImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label><div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{sparePartImportFileName || "Noch keine Datei"}</div></div>
-                {sparePartImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(sparePartImportMapping).filter(Boolean).length} von {sparePartImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{sparePartImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={sparePartImportMapping[field.key]||""} onChange={e=>setSparePartImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{sparePartImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={sparePartImportDuplicateMode} onChange={e=>setSparePartImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSparePartsFromFile} disabled={sparePartImportBusy || !sparePartImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{sparePartImportBusy?"Import läuft …":"Ersatzteile importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Ersatzteil-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{sparePartImportPreview.filter((row)=>row.valid).length} gültig · {sparePartImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[1050px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Ersatzteil</th><th className="px-4 py-3">SKU</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Bestand</th><th className="px-4 py-3">Lagerort</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{sparePartImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3 font-bold">{row.sku||"-"}</td><td className="px-4 py-3">{row.manufacturerName||"-"}</td><td className="px-4 py-3">{row.supplierName||"-"}</td><td className="px-4 py-3 font-black">{row.stock}</td><td className="px-4 py-3">{row.storageLocation||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
+                {sparePartImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(sparePartImportMapping).filter(Boolean).length} von {sparePartImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{sparePartImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={sparePartImportMapping[field.key]||""} onChange={e=>setSparePartImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-[#c3cede] px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{sparePartImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={sparePartImportDuplicateMode} onChange={e=>setSparePartImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSparePartsFromFile} disabled={sparePartImportBusy || !sparePartImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{sparePartImportBusy?"Import läuft …":"Ersatzteile importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Ersatzteil-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{sparePartImportPreview.filter((row)=>row.valid).length} gültig · {sparePartImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[1050px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Ersatzteil</th><th className="px-4 py-3">SKU</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Bestand</th><th className="px-4 py-3">Lagerort</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{sparePartImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3 font-bold">{row.sku||"-"}</td><td className="px-4 py-3">{row.manufacturerName||"-"}</td><td className="px-4 py-3">{row.supplierName||"-"}</td><td className="px-4 py-3 font-black">{row.stock}</td><td className="px-4 py-3">{row.storageLocation||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
                 {sparePartImportMessage&&<div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700">{sparePartImportMessage}</div>}
               </div>
 
@@ -29119,7 +29130,7 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                                   key={nextStatus}
                                   type="button"
                                   onClick={() => quickTechnicianStatusPremium(ticket, nextStatus)}
-                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                                  className="rounded-xl border border-[#c3cede] bg-white px-3 py-2 text-xs font-black text-slate-700"
                                 >
                                   {nextStatus}
                                 </button>
