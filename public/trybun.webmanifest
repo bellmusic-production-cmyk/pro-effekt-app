@@ -1,0 +1,18 @@
+{
+  "name": "TRYBUN Service Management",
+  "short_name": "TRYBUN",
+  "description": "Service Management für technische Servicebetriebe.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07111d",
+  "theme_color": "#07111d",
+  "icons": [
+    {
+      "src": "/trybun-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

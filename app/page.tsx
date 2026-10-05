@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.66 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.67 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1657,6 +1657,55 @@ export default function Home() {
 
   const [appointmentResponseNoteByTicket, setAppointmentResponseNoteByTicket] = useState<Record<number, string>>({});
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    let manifestLink = document.querySelector<HTMLLinkElement>(
+      'link[rel="manifest"][data-trybun-pwa="true"]',
+    );
+
+    if (!manifestLink) {
+      manifestLink = document.createElement("link");
+      manifestLink.rel = "manifest";
+      manifestLink.href = "/trybun.webmanifest";
+      manifestLink.dataset.trybunPwa = "true";
+      document.head.appendChild(manifestLink);
+    }
+
+    let themeMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][data-trybun-pwa="true"]',
+    );
+
+    if (!themeMeta) {
+      themeMeta = document.createElement("meta");
+      themeMeta.name = "theme-color";
+      themeMeta.content = "#07111d";
+      themeMeta.dataset.trybunPwa = "true";
+      document.head.appendChild(themeMeta);
+    }
+
+    if (!("serviceWorker" in navigator)) return;
+
+    const registerServiceWorker = async () => {
+      try {
+        const registration = await navigator.serviceWorker.register(
+          "/trybun-sw.js",
+          { scope: "/" },
+        );
+
+        await registration.update();
+
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: "TRYBUN_SKIP_WAITING" });
+        }
+      } catch (error) {
+        console.error("TRYBUN Offline-App konnte nicht aktiviert werden:", error);
+      }
+    };
+
+    void registerServiceWorker();
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
