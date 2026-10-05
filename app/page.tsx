@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.52 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.53 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -368,6 +368,26 @@ type CustomerAppointmentResponse = {
   created_at?: string;
 };
 
+type ServiceProfileKey =
+  | "general"
+  | "fire_safety"
+  | "hvac"
+  | "solar"
+  | "electrical"
+  | "machinery"
+  | "custom";
+
+type ServiceTerminology = {
+  assetSingular: string;
+  assetPlural: string;
+  modelSingular: string;
+  modelPlural: string;
+  inspectionSingular: string;
+  inspectionPlural: string;
+  maintenanceSingular: string;
+  maintenancePlural: string;
+};
+
 type CompanyData = {
   id: number;
   name: string;
@@ -380,9 +400,117 @@ type CompanyData = {
   phone?: string | null;
   address?: string | null;
   pdf_footer?: string | null;
+  service_profile?: ServiceProfileKey | null;
+  service_labels?: Partial<ServiceTerminology> | null;
   is_active?: boolean | null;
   created_at?: string | null;
 };
+
+const DEFAULT_SERVICE_TERMINOLOGY: ServiceTerminology = {
+  assetSingular: "Gerät",
+  assetPlural: "Geräte",
+  modelSingular: "Modell",
+  modelPlural: "Modelle",
+  inspectionSingular: "Prüfung",
+  inspectionPlural: "Prüfungen",
+  maintenanceSingular: "Wartung",
+  maintenancePlural: "Wartungen",
+};
+
+const SERVICE_PROFILE_PRESETS: Array<{
+  key: ServiceProfileKey;
+  name: string;
+  description: string;
+  terminology: ServiceTerminology;
+}> = [
+  {
+    key: "general",
+    name: "Allgemeiner Service",
+    description: "Neutraler Ausgangspunkt für nahezu jeden technischen Servicebetrieb.",
+    terminology: DEFAULT_SERVICE_TERMINOLOGY,
+  },
+  {
+    key: "fire_safety",
+    name: "Brandschutz",
+    description: "Startvorlage für Prüf-, Wartungs- und Dokumentationsbetriebe im Brandschutz.",
+    terminology: {
+      assetSingular: "Prüfobjekt",
+      assetPlural: "Prüfobjekte",
+      modelSingular: "Modell",
+      modelPlural: "Modelle",
+      inspectionSingular: "Prüfung",
+      inspectionPlural: "Prüfungen",
+      maintenanceSingular: "Wartung",
+      maintenancePlural: "Wartungen",
+    },
+  },
+  {
+    key: "hvac",
+    name: "Heizung · Sanitär · Klima",
+    description: "Startvorlage für Anlagenservice, Wartung und technischen Kundendienst.",
+    terminology: {
+      assetSingular: "Anlage",
+      assetPlural: "Anlagen",
+      modelSingular: "Modell",
+      modelPlural: "Modelle",
+      inspectionSingular: "Prüfung",
+      inspectionPlural: "Prüfungen",
+      maintenanceSingular: "Wartung",
+      maintenancePlural: "Wartungen",
+    },
+  },
+  {
+    key: "solar",
+    name: "Solar · Photovoltaik",
+    description: "Startvorlage für Anlagen, Komponenten, Serviceeinsätze und Wartungen.",
+    terminology: {
+      assetSingular: "Anlage",
+      assetPlural: "Anlagen",
+      modelSingular: "Komponente",
+      modelPlural: "Komponenten",
+      inspectionSingular: "Prüfung",
+      inspectionPlural: "Prüfungen",
+      maintenanceSingular: "Wartung",
+      maintenancePlural: "Wartungen",
+    },
+  },
+  {
+    key: "electrical",
+    name: "Elektro · Prüfservice",
+    description: "Startvorlage für Geräte-, Anlagen- und wiederkehrende Prüfservices.",
+    terminology: {
+      assetSingular: "Prüfobjekt",
+      assetPlural: "Prüfobjekte",
+      modelSingular: "Modell",
+      modelPlural: "Modelle",
+      inspectionSingular: "Prüfung",
+      inspectionPlural: "Prüfungen",
+      maintenanceSingular: "Service",
+      maintenancePlural: "Services",
+    },
+  },
+  {
+    key: "machinery",
+    name: "Maschinen · Anlagenservice",
+    description: "Startvorlage für Maschinen, Seriennummern, Ersatzteile und Instandhaltung.",
+    terminology: {
+      assetSingular: "Maschine",
+      assetPlural: "Maschinen",
+      modelSingular: "Modell",
+      modelPlural: "Modelle",
+      inspectionSingular: "Prüfung",
+      inspectionPlural: "Prüfungen",
+      maintenanceSingular: "Wartung",
+      maintenancePlural: "Wartungen",
+    },
+  },
+  {
+    key: "custom",
+    name: "Individuell",
+    description: "Freie Begriffe für Servicebetriebe, die keiner Vorlage entsprechen.",
+    terminology: DEFAULT_SERVICE_TERMINOLOGY,
+  },
+];
 
 const fallbackDevices = [
   "Gerät 1",
@@ -1068,6 +1196,10 @@ export default function Home() {
   const [companyWebsiteInput, setCompanyWebsiteInput] = useState("");
   const [companyAddressInput, setCompanyAddressInput] = useState("");
   const [companyPdfFooterInput, setCompanyPdfFooterInput] = useState("");
+  const [serviceProfileInput, setServiceProfileInput] = useState<ServiceProfileKey>("general");
+  const [serviceTerminologyInput, setServiceTerminologyInput] =
+    useState<ServiceTerminology>(DEFAULT_SERVICE_TERMINOLOGY);
+  const [serviceProfileSaving, setServiceProfileSaving] = useState(false);
   const [companyBrandingSaving, setCompanyBrandingSaving] = useState(false);
   const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -1586,6 +1718,17 @@ export default function Home() {
     setCompanyWebsiteInput(companyData.website || "");
     setCompanyAddressInput(companyData.address || "");
     setCompanyPdfFooterInput(companyData.pdf_footer || "");
+
+    const nextServiceProfile = companyData.service_profile || "general";
+    const selectedPreset =
+      SERVICE_PROFILE_PRESETS.find((item) => item.key === nextServiceProfile) ||
+      SERVICE_PROFILE_PRESETS[0];
+
+    setServiceProfileInput(nextServiceProfile);
+    setServiceTerminologyInput({
+      ...selectedPreset.terminology,
+      ...(companyData.service_labels || {}),
+    });
   }, [companyData]);
 
 
@@ -2415,6 +2558,78 @@ export default function Home() {
       setCompanyData(null);
       return null;
     }
+  }
+
+  function applyServiceProfilePreset(profileKey: ServiceProfileKey) {
+    setServiceProfileInput(profileKey);
+
+    const preset =
+      SERVICE_PROFILE_PRESETS.find((item) => item.key === profileKey) ||
+      SERVICE_PROFILE_PRESETS[0];
+
+    if (profileKey !== "custom") {
+      setServiceTerminologyInput({ ...preset.terminology });
+    }
+  }
+
+  function updateServiceTerminologyField(
+    field: keyof ServiceTerminology,
+    value: string,
+  ) {
+    setServiceTerminologyInput((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function saveServiceProfileSettings() {
+    if (!isAdmin) {
+      alert("Nur Admins können das Serviceprofil bearbeiten.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden.");
+      return;
+    }
+
+    const normalizedTerminology = Object.fromEntries(
+      Object.entries(serviceTerminologyInput).map(([key, value]) => [
+        key,
+        String(value || "").trim(),
+      ]),
+    ) as ServiceTerminology;
+
+    if (Object.values(normalizedTerminology).some((value) => !value)) {
+      alert("Bitte alle Begriffe des Serviceprofils ausfüllen.");
+      return;
+    }
+
+    setServiceProfileSaving(true);
+
+    const payload = {
+      service_profile: serviceProfileInput,
+      service_labels: normalizedTerminology,
+    };
+
+    const { data, error } = await supabase
+      .from("companies")
+      .update(payload)
+      .eq("id", currentCompany.id)
+      .select("*")
+      .maybeSingle();
+
+    setServiceProfileSaving(false);
+
+    if (error) {
+      alert(`Serviceprofil konnte nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    setCompanyData((data || { ...currentCompany, ...payload }) as CompanyData);
+    alert("Serviceprofil gespeichert.");
   }
 
   async function saveCompanyBranding() {
@@ -19888,6 +20103,121 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 </div>
 
 
+              </div>
+
+              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
+                  TRYBUN Konfiguration
+                </p>
+                <h3 className="mt-2 text-4xl font-black">
+                  Serviceprofil
+                </h3>
+                <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
+                  TRYBUN bleibt branchenneutral. Die Vorlagen sind nur Startpunkte und können jederzeit mit eigenen Begriffen angepasst werden.
+                </p>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <h3 className="text-xl font-black text-slate-950">Startvorlage wählen</h3>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                    Eine Vorlage setzt nur sinnvolle Anfangsbegriffe. Funktionen und Datenstruktur bleiben gleich.
+                  </p>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {SERVICE_PROFILE_PRESETS.map((profile) => {
+                      const selected = serviceProfileInput === profile.key;
+
+                      return (
+                        <button
+                          key={profile.key}
+                          type="button"
+                          onClick={() => applyServiceProfilePreset(profile.key)}
+                          className={`min-w-0 rounded-xl border p-4 text-left transition ${
+                            selected
+                              ? "border-sky-500 bg-sky-50 ring-2 ring-sky-100"
+                              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-black text-slate-950">{profile.name}</p>
+                              <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                                {profile.description}
+                              </p>
+                            </div>
+                            <span
+                              className={`mt-0.5 h-3 w-3 shrink-0 rounded-full ${
+                                selected ? "bg-sky-500" : "bg-slate-200"
+                              }`}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-950">Begriffe Ihres Betriebs</h3>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                        Diese Begriffe bilden die Grundlage für die spätere automatische Anpassung von Oberfläche, Vorlagen und intelligenten Funktionen.
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+                      frei anpassbar
+                    </span>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    {[
+                      ["assetSingular", "Serviceobjekt · Einzahl"],
+                      ["assetPlural", "Serviceobjekt · Mehrzahl"],
+                      ["modelSingular", "Typ / Modell · Einzahl"],
+                      ["modelPlural", "Typ / Modell · Mehrzahl"],
+                      ["inspectionSingular", "Prüfung · Einzahl"],
+                      ["inspectionPlural", "Prüfung · Mehrzahl"],
+                      ["maintenanceSingular", "Wartung / Service · Einzahl"],
+                      ["maintenancePlural", "Wartung / Service · Mehrzahl"],
+                    ].map(([field, label]) => (
+                      <label key={field} className="block min-w-0">
+                        <span className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
+                          {label}
+                        </span>
+                        <input
+                          value={serviceTerminologyInput[field as keyof ServiceTerminology]}
+                          onChange={(event) =>
+                            updateServiceTerminologyField(
+                              field as keyof ServiceTerminology,
+                              event.target.value,
+                            )
+                          }
+                          className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:border-sky-400"
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                      Beispiel
+                    </p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                      {serviceTerminologyInput.assetSingular} → {serviceTerminologyInput.modelSingular} → Ticket → {serviceTerminologyInput.maintenanceSingular} / {serviceTerminologyInput.inspectionSingular} → Dokumentation
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={saveServiceProfileSettings}
+                    disabled={serviceProfileSaving}
+                    className="mt-5 w-full rounded-xl bg-sky-600 px-6 py-3.5 text-sm font-black text-white shadow-sm hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+                  >
+                    {serviceProfileSaving ? "Serviceprofil wird gespeichert …" : "Serviceprofil speichern"}
+                  </button>
+                </div>
               </div>
 
               <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
