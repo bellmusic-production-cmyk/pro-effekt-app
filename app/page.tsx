@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.56 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.57 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -16205,6 +16205,76 @@ PRO-EFFEKT`,
       return bTime - aTime;
     })[0] || null;
 
+  const selectedDeviceServiceProofs = [...selectedDeviceCompletedTickets]
+    .sort((a, b) => {
+      const aTime = new Date(a.completed_at || a.service_date || a.created_at || 0).getTime();
+      const bTime = new Date(b.completed_at || b.service_date || b.created_at || 0).getTime();
+      return bTime - aTime;
+    })
+    .map((ticket) => {
+      const proofDocuments = documents.filter(
+        (documentItem) => documentItem.ticket_id === ticket.id,
+      );
+      const proofPartUsages = selectedDevicePartUsages.filter(
+        (usage) => usage.ticket_id === ticket.id,
+      );
+      const proofPartQuantity = proofPartUsages.reduce(
+        (sum, usage) => sum + Number(usage.quantity || 0),
+        0,
+      );
+      const proofChecks = [
+        { label: "Abschlusszeit dokumentiert", done: Boolean(ticket.completed_at) },
+        { label: "Techniker zugeordnet", done: Boolean(ticket.assigned_to) },
+        { label: "Servicebericht vorhanden", done: Boolean(ticket.service_report) },
+        { label: "Techniker-Unterschrift", done: Boolean(ticket.technician_signature) },
+        {
+          label: "Kundenbestätigung",
+          done: Boolean(
+            ticket.customer_signature ||
+              ticket.customer_approval_name ||
+              ticket.customer_approval_at,
+          ),
+        },
+        { label: "Dokument / Nachweis", done: proofDocuments.length > 0 },
+      ];
+      const completedChecks = proofChecks.filter((check) => check.done).length;
+      const score = Math.round((completedChecks / proofChecks.length) * 100);
+
+      return {
+        ticket,
+        proofDocuments,
+        proofPartUsages,
+        proofPartQuantity,
+        proofChecks,
+        score,
+        status:
+          score === 100
+            ? {
+                label: "Vollständig dokumentiert",
+                className: "bg-emerald-100 text-emerald-700",
+              }
+            : score >= 67
+              ? {
+                  label: "Gut dokumentiert",
+                  className: "bg-sky-100 text-sky-700",
+                }
+              : {
+                  label: "Nachweise ergänzen",
+                  className: "bg-amber-100 text-amber-700",
+                },
+      };
+    });
+
+  const selectedDeviceServiceProofAverage =
+    selectedDeviceServiceProofs.length > 0
+      ? Math.round(
+          selectedDeviceServiceProofs.reduce(
+            (sum, proof) => sum + proof.score,
+            0,
+          ) / selectedDeviceServiceProofs.length,
+        )
+      : 0;
+
   const standardPageHeaders: Record<string, { eyebrow: string; title: string; description: string }> = {
     Benachrichtigungen: {
       eyebrow: "Kommunikation",
@@ -22775,6 +22845,177 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     Noch kein Wartungsplan vorhanden.
                   </div>
                 )}
+              </div>
+
+              <div className="mt-10 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
+                      TRYBUN Service Proof
+                    </p>
+                    <h4 className="mt-1 text-xl font-black text-slate-950">
+                      Nachweis abgeschlossener Serviceeinsätze
+                    </h4>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                      TRYBUN bündelt Abschlusszeit, Techniker, Servicebericht, Unterschriften, Dokumente und verwendete Ersatzteile pro Einsatz zu einem nachvollziehbaren Nachweisstatus.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:flex">
+                    <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
+                      <p className="text-xs font-bold text-slate-500">Service Proofs</p>
+                      <p className="mt-1 text-xl font-black text-slate-950">
+                        {selectedDeviceServiceProofs.length}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 px-4 py-3 text-center">
+                      <p className="text-xs font-bold text-slate-500">Ø Nachweisstatus</p>
+                      <p className="mt-1 text-xl font-black text-slate-950">
+                        {selectedDeviceServiceProofs.length > 0
+                          ? `${selectedDeviceServiceProofAverage}%`
+                          : "–"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {selectedDeviceServiceProofs.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-500">
+                      Noch kein abgeschlossener Serviceeinsatz vorhanden. Der erste Service Proof entsteht automatisch aus einem abgeschlossenen Ticket.
+                    </div>
+                  ) : (
+                    selectedDeviceServiceProofs.map((proof) => {
+                      const ticket = proof.ticket;
+
+                      return (
+                        <div
+                          key={`service-proof-${ticket.id}`}
+                          className="rounded-[16px] border border-slate-200 bg-slate-50 p-4"
+                        >
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-sky-600">
+                                  {ticket.ticket_number || `Ticket #${ticket.id}`}
+                                </p>
+                                <span
+                                  className={`rounded-full px-3 py-1 text-xs font-black ${proof.status.className}`}
+                                >
+                                  {proof.status.label}
+                                </span>
+                              </div>
+                              <h5 className="mt-2 break-words text-lg font-black text-slate-950">
+                                {ticket.issue || "Serviceeinsatz"}
+                              </h5>
+                              <p className="mt-1 text-sm font-semibold text-slate-500">
+                                Abgeschlossen:{" "}
+                                {formatDate(
+                                  ticket.completed_at ||
+                                    ticket.service_date ||
+                                    ticket.created_at,
+                                )}
+                                {" · "}
+                                Techniker: {getTechnicianNameById(ticket.assigned_to)}
+                              </p>
+                            </div>
+
+                            <div className="w-full rounded-xl bg-white p-3 lg:w-44">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-bold text-slate-500">
+                                  Nachweisstatus
+                                </span>
+                                <span className="text-sm font-black text-slate-950">
+                                  {proof.score}%
+                                </span>
+                              </div>
+                              <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                                <div
+                                  className="h-full rounded-full bg-slate-900"
+                                  style={{ width: `${proof.score}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                            {proof.proofChecks.map((check) => (
+                              <div
+                                key={`${ticket.id}-${check.label}`}
+                                className={`rounded-xl border px-3 py-2.5 text-sm font-bold ${
+                                  check.done
+                                    ? "border-emerald-100 bg-emerald-50 text-emerald-800"
+                                    : "border-amber-100 bg-amber-50 text-amber-800"
+                                }`}
+                              >
+                                <span className="mr-2">{check.done ? "✓" : "○"}</span>
+                                {check.label}
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-xl bg-white p-3">
+                              <p className="text-xs font-bold text-slate-500">Dokumente / Nachweise</p>
+                              <p className="mt-1 text-lg font-black text-slate-950">
+                                {proof.proofDocuments.length}
+                              </p>
+                            </div>
+                            <div className="rounded-xl bg-white p-3">
+                              <p className="text-xs font-bold text-slate-500">Ersatzteilpositionen</p>
+                              <p className="mt-1 text-lg font-black text-slate-950">
+                                {proof.proofPartUsages.length}
+                              </p>
+                            </div>
+                            <div className="rounded-xl bg-white p-3">
+                              <p className="text-xs font-bold text-slate-500">Verbrauchte Einheiten</p>
+                              <p className="mt-1 text-lg font-black text-slate-950">
+                                {proof.proofPartQuantity}
+                              </p>
+                            </div>
+                          </div>
+
+                          {ticket.service_report && (
+                            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                              <p className="text-xs font-black uppercase tracking-[0.1em] text-slate-500">
+                                Serviceergebnis
+                              </p>
+                              <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">
+                                {ticket.service_report}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTicketView(ticket);
+                                setActivePage("Service-Tickets");
+                                if (typeof window !== "undefined") {
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }
+                              }}
+                              className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
+                            >
+                              Ticket-Akte öffnen
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTicketView(ticket);
+                                openServiceReportSigning(ticket);
+                              }}
+                              className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700"
+                            >
+                              Servicebericht & Signaturen
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               <div className="mt-10">
