@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.44 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.45 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1040,6 +1040,8 @@ export default function Home() {
   const [contracts, setContracts] = useState<ServiceContract[]>([]);
   const [technicians, setTechnicians] = useState<UserProfile[]>([]);
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
+  const [userProfilesReloading, setUserProfilesReloading] = useState(false);
+  const [userProfilesReloadMessage, setUserProfilesReloadMessage] = useState("");
   const [userManagementRoleFilter, setUserManagementRoleFilter] = useState<"admin" | "technician" | "customer">("admin");
   const [userManagementSearch, setUserManagementSearch] = useState("");
   const [userCompanyNames, setUserCompanyNames] = useState<Record<string, string>>({});
@@ -3776,7 +3778,7 @@ async function loadApplicationData() {
       if (result?.error) {
         console.error("Benutzerprofile konnten nicht geladen werden:", result.error.message);
         setUserProfiles(fallbackProfiles);
-        return;
+        return false;
       }
 
       const loadedProfiles = (result?.data || []) as UserProfile[];
@@ -3786,7 +3788,7 @@ async function loadApplicationData() {
 
       if (profileIds.length === 0) {
         setUserCompanyNames({});
-        return;
+        return true;
       }
 
       const { data: memberships, error: membershipsError } = await supabase
@@ -3798,7 +3800,7 @@ async function loadApplicationData() {
       if (membershipsError) {
         console.error("Firmenzuordnungen konnten nicht geladen werden:", membershipsError.message);
         setUserCompanyNames({});
-        return;
+        return false;
       }
 
       const companyIds = Array.from(
@@ -3811,7 +3813,7 @@ async function loadApplicationData() {
 
       if (companyIds.length === 0) {
         setUserCompanyNames({});
-        return;
+        return true;
       }
 
       const { data: companiesResult, error: companiesError } = await supabase
@@ -3822,7 +3824,7 @@ async function loadApplicationData() {
       if (companiesError) {
         console.error("Firmennamen konnten nicht geladen werden:", companiesError.message);
         setUserCompanyNames({});
-        return;
+        return false;
       }
 
       const companyNameById = new Map<number, string>(
@@ -3843,11 +3845,29 @@ async function loadApplicationData() {
       });
 
       setUserCompanyNames(nextUserCompanyNames);
+      return true;
     } catch (error) {
       console.error("Benutzer-Ladevorgang übersprungen:", error);
       setUserProfiles(fallbackProfiles);
       setUserCompanyNames({});
+      return false;
     }
+  }
+
+  async function refreshUserProfiles() {
+    if (userProfilesReloading) return;
+
+    setUserProfilesReloading(true);
+    setUserProfilesReloadMessage("Benutzer werden aktualisiert …");
+
+    const success = await loadUserProfiles();
+
+    setUserProfilesReloading(false);
+    setUserProfilesReloadMessage(
+      success
+        ? `Benutzerliste aktualisiert · ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`
+        : "Benutzer konnten nicht aktualisiert werden.",
+    );
   }
 
   async function createUserFromManagement() {
@@ -6318,7 +6338,8 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
-    await loadTickets();
+    setTickets((previous) => previous.filter((ticket) => ticket.id !== ticketId));
+    await Promise.all([loadTickets(), loadMaintenancePlans()]);
   }
 
   async function saveManufacturer() {
@@ -14378,13 +14399,13 @@ PRO-EFFEKT`,
       Kalender: "Kalender",
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
-      Geräte: "Modelle",
+      Geräte: "Hersteller & Modell",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
       Ersatzteile: "Ersatzteile",
       Gerätebestand: "Gerätebestand",
       Dokumente: "Dokumente",
-      "Auftrag / Lieferschein erstellen": "Auftrag / Lieferschein erstellen",
+      "Auftrag / Lieferschein erstellen": "Auftrag & Lieferschein erstellen",
       Rechnungen: "Rechnungen",
       Verträge: "Verträge",
       Benachrichtigungen: "Kommunikation",
@@ -19486,13 +19507,19 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={loadUserProfiles}
-                    className="rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-3 text-sm font-black text-sky-100 hover:bg-sky-500/25"
-                  >
-                    Benutzer neu laden
-                  </button>
+                  <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                    <button
+                      type="button"
+                      onClick={refreshUserProfiles}
+                      disabled={userProfilesReloading}
+                      className="rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-3 text-sm font-black text-sky-100 hover:bg-sky-500/25 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {userProfilesReloading ? "Benutzer werden aktualisiert …" : "Benutzer aktualisieren"}
+                    </button>
+                    {userProfilesReloadMessage && (
+                      <span className="text-xs font-bold text-slate-300">{userProfilesReloadMessage}</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-6 rounded-[28px] border border-sky-400/20 bg-sky-500/10 p-5">
@@ -21007,16 +21034,16 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                                   : "border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/60"
                               }`}
                             >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="truncate text-base font-black text-[#07111d]">
+                              <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0 w-full sm:w-auto">
+                                  <div className="break-words text-base font-black text-[#07111d] sm:truncate">
                                     {item.name}
                                   </div>
                                   <div className="mt-1 text-xs font-bold text-slate-500">
                                     {modelCount} Modell(e)
                                   </div>
                                 </div>
-                                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${
+                                <span className={`self-start shrink-0 rounded-full px-3 py-1 text-xs font-black sm:self-auto ${
                                   selected
                                     ? "bg-sky-500 text-white"
                                     : "bg-slate-100 text-slate-600"
