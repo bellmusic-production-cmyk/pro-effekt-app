@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.69 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.70 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -3478,6 +3478,11 @@ function getOfflineTechnicianSnapshotKey(userId?: string | null) {
   }
 
   function restoreOfflineTechnicianSnapshot(userId?: string | null) {
+    if (userProfile?.role !== "technician") {
+      setOfflineSnapshotSavedAt(null);
+      return false;
+    }
+
     const snapshot = readOfflineTechnicianSnapshot(userId);
 
     if (!snapshot) {
@@ -7511,7 +7516,7 @@ async function loadApplicationData() {
 Datum: ${today}
 Kunde: ${customerName}
 Gerät / Anlage: ${deviceName}
-Ticket: ${ticket.ticket_number || `#${ticket.id}`}
+Ticket: ${ticket.ticket_number || "Serviceeinsatz"}
 Techniker: ${technicianName}
 
 Ausgangssituation:
@@ -13640,7 +13645,7 @@ PRO-EFFEKT`,
     setInvoiceCustomerSignature("");
     setInvoiceNote(
       [
-        `Revenue Guard · Abrechnung zu ${ticket.ticket_number || `Ticket #${ticket.id}`}`,
+        `Revenue Guard · Abrechnung zu ${ticket.ticket_number || "Serviceeinsatz"}`,
         ticket.service_report
           ? `Servicebericht: ${ticket.service_report}`
           : "Servicebericht: noch nicht hinterlegt",
@@ -20386,6 +20391,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                       )}
                     </div>
 
+                    {!isCustomer && (
                     <div className="mt-5 rounded-[18px] border border-indigo-200 bg-indigo-50 p-4 sm:p-5">
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
@@ -20554,6 +20560,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         Der Service Copilot ist in dieser Ausbaustufe vollständig datenbasiert und arbeitet ohne externe KI-Auswertung. Technische Entscheidungen bleiben beim qualifizierten Servicepersonal.
                       </p>
                     </div>
+                    )}
 
                     <div className="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5">
                       <h4 className="text-xl font-black text-sky-700">
@@ -21235,7 +21242,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                           : "Ohne Rechnung"}
                                   </span>
                                   <p className="text-xs font-black text-slate-500">
-                                    {ticket.ticket_number || `Ticket #${ticket.id}`}
+                                    {ticket.ticket_number || "Serviceeinsatz"}
                                   </p>
                                 </div>
 
@@ -22037,7 +22044,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                             <option value="">Ohne Ticketbezug</option>
                             {customerUploadTickets.map((ticketItem) => (
                               <option key={ticketItem.id} value={ticketItem.id}>
-                                {ticketItem.ticket_number || `Ticket #${ticketItem.id}`} · {ticketItem.issue || ticketItem.status}
+                                {ticketItem.ticket_number || "Serviceeinsatz"} · {ticketItem.issue || ticketItem.status}
                               </option>
                             ))}
                           </select>
@@ -24810,7 +24817,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                       <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Identität & Zustand</p>
                       <h3 className="mt-1 text-2xl font-black text-slate-950">Serviceobjekt</h3>
                     </div>
-                    <p className="text-sm font-bold text-slate-500">Pass-ID #{selectedDeviceView.id}</p>
+                    <p className="text-sm font-bold text-slate-500">Digitaler Gerätepass</p>
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -25254,6 +25261,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 </p>
               </div>
 
+              {(isAdmin || isTechnician) && (
               <div className="mt-10 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
@@ -25303,7 +25311,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-xs font-black uppercase tracking-[0.12em] text-sky-600">
-                                  {ticket.ticket_number || `Ticket #${ticket.id}`}
+                                  {ticket.ticket_number || "Serviceeinsatz"}
                                 </p>
                                 <span
                                   className={`rounded-full px-3 py-1 text-xs font-black ${proof.status.className}`}
@@ -25424,6 +25432,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                   )}
                 </div>
               </div>
+              )}
 
               <div className="mt-10">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -27521,7 +27530,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                               )}
                             </div>
 
-                            {(() => {
+                            {!isCustomer && (() => {
                               const serviceCopilot = getServiceCopilotContext(ticket);
                               return (
                                 <div className="mt-4 rounded-[18px] border border-indigo-200 bg-indigo-50 p-4">
@@ -28610,7 +28619,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
 
-                    {!editingTicket && ticketIntelligence.hasEnoughContext && (
+                    {(isAdmin || isTechnician) && !editingTicket && ticketIntelligence.hasEnoughContext && (
                       <div className="min-w-0 overflow-hidden rounded-[16px] border border-indigo-200 bg-indigo-50 p-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0">
