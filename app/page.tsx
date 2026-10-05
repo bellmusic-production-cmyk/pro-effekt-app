@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.75 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.76 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -467,6 +467,7 @@ type CompanyData = {
   logo_url?: string | null;
   primary_color?: string | null;
   secondary_color?: string | null;
+  menu_text_color?: string | null;
   website?: string | null;
   email?: string | null;
   phone?: string | null;
@@ -1277,6 +1278,9 @@ export default function Home() {
   const tenantSecondaryColor =
     companyData?.secondary_color?.trim() || "#0B1020";
 
+  const tenantMenuTextColor =
+    companyData?.menu_text_color?.trim() || "#FFFFFF";
+
   const tenantInitials =
     tenantBrandName
       .split(/\s+/)
@@ -1289,6 +1293,7 @@ export default function Home() {
   const [companyLogoUrlInput, setCompanyLogoUrlInput] = useState("");
   const [companyPrimaryColorInput, setCompanyPrimaryColorInput] = useState("#3B82F6");
   const [companySecondaryColorInput, setCompanySecondaryColorInput] = useState("#0B1020");
+  const [companyMenuTextColorInput, setCompanyMenuTextColorInput] = useState("#FFFFFF");
   const [companyEmailInput, setCompanyEmailInput] = useState("");
   const [companyPhoneInput, setCompanyPhoneInput] = useState("");
   const [companyWebsiteInput, setCompanyWebsiteInput] = useState("");
@@ -2038,6 +2043,7 @@ export default function Home() {
     setCompanyLogoUrlInput(companyData.logo_url || "");
     setCompanyPrimaryColorInput(companyData.primary_color || "#3B82F6");
     setCompanySecondaryColorInput(companyData.secondary_color || "#0B1020");
+    setCompanyMenuTextColorInput(companyData.menu_text_color || "#FFFFFF");
     setCompanyEmailInput(companyData.email || "");
     setCompanyPhoneInput(companyData.phone || "");
     setCompanyWebsiteInput(companyData.website || "");
@@ -3339,6 +3345,7 @@ export default function Home() {
       logo_url: companyLogoUrlInput.trim() || null,
       primary_color: companyPrimaryColorInput.trim() || "#3B82F6",
       secondary_color: companySecondaryColorInput.trim() || "#0B1020",
+      menu_text_color: companyMenuTextColorInput.trim() || "#FFFFFF",
       email: companyEmailInput.trim() || null,
       phone: companyPhoneInput.trim() || null,
       website: companyWebsiteInput.trim() || null,
@@ -18288,7 +18295,11 @@ ${tenantBrandName}`,
   return (
     <main
       className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-white lg:pb-0"
-      style={{ ["--pe-blue" as any]: tenantPrimaryColor, ["--pe-black" as any]: tenantSecondaryColor }}
+      style={{
+        ["--pe-blue" as any]: tenantPrimaryColor,
+        ["--pe-black" as any]: tenantSecondaryColor,
+        ["--tenant-menu-text" as any]: tenantMenuTextColor,
+      }}
     >
         <style>{`
           .trybun-premium-ui {
@@ -18662,7 +18673,7 @@ ${tenantBrandName}`,
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: tenantPrimaryColor }}>
+                <p className="truncate text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: tenantMenuTextColor }}>
                   {tenantBrandName}
                 </p>
                 <p className="mt-1 truncate text-sm font-extrabold text-white">
@@ -18675,10 +18686,16 @@ ${tenantBrandName}`,
             </div>
 
             <div className="mt-5 px-1 py-2">
-              <p className="truncate text-[12px] font-semibold leading-5 text-white/85">
+              <p
+                className="truncate text-[12px] font-semibold leading-5"
+                style={{ color: tenantMenuTextColor }}
+              >
                 {userProfile?.full_name || session.user.email}
               </p>
-              <p className="mt-0.5 truncate text-[11px] font-medium text-white/55">
+              <p
+                className="mt-0.5 truncate text-[11px] font-medium opacity-65"
+                style={{ color: tenantMenuTextColor }}
+              >
                 {session.user.email}
               </p>
             </div>
@@ -18697,8 +18714,13 @@ ${tenantBrandName}`,
                     className={`group flex w-full items-center justify-between gap-3 rounded-[24px] border px-4 py-3 text-left text-[14px] font-extrabold leading-tight transition-all ${
                       activePage === item
                         ? "border-sky-400/70 bg-sky-500 text-white shadow-lg shadow-sky-950/30"
-                        : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-sky-400/30 hover:bg-white/[0.07] hover:text-white"
+                        : "border-white/10 bg-white/[0.035] hover:border-sky-400/30 hover:bg-white/[0.07]"
                     }`}
+                    style={
+                      activePage === item
+                        ? undefined
+                        : { color: tenantMenuTextColor }
+                    }
                   >
                     <span>{navItemLabel(item)}</span>
                     <span className={`h-2 w-2 rounded-full ${
@@ -18714,9 +18736,12 @@ ${tenantBrandName}`,
                   open={groupIsOpen}
                   className="group rounded-[24px] border border-white/10 bg-white/[0.035] transition hover:border-sky-400/20 hover:bg-white/[0.055]"
                 >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[24px] px-4 py-3 text-[14px] font-extrabold leading-tight text-slate-200 transition">
+                  <summary
+                    className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[24px] px-4 py-3 text-[14px] font-extrabold leading-tight transition"
+                    style={{ color: tenantMenuTextColor }}
+                  >
                     <span>{group.title}</span>
-                    <span className="text-xs text-slate-500 transition group-open:rotate-180 group-hover:text-sky-400">⌄</span>
+                    <span className="text-xs opacity-65 transition group-open:rotate-180">⌄</span>
                   </summary>
 
                   <div className="space-y-1.5 px-2 pb-3">
@@ -18727,8 +18752,13 @@ ${tenantBrandName}`,
                         className={`w-full rounded-[18px] px-4 py-3 text-left text-[13px] font-bold leading-tight transition-all ${
                           activePage === item
                             ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
-                            : "text-slate-400 hover:bg-white/5 hover:text-white"
+                            : "hover:bg-white/5"
                         }`}
+                        style={
+                          activePage === item
+                            ? undefined
+                            : { color: tenantMenuTextColor }
+                        }
                       >
                         {navItemLabel(item)}
                         {item === "Geräte" && (
@@ -18746,7 +18776,8 @@ ${tenantBrandName}`,
 
           <button
             onClick={logout}
-            className="mt-5 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-extrabold text-slate-300 transition-all hover:bg-white/10 hover:text-white"
+            className="mt-5 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-extrabold transition-all hover:bg-white/10"
+            style={{ color: tenantMenuTextColor }}
           >
             Logout
           </button>
@@ -18801,7 +18832,7 @@ ${tenantBrandName}`,
               >
                 <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4 pt-[env(safe-area-inset-top)]">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: tenantPrimaryColor }}>{tenantBrandName}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: tenantMenuTextColor }}>{tenantBrandName}</p>
                     <div className="mt-3 flex h-24 w-full items-center justify-center overflow-hidden px-4" style={{ borderRadius: "12px" }}>
                       {tenantLogoUrl ? (
                         <img
@@ -18820,13 +18851,22 @@ ${tenantBrandName}`,
                       Serviceportal
                     </p>
                     <div className="mt-3 px-1 py-2">
-                      <p className="truncate text-sm font-extrabold text-white">
+                      <p
+                        className="truncate text-sm font-extrabold"
+                        style={{ color: tenantMenuTextColor }}
+                      >
                         {userProfile?.full_name || session.user.email}
                       </p>
-                      <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
+                      <p
+                        className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] opacity-65"
+                        style={{ color: tenantMenuTextColor }}
+                      >
                         {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
                       </p>
-                      <p className="mt-1 truncate text-[11px] font-medium text-white/45">
+                      <p
+                        className="mt-1 truncate text-[11px] font-medium opacity-55"
+                        style={{ color: tenantMenuTextColor }}
+                      >
                         {session.user.email}
                       </p>
                     </div>
@@ -18844,7 +18884,10 @@ ${tenantBrandName}`,
                 <nav className="mt-4 flex-1 space-y-3 overflow-y-auto pr-1 pb-[max(env(safe-area-inset-bottom),1rem)]">
                   {navGroups.map((group) => (
                     <div key={group.title} className="rounded-3xl border border-white/10 bg-white/[0.03] p-2">
-                      <p className="px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-sky-400">
+                      <p
+                        className="px-3 py-2 text-xs font-black uppercase tracking-[0.16em]"
+                        style={{ color: tenantMenuTextColor }}
+                      >
                         {group.title}
                       </p>
                       <div className="space-y-1">
@@ -18856,8 +18899,13 @@ ${tenantBrandName}`,
                             className={`w-full rounded-2xl px-4 py-3 text-left text-[14px] font-semibold leading-tight transition-all ${
                               activePage === item
                                 ? "bg-sky-500 text-white shadow-lg shadow-sky-950/30"
-                                : "text-slate-300 hover:bg-white/5"
+                                : "hover:bg-white/5"
                             }`}
+                            style={
+                              activePage === item
+                                ? undefined
+                                : { color: tenantMenuTextColor }
+                            }
                           >
                             {navItemLabel(item)}
                           </button>
@@ -23775,13 +23823,30 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       />
                     </div>
                     <div>
-                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500">Sekundärfarbe</p>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                        Sekundärfarbe / Menü-Hintergrund
+                      </p>
                       <input
                         type="color"
                         value={companySecondaryColorInput || "#0B1020"}
                         onChange={(e) => setCompanySecondaryColorInput(e.target.value)}
                         className="h-12 w-full rounded-2xl border border-slate-300 bg-white p-1"
                       />
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                        Menü-Schriftfarbe
+                      </p>
+                      <input
+                        type="color"
+                        value={companyMenuTextColorInput || "#FFFFFF"}
+                        onChange={(e) => setCompanyMenuTextColorInput(e.target.value)}
+                        className="h-12 w-full rounded-2xl border border-slate-300 bg-white p-1"
+                      />
+                      <p className="mt-2 text-xs font-medium text-slate-500">
+                        Für einen hellen Menü-Hintergrund eine dunkle Schriftfarbe wählen.
+                      </p>
                     </div>
                     <textarea
                       value={companyPdfFooterInput}
