@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.64 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.65 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -41,6 +41,41 @@ type Ticket = {
   completed_at?: string | null;
   created_at: string;
 };
+
+type OfflineServiceAction =
+  | {
+      id: string;
+      type: "service_status";
+      ticket_id: number;
+      created_at: string;
+      payload: {
+        service_status: string;
+        status: string;
+      };
+      ticket_number?: string | null;
+      device_id?: number | null;
+    }
+  | {
+      id: string;
+      type: "service_report";
+      ticket_id: number;
+      created_at: string;
+      payload: {
+        service_report: string | null;
+        inspection_badge_number: string | null;
+        inspection_expires: string | null;
+        internal_note: string | null;
+        technician_signature: string | null;
+        customer_signature: string | null;
+        customer_approval_name: string | null;
+        customer_approval_at: string;
+        completed_at: string;
+        service_status: string;
+        status: string;
+      };
+      ticket_snapshot: Ticket;
+      device_id?: number | null;
+    };
 
 type Device = {
   id: number;
@@ -1612,8 +1647,55 @@ export default function Home() {
   const [mobileTicketFormOpen, setMobileTicketFormOpen] = useState(false);
   const [mobileTicketListOpen, setMobileTicketListOpen] = useState(false);
 
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
+  const [pendingOfflineActions, setPendingOfflineActions] = useState(0);
+  const [offlineSyncing, setOfflineSyncing] = useState(false);
+  const [offlineSyncMessage, setOfflineSyncMessage] = useState("");
+  const offlineSyncRunningRef = useRef(false);
+
   const [appointmentResponseNoteByTicket, setAppointmentResponseNoteByTicket] = useState<Record<number, string>>({});
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const refreshQueueCount = () => {
+      setPendingOfflineActions(readOfflineServiceQueue().length);
+    };
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      setOfflineSyncMessage("Verbindung wiederhergestellt · Synchronisation läuft.");
+      window.setTimeout(() => {
+        void syncOfflineServiceActions();
+      }, 150);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setOfflineSyncMessage("Offline · Einsatzdaten werden auf diesem Gerät vorgemerkt.");
+      refreshQueueCount();
+    };
+
+    setIsOnline(navigator.onLine);
+    refreshQueueCount();
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    if (navigator.onLine && userProfile?.id) {
+      window.setTimeout(() => {
+        void syncOfflineServiceActions();
+      }, 250);
+    }
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [userProfile?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -6528,6 +6610,218 @@ async function loadApplicationData() {
     return insertResult.data as DocumentItem;
   }
 
+  function getOfflineServiceQueueKey() {
+    return `trybun-offline-service-${userProfile?.id || "session"}`;
+  }
+
+  function readOfflineServiceQueue(): OfflineServiceAction[] {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const raw = window.localStorage.getItem(getOfflineServiceQueueKey());
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as OfflineServiceAction[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeOfflineServiceQueue(actions: OfflineServiceAction[]) {
+    if (typeof window === "undefined") return;
+
+    try {
+      if (actions.length === 0) {
+        window.localStorage.removeItem(getOfflineServiceQueueKey());
+      } else {
+        window.localStorage.setItem(
+          getOfflineServiceQueueKey(),
+          JSON.stringify(actions),
+        );
+      }
+      setPendingOfflineActions(actions.length);
+    } catch {
+      setOfflineSyncMessage(
+        "Offline-Speicher ist auf diesem Gerät nicht verfügbar. Bitte Verbindung prüfen.",
+      );
+    }
+  }
+
+  function queueOfflineServiceAction(action: OfflineServiceAction) {
+    const current = readOfflineServiceQueue();
+
+    let next = current.filter((item) => {
+      if (item.ticket_id !== action.ticket_id) return true;
+
+      if (action.type === "service_report") {
+        return false;
+      }
+
+      return item.type !== "service_status";
+    });
+
+    next = [...next, action];
+    writeOfflineServiceQueue(next);
+    setOfflineSyncMessage(
+      `Offline gespeichert · ${next.length} Aktion${next.length === 1 ? "" : "en"} wartet${next.length === 1 ? "" : "en"} auf Synchronisation.`,
+    );
+  }
+
+  function isNetworkFailure(error: any) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+
+    const message = String(error?.message || error || "").toLowerCase();
+    return [
+      "failed to fetch",
+      "network",
+      "fetch",
+      "timeout",
+      "offline",
+      "connection",
+    ].some((term) => message.includes(term));
+  }
+
+  async function syncOfflineServiceActions() {
+    if (typeof window === "undefined" || !userProfile?.id) return;
+    if (!navigator.onLine || offlineSyncRunningRef.current) return;
+
+    const queue = readOfflineServiceQueue();
+    if (queue.length === 0) {
+      setPendingOfflineActions(0);
+      setOfflineSyncMessage("");
+      return;
+    }
+
+    offlineSyncRunningRef.current = true;
+    setOfflineSyncing(true);
+    setOfflineSyncMessage(
+      `${queue.length} vorgemerkte Aktion${queue.length === 1 ? "" : "en"} werden synchronisiert …`,
+    );
+
+    const remaining: OfflineServiceAction[] = [];
+    let synced = 0;
+
+    for (const action of queue) {
+      try {
+        const { error } = await supabase
+          .from("tickets")
+          .update(action.payload)
+          .eq("id", action.ticket_id);
+
+        if (error) throw error;
+
+        if (action.type === "service_status") {
+          await createDeviceHistory(
+            action.device_id || null,
+            "Einsatzstatus geändert",
+            `${action.ticket_number || "Ticket"}: ${action.payload.service_status}`,
+            "Einsatz",
+          );
+
+          setTickets((prev) =>
+            prev.map((ticket) =>
+              ticket.id === action.ticket_id
+                ? { ...ticket, ...action.payload }
+                : ticket,
+            ),
+          );
+        } else {
+          await createDeviceHistory(
+            action.device_id || null,
+            "Servicebericht abgeschlossen",
+            `${action.ticket_snapshot.ticket_number || "Ticket"} · offline erfasst und synchronisiert`,
+            "Service",
+          );
+
+          const { data: existingReports, error: reportLookupError } =
+            await supabase
+              .from("documents")
+              .select("id")
+              .eq("ticket_id", action.ticket_id)
+              .eq("category", "Serviceberichte")
+              .limit(1);
+
+          if (!reportLookupError && !(existingReports || []).length) {
+            await archiveServiceReport({
+              ...action.ticket_snapshot,
+              ...action.payload,
+            } as Ticket);
+          }
+
+          setTickets((prev) =>
+            prev.map((ticket) =>
+              ticket.id === action.ticket_id
+                ? { ...ticket, ...action.payload }
+                : ticket,
+            ),
+          );
+        }
+
+        synced += 1;
+      } catch (error) {
+        remaining.push(action);
+
+        if (isNetworkFailure(error)) {
+          const currentIndex = queue.indexOf(action);
+          remaining.push(...queue.slice(currentIndex + 1));
+          break;
+        }
+      }
+    }
+
+    writeOfflineServiceQueue(remaining);
+
+    if (synced > 0) {
+      await loadTickets();
+      await loadDocuments();
+    }
+
+    if (remaining.length === 0) {
+      setOfflineSyncMessage(
+        synced > 0
+          ? `${synced} Offline-Aktion${synced === 1 ? "" : "en"} erfolgreich synchronisiert.`
+          : "",
+      );
+    } else {
+      setOfflineSyncMessage(
+        `${remaining.length} Aktion${remaining.length === 1 ? "" : "en"} wartet${remaining.length === 1 ? "" : "en"} weiter auf Synchronisation.`,
+      );
+    }
+
+    setOfflineSyncing(false);
+    offlineSyncRunningRef.current = false;
+  }
+
+  function storeServiceReportOffline(
+    ticket: Ticket,
+    payload: OfflineServiceAction["payload"] & Record<string, any>,
+  ) {
+    const relatedDevice = getDeviceForTicket(ticket);
+
+    queueOfflineServiceAction({
+      id: `service-report-${ticket.id}-${payload.completed_at || Date.now()}`,
+      type: "service_report",
+      ticket_id: ticket.id,
+      created_at: new Date().toISOString(),
+      payload: payload as Extract<
+        OfflineServiceAction,
+        { type: "service_report" }
+      >["payload"],
+      ticket_snapshot: ticket,
+      device_id: relatedDevice?.id || null,
+    });
+
+    const updatedTicket = { ...ticket, ...payload } as Ticket;
+    setTickets((prev) =>
+      prev.map((item) =>
+        item.id === ticket.id ? updatedTicket : item,
+      ),
+    );
+    setSelectedTicketView(updatedTicket);
+    setServiceSigningTicket(null);
+    setActivePage("Service-Tickets");
+  }
+
   async function saveServiceReport(ticket: Ticket) {
     if (!technicianSignature && !ticket.technician_signature) {
       alert("Bitte zuerst die Techniker-Signatur im Servicebericht erfassen.");
@@ -6558,12 +6852,28 @@ async function loadApplicationData() {
       status: "Abgeschlossen",
     };
 
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      storeServiceReportOffline(ticket, payload);
+      alert(
+        "Keine Verbindung. Der unterschriebene Servicebericht wurde sicher auf diesem Gerät vorgemerkt und wird automatisch synchronisiert, sobald wieder Internet verfügbar ist.",
+      );
+      return;
+    }
+
     const { error } = await supabase
       .from("tickets")
       .update(payload)
       .eq("id", ticket.id);
 
     if (error) {
+      if (isNetworkFailure(error)) {
+        storeServiceReportOffline(ticket, payload);
+        alert(
+          "Die Verbindung ist abgebrochen. Der unterschriebene Servicebericht wurde lokal vorgemerkt und wird automatisch synchronisiert.",
+        );
+        return;
+      }
+
       alert(`Servicebericht konnte nicht gespeichert werden: ${error.message}`);
       return;
     }
@@ -6882,22 +7192,66 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
           ? "Abgeschlossen"
           : changedTicket?.status || "Zugewiesen";
 
-    const { error } = await supabase
-      .from("tickets")
-      .update({
-        service_status: newServiceStatus,
-        status: newMainStatus,
-      })
-      .eq("id", ticketId);
+    const payload = {
+      service_status: newServiceStatus,
+      status: newMainStatus,
+    };
 
-    if (error) {
-      alert(`Einsatzstatus konnte nicht gespeichert werden: ${error.message}`);
+    const relatedDevice = getDeviceForTicket(
+      changedTicket ||
+        ({
+          id: ticketId,
+          device: "",
+          customer: "",
+        } as Ticket),
+    );
+
+    const applyLocalStatus = () => {
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === ticketId
+            ? { ...ticket, ...payload }
+            : ticket,
+        ),
+      );
+
+      setSelectedTicketView((current) =>
+        current?.id === ticketId ? { ...current, ...payload } : current,
+      );
+    };
+
+    const queueStatus = () => {
+      queueOfflineServiceAction({
+        id: `service-status-${ticketId}-${Date.now()}`,
+        type: "service_status",
+        ticket_id: ticketId,
+        created_at: new Date().toISOString(),
+        payload,
+        ticket_number: changedTicket?.ticket_number || null,
+        device_id: relatedDevice?.id || null,
+      });
+      applyLocalStatus();
+    };
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      queueStatus();
       return;
     }
 
-    const relatedDevice = devices.find(
-      (item) => item.name === changedTicket?.device,
-    );
+    const { error } = await supabase
+      .from("tickets")
+      .update(payload)
+      .eq("id", ticketId);
+
+    if (error) {
+      if (isNetworkFailure(error)) {
+        queueStatus();
+        return;
+      }
+
+      alert(`Einsatzstatus konnte nicht gespeichert werden: ${error.message}`);
+      return;
+    }
 
     await createDeviceHistory(
       relatedDevice?.id || null,
@@ -6906,14 +7260,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       "Einsatz",
     );
 
-    setTickets((prev) =>
-      prev.map((ticket) =>
-        ticket.id === ticketId
-          ? { ...ticket, service_status: newServiceStatus, status: newMainStatus }
-          : ticket,
-      ),
-    );
-
+    applyLocalStatus();
     await loadTickets();
   }
 
@@ -17402,6 +17749,61 @@ PRO-EFFEKT`,
             }
           }
         `}</style>
+
+      {(isAdmin || isTechnician) && (!isOnline || pendingOfflineActions > 0 || offlineSyncing || offlineSyncMessage) && (
+        <div className="fixed bottom-[max(env(safe-area-inset-bottom),12px)] right-3 z-[95] w-[calc(100%-24px)] max-w-sm sm:right-4 sm:w-auto">
+          <div
+            className={`border px-4 py-3 shadow-xl ${
+              !isOnline
+                ? "border-amber-300 bg-amber-50 text-amber-950"
+                : pendingOfflineActions > 0 || offlineSyncing
+                  ? "border-sky-200 bg-white text-slate-900"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-950"
+            }`}
+            style={{ borderRadius: "10px" }}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                  !isOnline
+                    ? "bg-amber-500"
+                    : offlineSyncing
+                      ? "bg-sky-500"
+                      : "bg-emerald-500"
+                }`}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold">
+                  {!isOnline
+                    ? "Offline-Modus aktiv"
+                    : offlineSyncing
+                      ? "Synchronisation läuft"
+                      : pendingOfflineActions > 0
+                        ? "Synchronisation ausstehend"
+                        : "Offline-Daten synchronisiert"}
+                </p>
+                <p className="mt-1 text-xs font-medium leading-5 opacity-80">
+                  {offlineSyncMessage ||
+                    (pendingOfflineActions > 0
+                      ? `${pendingOfflineActions} vorgemerkte Aktion${pendingOfflineActions === 1 ? "" : "en"}.`
+                      : "Alle vorgemerkten Einsatzdaten sind übertragen.")}
+                </p>
+              </div>
+              {isOnline && pendingOfflineActions > 0 && !offlineSyncing && (
+                <button
+                  type="button"
+                  onClick={() => void syncOfflineServiceActions()}
+                  className="shrink-0 border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700"
+                  style={{ borderRadius: "8px" }}
+                >
+                  Jetzt senden
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
         <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/[0.08] bg-[#08111f] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col">
           <div className="rounded-[30px] border border-white/10 bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
