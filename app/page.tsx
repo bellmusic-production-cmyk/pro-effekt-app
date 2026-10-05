@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.57 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.58 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7853,6 +7853,166 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       serviceType: ticketServiceTypeText(ticket),
       subject: ticketSubjectText(ticket),
       appointment: formatServiceAppointment(ticket.service_date, ticket.service_time),
+    };
+  }
+
+  function getFirstTimeFixReadiness(ticket: Ticket) {
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const relatedDevice = getDeviceForTicket(ticket);
+
+    const serviceAddress =
+      ticket.service_address ||
+      relatedDevice?.location ||
+      (relatedCustomer ? buildCustomerAddress(relatedCustomer) : "");
+
+    const contactAvailable = Boolean(
+      ticket.service_contact_name ||
+        ticket.service_contact_phone ||
+        ticket.service_contact_email ||
+        relatedCustomer?.contact_person ||
+        relatedCustomer?.phone ||
+        relatedCustomer?.email,
+    );
+
+    const deviceIdentityAvailable = Boolean(
+      relatedDevice &&
+        (relatedDevice.serial_number ||
+          relatedDevice.model_id ||
+          relatedDevice.model ||
+          relatedDevice.manufacturer_id ||
+          relatedDevice.manufacturer),
+    );
+
+    const knowledgeAvailable = Boolean(
+      relatedDevice &&
+        (
+          documents.some((documentItem) => documentItem.device_id === relatedDevice.id) ||
+          deviceHistory.some((entry) => entry.device_id === relatedDevice.id)
+        ),
+    );
+
+    const ticketInventoryMovements = inventoryMovements.filter(
+      (movement) =>
+        movement.ticket_id === ticket.id &&
+        !movement.is_voided,
+    );
+
+    const waitsForParts = String(ticket.status || "")
+      .toLowerCase()
+      .includes("ersatzteil");
+
+    const materialReady =
+      ticketInventoryMovements.length > 0 || !waitsForParts;
+
+    const checks = [
+      {
+        key: "customer",
+        label: "Kunde & Einsatzort",
+        description: serviceAddress
+          ? "Kunde und Einsatzadresse sind vorhanden."
+          : "Einsatzadresse ergänzen.",
+        weight: 15,
+        done: Boolean(relatedCustomer && serviceAddress),
+      },
+      {
+        key: "device",
+        label: "Serviceobjekt eindeutig",
+        description: deviceIdentityAvailable
+          ? "Gerät mit Identitätsdaten ist zugeordnet."
+          : "Gerät, Seriennummer oder Modellangaben ergänzen.",
+        weight: 15,
+        done: deviceIdentityAvailable,
+      },
+      {
+        key: "technician",
+        label: "Techniker zugeordnet",
+        description: ticket.assigned_to
+          ? getTechnicianNameById(ticket.assigned_to)
+          : "Techniker festlegen.",
+        weight: 20,
+        done: Boolean(ticket.assigned_to),
+      },
+      {
+        key: "appointment",
+        label: "Termin vollständig",
+        description:
+          ticket.service_date && ticket.service_time
+            ? formatServiceAppointment(ticket.service_date, ticket.service_time)
+            : "Datum und Uhrzeit festlegen.",
+        weight: 20,
+        done: Boolean(ticket.service_date && ticket.service_time),
+      },
+      {
+        key: "order",
+        label: "Auftrag klar beschrieben",
+        description:
+          String(ticket.description || "").trim().length >= 12
+            ? "Fehlerbild / Arbeitsauftrag ist dokumentiert."
+            : "Arbeitsauftrag oder Fehlerbeschreibung genauer erfassen.",
+        weight: 10,
+        done: String(ticket.description || "").trim().length >= 12,
+      },
+      {
+        key: "knowledge",
+        label: "Servicewissen vorhanden",
+        description: knowledgeAvailable
+          ? "Gerätehistorie oder Dokumentation ist verfügbar."
+          : "Noch keine Gerätehistorie oder Dokumentation vorhanden.",
+        weight: 10,
+        done: knowledgeAvailable,
+      },
+      {
+        key: "material",
+        label: "Materialstatus geklärt",
+        description: waitsForParts
+          ? "Ticket wartet noch auf Ersatzteile."
+          : ticketInventoryMovements.length > 0
+            ? "Reservierung / Lagerbewegung ist dem Ticket zugeordnet."
+            : "Kein offener Ersatzteilhinweis vorhanden.",
+        weight: 10,
+        done: materialReady,
+      },
+    ];
+
+    const score = checks.reduce(
+      (sum, check) => sum + (check.done ? check.weight : 0),
+      0,
+    );
+
+    const missingChecks = checks.filter((check) => !check.done);
+
+    const status =
+      score >= 90
+        ? {
+            label: "Einsatzbereit",
+            className: "bg-emerald-100 text-emerald-700",
+            borderClassName: "border-emerald-200 bg-emerald-50",
+          }
+        : score >= 75
+          ? {
+              label: "Gut vorbereitet",
+              className: "bg-sky-100 text-sky-700",
+              borderClassName: "border-sky-200 bg-sky-50",
+            }
+          : score >= 55
+            ? {
+                label: "Vorbereitung prüfen",
+                className: "bg-amber-100 text-amber-700",
+                borderClassName: "border-amber-200 bg-amber-50",
+              }
+            : {
+                label: "Vorbereitung offen",
+                className: "bg-red-100 text-red-700",
+                borderClassName: "border-red-200 bg-red-50",
+              };
+
+    return {
+      score,
+      checks,
+      missingChecks,
+      status,
+      contactAvailable,
+      ticketInventoryMovements,
     };
   }
 
@@ -18318,6 +18478,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                       .slice(0, 8);
                 const customerTickets = getTicketsForCustomerContext(ticketCustomer?.id).slice(0, 8);
                 const customerDevices = ticketCustomer?.id ? getDevicesForCustomer(ticketCustomer.id) : [];
+                const firstTimeFix = getFirstTimeFixReadiness(currentTicket);
 
                 return (
                   <div className="mb-6 rounded-[28px] border-2 border-sky-200 bg-white p-5 shadow-sm">
@@ -18434,6 +18595,94 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           {customerPortalDocuments.length} Kunden-Upload(s) · {fotoDocuments.length} Foto(s) · {videoDocuments.length} Video(s) · {lieferscheinDocuments.length} Lieferschein(e)
                         </p>
                       </div>
+                    </div>
+
+                    <div className={`mt-5 rounded-[18px] border p-4 sm:p-5 ${firstTimeFix.status.borderClassName}`}>
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                            TRYBUN First-Time-Fix
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-3">
+                            <h4 className="text-xl font-black text-slate-950">
+                              Einsatzvorbereitung
+                            </h4>
+                            <span className={`rounded-full px-3 py-1.5 text-xs font-black ${firstTimeFix.status.className}`}>
+                              {firstTimeFix.status.label}
+                            </span>
+                          </div>
+                          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
+                            Der Score bewertet die Vollständigkeit der Einsatzvorbereitung aus vorhandenen TRYBUN-Daten. Er ist eine Vorbereitungshilfe und keine Garantie für den Reparaturerfolg.
+                          </p>
+                        </div>
+
+                        <div className="w-full rounded-xl bg-white p-4 shadow-sm lg:w-56">
+                          <div className="flex items-end justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-bold text-slate-500">Bereitschaft</p>
+                              <p className="mt-1 text-3xl font-black text-slate-950">{firstTimeFix.score}%</p>
+                            </div>
+                            <p className="text-xs font-black text-slate-500">
+                              {firstTimeFix.checks.filter((check) => check.done).length}/{firstTimeFix.checks.length}
+                            </p>
+                          </div>
+                          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className="h-full rounded-full bg-slate-900"
+                              style={{ width: `${firstTimeFix.score}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {firstTimeFix.checks.map((check) => (
+                          <div
+                            key={check.key}
+                            className={`rounded-xl border p-3 ${
+                              check.done
+                                ? "border-emerald-100 bg-white"
+                                : "border-amber-200 bg-white"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span
+                                className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${
+                                  check.done
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {check.done ? "✓" : "!"}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-black text-slate-900">
+                                  {check.label}
+                                  <span className="ml-2 text-xs font-bold text-slate-400">
+                                    {check.weight}%
+                                  </span>
+                                </p>
+                                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                                  {check.description}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {firstTimeFix.missingChecks.length > 0 && (
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+                            Vor dem Einsatz noch sinnvoll
+                          </p>
+                          <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                            {firstTimeFix.missingChecks
+                              .map((check) => check.label)
+                              .join(" · ")}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5">
@@ -25003,6 +25252,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     const mapsUrl = navigationTarget
                       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(navigationTarget)}`
                       : "";
+                    const firstTimeFix = getFirstTimeFixReadiness(ticket);
 
                     return (
                       <div
@@ -25072,6 +25322,45 @@ placeholder="Gerät / Anlage / Modell suchen..."
                                     : "Seriennummer offen"}
                                 </p>
                               </div>
+                            </div>
+
+                            <div className={`mt-4 rounded-[18px] border p-4 ${firstTimeFix.status.borderClassName}`}>
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                                    First-Time-Fix Vorbereitung
+                                  </p>
+                                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                                    <p className="text-2xl font-black text-slate-950">
+                                      {firstTimeFix.score}%
+                                    </p>
+                                    <span className={`rounded-full px-3 py-1 text-xs font-black ${firstTimeFix.status.className}`}>
+                                      {firstTimeFix.status.label}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTicketView(ticket)}
+                                  className="w-full rounded-xl bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm sm:w-auto"
+                                >
+                                  Vorbereitung ansehen
+                                </button>
+                              </div>
+
+                              {firstTimeFix.missingChecks.length > 0 ? (
+                                <p className="mt-3 text-sm font-bold leading-6 text-slate-700">
+                                  Offen: {firstTimeFix.missingChecks
+                                    .slice(0, 3)
+                                    .map((check) => check.label)
+                                    .join(" · ")}
+                                  {firstTimeFix.missingChecks.length > 3 ? " · …" : ""}
+                                </p>
+                              ) : (
+                                <p className="mt-3 text-sm font-bold text-emerald-800">
+                                  Alle Vorbereitungspunkte sind erfüllt.
+                                </p>
+                              )}
                             </div>
 
                             <div className="mt-4 rounded-3xl bg-slate-50 p-4">
