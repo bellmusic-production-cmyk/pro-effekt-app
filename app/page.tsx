@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.62 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.63 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -15282,6 +15282,80 @@ PRO-EFFEKT`,
     0,
   );
 
+  const serviceIntelligenceDashboard = (() => {
+    const activeTickets = openAdminTickets;
+    const readinessScores = activeTickets.map(
+      (ticket) => getFirstTimeFixReadiness(ticket).score,
+    );
+    const readinessAverage =
+      readinessScores.length > 0
+        ? Math.round(
+            readinessScores.reduce((sum, score) => sum + score, 0) /
+              readinessScores.length,
+          )
+        : 100;
+    const readyTickets = readinessScores.filter((score) => score >= 75).length;
+
+    const completedServiceTickets = visibleRoleTickets.filter((ticket) =>
+      ["Abgeschlossen", "Erledigt"].includes(ticket.status || ""),
+    );
+
+    const incompleteServiceProofs = completedServiceTickets.filter((ticket) => {
+      const hasTicketDocument = documents.some(
+        (documentItem) => documentItem.ticket_id === ticket.id,
+      );
+      const hasCustomerConfirmation = Boolean(
+        ticket.customer_signature ||
+          ticket.customer_approval_name ||
+          ticket.customer_approval_at,
+      );
+
+      return !(
+        ticket.completed_at &&
+        ticket.assigned_to &&
+        ticket.service_report &&
+        ticket.technician_signature &&
+        hasCustomerConfirmation &&
+        hasTicketDocument
+      );
+    }).length;
+
+    const devicesWithKnowledge = devices.filter((device) => {
+      const hasHistory = deviceHistory.some((entry) => entry.device_id === device.id);
+      const hasDocuments = documents.some(
+        (documentItem) => documentItem.device_id === device.id,
+      );
+      const hasServiceTicket = tickets.some((ticket) => {
+        if (String(ticket.device || "").trim() !== String(device.name || "").trim()) {
+          return false;
+        }
+
+        return (
+          !ticket.customer_id ||
+          !device.customer_id ||
+          Number(ticket.customer_id) === Number(device.customer_id)
+        );
+      });
+
+      return hasHistory || hasDocuments || hasServiceTicket;
+    }).length;
+
+    const knowledgeCoverage =
+      devices.length > 0
+        ? Math.round((devicesWithKnowledge / devices.length) * 100)
+        : 100;
+
+    return {
+      readinessAverage,
+      readyTickets,
+      activeTicketCount: activeTickets.length,
+      incompleteServiceProofs,
+      completedServiceTickets: completedServiceTickets.length,
+      devicesWithKnowledge,
+      knowledgeCoverage,
+    };
+  })();
+
   const visibleDocuments = useMemo(() => {
     if (isCustomer) {
       return documents.filter((item) => item.customer_id === userProfile?.customer_id);
@@ -17744,7 +17818,7 @@ PRO-EFFEKT`,
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <p className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-400">
-                      Serviceportal
+                      TRYBUN Service Operating System
                     </p>
                     <h3 className="mt-2 flex items-center gap-3 text-3xl font-black leading-tight tracking-[-0.04em] text-white sm:text-4xl">
                       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500/15 text-xl">
@@ -17753,7 +17827,7 @@ PRO-EFFEKT`,
                       Leitstand
                     </h3>
                     <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
-                      Alle wichtigen Informationen auf einen Blick: Tickets, Reparaturen, Wartungen, Prüfungen, Ersatzteile und Kommunikation.
+                      Steuern Sie den gesamten Service-Lifecycle zentral: Einsatzplanung, Gerätewissen, Nachweise, Wartungen, Material, Kommunikation und Abrechnung.
                     </p>
                   </div>
 
@@ -17956,14 +18030,159 @@ PRO-EFFEKT`,
                       </div>
                     )}
 
+                    {isAdmin && (
+                      <div className="rounded-[20px] border border-slate-700 bg-white p-4 text-slate-950 shadow-sm sm:p-5">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
+                              TRYBUN Service Intelligence
+                            </p>
+                            <h3 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950">
+                              Vom Servicefall zur Entscheidung
+                            </h3>
+                            <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-600">
+                              TRYBUN verbindet Einsatzvorbereitung, Gerätehistorie, Service-Nachweise und Abrechnung zu einem durchgängigen Serviceprozess.
+                            </p>
+                          </div>
+                          <span className="w-fit shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+                            Live aus Ihren Servicedaten
+                          </span>
+                        </div>
+
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          <button
+                            type="button"
+                            onClick={() => openPage("Service-Tickets")}
+                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-sky-300 hover:bg-sky-50 active:scale-[0.99]"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-sky-600">
+                                  First-Time-Fix
+                                </p>
+                                <p className="mt-2 text-3xl font-black text-slate-950">
+                                  {serviceIntelligenceDashboard.readinessAverage}%
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-black text-sky-700">
+                                Vorbereitung
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-bold text-slate-700">
+                              {serviceIntelligenceDashboard.readyTickets} von {serviceIntelligenceDashboard.activeTicketCount} aktiven Einsätzen gut vorbereitet
+                            </p>
+                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                              Zeigt, ob Kunde, Gerät, Techniker, Termin, Wissen und Materialstatus geklärt sind.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Geräte")}
+                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50 active:scale-[0.99]"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-700">
+                                  Service Proof
+                                </p>
+                                <p className="mt-2 text-3xl font-black text-slate-950">
+                                  {serviceIntelligenceDashboard.incompleteServiceProofs}
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-700">
+                                Nachweise
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-bold text-slate-700">
+                              abgeschlossene Einsätze mit ergänzbarem Nachweis
+                            </p>
+                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                              Prüft Abschlusszeit, Techniker, Bericht, Signaturen und Ticket-Dokumentation.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Rechnungen")}
+                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-amber-300 hover:bg-amber-50 active:scale-[0.99]"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+                                  Revenue Guard
+                                </p>
+                                <p className="mt-2 text-3xl font-black text-slate-950">
+                                  {revenueGuardItems.length}
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800">
+                                Abrechnung
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-bold text-slate-700">
+                              abgeschlossene Einsätze noch zur Abrechnung prüfen
+                            </p>
+                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                              Erkennt fehlende Rechnungen und offene Rechnungsentwürfe anhand vorhandener Servicedaten.
+                            </p>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPage("Geräte")}
+                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50 active:scale-[0.99]"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-700">
+                                  Gerätewissen
+                                </p>
+                                <p className="mt-2 text-3xl font-black text-slate-950">
+                                  {serviceIntelligenceDashboard.knowledgeCoverage}%
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-black text-indigo-700">
+                                Lifecycle
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm font-bold text-slate-700">
+                              {serviceIntelligenceDashboard.devicesWithKnowledge} von {devices.length} Serviceobjekten mit Historie, Dokumenten oder Tickets
+                            </p>
+                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                              Grundlage für Gerätepass, Lifecycle Intelligence und den Service Copilot.
+                            </p>
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <p className="text-sm font-black text-slate-900">
+                              Service Copilot
+                            </p>
+                            <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">
+                              In jeder Ticket-Akte bündelt TRYBUN frühere Einsätze, ähnliche Fehlerbilder, Ersatzteilhistorie und Dokumente zu konkretem Servicekontext.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openPage("Service-Tickets")}
+                            className="min-h-[48px] rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white"
+                          >
+                            Ticket-Akten öffnen
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <button
                         onClick={() => openPage("Service-Tickets")}
                         className="rounded-3xl border border-sky-500/45 bg-sky-600 px-5 py-5 text-left font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-500 active:scale-[0.98]"
                       >
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-xl">＋</span>
-                        <span className="mt-3 block text-lg">Neues Ticket</span>
-                        <span className="mt-1 block text-sm font-bold text-sky-100">Servicefall anlegen</span>
+                        <span className="mt-3 block text-lg">Neuer Servicefall</span>
+                        <span className="mt-1 block text-sm font-bold text-sky-100">Ticket erfassen & Einsatz vorbereiten</span>
                       </button>
 
                       <button
@@ -17994,12 +18213,12 @@ PRO-EFFEKT`,
                       </button>
 
                       <button
-                        onClick={() => openPage("Auswertungen")}
+                        onClick={() => openPage("Geräte")}
                         className="rounded-3xl border border-slate-700 bg-slate-900 px-5 py-5 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
                       >
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">📊</span>
-                        <span className="mt-3 block text-lg">Berichte</span>
-                        <span className="mt-1 block text-sm font-bold text-slate-300">Auswertungen & Statistiken</span>
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">◫</span>
+                        <span className="mt-3 block text-lg">Digitale Geräteakte</span>
+                        <span className="mt-1 block text-sm font-bold text-slate-300">Gerätepass, Lifecycle & Servicehistorie</span>
                       </button>
 
                       <button
