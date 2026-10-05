@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.94 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.95 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1674,9 +1674,6 @@ export default function Home() {
   const [invoiceSourceInvoiceId, setInvoiceSourceInvoiceId] = useState<number | null>(null);
 
   const [accountingSearch, setAccountingSearch] = useState("");
-  const [accountingWorkspaceView, setAccountingWorkspaceView] = useState<
-    "Übersicht" | "Auftrag / Lieferschein" | "Verträge" | "Rechnungen & Angebote"
-  >("Übersicht");
   const [accountingTypeFilter, setAccountingTypeFilter] = useState("Alle");
   const [accountingStatusFilter, setAccountingStatusFilter] = useState("Alle");
   const [accountingPeriod, setAccountingPeriod] = useState<"Alle" | "Woche" | "Monat" | "Jahr">("Monat");
@@ -12968,38 +12965,7 @@ ${tenantBrandName}`,
       })),
   ];
 
-  function openAccountingWorkspace(
-    view: "Übersicht" | "Auftrag / Lieferschein" | "Verträge" | "Rechnungen & Angebote",
-  ) {
-    setAccountingWorkspaceView(view);
-    setActivePage("Buchhaltung");
-    setMobileMenuOpen(false);
-
-    if (typeof window !== "undefined" && session?.user?.id) {
-      window.localStorage.setItem(
-        `trybun-active-page-${session.user.id}`,
-        "Buchhaltung",
-      );
-
-      window.requestAnimationFrame(() => {
-        document
-          .getElementById("accounting-workspace")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }
-
   function openAdminInvoiceWorkspace() {
-    if (isAdmin) {
-      openAccountingWorkspace("Rechnungen & Angebote");
-      window.requestAnimationFrame(() => {
-        document
-          .getElementById("invoice-create")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-      return;
-    }
-
     setActivePage("Rechnungen");
     if (typeof window !== "undefined" && session?.user?.id) {
       window.localStorage.setItem(
@@ -18653,33 +18619,6 @@ ${tenantBrandName}`,
     );
   }
 
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    if (activePage === "Verträge") {
-      setAccountingWorkspaceView("Verträge");
-      setActivePage("Buchhaltung");
-      if (typeof window !== "undefined" && session?.user?.id) {
-        window.localStorage.setItem(
-          `trybun-active-page-${session.user.id}`,
-          "Buchhaltung",
-        );
-      }
-      return;
-    }
-
-    if (activePage === "Rechnungen") {
-      setAccountingWorkspaceView("Rechnungen & Angebote");
-      setActivePage("Buchhaltung");
-      if (typeof window !== "undefined" && session?.user?.id) {
-        window.localStorage.setItem(
-          `trybun-active-page-${session.user.id}`,
-          "Buchhaltung",
-        );
-      }
-    }
-  }, [activePage, isAdmin, session?.user?.id]);
-
   const visibleNavItems = isAdmin
     ? navItems.filter((item) => item !== "Einsatz")
     : isTechnician
@@ -18794,24 +18733,12 @@ ${tenantBrandName}`,
       if (!(isAdmin || isTechnician)) return;
 
       setCommercialDocumentType("Auftrag");
-      if (isAdmin) {
-        openAccountingWorkspace("Auftrag / Lieferschein");
-        window.setTimeout(() => {
-          document
-            .getElementById("commercial-document-create")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 80);
-        return;
-      }
-
-      setActivePage("Auftrag / Lieferschein erstellen");
+      const targetPage = isAdmin ? "Buchhaltung" : "Auftrag / Lieferschein erstellen";
+      setActivePage(targetPage);
       setMobileMenuOpen(false);
 
       if (typeof window !== "undefined" && session?.user?.id) {
-        window.localStorage.setItem(
-          `trybun-active-page-${session.user.id}`,
-          "Auftrag / Lieferschein erstellen",
-        );
+        window.localStorage.setItem(`trybun-active-page-${session.user.id}`, targetPage);
         window.setTimeout(() => {
           document
             .getElementById("commercial-document-create")
@@ -20902,7 +20829,7 @@ ${tenantBrandName}`,
       description: "Rechnungen, Angebote, Aufträge, Lieferscheine und Verträge zentral steuern und abrechnen.",
     },
     Rechnungen: {
-      eyebrow: "Abrechnung",
+      eyebrow: "Dokumente",
       title: "Rechnungen & Angebote",
       description: "Angebote und Rechnungen erstellen, verwalten und den aktuellen Status überblicken.",
     },
@@ -20917,7 +20844,7 @@ ${tenantBrandName}`,
       description: "Geschäfts- und Privatkunden mit Kontakten, Adressen und Zuordnungen verwalten.",
     },
     Verträge: {
-      eyebrow: "Vor Ort",
+      eyebrow: "Dokumente",
       title: "Verträge",
       description: "Serviceverträge, Laufzeiten, Wartungsintervalle und Konditionen verwalten.",
     },
@@ -24577,7 +24504,6 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     type="button"
                     onClick={() => {
                       setCommercialDocumentType("Auftrag");
-                      setAccountingWorkspaceView("Auftrag / Lieferschein");
                       window.requestAnimationFrame(() =>
                         document.getElementById("commercial-document-create")?.scrollIntoView({
                           behavior: "smooth",
@@ -24593,7 +24519,6 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     type="button"
                     onClick={() => {
                       setCommercialDocumentType("Lieferschein");
-                      setAccountingWorkspaceView("Auftrag / Lieferschein");
                       window.requestAnimationFrame(() =>
                         document.getElementById("commercial-document-create")?.scrollIntoView({
                           behavior: "smooth",
@@ -24607,8 +24532,17 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   </button>
                   <button
                     type="button"
-                    onClick={() => openAccountingWorkspace("Verträge")}
-                    className="min-h-[46px] rounded-[8px] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 transition hover:border-sky-300 hover:bg-sky-50"
+                    onClick={() => {
+                      setActivePage("Verträge");
+                      if (typeof window !== "undefined" && session?.user?.id) {
+                        window.localStorage.setItem(
+                          `trybun-active-page-${session.user.id}`,
+                          "Verträge",
+                        );
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
+                    }}
+                    className="min-h-[46px] rounded-[8px] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800"
                   >
                     + Vertrag
                   </button>
@@ -24637,59 +24571,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
               </section>
 
-              <section
-                id="accounting-workspace"
-                className="scroll-mt-24 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm"
-              >
-                <div className="border-b border-slate-200 bg-slate-50/80 p-3 sm:p-4">
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {[
-                      "Übersicht",
-                      "Auftrag / Lieferschein",
-                      "Verträge",
-                      "Rechnungen & Angebote",
-                    ].map((view) => (
-                      <button
-                        key={view}
-                        type="button"
-                        onClick={() =>
-                          setAccountingWorkspaceView(
-                            view as
-                              | "Übersicht"
-                              | "Auftrag / Lieferschein"
-                              | "Verträge"
-                              | "Rechnungen & Angebote",
-                          )
-                        }
-                        className={`min-h-[42px] shrink-0 rounded-[8px] border px-3.5 py-2 text-sm font-bold transition ${
-                          accountingWorkspaceView === view
-                            ? "border-slate-950 bg-slate-950 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50"
-                        }`}
-                      >
-                        {view}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {accountingWorkspaceView === "Übersicht" && (
-                  <div className="p-4 sm:p-5">
-                    <p className="text-sm font-bold text-slate-950">
-                      Buchhaltungsübersicht
-                    </p>
-                    <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
-                      Wähle oben einen Arbeitsbereich. Die Buchhaltung bleibt dabei immer die Hauptseite.
-                    </p>
-                  </div>
-                )}
-
-                {accountingWorkspaceView === "Auftrag / Lieferschein" && (
-                  <div className="p-4 sm:p-5">
-                    {renderCommercialDocumentWorkspace()}
-                  </div>
-                )}
-              </section>
+              {renderCommercialDocumentWorkspace()}
 
               <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -25034,17 +24916,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
             </div>
           )}
 
-          {(activePage === "Rechnungen" ||
-            (activePage === "Buchhaltung" &&
-              isAdmin &&
-              accountingWorkspaceView === "Rechnungen & Angebote")) && (
-            <div
-              className={`space-y-6 ${
-                activePage === "Buchhaltung"
-                  ? "rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6"
-                  : ""
-              }`}
-            >
+          {activePage === "Rechnungen" && (
+            <div className="space-y-6">
 
               {isAdmin && (
                 <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -30318,18 +30191,8 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
             </div>
           )}
 
-          {(activePage === "Verträge" ||
-            (activePage === "Buchhaltung" &&
-              isAdmin &&
-              accountingWorkspaceView === "Verträge")) &&
-            (isAdmin || canTechnicianPrepareContract) && (
-            <div
-              className={`space-y-6 ${
-                activePage === "Buchhaltung"
-                  ? "rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6"
-                  : ""
-              }`}
-            >
+          {activePage === "Verträge" && (isAdmin || canTechnicianPrepareContract) && (
+            <div className="space-y-6">
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard label="Verträge gesamt" value={contracts.length} />
