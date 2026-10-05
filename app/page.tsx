@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.79 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.80 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -14536,6 +14536,354 @@ ${tenantBrandName}`,
     setCustomerImportMapping(nextMapping);
   }
 
+  function safeExcelFileName(value: string) {
+    return String(value || "TRYBUN")
+      .trim()
+      .replace(/[<>:"/\\|?*\u0000-\u001F]+/g, "-")
+      .replace(/\s+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^[_\-.]+|[_\-.]+$/g, "")
+      .slice(0, 80) || "TRYBUN";
+  }
+
+  function exportDateStamp() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function writeTrybunExcel(
+    sheetName: string,
+    headers: string[],
+    rows: Array<Array<string | number | boolean | null | undefined>>,
+    fileBaseName: string,
+  ) {
+    const normalizedRows = rows.map((row) =>
+      headers.map((_, index) => {
+        const value = row[index];
+        return value === null || value === undefined ? "" : value;
+      }),
+    );
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...normalizedRows]);
+
+    worksheet["!cols"] = headers.map((header, index) => {
+      const contentLengths = normalizedRows
+        .slice(0, 250)
+        .map((row) => String(row[index] ?? "").length);
+      const maxContent = Math.max(header.length, ...contentLengths, 10);
+      return { wch: Math.min(Math.max(maxContent + 2, 14), 38) };
+    });
+
+    if (headers.length > 0) {
+      worksheet["!autofilter"] = {
+        ref: XLSX.utils.encode_range({
+          s: { r: 0, c: 0 },
+          e: { r: Math.max(normalizedRows.length, 1), c: headers.length - 1 },
+        }),
+      };
+    }
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
+    XLSX.writeFile(
+      workbook,
+      `${safeExcelFileName(fileBaseName)}_${exportDateStamp()}.xlsx`,
+      { compression: true },
+    );
+  }
+
+  async function requireExportCompany() {
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Die Firma konnte nicht geladen werden. Bitte Seite neu laden und erneut versuchen.");
+      return null;
+    }
+
+    return currentCompany;
+  }
+
+  async function exportCustomersToExcel() {
+    const currentCompany = await requireExportCompany();
+    if (!currentCompany) return;
+
+    const rows = customers
+      .filter((item) => Number(item.company_id) === Number(currentCompany.id))
+      .sort((a, b) =>
+        String(a.customer_number || a.company || a.contact_person || "").localeCompare(
+          String(b.customer_number || b.company || b.contact_person || ""),
+          "de",
+        ),
+      )
+      .map((item) => [
+        item.customer_number || "",
+        item.supplier_number || "",
+        item.customer_type || "",
+        item.company || "",
+        item.contact_person || "",
+        item.first_name || "",
+        item.last_name || "",
+        item.email || "",
+        item.email_2 || "",
+        item.phone || "",
+        item.phone_2 || "",
+        item.address || "",
+        item.street || "",
+        item.house_number || "",
+        item.postal_code || "",
+        item.city || "",
+        item.country || "",
+        item.address_extra || "",
+        item.vat_id || "",
+        item.tax_number || "",
+        item.contact_1_name || "",
+        item.contact_1_email || "",
+        item.contact_1_phone || "",
+        item.contact_2_name || "",
+        item.contact_2_email || "",
+        item.contact_2_phone || "",
+      ]);
+
+    writeTrybunExcel(
+      "Kunden",
+      customerImportFields.map((field) => field.label),
+      rows,
+      `${currentCompany.name}_Kunden`,
+    );
+  }
+
+  async function exportDevicesToExcel() {
+    const currentCompany = await requireExportCompany();
+    if (!currentCompany) return;
+
+    const customerById = new Map(
+      customers
+        .filter((item) => Number(item.company_id) === Number(currentCompany.id))
+        .map((item) => [item.id, item]),
+    );
+    const modelById = new Map(
+      deviceModels
+        .filter((item) => Number(item.company_id) === Number(currentCompany.id))
+        .map((item) => [item.id, item]),
+    );
+
+    const rows = devices
+      .filter((item) => Number(item.company_id) === Number(currentCompany.id))
+      .sort((a, b) =>
+        String(a.name || a.serial_number || "").localeCompare(
+          String(b.name || b.serial_number || ""),
+          "de",
+        ),
+      )
+      .map((item) => {
+        const customer = item.customer_id ? customerById.get(item.customer_id) : null;
+        const model = item.model_id ? modelById.get(item.model_id) : null;
+
+        return [
+          customer?.customer_number || "",
+          item.name || "",
+          item.serial_number || "",
+          item.manufacturer || getManufacturerNameById(item.manufacturer_id) || "",
+          item.model || getDeviceModelDisplayName(model) || "",
+          item.location || "",
+          item.status || "",
+          item.next_check || "",
+          item.inspection_badge_number || "",
+          item.inspection_date || "",
+          item.inspection_expires || "",
+          item.inspection_result || "",
+          item.inspection_comment || "",
+          "",
+          "",
+          item.note || "",
+        ];
+      });
+
+    writeTrybunExcel(
+      "Kundengeräte",
+      deviceImportFields.map((field) => field.label),
+      rows,
+      `${currentCompany.name}_Kundengeraete`,
+    );
+  }
+
+  async function exportManufacturersAndModelsToExcel() {
+    const currentCompany = await requireExportCompany();
+    if (!currentCompany) return;
+
+    const scopedManufacturers = manufacturers
+      .filter((item) => Number(item.company_id) === Number(currentCompany.id))
+      .sort((a, b) => a.name.localeCompare(b.name, "de"));
+
+    const scopedModels = deviceModels.filter(
+      (item) => Number(item.company_id) === Number(currentCompany.id),
+    );
+
+    const rows: Array<Array<string | number | boolean | null | undefined>> = [];
+
+    scopedManufacturers.forEach((manufacturer) => {
+      const models = scopedModels
+        .filter((model) => model.manufacturer_id === manufacturer.id)
+        .sort((a, b) =>
+          getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de"),
+        );
+
+      const manufacturerValues = [
+        manufacturer.name || "",
+        manufacturer.dealer_number || "",
+        manufacturer.contact_person || "",
+        manufacturer.phone || "",
+        manufacturer.email || "",
+        manufacturer.address || "",
+        manufacturer.website || "",
+        manufacturer.parts_url || "",
+        manufacturer.note || "",
+      ];
+
+      if (models.length === 0) {
+        rows.push([...manufacturerValues, "", "", "", ""]);
+        return;
+      }
+
+      models.forEach((model) => {
+        rows.push([
+          ...manufacturerValues,
+          getDeviceModelDisplayName(model),
+          model.category || "",
+          getDeviceModelTypeName(model),
+          model.note || "",
+        ]);
+      });
+    });
+
+    writeTrybunExcel(
+      "Hersteller & Modelle",
+      manufacturerImportFields.map((field) => field.label),
+      rows,
+      `${currentCompany.name}_Hersteller_und_Modelle`,
+    );
+  }
+
+  async function exportDeviceStockToExcel() {
+    const currentCompany = await requireExportCompany();
+    if (!currentCompany) return;
+
+    const rows = deviceModels
+      .filter(
+        (item) =>
+          Number(item.company_id) === Number(currentCompany.id) &&
+          Boolean(item.is_stocked),
+      )
+      .sort((a, b) =>
+        `${getManufacturerNameById(a.manufacturer_id)} ${getDeviceModelDisplayName(a)}`.localeCompare(
+          `${getManufacturerNameById(b.manufacturer_id)} ${getDeviceModelDisplayName(b)}`,
+          "de",
+        ),
+      )
+      .map((item) => [
+        getManufacturerNameById(item.manufacturer_id) || "",
+        getDeviceModelDisplayName(item),
+        Number(item.stock || 0),
+        Number(item.min_stock || 0),
+        item.unit || "Stück",
+        item.storage_location || "",
+        item.purchase_price ?? "",
+        item.sale_price ?? "",
+      ]);
+
+    writeTrybunExcel(
+      "Gerätebestand",
+      deviceStockImportFields.map((field) => field.label),
+      rows,
+      `${currentCompany.name}_Geraetebestand`,
+    );
+  }
+
+  async function exportSuppliersToExcel() {
+    const currentCompany = await requireExportCompany();
+    if (!currentCompany) return;
+
+    const { data, error } = await supabase
+      .from("suppliers")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("name", { ascending: true });
+
+    if (error) {
+      alert(`Lieferanten konnten nicht exportiert werden: ${error.message}`);
+      return;
+    }
+
+    const rows = ((data || []) as Supplier[]).map((item) => [
+      item.name || "",
+      item.dealer_number || "",
+      item.contact_person || "",
+      item.phone || "",
+      item.email || "",
+      item.address || "",
+      item.website || "",
+      item.parts_url || "",
+      item.note || "",
+    ]);
+
+    writeTrybunExcel(
+      "Lieferanten",
+      supplierImportFields.map((field) => field.label),
+      rows,
+      `${currentCompany.name}_Lieferanten`,
+    );
+  }
+
+  async function exportSparePartsToExcel() {
+    const currentCompany = await requireExportCompany();
+    if (!currentCompany) return;
+
+    const { data: suppliersData, error: suppliersError } = await supabase
+      .from("suppliers")
+      .select("*")
+      .eq("company_id", currentCompany.id);
+
+    if (suppliersError) {
+      alert(`Lieferantenzuordnungen konnten nicht geladen werden: ${suppliersError.message}`);
+      return;
+    }
+
+    const supplierById = new Map(
+      ((suppliersData || []) as Supplier[]).map((item) => [item.id, item.name]),
+    );
+
+    const rows = serviceParts
+      .filter(
+        (item) =>
+          Number(item.company_id) === Number(currentCompany.id) &&
+          !item.is_archived,
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, "de"))
+      .map((item) => [
+        item.name || "",
+        item.sku || "",
+        getManufacturerNameById(item.manufacturer_id) || "",
+        item.supplier_id ? supplierById.get(item.supplier_id) || "" : "",
+        item.manufacturer_part_number || "",
+        Number(item.stock || 0),
+        Number(item.min_stock || 0),
+        item.unit || "Stück",
+        item.purchase_price ?? "",
+        item.storage_location || "",
+        item.note || "",
+      ]);
+
+    writeTrybunExcel(
+      "Ersatzteile",
+      sparePartImportFields.map((field) => field.label),
+      rows,
+      `${currentCompany.name}_Ersatzteile`,
+    );
+  }
+
   async function handleCustomerImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -23037,11 +23385,16 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       Keine Abhängigkeit. Für Firmenkunden ist der Firmenname erforderlich; bei Privatkunden genügt Vor-/Nachname oder Ansprechpartner.
                     </p>
                   </div>
-                  {customerImportRows.length > 0 && (
-                    <button type="button" onClick={resetCustomerImport} disabled={customerImportBusy} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-                      Import zurücksetzen
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button type="button" onClick={exportCustomersToExcel} className="w-full rounded-[9px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:bg-sky-100 sm:w-auto">
+                      Excel exportieren
                     </button>
-                  )}
+                    {customerImportRows.length > 0 && (
+                      <button type="button" onClick={resetCustomerImport} disabled={customerImportBusy} className="w-full rounded-[9px] border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:w-auto">
+                        Import zurücksetzen
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -23140,7 +23493,12 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       Voraussetzung: Die Kundennummer muss bereits vorhanden sein. Hersteller und Modelle werden bei Bedarf für diese Firma automatisch ergänzt.
                     </p>
                   </div>
-                  {deviceImportRows.length > 0 && <button type="button" onClick={resetDeviceImport} disabled={deviceImportBusy} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 hover:bg-slate-50 disabled:opacity-50">Import zurücksetzen</button>}
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button type="button" onClick={exportDevicesToExcel} className="w-full rounded-[9px] border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800 transition hover:bg-indigo-100 sm:w-auto">
+                      Excel exportieren
+                    </button>
+                    {deviceImportRows.length > 0 && <button type="button" onClick={resetDeviceImport} disabled={deviceImportBusy} className="w-full rounded-[9px] border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:w-auto">Import zurücksetzen</button>}
+                  </div>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kundengeräte-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleDeviceImportFile} disabled={deviceImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label>
@@ -23177,9 +23535,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
               <div className="rounded-[32px] border border-emerald-200 bg-white p-5 shadow-sm sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Datenimport · Hersteller & Modelle</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-950">Hersteller & Modelle importieren</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                  Keine Abhängigkeit. Hersteller ist Pflicht; Modell, Kategorie und Gerätetyp können optional mit importiert werden.
-                </p>
+                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <p className="max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                    Keine Abhängigkeit. Hersteller ist Pflicht; Modell, Kategorie und Gerätetyp können optional mit importiert werden.
+                  </p>
+                  <button type="button" onClick={exportManufacturersAndModelsToExcel} className="w-full shrink-0 rounded-[9px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 sm:w-auto">
+                    Excel exportieren
+                  </button>
+                </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Hersteller-/Modelle-Excel oder CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleManufacturerImportFile} disabled={manufacturerImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm disabled:opacity-50" /></label>
                   <div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{manufacturerImportFileName || "Noch keine Datei"}</div>
@@ -23207,9 +23570,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
               <div className="rounded-[32px] border border-violet-200 bg-white p-5 shadow-sm sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-600">Datenimport · Gerätebestand</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-950">Gerätebestand importieren</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                  Voraussetzung: Hersteller und Modell müssen bereits im Stammdatensatz vorhanden sein. Der Import legt bewusst keine neuen Modelle an.
-                </p>
+                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <p className="max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                    Voraussetzung: Hersteller und Modell müssen bereits im Stammdatensatz vorhanden sein. Der Import legt bewusst keine neuen Modelle an.
+                  </p>
+                  <button type="button" onClick={exportDeviceStockToExcel} className="w-full shrink-0 rounded-[9px] border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800 transition hover:bg-violet-100 sm:w-auto">
+                    Excel exportieren
+                  </button>
+                </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Gerätebestand-Excel oder CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleDeviceStockImportFile} disabled={deviceStockImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm disabled:opacity-50" /></label>
                   <div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{deviceStockImportFileName || "Noch keine Datei"}</div>
@@ -23237,9 +23605,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
               <div className="rounded-[32px] border border-cyan-200 bg-white p-5 shadow-sm sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Datenimport · Lieferanten</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-950">Lieferanten importieren</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                  Keine Abhängigkeit. Pflicht ist nur der Lieferantenname; Kontakt-, Web- und Bestelldaten können optional ergänzt werden.
-                </p>
+                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <p className="max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                    Keine Abhängigkeit. Pflicht ist nur der Lieferantenname; Kontakt-, Web- und Bestelldaten können optional ergänzt werden.
+                  </p>
+                  <button type="button" onClick={exportSuppliersToExcel} className="w-full shrink-0 rounded-[9px] border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-bold text-cyan-800 transition hover:bg-cyan-100 sm:w-auto">
+                    Excel exportieren
+                  </button>
+                </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Lieferanten-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleSupplierImportFile} disabled={supplierImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label><div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{supplierImportFileName || "Noch keine Datei"}</div></div>
                 {supplierImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(supplierImportMapping).filter(Boolean).length} von {supplierImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{supplierImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={supplierImportMapping[field.key]||""} onChange={e=>setSupplierImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{supplierImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={supplierImportDuplicateMode} onChange={e=>setSupplierImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSuppliersFromFile} disabled={supplierImportBusy || !supplierImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{supplierImportBusy?"Import läuft …":"Lieferanten importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Lieferanten-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{supplierImportPreview.filter((row)=>row.valid).length} gültig · {supplierImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[850px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Kundennummer</th><th className="px-4 py-3">Ansprechpartner</th><th className="px-4 py-3">E-Mail</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{supplierImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3">{row.dealerNumber||"-"}</td><td className="px-4 py-3">{row.contactPerson||"-"}</td><td className="px-4 py-3">{row.email||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
                 {supplierImportMessage&&<div className="mt-4 rounded-2xl bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-700">{supplierImportMessage}</div>}
@@ -23247,9 +23620,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
               <div className="rounded-[32px] border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-600">Datenimport · Ersatzteile</p><h3 className="mt-2 text-2xl font-black text-slate-950">Ersatzteile importieren</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                  Pflicht ist die Ersatzteil-Bezeichnung. Hersteller und Lieferanten werden bei Bedarf angelegt; für vollständige Kontaktdaten empfiehlt sich der separate Stammdatenimport vorher.
-                </p>
+                <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <p className="max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                    Pflicht ist die Ersatzteil-Bezeichnung. Hersteller und Lieferanten werden bei Bedarf angelegt; für vollständige Kontaktdaten empfiehlt sich der separate Stammdatenimport vorher.
+                  </p>
+                  <button type="button" onClick={exportSparePartsToExcel} className="w-full shrink-0 rounded-[9px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100 sm:w-auto">
+                    Excel exportieren
+                  </button>
+                </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ersatzteile-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleSparePartImportFile} disabled={sparePartImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label><div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{sparePartImportFileName || "Noch keine Datei"}</div></div>
                 {sparePartImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-slate-200 bg-slate-50"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(sparePartImportMapping).filter(Boolean).length} von {sparePartImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{sparePartImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-slate-200 bg-white p-3"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={sparePartImportMapping[field.key]||""} onChange={e=>setSparePartImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{sparePartImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={sparePartImportDuplicateMode} onChange={e=>setSparePartImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSparePartsFromFile} disabled={sparePartImportBusy || !sparePartImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{sparePartImportBusy?"Import läuft …":"Ersatzteile importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Ersatzteil-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{sparePartImportPreview.filter((row)=>row.valid).length} gültig · {sparePartImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[1050px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Ersatzteil</th><th className="px-4 py-3">SKU</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Bestand</th><th className="px-4 py-3">Lagerort</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{sparePartImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3 font-bold">{row.sku||"-"}</td><td className="px-4 py-3">{row.manufacturerName||"-"}</td><td className="px-4 py-3">{row.supplierName||"-"}</td><td className="px-4 py-3 font-black">{row.stock}</td><td className="px-4 py-3">{row.storageLocation||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
                 {sparePartImportMessage&&<div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-700">{sparePartImportMessage}</div>}
