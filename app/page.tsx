@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.74 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.75 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -18644,9 +18644,9 @@ ${tenantBrandName}`,
 
       <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
         <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/[0.08] p-5 text-white lg:sticky lg:top-0 lg:flex lg:flex-col" style={{ backgroundColor: tenantSecondaryColor }}>
-          <div className="rounded-[30px] border border-white/10 bg-white/[0.035] p-5 shadow-2xl shadow-black/20">
+          <div className="p-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center border border-white/10 bg-[#0b1726] p-2" style={{ borderRadius: "12px" }}>
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center p-1" style={{ borderRadius: "12px" }}>
                 {tenantLogoUrl ? (
                   <img
                     src={tenantLogoUrl}
@@ -18674,11 +18674,11 @@ ${tenantBrandName}`,
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-white/10 bg-[#0b1726]/80 px-4 py-3">
-              <p className="truncate text-[12px] font-semibold leading-5 text-slate-400">
+            <div className="mt-5 px-1 py-2">
+              <p className="truncate text-[12px] font-semibold leading-5 text-white/85">
                 {userProfile?.full_name || session.user.email}
               </p>
-              <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
+              <p className="mt-0.5 truncate text-[11px] font-medium text-white/55">
                 {session.user.email}
               </p>
             </div>
@@ -18802,7 +18802,7 @@ ${tenantBrandName}`,
                 <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4 pt-[env(safe-area-inset-top)]">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: tenantPrimaryColor }}>{tenantBrandName}</p>
-                    <div className="mt-3 flex h-24 w-full items-center justify-center overflow-hidden border border-white/10 bg-[#0b1726] px-4" style={{ borderRadius: "12px" }}>
+                    <div className="mt-3 flex h-24 w-full items-center justify-center overflow-hidden px-4" style={{ borderRadius: "12px" }}>
                       {tenantLogoUrl ? (
                         <img
                           src={tenantLogoUrl}
@@ -18819,10 +18819,15 @@ ${tenantBrandName}`,
                     <p className="mt-3 text-center text-[11px] font-black uppercase tracking-[0.24em] text-sky-400">
                       Serviceportal
                     </p>
-                    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                      <p className="truncate text-sm font-extrabold text-white">{userProfile?.full_name || session.user.email}</p>
-                      <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    <div className="mt-3 px-1 py-2">
+                      <p className="truncate text-sm font-extrabold text-white">
+                        {userProfile?.full_name || session.user.email}
+                      </p>
+                      <p className="mt-1 truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/55">
                         {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
+                      </p>
+                      <p className="mt-1 truncate text-[11px] font-medium text-white/45">
+                        {session.user.email}
                       </p>
                     </div>
                   </div>
