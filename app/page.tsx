@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.84 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.85 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1642,6 +1642,7 @@ export default function Home() {
   const [priorityFilter, setPriorityFilter] = useState("Alle");
   const [customerDirectorySearch, setCustomerDirectorySearch] = useState("");
   const [customerTypeFilter, setCustomerTypeFilter] = useState("Alle");
+  const [customerDirectoryCityFilter, setCustomerDirectoryCityFilter] = useState("Alle");
   const [deviceDirectorySearch, setDeviceDirectorySearch] = useState("");
   const [manufacturerDirectorySearch, setManufacturerDirectorySearch] = useState("");
   const [deviceModelDirectorySearch, setDeviceModelDirectorySearch] = useState("");
@@ -8482,7 +8483,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
           contact_2_phone: customerContact2Phone.trim() || null,
         },
       ])
-      .select("id")
+      .select("id, company_id")
       .single();
 
     if (error || !data) {
@@ -8492,10 +8493,18 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    if (Number(data.company_id) !== Number(currentCompany.id)) {
+      customerSavingRef.current = false;
+      setCustomerSaving(false);
+      alert("Sicherheitsprüfung fehlgeschlagen: Der Kunde wurde keiner gültigen Firma zugeordnet.");
+      return;
+    }
+
     if (assignedDeviceIds.length > 0) {
       await supabase
         .from("devices")
         .update({ customer_id: data.id })
+        .eq("company_id", currentCompany.id)
         .in("id", assignedDeviceIds.map(Number));
     }
 
@@ -8527,6 +8536,17 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     }
 
     if (!editingCustomer) return;
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden. Bitte erneut versuchen.");
+      return;
+    }
+
+    if (Number(editingCustomer.company_id) !== Number(currentCompany.id)) {
+      alert("Dieser Kunde gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
 
     const isPrivateCustomer = customerType === "Privatkunde";
     const liveCustomerCompany =
@@ -8568,7 +8588,8 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         city: customerCity.trim() || null,
         country: customerCountry.trim() || null,
       })
-      .eq("id", editingCustomer.id);
+      .eq("id", editingCustomer.id)
+      .eq("company_id", currentCompany.id);
 
     if (error) {
       alert("Kunde konnte nicht bearbeitet werden.");
@@ -8578,12 +8599,14 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     await supabase
       .from("devices")
       .update({ customer_id: null })
+      .eq("company_id", currentCompany.id)
       .eq("customer_id", editingCustomer.id);
 
     if (assignedDeviceIds.length > 0) {
       await supabase
         .from("devices")
         .update({ customer_id: editingCustomer.id })
+        .eq("company_id", currentCompany.id)
         .in("id", assignedDeviceIds.map(Number));
     }
 
@@ -17731,61 +17754,91 @@ ${tenantBrandName}`,
       ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId)) || null
       : null;
 
-  const filteredCustomerDirectory = (() => {
-    const search = customerDirectorySearch.toLowerCase().trim();
+  function normalizeCustomerDirectoryText(value: unknown) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
 
-    const matchingCustomers = customers
-      .filter((customerItem) =>
-        customerTypeFilter === "Alle" ||
-        (customerItem.customer_type || "B2B") === customerTypeFilter,
-      )
+  const customerDirectoryCityOptions = Array.from(
+    new Set(
+      customers
+        .map((item) => String(item.city || "").trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" }));
+
+  const customerDirectoryMatches = (() => {
+    const search = normalizeCustomerDirectoryText(customerDirectorySearch);
+    const searchTerms = search.split(/\s+/).filter(Boolean);
+
+    return customers
+      .filter((customerItem) => {
+        if (
+          customerTypeFilter !== "Alle" &&
+          (customerItem.customer_type || "B2B") !== customerTypeFilter
+        ) {
+          return false;
+        }
+
+        if (
+          customerDirectoryCityFilter !== "Alle" &&
+          String(customerItem.city || "").trim() !== customerDirectoryCityFilter
+        ) {
+          return false;
+        }
+
+        if (searchTerms.length === 0) return true;
+
+        const haystack = normalizeCustomerDirectoryText(
+          [
+            customerItem.company,
+            getCustomerDisplayName(customerItem),
+            customerItem.customer_number,
+            customerItem.supplier_number,
+            customerItem.first_name,
+            customerItem.last_name,
+            customerItem.contact_person,
+            customerItem.city,
+            customerItem.postal_code,
+            customerItem.street,
+            customerItem.address,
+            customerItem.email,
+            customerItem.email_2,
+            customerItem.phone,
+            customerItem.phone_2,
+            customerItem.vat_id,
+            customerItem.tax_number,
+            customerItem.contact_1_name,
+            customerItem.contact_1_email,
+            customerItem.contact_1_phone,
+            customerItem.contact_2_name,
+            customerItem.contact_2_email,
+            customerItem.contact_2_phone,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
+
+        return searchTerms.every((term) => haystack.includes(term));
+      })
       .sort((a, b) =>
-        (getCustomerDisplayName(a) || a.company || "").localeCompare(
-          getCustomerDisplayName(b) || b.company || "",
+        (a.company || getCustomerDisplayName(a) || "").localeCompare(
+          b.company || getCustomerDisplayName(b) || "",
           "de",
           { sensitivity: "base" },
         ),
       );
-
-    if (!search) {
-      return matchingCustomers.slice(0, 5);
-    }
-
-    return matchingCustomers
-      .filter((customerItem) => {
-        const primaryValues = [
-          customerItem.company,
-          getCustomerDisplayName(customerItem),
-          customerItem.customer_number,
-        ]
-          .filter(Boolean)
-          .map((value) => String(value).toLowerCase());
-
-        if (search.length === 1) {
-          return primaryValues.some((value) =>
-            value
-              .split(/\s+/)
-              .filter(Boolean)
-              .some((word) => word.startsWith(search)),
-          );
-        }
-
-        const extendedValues = [
-          ...primaryValues,
-          customerItem.city,
-          customerItem.email,
-          customerItem.phone,
-        ]
-          .filter(Boolean)
-          .map((value) => String(value).toLowerCase());
-
-        return extendedValues.some((value) => value.includes(search));
-      })
-      .slice(0, 80);
   })();
 
+  const filteredCustomerDirectory = customerDirectoryMatches.slice(0, 30);
+
   const customerDirectorySearchIsActive =
-    customerDirectorySearch.trim().length >= 1;
+    customerDirectorySearch.trim().length >= 1 ||
+    customerTypeFilter !== "Alle" ||
+    customerDirectoryCityFilter !== "Alle";
 
   function getCustomerStats(customerId: number) {
     const customerDevices = devices.filter((deviceItem) => deviceItem.customer_id === customerId);
@@ -25664,35 +25717,63 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </p>
                 )}
 
-                <div className="mt-6 grid min-w-0 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_240px]">
+                <div className="mt-6 grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
                   <input
                     value={customerDirectorySearch}
                     onChange={(e) => setCustomerDirectorySearch(e.target.value)}
                     type="search"
-autoComplete="off"
-autoCorrect="off"
-spellCheck={false}
-enterKeyHint="search"
-name="trybun-customer-directory-query"
-placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
-                    className="block min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="search"
+                    name="trybun-customer-directory-query"
+                    placeholder="Firma, Kundennummer, Ansprechpartner, Ort, E-Mail, Telefon..."
+                    className="block min-h-[50px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                   />
 
                   <select
                     value={customerTypeFilter}
                     onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    className="block min-w-0 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-base font-black text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    className="block min-h-[50px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
                   >
                     <option value="Alle">Alle Kundentypen</option>
-                    <option value="B2B">Nur B2B</option>
-                    <option value="Privatkunde">Nur Endkunden</option>
+                    <option value="B2B">B2B</option>
+                    <option value="Privatkunde">Endkunden</option>
                   </select>
+
+                  <select
+                    value={customerDirectoryCityFilter}
+                    onChange={(e) => setCustomerDirectoryCityFilter(e.target.value)}
+                    className="block min-h-[50px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                  >
+                    <option value="Alle">Alle Orte</option>
+                    {customerDirectoryCityOptions.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomerDirectorySearch("");
+                      setCustomerTypeFilter("Alle");
+                      setCustomerDirectoryCityFilter("Alle");
+                    }}
+                    className="min-h-[50px] rounded-[9px] border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                  >
+                    Zurücksetzen
+                  </button>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm font-bold leading-6 text-sky-700 md:text-base">
-                  {customerDirectorySearchIsActive
-                    ? `${filteredCustomerDirectory.length} Treffer werden angezeigt. Bitte Suche verfeinern, falls der Kunde nicht dabei ist.`
-                    : `${Math.min(filteredCustomerDirectory.length, 5)} Kunden alphabetisch angezeigt · insgesamt ${customers.length} Kunden geladen.`}
+                <div className="mt-4 rounded-[10px] border border-sky-100 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-800">
+                  {customerDirectoryMatches.length === 0
+                    ? "Keine passenden Kunden gefunden."
+                    : `${Math.min(filteredCustomerDirectory.length, customerDirectoryMatches.length)} von ${customerDirectoryMatches.length} passenden Kunden angezeigt${customerDirectoryMatches.length > 30 ? " · Suche oder Filter können die Liste weiter eingrenzen." : "."}`}
+                  {!customerDirectorySearchIsActive && customers.length > 0 && (
+                    <span className="ml-1 text-sky-700">
+                      Ohne Suchbegriff können Sie direkt durch den Kundenstamm browsen.
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -25708,7 +25789,7 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                             Noch keine Kunden für diese Auswahl
                           </p>
                           <p className="mt-2 max-w-3xl text-base font-semibold leading-7 text-slate-500">
-                            Sobald Kunden vorhanden sind, werden hier die ersten fünf alphabetisch angezeigt.
+                            Sobald Kunden vorhanden sind, werden sie hier direkt alphabetisch angezeigt.
                           </p>
                         </div>
                       )}
