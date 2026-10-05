@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.78 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.79 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -19458,148 +19458,182 @@ ${tenantBrandName}`,
                     )}
 
                     {isAdmin && (
-                      <div className="rounded-[20px] border border-slate-700 bg-white p-4 text-slate-950 shadow-sm sm:p-5">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
-                              TRYBUN Service Intelligence
-                            </p>
-                            <h3 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950">
-                              Vom Servicefall zur Entscheidung
-                            </h3>
-                            <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-600">
-                              TRYBUN verbindet Einsatzvorbereitung, Gerätehistorie, Service-Nachweise und Abrechnung zu einem durchgängigen Serviceprozess.
-                            </p>
+                      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white text-slate-950 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+                        <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] px-4 py-5 sm:px-6 sm:py-6">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />
+                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
+                                  TRYBUN Service Intelligence
+                                </p>
+                              </div>
+                              <h3 className="mt-2 max-w-3xl text-[1.65rem] font-bold tracking-[-0.035em] text-slate-950 sm:text-[1.9rem]">
+                                Vom Servicefall zur Entscheidung
+                              </h3>
+                              <p className="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-600 sm:text-[15px]">
+                                Vorbereitung, Nachweise, Abrechnung und Gerätewissen in einer kompakten Management-Sicht.
+                              </p>
+                            </div>
+
+                            <div className="flex w-fit items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                              Live aus Ihren Servicedaten
+                            </div>
                           </div>
-                          <span className="w-fit shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
-                            Live aus Ihren Servicedaten
-                          </span>
                         </div>
 
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
                           <button
                             type="button"
                             onClick={() => openPage("Service-Tickets")}
-                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-sky-300 hover:bg-sky-50 active:scale-[0.99]"
+                            className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-sky-50/50 active:bg-sky-50 sm:p-5"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-sky-600">
-                                  First-Time-Fix
-                                </p>
-                                <p className="mt-2 text-3xl font-black text-slate-950">
-                                  {serviceIntelligenceDashboard.readinessAverage}%
-                                </p>
+                            <div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-700">
+                                    First-Time-Fix
+                                  </p>
+                                  <p className="mt-3 text-[2.25rem] font-bold tracking-[-0.045em] text-slate-950">
+                                    {serviceIntelligenceDashboard.readinessAverage}%
+                                  </p>
+                                </div>
+                                <span className="rounded-[7px] bg-sky-50 px-2.5 py-1 text-[11px] font-bold text-sky-700 ring-1 ring-inset ring-sky-100">
+                                  Vorbereitung
+                                </span>
                               </div>
-                              <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-black text-sky-700">
-                                Vorbereitung
-                              </span>
+                              <p className="mt-4 text-sm font-semibold leading-6 text-slate-800">
+                                {serviceIntelligenceDashboard.readyTickets} von {serviceIntelligenceDashboard.activeTicketCount} aktiven Einsätzen gut vorbereitet
+                              </p>
                             </div>
-                            <p className="mt-2 text-sm font-bold text-slate-700">
-                              {serviceIntelligenceDashboard.readyTickets} von {serviceIntelligenceDashboard.activeTicketCount} aktiven Einsätzen gut vorbereitet
-                            </p>
-                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-                              Zeigt, ob Kunde, Gerät, Techniker, Termin, Wissen und Materialstatus geklärt sind.
-                            </p>
+                            <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                              <p className="text-xs font-medium leading-5 text-slate-500">
+                                Kunde · Gerät · Techniker · Termin · Wissen · Material
+                              </p>
+                              <span className="shrink-0 text-base text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-sky-600">→</span>
+                            </div>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => openPage("Geräte")}
-                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50 active:scale-[0.99]"
+                            className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-emerald-50/50 active:bg-emerald-50 sm:p-5"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-emerald-700">
-                                  Service Proof
-                                </p>
-                                <p className="mt-2 text-3xl font-black text-slate-950">
-                                  {serviceIntelligenceDashboard.incompleteServiceProofs}
-                                </p>
+                            <div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
+                                    Service Proof
+                                  </p>
+                                  <p className="mt-3 text-[2.25rem] font-bold tracking-[-0.045em] text-slate-950">
+                                    {serviceIntelligenceDashboard.incompleteServiceProofs}
+                                  </p>
+                                </div>
+                                <span className="rounded-[7px] bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-100">
+                                  Nachweise
+                                </span>
                               </div>
-                              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-700">
-                                Nachweise
-                              </span>
+                              <p className="mt-4 text-sm font-semibold leading-6 text-slate-800">
+                                abgeschlossene Einsätze mit ergänzbarem Nachweis
+                              </p>
                             </div>
-                            <p className="mt-2 text-sm font-bold text-slate-700">
-                              abgeschlossene Einsätze mit ergänzbarem Nachweis
-                            </p>
-                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-                              Prüft Abschlusszeit, Techniker, Bericht, Signaturen und Ticket-Dokumentation.
-                            </p>
+                            <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                              <p className="text-xs font-medium leading-5 text-slate-500">
+                                Abschluss · Bericht · Signaturen · Dokumentation
+                              </p>
+                              <span className="shrink-0 text-base text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-600">→</span>
+                            </div>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => openPage("Rechnungen")}
-                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-amber-300 hover:bg-amber-50 active:scale-[0.99]"
+                            className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-amber-50/50 active:bg-amber-50 sm:p-5"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
-                                  Revenue Guard
-                                </p>
-                                <p className="mt-2 text-3xl font-black text-slate-950">
-                                  {revenueGuardItems.length}
-                                </p>
+                            <div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-700">
+                                    Revenue Guard
+                                  </p>
+                                  <p className="mt-3 text-[2.25rem] font-bold tracking-[-0.045em] text-slate-950">
+                                    {revenueGuardItems.length}
+                                  </p>
+                                </div>
+                                <span className="rounded-[7px] bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-100">
+                                  Abrechnung
+                                </span>
                               </div>
-                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-800">
-                                Abrechnung
-                              </span>
+                              <p className="mt-4 text-sm font-semibold leading-6 text-slate-800">
+                                abgeschlossene Einsätze noch zur Abrechnung prüfen
+                              </p>
                             </div>
-                            <p className="mt-2 text-sm font-bold text-slate-700">
-                              abgeschlossene Einsätze noch zur Abrechnung prüfen
-                            </p>
-                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-                              Erkennt fehlende Rechnungen und offene Rechnungsentwürfe anhand vorhandener Servicedaten.
-                            </p>
+                            <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                              <p className="text-xs font-medium leading-5 text-slate-500">
+                                Rechnungen · Entwürfe · offene Abrechnungssignale
+                              </p>
+                              <span className="shrink-0 text-base text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-amber-600">→</span>
+                            </div>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => openPage("Geräte")}
-                            className="rounded-[16px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50 active:scale-[0.99]"
+                            className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-indigo-50/50 active:bg-indigo-50 sm:p-5"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-700">
-                                  Gerätewissen
-                                </p>
-                                <p className="mt-2 text-3xl font-black text-slate-950">
-                                  {serviceIntelligenceDashboard.knowledgeCoverage}%
-                                </p>
+                            <div>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-indigo-700">
+                                    Gerätewissen
+                                  </p>
+                                  <p className="mt-3 text-[2.25rem] font-bold tracking-[-0.045em] text-slate-950">
+                                    {serviceIntelligenceDashboard.knowledgeCoverage}%
+                                  </p>
+                                </div>
+                                <span className="rounded-[7px] bg-indigo-50 px-2.5 py-1 text-[11px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-100">
+                                  Lifecycle
+                                </span>
                               </div>
-                              <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-black text-indigo-700">
-                                Lifecycle
-                              </span>
+                              <p className="mt-4 text-sm font-semibold leading-6 text-slate-800">
+                                {serviceIntelligenceDashboard.devicesWithKnowledge} von {devices.length} Serviceobjekten mit nutzbarem Kontext
+                              </p>
                             </div>
-                            <p className="mt-2 text-sm font-bold text-slate-700">
-                              {serviceIntelligenceDashboard.devicesWithKnowledge} von {devices.length} Serviceobjekten mit Historie, Dokumenten oder Tickets
-                            </p>
-                            <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-                              Grundlage für Gerätepass, Lifecycle Intelligence und den Service Copilot.
-                            </p>
+                            <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                              <p className="text-xs font-medium leading-5 text-slate-500">
+                                Historie · Dokumente · Tickets · Gerätepass
+                              </p>
+                              <span className="shrink-0 text-base text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-indigo-600">→</span>
+                            </div>
                           </button>
                         </div>
 
-                        <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                            <p className="text-sm font-black text-slate-900">
-                              Service Copilot
-                            </p>
-                            <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">
-                              In jeder Ticket-Akte bündelt TRYBUN frühere Einsätze, ähnliche Fehlerbilder, Ersatzteilhistorie und Dokumente zu konkretem Servicekontext.
-                            </p>
+                        <div className="border-t border-slate-200 bg-slate-950 px-4 py-4 text-white sm:px-6 sm:py-5">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex items-start gap-3">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white/10 text-sm">✦</span>
+                                <div>
+                                  <p className="text-sm font-bold text-white">
+                                    Service Copilot
+                                  </p>
+                                  <p className="mt-0.5 max-w-4xl text-sm font-medium leading-6 text-slate-300">
+                                    Bündelt frühere Einsätze, ähnliche Fehlerbilder, Ersatzteilhistorie und Dokumente direkt in der Ticket-Akte.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openPage("Service-Tickets")}
+                              className="min-h-[44px] w-full shrink-0 rounded-[8px] border border-white/15 bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-slate-100 active:scale-[0.99] lg:w-auto"
+                            >
+                              Ticket-Akten öffnen
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => openPage("Service-Tickets")}
-                            className="min-h-[48px] rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white"
-                          >
-                            Ticket-Akten öffnen
-                          </button>
                         </div>
-                      </div>
+                      </section>
                     )}
 
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
