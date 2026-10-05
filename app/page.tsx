@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.65 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.66 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -16135,6 +16135,166 @@ PRO-EFFEKT`,
     .map((deviceId) => availableTicketDevices.find((deviceItem) => String(deviceItem.id) === String(deviceId)))
     .filter((deviceItem): deviceItem is Device => Boolean(deviceItem));
 
+  const ticketIntelligence = (() => {
+    const subject = String(issue || "").trim();
+    const details = String(description || "").trim();
+    const combined = `${subject} ${details}`.toLowerCase();
+    const hasEnoughContext = combined.replace(/\s+/g, " ").trim().length >= 8;
+
+    const categoryRules: Array<{ type: string; keywords: string[] }> = [
+      {
+        type: "Sicherheitsprüfung",
+        keywords: ["prüfung", "pruefung", "prüfen", "pruefen", "dguv", "sicherheit", "prüfsiegel", "pruefsiegel", "plakette"],
+      },
+      {
+        type: "Installation",
+        keywords: ["installation", "installieren", "montage", "montieren", "inbetriebnahme", "aufstellen"],
+      },
+      {
+        type: "Wartung",
+        keywords: ["wartung", "warten", "inspektion", "pflege", "service fällig", "service faellig"],
+      },
+      {
+        type: "Reparatur",
+        keywords: ["defekt", "störung", "stoerung", "fehler", "reparatur", "ausfall", "ausgefallen", "funktioniert nicht", "ohne funktion"],
+      },
+    ];
+
+    const categoryHit = categoryRules
+      .map((rule) => ({
+        ...rule,
+        matches: rule.keywords.filter((keyword) => combined.includes(keyword)),
+      }))
+      .sort((a, b) => b.matches.length - a.matches.length)
+      .find((rule) => rule.matches.length > 0);
+
+    const suggestedType = categoryHit?.type || ticketTypes[0] || "Reparatur";
+
+    const criticalKeywords = [
+      "brand", "rauch", "stromschlag", "kurzschluss", "gas", "leckage", "leckt",
+      "wasseraustritt", "sicherheitsrelevant", "gefahr", "notfall", "stillstand",
+      "produktionsausfall", "komplett ausgefallen", "überhitzt", "ueberhitzt",
+    ];
+
+    const elevatedKeywords = [
+      "defekt", "störung", "stoerung", "fehler", "ausfall", "ausgefallen",
+      "funktioniert nicht", "dringend", "keine funktion",
+    ];
+
+    const criticalHits = criticalKeywords.filter((keyword) => combined.includes(keyword));
+    const elevatedHits = elevatedKeywords.filter((keyword) => combined.includes(keyword));
+
+    const suggestedPriority =
+      criticalHits.length > 0
+        ? "Hoch"
+        : elevatedHits.length > 0 || suggestedType === "Reparatur"
+          ? "Mittel"
+          : "Niedrig";
+
+    const priorityReasons: string[] = [];
+
+    if (criticalHits.length > 0) {
+      priorityReasons.push(`Kritischer Hinweis erkannt: ${criticalHits.slice(0, 2).join(", ")}.`);
+    } else if (elevatedHits.length > 0) {
+      priorityReasons.push(`Störungs-/Fehlerhinweis erkannt: ${elevatedHits.slice(0, 2).join(", ")}.`);
+    } else {
+      priorityReasons.push("Keine akuten Gefahren- oder Ausfallbegriffe in der Beschreibung erkannt.");
+    }
+
+    if (categoryHit) {
+      priorityReasons.push(`Passende Serviceart aus Beschreibung: ${categoryHit.type}.`);
+    }
+
+    const stopWords = new Set([
+      "service", "ticket", "kunde", "gerät", "geraet", "anlage", "fehler", "störung",
+      "stoerung", "defekt", "reparatur", "wartung", "prüfung", "pruefung", "bitte",
+      "einer", "einem", "eine", "einen", "nicht", "mehr", "wird", "werden", "funktioniert",
+    ]);
+
+    const searchTerms = Array.from(
+      new Set(
+        combined
+          .split(/[^a-zA-Z0-9äöüÄÖÜß]+/)
+          .map((term) => term.trim())
+          .filter((term) => term.length >= 4 && !stopWords.has(term)),
+      ),
+    ).slice(0, 12);
+
+    const formDevice = selectedTicketDevices[0] || null;
+    const formCustomerId = selectedTicketCustomer?.id || formDevice?.customer_id || null;
+
+    const similarTickets =
+      hasEnoughContext && searchTerms.length > 0
+        ? tickets
+            .filter((ticket) => {
+              if (editingTicket?.id === ticket.id) return false;
+
+              const relatedDevice = formDevice ? getDeviceForTicket(ticket) : null;
+              const sameDevice = Boolean(formDevice) && relatedDevice?.id === formDevice?.id;
+              const sameCustomer =
+                Boolean(formCustomerId) &&
+                Number(ticket.customer_id || 0) === Number(formCustomerId);
+
+              if (formDevice && !sameDevice) return false;
+              if (!formDevice && formCustomerId && !sameCustomer) return false;
+
+              const haystack = `${ticket.issue || ""} ${ticket.description || ""}`.toLowerCase();
+              return searchTerms.some((term) => haystack.includes(term));
+            })
+            .map((ticket) => {
+              const haystack = `${ticket.issue || ""} ${ticket.description || ""}`.toLowerCase();
+              const matchCount = searchTerms.filter((term) => haystack.includes(term)).length;
+              return { ticket, matchCount };
+            })
+            .sort((a, b) => {
+              if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+              return (
+                new Date(b.ticket.completed_at || b.ticket.service_date || b.ticket.created_at || 0).getTime() -
+                new Date(a.ticket.completed_at || a.ticket.service_date || a.ticket.created_at || 0).getTime()
+              );
+            })
+            .slice(0, 3)
+        : [];
+
+    const similarTicketIds = new Set(similarTickets.map((item) => item.ticket.id));
+    const partFrequency = new Map<number, { partId: number; uses: number; quantity: number }>();
+
+    partUsages
+      .filter(
+        (usage) =>
+          !usage.is_voided &&
+          usage.ticket_id != null &&
+          similarTicketIds.has(Number(usage.ticket_id)),
+      )
+      .forEach((usage) => {
+        if (!usage.part_id) return;
+        const current = partFrequency.get(usage.part_id) || {
+          partId: usage.part_id,
+          uses: 0,
+          quantity: 0,
+        };
+        partFrequency.set(usage.part_id, {
+          ...current,
+          uses: current.uses + 1,
+          quantity: current.quantity + Number(usage.quantity || 0),
+        });
+      });
+
+    const suggestedParts = Array.from(partFrequency.values())
+      .sort((a, b) => b.uses - a.uses || b.quantity - a.quantity)
+      .slice(0, 3)
+      .map((item) => ({ ...item, name: getPartNameById(item.partId) }));
+
+    return {
+      hasEnoughContext,
+      suggestedType,
+      suggestedPriority,
+      priorityReasons,
+      similarTickets,
+      suggestedParts,
+    };
+  })();
+
   const filteredTicketLibraryModels = (() => {
     const search = ticketDeviceSearch.toLowerCase().trim();
 
@@ -28097,6 +28257,166 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       rows={5}
                       className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                     />
+
+                    {!editingTicket && ticketIntelligence.hasEnoughContext && (
+                      <div className="min-w-0 overflow-hidden rounded-[16px] border border-indigo-200 bg-indigo-50 p-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-indigo-700">
+                              TRYBUN Ticket Intelligence
+                            </p>
+                            <h4 className="mt-1 text-lg font-black text-slate-950">
+                              Automatische Voranalyse
+                            </h4>
+                            <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">
+                              TRYBUN vergleicht die Eingabe mit Ihrer eigenen Servicehistorie und gibt nachvollziehbare Vorschläge. Es wird keine technische Diagnose erstellt.
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPriority(ticketIntelligence.suggestedPriority);
+                              setTicketTypes([ticketIntelligence.suggestedType]);
+                            }}
+                            className="w-full shrink-0 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-black text-white sm:w-auto"
+                          >
+                            Vorschlag übernehmen
+                          </button>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                              Serviceart
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-black text-indigo-700">
+                                {ticketIntelligence.suggestedType}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-500">
+                                aktuell: {getTicketTypeLabel()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                              Priorität
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                ticketIntelligence.suggestedPriority === "Hoch"
+                                  ? "bg-red-100 text-red-700"
+                                  : ticketIntelligence.suggestedPriority === "Mittel"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-emerald-100 text-emerald-700"
+                              }`}>
+                                Vorschlag: {ticketIntelligence.suggestedPriority}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-500">
+                                aktuell: {priority}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 rounded-xl border border-indigo-100 bg-white p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                            Warum?
+                          </p>
+                          <div className="mt-2 space-y-1.5">
+                            {ticketIntelligence.priorityReasons.map((reason) => (
+                              <p key={reason} className="text-sm font-semibold leading-5 text-slate-700">
+                                • {reason}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                          <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                                Ähnliche frühere Fälle
+                              </p>
+                              <span className="text-xs font-black text-slate-400">
+                                {ticketIntelligence.similarTickets.length}
+                              </span>
+                            </div>
+
+                            {ticketIntelligence.similarTickets.length === 0 ? (
+                              <p className="mt-3 text-sm font-semibold text-slate-500">
+                                Noch kein ausreichend ähnlicher Fall zum gewählten Kunden bzw. Serviceobjekt gefunden.
+                              </p>
+                            ) : (
+                              <div className="mt-3 space-y-2">
+                                {ticketIntelligence.similarTickets.map(({ ticket, matchCount }) => (
+                                  <button
+                                    key={`ticket-intelligence-${ticket.id}`}
+                                    type="button"
+                                    onClick={() => setSelectedTicketView(ticket)}
+                                    className="block w-full rounded-xl bg-slate-50 p-3 text-left"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <span className="text-xs font-black text-sky-600">
+                                        {ticket.ticket_number || "Früherer Servicefall"}
+                                      </span>
+                                      <span className="text-xs font-semibold text-slate-400">
+                                        {matchCount} Übereinstimmung{matchCount === 1 ? "" : "en"}
+                                      </span>
+                                    </div>
+                                    <p className="mt-1 line-clamp-2 text-sm font-black text-slate-900">
+                                      {ticketSubjectText(ticket)}
+                                    </p>
+                                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                                      {formatDate(ticket.completed_at || ticket.service_date || ticket.created_at)}
+                                    </p>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="rounded-xl border border-indigo-100 bg-white p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                                Ersatzteilhinweise
+                              </p>
+                              <span className="text-xs font-black text-slate-400">
+                                {ticketIntelligence.suggestedParts.length}
+                              </span>
+                            </div>
+
+                            {ticketIntelligence.suggestedParts.length === 0 ? (
+                              <p className="mt-3 text-sm font-semibold text-slate-500">
+                                In den ähnlichen Fällen ist kein wiederkehrender Ersatzteilverbrauch dokumentiert.
+                              </p>
+                            ) : (
+                              <div className="mt-3 space-y-2">
+                                {ticketIntelligence.suggestedParts.map((part) => (
+                                  <div
+                                    key={`ticket-intelligence-part-${part.partId}`}
+                                    className="rounded-xl bg-slate-50 p-3"
+                                  >
+                                    <p className="text-sm font-black text-slate-900">
+                                      {part.name}
+                                    </p>
+                                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                                      In ähnlichen Fällen {part.uses}× verwendet · {part.quantity} Einheit{part.quantity === 1 ? "" : "en"} dokumentiert
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
+                          Priorität und Serviceart bleiben eine Empfehlung. Sicherheitslage, Vertrag, Garantie und tatsächlicher Zustand vor Ort müssen weiterhin fachlich geprüft werden.
+                        </p>
+                      </div>
+                    )}
 
                     {!editingTicket && (
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
