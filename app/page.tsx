@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.54 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.55 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -400,6 +400,16 @@ type ServiceCustomFieldDefinition = {
   options?: string[];
 };
 
+type ServiceTemplateKind = "inspection" | "maintenance";
+
+type ServiceTemplateDefinition = {
+  id: string;
+  name: string;
+  kind: ServiceTemplateKind;
+  checklist?: string[];
+  interval_days?: number | null;
+};
+
 type CompanyData = {
   id: number;
   name: string;
@@ -415,6 +425,7 @@ type CompanyData = {
   service_profile?: ServiceProfileKey | null;
   service_labels?: Partial<ServiceTerminology> | null;
   service_custom_fields?: ServiceCustomFieldDefinition[] | null;
+  service_templates?: ServiceTemplateDefinition[] | null;
   is_active?: boolean | null;
   created_at?: string | null;
 };
@@ -1222,6 +1233,14 @@ export default function Home() {
   const [newServiceCustomFieldUnit, setNewServiceCustomFieldUnit] = useState("");
   const [newServiceCustomFieldRequired, setNewServiceCustomFieldRequired] = useState(false);
   const [newServiceCustomFieldOptions, setNewServiceCustomFieldOptions] = useState("");
+  const [serviceTemplatesInput, setServiceTemplatesInput] =
+    useState<ServiceTemplateDefinition[]>([]);
+  const [serviceTemplatesSaving, setServiceTemplatesSaving] = useState(false);
+  const [newServiceTemplateName, setNewServiceTemplateName] = useState("");
+  const [newServiceTemplateKind, setNewServiceTemplateKind] =
+    useState<ServiceTemplateKind>("inspection");
+  const [newServiceTemplateIntervalDays, setNewServiceTemplateIntervalDays] = useState("365");
+  const [newServiceTemplateChecklist, setNewServiceTemplateChecklist] = useState("");
   const [companyBrandingSaving, setCompanyBrandingSaving] = useState(false);
   const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -1758,6 +1777,11 @@ export default function Home() {
     setServiceCustomFieldsInput(
       Array.isArray(companyData.service_custom_fields)
         ? companyData.service_custom_fields
+        : [],
+    );
+    setServiceTemplatesInput(
+      Array.isArray(companyData.service_templates)
+        ? companyData.service_templates
         : [],
     );
   }, [companyData]);
@@ -2782,6 +2806,151 @@ export default function Home() {
       "Betriebsspezifische Gerätedaten wurden aktualisiert.",
       "Gerät",
     );
+  }
+
+  function createServiceTemplateId(name: string) {
+    const normalized = name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 42);
+
+    const base = normalized || "vorlage";
+    let candidate = base;
+    let suffix = 2;
+
+    while (serviceTemplatesInput.some((template) => template.id === candidate)) {
+      candidate = `${base}_${suffix}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  }
+
+  function addServiceTemplate() {
+    const name = newServiceTemplateName.trim();
+
+    if (!name) {
+      alert("Bitte einen Vorlagennamen eingeben.");
+      return;
+    }
+
+    if (
+      serviceTemplatesInput.some(
+        (template) =>
+          template.name.trim().toLowerCase() === name.toLowerCase() &&
+          template.kind === newServiceTemplateKind,
+      )
+    ) {
+      alert("Eine Vorlage mit diesem Namen existiert bereits.");
+      return;
+    }
+
+    const checklist =
+      newServiceTemplateKind === "inspection"
+        ? newServiceTemplateChecklist
+            .split("\n")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : [];
+
+    if (newServiceTemplateKind === "inspection" && checklist.length === 0) {
+      alert("Bitte mindestens einen Prüfpunkt eingeben.");
+      return;
+    }
+
+    const intervalDays =
+      newServiceTemplateKind === "maintenance"
+        ? Math.max(1, Number(newServiceTemplateIntervalDays) || 365)
+        : null;
+
+    setServiceTemplatesInput((current) => [
+      ...current,
+      {
+        id: createServiceTemplateId(name),
+        name,
+        kind: newServiceTemplateKind,
+        checklist: checklist.length > 0 ? checklist : undefined,
+        interval_days: intervalDays,
+      },
+    ]);
+
+    setNewServiceTemplateName("");
+    setNewServiceTemplateChecklist("");
+    setNewServiceTemplateIntervalDays("365");
+  }
+
+  function removeServiceTemplate(templateId: string) {
+    const template = serviceTemplatesInput.find((item) => item.id === templateId);
+    if (!template) return;
+
+    if (!confirm(`Vorlage "${template.name}" entfernen? Bestehende Protokolle und Wartungspläne bleiben erhalten.`)) {
+      return;
+    }
+
+    setServiceTemplatesInput((current) =>
+      current.filter((item) => item.id !== templateId),
+    );
+  }
+
+  async function saveServiceTemplates() {
+    if (!isAdmin) {
+      alert("Nur Admins können Vorlagen verwalten.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+
+    if (!currentCompany?.id) {
+      alert("Keine Firma geladen. Bitte Seite neu laden.");
+      return;
+    }
+
+    setServiceTemplatesSaving(true);
+
+    const { data, error } = await supabase
+      .from("companies")
+      .update({ service_templates: serviceTemplatesInput })
+      .eq("id", currentCompany.id)
+      .select("*")
+      .maybeSingle();
+
+    setServiceTemplatesSaving(false);
+
+    if (error) {
+      alert(`Vorlagen konnten nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    setCompanyData(
+      (data || {
+        ...currentCompany,
+        service_templates: serviceTemplatesInput,
+      }) as CompanyData,
+    );
+    alert("Prüf- und Wartungsvorlagen gespeichert.");
+  }
+
+  function getCustomInspectionTemplate(templateName: string) {
+    return serviceTemplatesInput.find(
+      (template) =>
+        template.kind === "inspection" && template.name === templateName,
+    );
+  }
+
+  function applyMaintenanceTemplate(templateName: string) {
+    setMaintenanceType(templateName);
+
+    const customTemplate = serviceTemplatesInput.find(
+      (template) =>
+        template.kind === "maintenance" && template.name === templateName,
+    );
+
+    if (customTemplate?.interval_days) {
+      setMaintenanceIntervalDays(String(customTemplate.interval_days));
+    }
   }
 
   async function saveServiceProfileSettings() {
@@ -10584,7 +10753,14 @@ PRO-EFFEKT`,
 
   function applyAbnahmeTemplate(templateName: string) {
     setAbnahmeProtocolTemplate(templateName);
-    const questions = protocolTemplateOptions[templateName] || protocolTemplateOptions["Allgemeine Prüfung"];
+
+    const customTemplate = getCustomInspectionTemplate(templateName);
+    const questions =
+      customTemplate?.checklist && customTemplate.checklist.length > 0
+        ? customTemplate.checklist
+        : protocolTemplateOptions[templateName] ||
+          protocolTemplateOptions["Allgemeine Prüfung"];
+
     setAbnahmeChecks(
       questions.map((question) => ({
         question,
@@ -20570,6 +20746,137 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 </button>
               </div>
 
+              <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                      Serviceabläufe
+                    </p>
+                    <h3 className="mt-1 text-2xl font-black text-slate-950">
+                      Prüf- & Wartungsvorlagen
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                      Eigene Prüflisten und Wartungsarten als wiederverwendbare Vorlagen anlegen. Die TRYBUN-Standardvorlagen bleiben zusätzlich verfügbar.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
+                    {serviceTemplatesInput.length} Vorlage{serviceTemplatesInput.length === 1 ? "" : "n"}
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
+                  <input
+                    value={newServiceTemplateName}
+                    onChange={(event) => setNewServiceTemplateName(event.target.value)}
+                    placeholder="Vorlagenname, z. B. Jahreswartung"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                  />
+
+                  <select
+                    value={newServiceTemplateKind}
+                    onChange={(event) =>
+                      setNewServiceTemplateKind(event.target.value as ServiceTemplateKind)
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-bold text-slate-800"
+                  >
+                    <option value="inspection">Prüfvorlage</option>
+                    <option value="maintenance">Wartungsvorlage</option>
+                  </select>
+
+                  {newServiceTemplateKind === "maintenance" ? (
+                    <input
+                      value={newServiceTemplateIntervalDays}
+                      onChange={(event) => setNewServiceTemplateIntervalDays(event.target.value)}
+                      type="number"
+                      min="1"
+                      placeholder="Intervall Tage"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-500">
+                      Prüfpunkte unten
+                    </div>
+                  )}
+                </div>
+
+                {newServiceTemplateKind === "inspection" && (
+                  <textarea
+                    value={newServiceTemplateChecklist}
+                    onChange={(event) => setNewServiceTemplateChecklist(event.target.value)}
+                    placeholder={"Ein Prüfpunkt pro Zeile\nAllgemeiner Zustand\nFunktion prüfen\nSicherheit prüfen"}
+                    rows={6}
+                    className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-900"
+                  />
+                )}
+
+                <button
+                  type="button"
+                  onClick={addServiceTemplate}
+                  className="mt-3 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white sm:w-auto"
+                >
+                  Vorlage hinzufügen
+                </button>
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                  {serviceTemplatesInput.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm font-semibold text-slate-500 lg:col-span-2">
+                      Noch keine eigenen Vorlagen angelegt. Die bestehenden TRYBUN-Standardvorlagen bleiben verfügbar.
+                    </div>
+                  ) : (
+                    serviceTemplatesInput.map((template) => (
+                      <div
+                        key={template.id}
+                        className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-black text-slate-950">{template.name}</p>
+                            <p className="mt-1 text-xs font-bold text-sky-600">
+                              {template.kind === "inspection" ? "Prüfvorlage" : "Wartungsvorlage"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeServiceTemplate(template.id)}
+                            className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600"
+                          >
+                            Entfernen
+                          </button>
+                        </div>
+
+                        {template.kind === "inspection" ? (
+                          <div className="mt-3 space-y-1">
+                            {(template.checklist || []).slice(0, 6).map((item, index) => (
+                              <p key={`${template.id}-${index}`} className="text-sm font-semibold text-slate-600">
+                                • {item}
+                              </p>
+                            ))}
+                            {(template.checklist || []).length > 6 && (
+                              <p className="text-xs font-bold text-slate-400">
+                                + {(template.checklist || []).length - 6} weitere Prüfpunkte
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-sm font-semibold text-slate-600">
+                            Standardintervall: {template.interval_days || 365} Tage
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={saveServiceTemplates}
+                  disabled={serviceTemplatesSaving}
+                  className="mt-5 w-full rounded-xl bg-sky-600 px-6 py-3.5 text-sm font-black text-white hover:bg-sky-700 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+                >
+                  {serviceTemplatesSaving ? "Vorlagen werden gespeichert …" : "Vorlagen speichern"}
+                </button>
+              </div>
+
               <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
                   Firmenauftritt
@@ -23307,7 +23614,16 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
                         onChange={(e) => applyAbnahmeTemplate(e.target.value)}
                         className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                       >
-                        {Object.keys(protocolTemplateOptions).map((item) => <option key={item}>{item}</option>)}
+                        {Object.keys(protocolTemplateOptions).map((item) => (
+                          <option key={`standard-${item}`}>{item}</option>
+                        ))}
+                        {serviceTemplatesInput
+                          .filter((template) => template.kind === "inspection")
+                          .map((template) => (
+                            <option key={`custom-${template.id}`} value={template.name}>
+                              {template.name}
+                            </option>
+                          ))}
                       </select>
 
                       <div className="grid gap-3 md:grid-cols-2">
@@ -23648,7 +23964,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
                     <select
                       value={maintenanceType}
-                      onChange={(e) => setMaintenanceType(e.target.value)}
+                      onChange={(e) => applyMaintenanceTemplate(e.target.value)}
                       className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
                     >
                       <option>Sicherheitsprüfung-Wartung</option>
@@ -23657,6 +23973,13 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       <option>Sicherheitsprüfung</option>
                       <option>Reparatur-Nachkontrolle</option>
                       <option>Prüfsiegel-Erneuerung</option>
+                      {serviceTemplatesInput
+                        .filter((template) => template.kind === "maintenance")
+                        .map((template) => (
+                          <option key={template.id} value={template.name}>
+                            {template.name}
+                          </option>
+                        ))}
                     </select>
 
                     <input
