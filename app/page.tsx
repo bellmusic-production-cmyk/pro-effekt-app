@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.85 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.86 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2281,7 +2281,7 @@ export default function Home() {
         if (!isAssignedToMe) return false;
       }
 
-      const search = searchTerm.toLowerCase().trim();
+      const search = searchTerm.trim();
 
       const linkedTicketCustomer =
         customers.find((item) => item.id === ticket.customer_id) ||
@@ -2300,35 +2300,34 @@ export default function Home() {
 
       const matchesSearch =
         !search ||
-        [
-          ticket.ticket_number,
-          ticket.customer,
-          ticket.issue,
-          ticket.device,
-          linkedTicketDevice?.serial_number,
-          linkedTicketDevice?.location,
-          linkedTicketDevice?.manufacturer,
-          getManufacturerNameById(linkedTicketDevice?.manufacturer_id),
-          getDeviceModelNameById(linkedTicketDevice?.model_id),
-          ticket.description,
-          ticket.billing_customer_id,
-          ticket.service_location_name,
-          ticket.service_address,
-          ticket.service_contact_name,
-          ticket.service_contact_phone,
-          ticket.service_contact_email,
-          linkedTicketCustomer?.customer_number,
-          linkedTicketCustomer?.supplier_number,
-          linkedTicketCustomer?.contact_person,
-          linkedTicketCustomer?.email,
-          linkedTicketCustomer?.phone,
-          linkedTicketCustomer?.city,
-          customerSearchText,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        matchesTrybunPrefixSearch(
+          [
+            ticket.ticket_number,
+            ticket.customer,
+            ticket.issue,
+            ticket.device,
+            linkedTicketDevice?.serial_number,
+            linkedTicketDevice?.location,
+            linkedTicketDevice?.manufacturer,
+            getManufacturerNameById(linkedTicketDevice?.manufacturer_id),
+            getDeviceModelNameById(linkedTicketDevice?.model_id),
+            ticket.description,
+            ticket.billing_customer_id,
+            ticket.service_location_name,
+            ticket.service_address,
+            ticket.service_contact_name,
+            ticket.service_contact_phone,
+            ticket.service_contact_email,
+            linkedTicketCustomer?.customer_number,
+            linkedTicketCustomer?.supplier_number,
+            linkedTicketCustomer?.contact_person,
+            linkedTicketCustomer?.email,
+            linkedTicketCustomer?.phone,
+            linkedTicketCustomer?.city,
+            customerSearchText,
+          ],
+          search,
+        );
 
       const matchesStatus =
         statusFilter === "Alle" || ticket.status === statusFilter;
@@ -2413,7 +2412,7 @@ export default function Home() {
   }, [visibleRoleTickets]);
 
   const filteredDocuments = useMemo(() => {
-    const search = documentSearchTerm.toLowerCase().trim();
+    const search = documentSearchTerm.trim();
 
     const customerFilteredDocuments =
       userProfile?.role === "customer"
@@ -2446,12 +2445,17 @@ export default function Home() {
 
       const matchesSearch =
         !search ||
-        item.file_name.toLowerCase().includes(search) ||
-        item.category.toLowerCase().includes(search) ||
-        customerName.includes(search) ||
-        deviceName.includes(search) ||
-        ticketNumber.includes(search) ||
-        String(linkedTicket?.issue || "").toLowerCase().includes(search);
+        matchesTrybunPrefixSearch(
+          [
+            item.file_name,
+            item.category,
+            customerName,
+            deviceName,
+            ticketNumber,
+            linkedTicket?.issue,
+          ],
+          search,
+        );
 
       const matchesQuickFilter = (() => {
         if (documentQuickFilter === "Alle") return true;
@@ -2709,7 +2713,7 @@ export default function Home() {
   }
 
   const communicationFilteredNotifications = useMemo(() => {
-    const search = communicationSearchTerm.toLowerCase().trim();
+    const search = communicationSearchTerm.trim();
 
     return notifications.filter((item) => {
       const statusValue = String(item.email_status || item.status || "pending").toLowerCase();
@@ -2724,22 +2728,21 @@ export default function Home() {
 
       const matchesSearch =
         !search ||
-        [
-          item.type,
-          item.recipient,
-          item.subject,
-          item.message,
-          item.email_status,
-          item.status,
-          item.email_error,
-          item.email_template,
-          item.email_provider_id,
-          tickets.find((ticket) => ticket.id === item.related_ticket_id)?.ticket_number,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        matchesTrybunPrefixSearch(
+          [
+            item.type,
+            item.recipient,
+            item.subject,
+            item.message,
+            item.email_status,
+            item.status,
+            item.email_error,
+            item.email_template,
+            item.email_provider_id,
+            tickets.find((ticket) => ticket.id === item.related_ticket_id)?.ticket_number,
+          ],
+          search,
+        );
 
       return matchesStatus && matchesType && matchesSearch;
     });
@@ -2771,7 +2774,7 @@ export default function Home() {
   }, [userProfiles]);
 
   const userManagementProfiles = useMemo(() => {
-    const search = userManagementSearch.trim().toLocaleLowerCase("de-DE");
+    const search = userManagementSearch.trim();
 
     return userProfiles
       .filter((profile) => profile.role === userManagementRoleFilter)
@@ -2780,18 +2783,17 @@ export default function Home() {
       .filter((profile) => {
         if (!search) return true;
         const linkedCustomer = profile.role === "customer" ? getCustomerForUserProfile(profile) : null;
-        return [
-          getUserDisplayName(profile),
-          profile.company,
-          userCompanyNames[profile.id],
-          linkedCustomer?.company,
-          linkedCustomer?.email,
-          linkedCustomer?.customer_number,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLocaleLowerCase("de-DE")
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            getUserDisplayName(profile),
+            profile.company,
+            userCompanyNames[profile.id],
+            linkedCustomer?.company,
+            linkedCustomer?.email,
+            linkedCustomer?.customer_number,
+          ],
+          search,
+        );
       })
       .sort((a, b) => getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de"));
   }, [userProfiles, userManagementRoleFilter, userManagementSearch, userCompanyNames, customers]);
@@ -10543,6 +10545,41 @@ function ProEffektLogo({ dark = false }: { dark?: boolean }) {
       .toLowerCase();
   }
 
+  function normalizeTrybunSearchValue(value: unknown) {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/ß/g, "ss")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getTrybunSearchTokens(value: unknown) {
+    const normalized = normalizeTrybunSearchValue(value);
+    return normalized ? normalized.split(" ").filter(Boolean) : [];
+  }
+
+  function matchesTrybunPrefixSearch(
+    values: Array<unknown>,
+    query: string,
+  ) {
+    const queryTokens = getTrybunSearchTokens(query);
+
+    if (queryTokens.length === 0) return true;
+
+    const valueTokens = values.flatMap((value) => getTrybunSearchTokens(value));
+    const compactValues = values
+      .map((value) => normalizeTrybunSearchValue(value).replace(/\s+/g, ""))
+      .filter(Boolean);
+
+    return queryTokens.every((queryToken) =>
+      valueTokens.some((valueToken) => valueToken.startsWith(queryToken)) ||
+      compactValues.some((value) => value.startsWith(queryToken)),
+    );
+  }
+
   function getCustomerLabel(customer: Customer) {
     return (
       customer.company ||
@@ -16365,25 +16402,48 @@ ${tenantBrandName}`,
   const activeServiceParts = serviceParts.filter((part) => !part.is_archived);
 
   const filteredActiveServiceParts = activeServiceParts.filter((part) => {
-    const matchesManufacturer = partManufacturerFilter === "Alle" || String(part.manufacturer_id || "") === partManufacturerFilter;
-    const query = partSearchTerm.trim().toLowerCase();
+    const matchesManufacturer =
+      partManufacturerFilter === "Alle" ||
+      String(part.manufacturer_id || "") === partManufacturerFilter;
+    const query = partSearchTerm.trim();
+
     if (!matchesManufacturer) return false;
     if (!query) return true;
-    const manufacturerName = getManufacturerNameById(part.manufacturer_id);
-    return [part.name, part.sku, part.category, part.storage_location, part.note, manufacturerName]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(query);
+
+    return matchesTrybunPrefixSearch(
+      [
+        part.name,
+        part.sku,
+        part.category,
+        part.storage_location,
+        part.note,
+        getManufacturerNameById(part.manufacturer_id),
+        part.manufacturer_part_number,
+      ],
+      query,
+    );
   });
 
   const stockedDeviceModels = deviceModels.filter((modelItem) => Boolean(modelItem.is_stocked));
   const filteredInventoryModels = stockedDeviceModels.filter((modelItem) => {
-    if (inventoryManufacturerFilter !== "Alle" && String(modelItem.manufacturer_id || "") !== inventoryManufacturerFilter) return false;
-    const query = inventorySearchTerm.trim().toLowerCase();
+    if (
+      inventoryManufacturerFilter !== "Alle" &&
+      String(modelItem.manufacturer_id || "") !== inventoryManufacturerFilter
+    ) return false;
+
+    const query = inventorySearchTerm.trim();
     if (!query) return true;
-    return [getDeviceModelDisplayName(modelItem), modelItem.category, getDeviceModelTypeName(modelItem), modelItem.storage_location, getManufacturerNameById(modelItem.manufacturer_id)]
-      .filter(Boolean).join(" ").toLowerCase().includes(query);
+
+    return matchesTrybunPrefixSearch(
+      [
+        getDeviceModelDisplayName(modelItem),
+        modelItem.category,
+        getDeviceModelTypeName(modelItem),
+        modelItem.storage_location,
+        getManufacturerNameById(modelItem.manufacturer_id),
+      ],
+      query,
+    );
   });
 
   const lowStockParts = activeServiceParts.filter(
@@ -16830,12 +16890,12 @@ ${tenantBrandName}`,
   });
 
   const filteredQrDevices = (() => {
-    const search = qrSearchTerm.toLowerCase().trim();
+    const search = qrSearchTerm.trim();
 
     const matchedDevices = qrBaseDevices
       .filter((item) => {
         if (!search) return true;
-        return getQrDeviceSearchText(item).includes(search);
+        return matchesTrybunPrefixSearch([getQrDeviceSearchText(item)], search);
       })
       .sort((a, b) =>
         (a.name || "").localeCompare(b.name || "", "de", { sensitivity: "base" }),
@@ -16849,11 +16909,13 @@ ${tenantBrandName}`,
   })();
 
   const qrMatchedDeviceCount = (() => {
-    const search = qrSearchTerm.toLowerCase().trim();
+    const search = qrSearchTerm.trim();
 
     if (!search) return qrBaseDevices.length;
 
-    return qrBaseDevices.filter((item) => getQrDeviceSearchText(item).includes(search)).length;
+    return qrBaseDevices.filter((item) =>
+      matchesTrybunPrefixSearch([getQrDeviceSearchText(item)], search),
+    ).length;
   })();
 
   const invoiceRevenueGross = invoices
@@ -17410,14 +17472,31 @@ ${tenantBrandName}`,
       : customers;
 
   const filteredTicketCustomers = (() => {
-    const search = ticketCustomerSearch.toLowerCase().trim();
+    const search = ticketCustomerSearch.trim();
 
     if (!search) {
-      return [];
+      return portalCustomers
+        .slice()
+        .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+        .slice(0, 12);
     }
 
     return portalCustomers
-      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
+      .filter((customerItem) =>
+        matchesTrybunPrefixSearch(
+          [
+            customerItem.company,
+            getCustomerDisplayName(customerItem),
+            customerItem.customer_number,
+            customerItem.contact_person,
+            customerItem.city,
+            customerItem.email,
+            customerItem.phone,
+          ],
+          search,
+        ),
+      )
+      .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
       .slice(0, 30);
   })();
 
@@ -17440,7 +17519,7 @@ ${tenantBrandName}`,
     : availableTicketDevices.slice(0, 12);
 
   const filteredTicketDevices = (() => {
-    const search = ticketDeviceSearch.toLowerCase().trim();
+    const search = ticketDeviceSearch.trim();
 
     const baseDevices = selectedTicketCustomer
       ? ticketCustomerDevices
@@ -17456,23 +17535,22 @@ ${tenantBrandName}`,
           ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
           : null;
 
-        return [
-          deviceItem.name,
-          deviceItem.model,
-          getDeviceModelNameById(deviceItem.model_id),
-          deviceItem.manufacturer,
-          getManufacturerNameById(deviceItem.manufacturer_id),
-          deviceItem.serial_number,
-          deviceItem.location,
-          deviceItem.status,
-          deviceItem.note,
-          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            deviceItem.name,
+            deviceItem.model,
+            getDeviceModelNameById(deviceItem.model_id),
+            deviceItem.manufacturer,
+            getManufacturerNameById(deviceItem.manufacturer_id),
+            deviceItem.serial_number,
+            deviceItem.location,
+            deviceItem.status,
+            deviceItem.note,
+            linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+            linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+          ],
+          search,
+        );
       })
       .slice(0, 30);
   })();
@@ -17645,24 +17723,23 @@ ${tenantBrandName}`,
   })();
 
   const filteredTicketLibraryModels = (() => {
-    const search = ticketDeviceSearch.toLowerCase().trim();
+    const search = ticketDeviceSearch.trim();
 
-    if (search.length < 1) return [];
+    if (search.length < 1) return deviceModels.slice(0, 12);
 
     return deviceModels
       .filter((modelItem) => {
         const manufacturerName = getManufacturerNameById(modelItem.manufacturer_id);
-        return [
-          manufacturerName,
-          getDeviceModelTypeName(modelItem),
-          getDeviceModelDisplayName(modelItem),
-          modelItem.category,
-          modelItem.note,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            manufacturerName,
+            getDeviceModelTypeName(modelItem),
+            getDeviceModelDisplayName(modelItem),
+            modelItem.category,
+            modelItem.note,
+          ],
+          search,
+        );
       })
       .sort((a, b) => getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"))
       .slice(0, 40);
@@ -17696,25 +17773,38 @@ ${tenantBrandName}`,
     .slice(0, 50);
 
   const filteredUploadCustomers = (() => {
-    const search = uploadCustomerSearch.toLowerCase().trim();
+    const search = uploadCustomerSearch.trim();
 
     if (userProfile?.role === "customer") return [];
 
-    if (!search || search.length < 2) {
-      return [];
+    if (!search) {
+      return customers
+        .slice()
+        .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
+        .slice(0, 12);
     }
 
     return customers
-      .filter((customerItem) => getCustomerSearchText(customerItem).includes(search))
+      .filter((customerItem) =>
+        matchesTrybunPrefixSearch(
+          [
+            customerItem.company,
+            getCustomerDisplayName(customerItem),
+            customerItem.customer_number,
+            customerItem.contact_person,
+            customerItem.city,
+            customerItem.email,
+            customerItem.phone,
+          ],
+          search,
+        ),
+      )
+      .sort((a, b) => getCustomerLabel(a).localeCompare(getCustomerLabel(b), "de"))
       .slice(0, 30);
   })();
 
   const filteredUploadDevices = (() => {
-    const search = uploadDeviceSearch.toLowerCase().trim();
-
-    if (!search || search.length < 2) {
-      return [];
-    }
+    const search = uploadDeviceSearch.trim();
 
     const baseDevices = isCustomer && userProfile?.customer_id
       ? devices.filter((deviceItem) => deviceItem.customer_id === userProfile.customer_id)
@@ -17728,23 +17818,24 @@ ${tenantBrandName}`,
           ? customers.find((customerItem) => customerItem.id === deviceItem.customer_id)
           : null;
 
-        return [
-          deviceItem.name,
-          deviceItem.model,
-          getDeviceModelNameById(deviceItem.model_id),
-          deviceItem.manufacturer,
-          getManufacturerNameById(deviceItem.manufacturer_id),
-          deviceItem.serial_number,
-          deviceItem.location,
-          deviceItem.status,
-          deviceItem.note,
-          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        if (!search) return true;
+
+        return matchesTrybunPrefixSearch(
+          [
+            deviceItem.name,
+            deviceItem.model,
+            getDeviceModelNameById(deviceItem.model_id),
+            deviceItem.manufacturer,
+            getManufacturerNameById(deviceItem.manufacturer_id),
+            deviceItem.serial_number,
+            deviceItem.location,
+            deviceItem.status,
+            deviceItem.note,
+            linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+            linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+          ],
+          search,
+        );
       })
       .slice(0, 30);
   })();
@@ -17753,14 +17844,6 @@ ${tenantBrandName}`,
     selectedDeviceId
       ? devices.find((deviceItem) => deviceItem.id === Number(selectedDeviceId)) || null
       : null;
-
-  function normalizeCustomerDirectoryText(value: unknown) {
-    return String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
-  }
 
   const customerDirectoryCityOptions = Array.from(
     new Set(
@@ -17771,8 +17854,7 @@ ${tenantBrandName}`,
   ).sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base" }));
 
   const customerDirectoryMatches = (() => {
-    const search = normalizeCustomerDirectoryText(customerDirectorySearch);
-    const searchTerms = search.split(/\s+/).filter(Boolean);
+    const search = customerDirectorySearch.trim();
 
     return customers
       .filter((customerItem) => {
@@ -17790,9 +17872,9 @@ ${tenantBrandName}`,
           return false;
         }
 
-        if (searchTerms.length === 0) return true;
+        if (!search) return true;
 
-        const haystack = normalizeCustomerDirectoryText(
+        return matchesTrybunPrefixSearch(
           [
             customerItem.company,
             getCustomerDisplayName(customerItem),
@@ -17817,12 +17899,9 @@ ${tenantBrandName}`,
             customerItem.contact_2_name,
             customerItem.contact_2_email,
             customerItem.contact_2_phone,
-          ]
-            .filter(Boolean)
-            .join(" "),
+          ],
+          search,
         );
-
-        return searchTerms.every((term) => haystack.includes(term));
       })
       .sort((a, b) =>
         (a.company || getCustomerDisplayName(a) || "").localeCompare(
@@ -17871,7 +17950,7 @@ ${tenantBrandName}`,
     };
   }
 
-  const deviceDirectorySearchNormalized = deviceDirectorySearch.toLowerCase().trim();
+  const deviceDirectorySearchNormalized = deviceDirectorySearch.trim();
   const isDeviceDirectorySearchReady =
     deviceDirectorySearchNormalized.length >= deviceDirectoryMinSearchLength;
 
@@ -17955,62 +18034,63 @@ ${tenantBrandName}`,
         const cleanManufacturer = getCleanManufacturerName(deviceItem.manufacturer_id);
         const cleanModel = getCleanModelName(deviceItem.model_id);
 
-        return [
-          deviceItem.name,
-          deviceItem.model,
-          cleanModel,
-          deviceItem.manufacturer,
-          cleanManufacturer,
-          deviceItem.serial_number,
-          deviceItem.location,
-          deviceItem.status,
-          deviceItem.note,
-          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-          linkedCustomer ? linkedCustomer.customer_number : "",
-          linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            deviceItem.name,
+            deviceItem.model,
+            cleanModel,
+            deviceItem.manufacturer,
+            cleanManufacturer,
+            deviceItem.serial_number,
+            deviceItem.location,
+            deviceItem.status,
+            deviceItem.note,
+            linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+            linkedCustomer ? linkedCustomer.customer_number : "",
+            linkedCustomer ? buildCustomerAddress(linkedCustomer) : "",
+          ],
+          search,
+        );
       })
       .slice(0, deviceDirectoryResultLimit);
   })();
 
   const filteredManufacturerDirectory = (() => {
-    const manufacturerSearch = manufacturerDirectorySearch.toLowerCase().trim();
-    const modelSearch = deviceModelDirectorySearch.toLowerCase().trim();
+    const manufacturerSearch = manufacturerDirectorySearch.trim();
+    const modelSearch = deviceModelDirectorySearch.trim();
 
     return manufacturers.filter((manufacturerItem) => {
-      const manufacturerText = [
-        manufacturerItem.name,
-        manufacturerItem.website,
-        manufacturerItem.phone,
-        manufacturerItem.email,
-        manufacturerItem.contact_person,
-        manufacturerItem.address,
-        manufacturerItem.parts_url,
-        manufacturerItem.note,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+      const matchesManufacturer =
+        !manufacturerSearch ||
+        matchesTrybunPrefixSearch(
+          [
+            manufacturerItem.name,
+            manufacturerItem.website,
+            manufacturerItem.phone,
+            manufacturerItem.email,
+            manufacturerItem.contact_person,
+            manufacturerItem.address,
+            manufacturerItem.parts_url,
+            manufacturerItem.note,
+          ],
+          manufacturerSearch,
+        );
 
-      const matchesManufacturer = !manufacturerSearch || manufacturerText.includes(manufacturerSearch);
-      const matchesModel = !modelSearch || deviceModels.some((modelItem) =>
-        modelItem.manufacturer_id === manufacturerItem.id &&
-        [
-          getDeviceModelDisplayName(modelItem),
-          getDeviceModelTypeName(modelItem),
-          modelItem.category,
-          modelItem.source,
-          modelItem.note,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(modelSearch),
-      );
+      const matchesModel =
+        !modelSearch ||
+        deviceModels.some((modelItem) =>
+          modelItem.manufacturer_id === manufacturerItem.id &&
+          matchesTrybunPrefixSearch(
+            [
+              getDeviceModelDisplayName(modelItem),
+              getDeviceModelTypeName(modelItem),
+              modelItem.category,
+              modelItem.source,
+              modelItem.note,
+            ],
+            modelSearch,
+          ),
+        );
 
       return matchesManufacturer && matchesModel;
     });
@@ -18021,7 +18101,7 @@ ${tenantBrandName}`,
     : [];
 
   const deviceCustomerOptions = (() => {
-    const search = deviceCustomerSearch.trim().toLowerCase();
+    const search = deviceCustomerSearch.trim();
     const filtered = customers
       .filter((customerItem) =>
         deviceCustomerTypeFilter === "Alle" ||
@@ -18032,20 +18112,20 @@ ${tenantBrandName}`,
       );
 
     const matching = search
-      ? filtered.filter((customerItem) => {
-          const searchable = [
-            customerItem.company,
-            getCustomerDisplayName(customerItem),
-            customerItem.customer_number,
-            customerItem.city,
-            customerItem.email,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return searchable.includes(search);
-        })
-      : filtered.slice(0, 5);
+      ? filtered.filter((customerItem) =>
+          matchesTrybunPrefixSearch(
+            [
+              customerItem.company,
+              getCustomerDisplayName(customerItem),
+              customerItem.customer_number,
+              customerItem.city,
+              customerItem.email,
+              customerItem.phone,
+            ],
+            search,
+          ),
+        )
+      : filtered.slice(0, 12);
 
     const selectedCustomer = deviceCustomerId
       ? customers.find((customerItem) => customerItem.id === Number(deviceCustomerId))
@@ -18059,7 +18139,7 @@ ${tenantBrandName}`,
   })();
 
   const filteredDeviceModelDirectory = (() => {
-    const search = deviceModelDirectorySearch.toLowerCase().trim();
+    const search = deviceModelDirectorySearch.trim();
     const activeManufacturerId = catalogManufacturerId || modelManufacturerId;
     const baseModels = activeManufacturerId
       ? deviceModels.filter((item) => item.manufacturer_id === Number(activeManufacturerId))
@@ -18069,18 +18149,17 @@ ${tenantBrandName}`,
 
     return baseModels.filter((modelItem) => {
       const linkedManufacturer = getManufacturerNameById(modelItem.manufacturer_id);
-      return [
-        linkedManufacturer,
-        getDeviceModelDisplayName(modelItem),
-        getDeviceModelTypeName(modelItem),
-        modelItem.category,
-        modelItem.source,
-        modelItem.note,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(search);
+      return matchesTrybunPrefixSearch(
+        [
+          linkedManufacturer,
+          getDeviceModelDisplayName(modelItem),
+          getDeviceModelTypeName(modelItem),
+          modelItem.category,
+          modelItem.source,
+          modelItem.note,
+        ],
+        search,
+      );
     });
   })();
 
@@ -18104,7 +18183,7 @@ ${tenantBrandName}`,
         ? customers.filter((customerItem) => customerItem.id === userProfile.customer_id)
         : customers;
 
-    if (!search || search.length < 2) return [];
+    if (!search) return [];
 
     const scoredCustomers = baseCustomers
       .map((customerItem) => {
@@ -18208,11 +18287,26 @@ ${tenantBrandName}`,
         // Mehrwortsuchen wie "1 FC Kais" oder "Frank Bell" dürfen nicht zufällig
         // über Adresse/E-Mail/Telefon zusammengesucht werden. Sie müssen im Namen,
         // in der Firma, im Ansprechpartner oder in einer Nummer zusammenpassen.
-        const matches =
-          namePhraseMatch ||
-          numberMatch ||
-          allWordsInNameOrCompany ||
-          singleWordMatch;
+        const matches = matchesTrybunPrefixSearch(
+          [
+            customerItem.customer_number,
+            customerItem.supplier_number,
+            customerItem.company,
+            getCustomerDisplayName(customerItem),
+            getCustomerLabel(customerItem),
+            customerItem.contact_person,
+            customerItem.first_name,
+            customerItem.last_name,
+            customerItem.email,
+            customerItem.email_2,
+            customerItem.phone,
+            customerItem.phone_2,
+            customerItem.postal_code,
+            customerItem.city,
+            buildCustomerAddress(customerItem),
+          ],
+          abnahmeCustomerSearch,
+        );
 
         if (!matches) return null;
 
@@ -18375,7 +18469,7 @@ ${tenantBrandName}`,
       return aLabel.localeCompare(bLabel, "de");
     });
 
-    if (!search || search.length < 2) return neutralDevices.slice(0, 20);
+    if (!search) return neutralDevices.slice(0, 20);
 
     return neutralDevices
       .map((deviceItem) => {
@@ -18393,7 +18487,15 @@ ${tenantBrandName}`,
           .map(normalizeSearchValue)
           .join(" ");
 
-        const matches = searchParts.every((part) => searchableText.includes(part));
+        const matches = matchesTrybunPrefixSearch(
+          [
+            manufacturerName,
+            categoryName,
+            modelName,
+            deviceItem.name,
+          ],
+          abnahmeDeviceSearch,
+        );
         if (!matches) return null;
 
         let score = 0;
@@ -18471,7 +18573,7 @@ ${tenantBrandName}`,
   })();
 
   const customerModelAssignResults = (() => {
-    const search = customerDeviceAssignSearch.trim().toLowerCase();
+    const search = customerDeviceAssignSearch.trim();
 
     return deviceModels
       .filter((modelItem) => {
@@ -18488,17 +18590,16 @@ ${tenantBrandName}`,
 
         if (!search) return true;
 
-        return [
-          getManufacturerNameById(modelItem.manufacturer_id),
-          typeName,
-          getDeviceModelDisplayName(modelItem),
-          modelItem.source,
-          modelItem.note,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            getManufacturerNameById(modelItem.manufacturer_id),
+            typeName,
+            getDeviceModelDisplayName(modelItem),
+            modelItem.source,
+            modelItem.note,
+          ],
+          search,
+        );
       })
       .sort((a, b) =>
         getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"),
@@ -18507,7 +18608,7 @@ ${tenantBrandName}`,
   })();
 
   const customerStockAssignResults = (() => {
-    const search = customerDeviceAssignSearch.trim().toLowerCase();
+    const search = customerDeviceAssignSearch.trim();
 
     return deviceModels
       .filter((modelItem) => Boolean(modelItem.is_stocked) && Number(modelItem.stock || 0) > 0)
@@ -18525,16 +18626,15 @@ ${tenantBrandName}`,
 
         if (!search) return true;
 
-        return [
-          getManufacturerNameById(modelItem.manufacturer_id),
-          typeName,
-          getDeviceModelDisplayName(modelItem),
-          modelItem.storage_location,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            getManufacturerNameById(modelItem.manufacturer_id),
+            typeName,
+            getDeviceModelDisplayName(modelItem),
+            modelItem.storage_location,
+          ],
+          search,
+        );
       })
       .sort((a, b) =>
         getTicketLibraryModelLabel(a).localeCompare(getTicketLibraryModelLabel(b), "de"),
@@ -18543,7 +18643,7 @@ ${tenantBrandName}`,
   })();
 
   const customerPartAssignResults = (() => {
-    const search = customerDeviceAssignSearch.trim().toLowerCase();
+    const search = customerDeviceAssignSearch.trim();
 
     return activeServiceParts
       .filter((part) => {
@@ -18559,18 +18659,17 @@ ${tenantBrandName}`,
 
         if (!search) return true;
 
-        return [
-          part.name,
-          part.sku,
-          part.category,
-          getManufacturerNameById(part.manufacturer_id),
-          part.manufacturer_part_number,
-          part.storage_location,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(search);
+        return matchesTrybunPrefixSearch(
+          [
+            part.name,
+            part.sku,
+            part.category,
+            getManufacturerNameById(part.manufacturer_id),
+            part.manufacturer_part_number,
+            part.storage_location,
+          ],
+          search,
+        );
       })
       .sort((a, b) => a.name.localeCompare(b.name, "de"))
       .slice(0, 30);
@@ -21552,9 +21651,11 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                 const fotoDocuments = contextDocuments.filter((doc) => getDocumentPremiumKind(doc) === "Foto");
                 const videoDocuments = contextDocuments.filter((doc) => getDocumentPremiumKind(doc) === "Video");
                 const lieferscheinDocuments = contextDocuments.filter((doc) => getDocumentPremiumKind(doc) === "Lieferschein");
-                const documentSearch = ticketAkteDocumentSearch.trim().toLowerCase();
-                const attachableDocuments = documentSearch.length < 2
-                  ? []
+                const documentSearch = ticketAkteDocumentSearch.trim();
+                const attachableDocuments = documentSearch.length < 1
+                  ? documents
+                      .filter((documentItem) => !contextDocuments.some((existing) => existing.id === documentItem.id))
+                      .slice(0, 8)
                   : documents
                       .filter((documentItem) => !contextDocuments.some((existing) => existing.id === documentItem.id))
                       .filter((documentItem) => {
@@ -21565,19 +21666,18 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           ? customers.find((customerItem) => customerItem.id === documentItem.customer_id)
                           : null;
 
-                        return [
-                          documentItem.file_name,
-                          documentItem.category,
-                          getDocumentCustomerName(documentItem),
-                          getDeviceNameById(documentItem.device_id),
-                          linkedDevice?.serial_number,
-                          linkedDevice?.location,
-                          linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")
-                          .toLowerCase()
-                          .includes(documentSearch);
+                        return matchesTrybunPrefixSearch(
+                          [
+                            documentItem.file_name,
+                            documentItem.category,
+                            getDocumentCustomerName(documentItem),
+                            getDeviceNameById(documentItem.device_id),
+                            linkedDevice?.serial_number,
+                            linkedDevice?.location,
+                            linkedCustomer ? getCustomerLabel(linkedCustomer) : "",
+                          ],
+                          documentSearch,
+                        );
                       })
                       .slice(0, 8);
                 const customerTickets = getTicketsForCustomerContext(ticketCustomer?.id).slice(0, 8);
@@ -23387,7 +23487,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                         )}
 
                         {!isCustomer && !selectedUploadCustomer &&
-                          uploadCustomerSearch.trim().length >= 2 &&
+                          uploadCustomerSearch.trim().length >= 1 &&
                           filteredUploadCustomers.length > 0 && (
                             <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
                               {filteredUploadCustomers.map((customerItem) => (
@@ -23416,14 +23516,14 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                           )}
 
                         {!selectedUploadCustomer &&
-                          uploadCustomerSearch.trim().length >= 2 &&
+                          uploadCustomerSearch.trim().length >= 1 &&
                           filteredUploadCustomers.length === 0 && (
                             <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
                               Kein Kunde gefunden.
                             </p>
                           )}
 
-                        {!isCustomer && !selectedUploadCustomer && uploadCustomerSearch.trim().length < 2 && (
+                        {!isCustomer && !selectedUploadCustomer && uploadCustomerSearch.trim().length < 1 && (
                           <p className="mt-3 text-xs font-bold text-slate-500">
                             Für Abnahmeprotokolle ist ein Kunde Pflicht.
                           </p>
@@ -23497,7 +23597,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                         )}
 
                         {!selectedUploadDevice &&
-                          uploadDeviceSearch.trim().length >= 2 &&
+                          uploadDeviceSearch.trim().length >= 1 &&
                           filteredUploadDevices.length > 0 && (
                             <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
                               {filteredUploadDevices.map((deviceItem) => {
@@ -23535,7 +23635,7 @@ placeholder="Kunde suchen: Firma, Kundennummer, Ort, E-Mail..."
                           )}
 
                         {!selectedUploadDevice &&
-                          uploadDeviceSearch.trim().length >= 2 &&
+                          uploadDeviceSearch.trim().length >= 1 &&
                           filteredUploadDevices.length === 0 && (
                             <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
                               Kein Gerät gefunden.
@@ -25717,63 +25817,100 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </p>
                 )}
 
-                <div className="mt-6 grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
-                  <input
-                    value={customerDirectorySearch}
-                    onChange={(e) => setCustomerDirectorySearch(e.target.value)}
-                    type="search"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    enterKeyHint="search"
-                    name="trybun-customer-directory-query"
-                    placeholder="Firma, Kundennummer, Ansprechpartner, Ort, E-Mail, Telefon..."
-                    className="block min-h-[50px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
-                  />
-
-                  <select
-                    value={customerTypeFilter}
-                    onChange={(e) => setCustomerTypeFilter(e.target.value)}
-                    className="block min-h-[50px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
-                  >
-                    <option value="Alle">Alle Kundentypen</option>
-                    <option value="B2B">B2B</option>
-                    <option value="Privatkunde">Endkunden</option>
-                  </select>
-
-                  <select
-                    value={customerDirectoryCityFilter}
-                    onChange={(e) => setCustomerDirectoryCityFilter(e.target.value)}
-                    className="block min-h-[50px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
-                  >
-                    <option value="Alle">Alle Orte</option>
-                    {customerDirectoryCityOptions.map((city) => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomerDirectorySearch("");
-                      setCustomerTypeFilter("Alle");
-                      setCustomerDirectoryCityFilter("Alle");
-                    }}
-                    className="min-h-[50px] rounded-[9px] border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-                  >
-                    Zurücksetzen
-                  </button>
-                </div>
-
-                <div className="mt-4 rounded-[10px] border border-sky-100 bg-sky-50 p-4 text-sm font-semibold leading-6 text-sky-800">
-                  {customerDirectoryMatches.length === 0
-                    ? "Keine passenden Kunden gefunden."
-                    : `${Math.min(filteredCustomerDirectory.length, customerDirectoryMatches.length)} von ${customerDirectoryMatches.length} passenden Kunden angezeigt${customerDirectoryMatches.length > 30 ? " · Suche oder Filter können die Liste weiter eingrenzen." : "."}`}
-                  {!customerDirectorySearchIsActive && customers.length > 0 && (
-                    <span className="ml-1 text-sky-700">
-                      Ohne Suchbegriff können Sie direkt durch den Kundenstamm browsen.
+                <div className="mt-6 rounded-[14px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">
+                        Kunden durchsuchen
+                      </p>
+                      <h4 className="mt-1 text-lg font-bold text-slate-950">
+                        Kunden direkt browsen oder schrittweise filtern
+                      </h4>
+                      <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                        Die Treffer werden mit jedem Zeichen enger: „m“ → „mü“ → „mül“. Gesucht wird immer am Anfang relevanter Begriffe.
+                      </p>
+                    </div>
+                    <span className="w-fit rounded-[8px] border border-sky-100 bg-white px-3 py-2 text-sm font-bold text-sky-700">
+                      {customerDirectoryMatches.length} Treffer
                     </span>
-                  )}
+                  </div>
+
+                  <div className="mt-4 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_200px_200px_auto]">
+                    <input
+                      value={customerDirectorySearch}
+                      onChange={(e) => setCustomerDirectorySearch(e.target.value)}
+                      type="search"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      enterKeyHint="search"
+                      name="trybun-customer-directory-query"
+                      placeholder="Firma, Kundennummer, Ansprechpartner, Ort, E-Mail, Telefon..."
+                      className="block min-h-[48px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    />
+
+                    <select
+                      value={customerTypeFilter}
+                      onChange={(e) => setCustomerTypeFilter(e.target.value)}
+                      className="block min-h-[48px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    >
+                      <option value="Alle">Alle Kundentypen</option>
+                      <option value="B2B">B2B</option>
+                      <option value="Privatkunde">Endkunden</option>
+                    </select>
+
+                    <select
+                      value={customerDirectoryCityFilter}
+                      onChange={(e) => setCustomerDirectoryCityFilter(e.target.value)}
+                      className="block min-h-[48px] min-w-0 w-full rounded-[9px] border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+                    >
+                      <option value="Alle">Alle Orte</option>
+                      {customerDirectoryCityOptions.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerDirectorySearch("");
+                        setCustomerTypeFilter("Alle");
+                        setCustomerDirectoryCityFilter("Alle");
+                      }}
+                      className="min-h-[48px] rounded-[9px] border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      Zurücksetzen
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
+                    <span className="rounded-[7px] bg-white px-2.5 py-1.5 ring-1 ring-inset ring-slate-200">
+                      Firmenname
+                    </span>
+                    <span className="rounded-[7px] bg-white px-2.5 py-1.5 ring-1 ring-inset ring-slate-200">
+                      Ansprechpartner
+                    </span>
+                    <span className="rounded-[7px] bg-white px-2.5 py-1.5 ring-1 ring-inset ring-slate-200">
+                      Kundennummer
+                    </span>
+                    <span className="rounded-[7px] bg-white px-2.5 py-1.5 ring-1 ring-inset ring-slate-200">
+                      Ort
+                    </span>
+                    <span className="rounded-[7px] bg-white px-2.5 py-1.5 ring-1 ring-inset ring-slate-200">
+                      E-Mail / Telefon
+                    </span>
+                  </div>
+
+                  <div className="mt-4 rounded-[9px] border border-sky-100 bg-sky-50 p-3 text-sm font-semibold leading-6 text-sky-800">
+                    {customerDirectoryMatches.length === 0
+                      ? "Keine passenden Kunden gefunden."
+                      : `${Math.min(filteredCustomerDirectory.length, customerDirectoryMatches.length)} von ${customerDirectoryMatches.length} passenden Kunden angezeigt${customerDirectoryMatches.length > 30 ? " · Suche oder Filter können die Liste weiter eingrenzen." : "."}`}
+                    {!customerDirectorySearchIsActive && customers.length > 0 && (
+                      <span className="ml-1 text-sky-700">
+                        Ohne Suchbegriff können Sie den Kundenstamm direkt durchsuchen.
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -28124,7 +28261,20 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
                       {abnahmeCustomerDevicesOpen && abnahmeCustomerSearch.trim() && (
                         <div ref={abnahmeCustomerResultsRef} className="max-h-56 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
                           {customers
-                            .filter((item) => getCustomerSearchText(item).toLowerCase().includes(abnahmeCustomerSearch.toLowerCase().trim()))
+                            .filter((item) =>
+                              matchesTrybunPrefixSearch(
+                                [
+                                  item.company,
+                                  getCustomerDisplayName(item),
+                                  item.customer_number,
+                                  item.contact_person,
+                                  item.city,
+                                  item.email,
+                                  item.phone,
+                                ],
+                                abnahmeCustomerSearch,
+                              ),
+                            )
                             .slice(0, 12)
                             .map((item) => (
                               <button
@@ -28178,9 +28328,16 @@ placeholder="Gerät / Anlage / Modell suchen..."
                             .filter((item) => !item.customer_id || String(item.customer_id) === abnahmeCustomerId)
                             .filter((item) =>
                               !abnahmeDeviceSearch.trim() ||
-                              [item.name, item.manufacturer, item.model, item.serial_number, item.location]
-                                .filter(Boolean).join(" ").toLowerCase()
-                                .includes(abnahmeDeviceSearch.toLowerCase().trim())
+                              matchesTrybunPrefixSearch(
+                                [
+                                  item.name,
+                                  item.manufacturer,
+                                  item.model,
+                                  item.serial_number,
+                                  item.location,
+                                ],
+                                abnahmeDeviceSearch,
+                              )
                             )
                             .slice(0, 16)
                             .map((item) => {
@@ -29882,14 +30039,14 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                           </div>
                         )}
 
-                        {!customer && ticketCustomerSearch.trim().length < 2 && (
-                          <p className="mt-3 text-sm font-bold text-slate-500">
-                            Bitte mindestens 2 Zeichen eingeben. Es wird keine Endlosliste geladen.
+                        {!customer && !ticketCustomerSearch.trim() && (
+                          <p className="mt-3 text-sm font-semibold text-slate-500">
+                            Ohne Eingabe werden die ersten Kunden alphabetisch angezeigt. Ab dem ersten Zeichen wird die Liste direkt eingegrenzt.
                           </p>
                         )}
 
                         {!customer &&
-                          ticketCustomerSearch.trim().length >= 2 &&
+                          ticketCustomerSearch.trim().length >= 1 &&
                           filteredTicketCustomers.length === 0 && (
                             <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
                               Kein Kunde gefunden.
