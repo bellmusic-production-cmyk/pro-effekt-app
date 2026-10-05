@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.90 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.91 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -425,6 +425,9 @@ type ServiceContract = {
   end_date?: string | null;
   status: string;
   note?: string | null;
+  prepared_by?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
   created_at: string;
 };
 
@@ -518,6 +521,9 @@ type CompanyData = {
   service_labels?: Partial<ServiceTerminology> | null;
   service_custom_fields?: ServiceCustomFieldDefinition[] | null;
   service_templates?: ServiceTemplateDefinition[] | null;
+  technician_can_prepare_contract?: boolean | null;
+  technician_can_create_invoice?: boolean | null;
+  technician_can_finalize_invoice?: boolean | null;
   is_active?: boolean | null;
   created_at?: string | null;
 };
@@ -1342,6 +1348,9 @@ export default function Home() {
   const [companyWebsiteInput, setCompanyWebsiteInput] = useState("");
   const [companyAddressInput, setCompanyAddressInput] = useState("");
   const [companyPdfFooterInput, setCompanyPdfFooterInput] = useState("");
+  const [technicianCanPrepareContract, setTechnicianCanPrepareContract] = useState(true);
+  const [technicianCanCreateInvoice, setTechnicianCanCreateInvoice] = useState(false);
+  const [technicianCanFinalizeInvoice, setTechnicianCanFinalizeInvoice] = useState(false);
   const [serviceProfileInput, setServiceProfileInput] = useState<ServiceProfileKey>("general");
   const [serviceTerminologyInput, setServiceTerminologyInput] =
     useState<ServiceTerminology>(DEFAULT_SERVICE_TERMINOLOGY);
@@ -2165,6 +2174,9 @@ export default function Home() {
     setCompanyWebsiteInput(companyData.website || "");
     setCompanyAddressInput(companyData.address || "");
     setCompanyPdfFooterInput(companyData.pdf_footer || "");
+    setTechnicianCanPrepareContract(companyData.technician_can_prepare_contract !== false);
+    setTechnicianCanCreateInvoice(companyData.technician_can_create_invoice === true);
+    setTechnicianCanFinalizeInvoice(companyData.technician_can_finalize_invoice === true);
 
     const nextServiceProfile = companyData.service_profile || "general";
     const selectedPreset =
@@ -3659,6 +3671,10 @@ export default function Home() {
       website: companyWebsiteInput.trim() || null,
       address: companyAddressInput.trim() || null,
       pdf_footer: companyPdfFooterInput.trim() || null,
+      technician_can_prepare_contract: technicianCanPrepareContract,
+      technician_can_create_invoice: technicianCanCreateInvoice,
+      technician_can_finalize_invoice:
+        technicianCanCreateInvoice && technicianCanFinalizeInvoice,
     };
 
     const { data, error } = await supabase
@@ -11926,6 +11942,16 @@ ${tenantBrandName}`,
   }
 
   async function generateMaintenanceFromContract(contract: ServiceContract) {
+    if (!isAdmin) {
+      alert("Nur Administratoren können Wartungen aus Verträgen erzeugen.");
+      return;
+    }
+
+    if (contract.status !== "Aktiv") {
+      alert("Wartungen können erst aus einem freigegebenen aktiven Vertrag erzeugt werden.");
+      return;
+    }
+
     if (!contract.customer_id) {
       alert("Dieser Vertrag ist keinem Kunden zugeordnet.");
       return;
@@ -11992,7 +12018,7 @@ ${tenantBrandName}`,
     setContractMaintenanceInterval("6");
     setContractStartDate("");
     setContractEndDate("");
-    setContractStatus("Aktiv");
+    setContractStatus(isTechnician ? "Prüfung ausstehend" : "Aktiv");
     setContractNote("");
     setContractTechnicianSignature("");
     setContractCustomerSignature("");
@@ -12088,6 +12114,22 @@ ${tenantBrandName}`,
   }
 
   async function saveContract() {
+    if (!(isAdmin || canTechnicianPrepareContract)) {
+      alert("Sie haben keine Berechtigung, Verträge zu erstellen.");
+      return;
+    }
+
+    if (isTechnician && editingContractId) {
+      alert("Techniker können Verträge vor Ort vorbereiten, bestehende Verträge aber nicht kaufmännisch bearbeiten.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     if (!contractCustomerId || !contractTitle.trim()) {
       alert("Bitte Kunde und Vertragstitel auswählen.");
       return;
@@ -12118,7 +12160,20 @@ ${tenantBrandName}`,
       return;
     }
 
+    const selectedContractCustomer = customers.find(
+      (item) => item.id === Number(contractCustomerId),
+    );
+
+    if (
+      selectedContractCustomer?.company_id != null &&
+      Number(selectedContractCustomer.company_id) !== Number(currentCompany.id)
+    ) {
+      alert("Der ausgewählte Kunde gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
     const payload = {
+      company_id: currentCompany.id,
       customer_id: Number(contractCustomerId),
       title: contractTitle.trim(),
       contract_type: contractType,
@@ -12127,8 +12182,13 @@ ${tenantBrandName}`,
       maintenance_interval_months: Number(contractMaintenanceInterval || 0),
       start_date: contractStartDate || null,
       end_date: contractEndDate || null,
-      status: contractStatus,
+      status: isTechnician ? "Prüfung ausstehend" : contractStatus,
       note: contractNote.trim() || null,
+      prepared_by: isTechnician ? session?.user?.id || null : null,
+      approved_by:
+        isAdmin && contractStatus === "Aktiv" ? session?.user?.id || null : null,
+      approved_at:
+        isAdmin && contractStatus === "Aktiv" ? new Date().toISOString() : null,
     };
 
     if (editingContractId) {
@@ -12136,6 +12196,7 @@ ${tenantBrandName}`,
         .from("service_contracts")
         .update(payload)
         .eq("id", editingContractId)
+        .eq("company_id", currentCompany.id)
         .select("*")
         .single();
 
@@ -12197,7 +12258,15 @@ ${tenantBrandName}`,
     resetContractForm();
     await loadContracts();
 
-    alert(signed ? "Vertrag gespeichert und signierte Fassung unter Dokumente → Verträge archiviert." : "Vertrag gespeichert.");
+    alert(
+      isTechnician
+        ? signed
+          ? "Vertrag wurde zur Prüfung gespeichert. Die signierte Fassung ist unter Dokumente → Verträge archiviert."
+          : "Vertrag wurde als „Prüfung ausstehend“ an die Verwaltung übergeben."
+        : signed
+          ? "Vertrag gespeichert und signierte Fassung unter Dokumente → Verträge archiviert."
+          : "Vertrag gespeichert.",
+    );
   }
 
   async function deleteContract(contractId: number) {
@@ -12234,10 +12303,26 @@ ${tenantBrandName}`,
     contractId: number,
     nextStatus: string,
   ) {
+    if (!isAdmin) {
+      alert("Nur Administratoren können Verträge freigeben oder den Vertragsstatus ändern.");
+      return;
+    }
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     const { error } = await supabase
       .from("service_contracts")
-      .update({ status: nextStatus })
-      .eq("id", contractId);
+      .update({
+        status: nextStatus,
+        approved_by: nextStatus === "Aktiv" ? session?.user?.id || null : null,
+        approved_at: nextStatus === "Aktiv" ? new Date().toISOString() : null,
+      })
+      .eq("id", contractId)
+      .eq("company_id", currentCompany.id);
 
     if (error) {
       alert(`Status konnte nicht geändert werden: ${error.message}`);
@@ -14987,8 +15072,8 @@ ${tenantBrandName}`,
   }
 
   async function saveInvoice() {
-    if (!isAdmin) {
-      alert("Nur Admins können Rechnungen und Angebote erstellen.");
+    if (!canCreateInvoiceDocument) {
+      alert("Sie haben keine Berechtigung, Rechnungen oder Angebote zu erstellen.");
       return;
     }
 
@@ -15076,14 +15161,19 @@ ${tenantBrandName}`,
       amount_net: net,
       tax_rate: tax,
       amount_gross: gross,
-      status: invoiceStatus,
+      status: isTechnician
+        ? canTechnicianFinalizeInvoice && ["Offen", "Gesendet"].includes(invoiceStatus)
+          ? invoiceStatus
+          : "Entwurf"
+        : invoiceStatus,
       note: invoiceNote.trim() || null,
       source_type: invoiceSourceType || null,
       source_number: invoiceSourceNumber || null,
       source_document_id: invoiceSourceDocumentId,
       source_invoice_id: invoiceSourceInvoiceId,
       due_date: invoiceType === "Rechnung" && invoiceDueDate ? invoiceDueDate : null,
-      paid_at: invoiceStatus === "Bezahlt" ? new Date().toISOString() : null,
+      paid_at:
+        isAdmin && invoiceStatus === "Bezahlt" ? new Date().toISOString() : null,
     };
 
     const { data, error } = await supabase
@@ -16986,6 +17076,15 @@ ${tenantBrandName}`,
   const isAdmin = role === "admin";
   const isTechnician = role === "technician";
   const isCustomer = role === "customer";
+  const canTechnicianPrepareContract =
+    isTechnician && companyData?.technician_can_prepare_contract !== false;
+  const canTechnicianCreateInvoice =
+    isTechnician && companyData?.technician_can_create_invoice === true;
+  const canTechnicianFinalizeInvoice =
+    isTechnician &&
+    companyData?.technician_can_create_invoice === true &&
+    companyData?.technician_can_finalize_invoice === true;
+  const canCreateInvoiceDocument = isAdmin || canTechnicianCreateInvoice;
   const canCreateOrEditMasterData = isAdmin || isTechnician;
   const canPlanDispatch = isAdmin;
 
@@ -17821,7 +17920,7 @@ ${tenantBrandName}`,
       return invoices.filter((item) => item.customer_id === userProfile?.customer_id);
     }
 
-    if (isAdmin && companyData?.id) {
+    if ((isAdmin || isTechnician) && companyData?.id) {
       return invoices.filter((item) => {
         if (item.company_id != null) {
           return Number(item.company_id) === Number(companyData.id);
@@ -17846,7 +17945,7 @@ ${tenantBrandName}`,
     }
 
     return invoices;
-  }, [invoices, isCustomer, isAdmin, userProfile, companyData, customers, tickets]);
+  }, [invoices, isCustomer, isAdmin, isTechnician, userProfile, companyData, customers, tickets]);
 
   const revenueGuardItems = useMemo(() => {
     if (!isAdmin) return [];
@@ -18240,7 +18339,21 @@ ${tenantBrandName}`,
   const visibleNavItems = isAdmin
     ? navItems.filter((item) => item !== "Einsatz")
     : isTechnician
-      ? ["Einsatz", "Kalender", "QR-Scan", "Service-Tickets", "Kunden", "Geräte", "Abnahmeprotokoll", "Ersatzteile", "Gerätebestand", "Dokumente", "Auftrag / Lieferschein erstellen"]
+      ? [
+          "Einsatz",
+          "Kalender",
+          "QR-Scan",
+          "Service-Tickets",
+          "Kunden",
+          "Geräte",
+          "Abnahmeprotokoll",
+          "Ersatzteile",
+          "Gerätebestand",
+          "Dokumente",
+          "Auftrag / Lieferschein erstellen",
+          ...(canTechnicianPrepareContract ? ["Verträge"] : []),
+          ...(canTechnicianCreateInvoice ? ["Rechnungen"] : []),
+        ]
       : ["Kundenportal", "Service-Tickets", "Dokumente", "Rechnungen"];
 
   if (session && legalAccepted && userProfile && !visibleNavItems.includes(activePage)) {
@@ -24618,12 +24731,14 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 <StatCard label="Bezahlt" value={visibleInvoices.filter((item) => item.status === "Bezahlt").length} />
               </div>
 
-              <div className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
-                {isAdmin && (
+              <div className={`grid gap-6 ${canCreateInvoiceDocument ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
+                {canCreateInvoiceDocument && (
                 <div id="invoice-create" className="min-w-0 scroll-mt-6 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <h3 className="text-xl font-black">Rechnung / Angebot erstellen</h3>
                   <p className="mt-2 text-slate-600">
-                    Erstelle Angebote oder Rechnungen auf Basis eines Tickets oder frei als Admin.
+                    {isTechnician
+                      ? "Erstelle beim Kunden einen Rechnungs- oder Angebotsentwurf mit Positionen und Unterschrift."
+                      : "Erstelle Angebote oder Rechnungen auf Basis eines Tickets oder frei als Admin."}
                   </p>
 
                   <div className="mt-5 space-y-4">
@@ -24807,16 +24922,30 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       <div>
                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Status</label>
                         <select
-                        value={invoiceStatus}
-                        onChange={(e) => setInvoiceStatus(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                      >
-                        <option>Entwurf</option>
-                        <option>Offen</option>
-                        <option>Gesendet</option>
-                        <option>Bezahlt</option>
-                        <option>Storniert</option>
-                      </select>
+                          value={invoiceStatus}
+                          onChange={(e) => setInvoiceStatus(e.target.value)}
+                          disabled={isTechnician && !canTechnicianFinalizeInvoice}
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold disabled:bg-slate-100 disabled:text-slate-500"
+                        >
+                          <option>Entwurf</option>
+                          {(!isTechnician || canTechnicianFinalizeInvoice) && (
+                            <>
+                              <option>Offen</option>
+                              <option>Gesendet</option>
+                            </>
+                          )}
+                          {isAdmin && (
+                            <>
+                              <option>Bezahlt</option>
+                              <option>Storniert</option>
+                            </>
+                          )}
+                        </select>
+                        {isTechnician && !canTechnicianFinalizeInvoice && (
+                          <p className="mt-2 text-xs font-semibold text-amber-700">
+                            Wird als Entwurf gespeichert und von der Verwaltung freigegeben.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -26925,6 +27054,86 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       rows={3}
                       className="rounded-2xl border border-slate-300 px-5 py-3 font-semibold outline-none focus:border-sky-400 md:col-span-2"
                     />
+
+                    <div className="md:col-span-2 rounded-[14px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                        Techniker-Berechtigungen
+                      </p>
+                      <h4 className="mt-1 text-lg font-bold text-slate-950">
+                        Belege vor Ort erstellen
+                      </h4>
+                      <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+                        Buchhaltung bleibt ausschließlich für Administratoren sichtbar. Hier legen Sie fest,
+                        welche kaufmännischen Belege Techniker beim Kunden vorbereiten oder direkt erstellen dürfen.
+                      </p>
+
+                      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                        <label className="flex cursor-pointer gap-3 rounded-[10px] border border-slate-200 bg-white p-4">
+                          <input
+                            type="checkbox"
+                            checked={technicianCanPrepareContract}
+                            onChange={(e) => setTechnicianCanPrepareContract(e.target.checked)}
+                            className="mt-1 h-5 w-5"
+                          />
+                          <span>
+                            <span className="block text-sm font-bold text-slate-950">
+                              Vertrag vorbereiten
+                            </span>
+                            <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+                              Techniker darf einen Vertrag aufnehmen und unterschreiben lassen. Er wird als „Prüfung ausstehend“ gespeichert.
+                            </span>
+                          </span>
+                        </label>
+
+                        <label className="flex cursor-pointer gap-3 rounded-[10px] border border-slate-200 bg-white p-4">
+                          <input
+                            type="checkbox"
+                            checked={technicianCanCreateInvoice}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setTechnicianCanCreateInvoice(checked);
+                              if (!checked) setTechnicianCanFinalizeInvoice(false);
+                            }}
+                            className="mt-1 h-5 w-5"
+                          />
+                          <span>
+                            <span className="block text-sm font-bold text-slate-950">
+                              Rechnung erstellen
+                            </span>
+                            <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+                              Techniker darf vor Ort Rechnungsentwürfe mit Kunde, Positionen, MwSt. und Unterschrift erstellen.
+                            </span>
+                          </span>
+                        </label>
+
+                        <label className={`flex gap-3 rounded-[10px] border p-4 ${
+                          technicianCanCreateInvoice
+                            ? "cursor-pointer border-slate-200 bg-white"
+                            : "cursor-not-allowed border-slate-200 bg-slate-100 opacity-60"
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={technicianCanFinalizeInvoice}
+                            disabled={!technicianCanCreateInvoice}
+                            onChange={(e) => setTechnicianCanFinalizeInvoice(e.target.checked)}
+                            className="mt-1 h-5 w-5"
+                          />
+                          <span>
+                            <span className="block text-sm font-bold text-slate-950">
+                              Rechnung direkt freigeben
+                            </span>
+                            <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">
+                              Optional: Techniker darf eine Rechnung nicht nur als Entwurf, sondern direkt als „Offen“ oder „Gesendet“ speichern.
+                            </span>
+                          </span>
+                        </label>
+                      </div>
+
+                      <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
+                        Auftrag und Lieferschein bleiben für Techniker grundsätzlich erlaubt, weil sie zum operativen Einsatz gehören.
+                        „Bezahlt“ und „Storniert“ bleiben immer Admin-Status.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="mt-6 flex flex-wrap gap-3">
@@ -29717,7 +29926,7 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
             </div>
           )}
 
-          {activePage === "Verträge" && (
+          {activePage === "Verträge" && (isAdmin || canTechnicianPrepareContract) && (
             <div className="space-y-6">
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -29779,15 +29988,30 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
                         <option>Prüfvertrag</option>
                       </select>
 
-                      <select
-                        value={contractStatus}
-                        onChange={(e) => setContractStatus(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
-                      >
-                        <option>Aktiv</option>
-                        <option>Pausiert</option>
-                        <option>Beendet</option>
-                      </select>
+                      {isTechnician ? (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">
+                            Status
+                          </p>
+                          <p className="mt-1 text-sm font-bold text-amber-900">
+                            Prüfung ausstehend
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-amber-800">
+                            Die Verwaltung prüft und aktiviert den Vertrag.
+                          </p>
+                        </div>
+                      ) : (
+                        <select
+                          value={contractStatus}
+                          onChange={(e) => setContractStatus(e.target.value)}
+                          className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                        >
+                          <option>Prüfung ausstehend</option>
+                          <option>Aktiv</option>
+                          <option>Pausiert</option>
+                          <option>Beendet</option>
+                        </select>
+                      )}
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-3">
@@ -29972,38 +30196,50 @@ placeholder="Kundengerät suchen: Kunde, Kundennr., Modell, Seriennummer, Herste
                             </div>
 
                             <div className="flex flex-col gap-2 xl:w-48">
-                              <select
-                                value={item.status}
-                                onChange={(e) =>
-                                  updateContractStatus(item.id, e.target.value)
-                                }
-                                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
-                              >
-                                <option>Aktiv</option>
-                                <option>Pausiert</option>
-                                <option>Beendet</option>
-                              </select>
+                              {isAdmin ? (
+                                <>
+                                  <select
+                                    value={item.status}
+                                    onChange={(e) =>
+                                      updateContractStatus(item.id, e.target.value)
+                                    }
+                                    className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
+                                  >
+                                    <option>Prüfung ausstehend</option>
+                                    <option>Aktiv</option>
+                                    <option>Pausiert</option>
+                                    <option>Beendet</option>
+                                  </select>
 
-                              <button
-                                onClick={() => startEditContract(item)}
-                                className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700"
-                              >
-                                Bearbeiten
-                              </button>
+                                  <button
+                                    onClick={() => startEditContract(item)}
+                                    className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700"
+                                  >
+                                    Bearbeiten
+                                  </button>
 
-                              <button
-                                onClick={() => generateMaintenanceFromContract(item)}
-                                className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
-                              >
-                                Wartungen erzeugen
-                              </button>
+                                  <button
+                                    onClick={() => generateMaintenanceFromContract(item)}
+                                    disabled={item.status !== "Aktiv"}
+                                    className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    Wartungen erzeugen
+                                  </button>
 
-                              <button
-                                onClick={() => deleteContract(item.id)}
-                                className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
-                              >
-                                Löschen
-                              </button>
+                                  <button
+                                    onClick={() => deleteContract(item.id)}
+                                    className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
+                                  >
+                                    Löschen
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600">
+                                  {item.status === "Prüfung ausstehend"
+                                    ? "Wartet auf Freigabe"
+                                    : item.status}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
