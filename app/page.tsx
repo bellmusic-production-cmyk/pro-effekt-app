@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.67 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.68 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1716,9 +1716,10 @@ export default function Home() {
 
     const handleOnline = () => {
       setIsOnline(true);
-      setOfflineSyncMessage("Verbindung wiederhergestellt · Synchronisation läuft.");
+      setOfflineSyncMessage("Verbindung wiederhergestellt · Daten werden aktualisiert.");
       window.setTimeout(() => {
         void syncOfflineServiceActions();
+        void loadApplicationData();
       }, 150);
     };
 
@@ -2681,6 +2682,7 @@ export default function Home() {
   }
 
   async function loadCompany(userIdOverride?: string) {
+    if (isOfflineRuntime()) return companyData;
     const userId = userIdOverride || session?.user?.id;
 
     if (!userId) {
@@ -3396,7 +3398,20 @@ export default function Home() {
     await sendChatNotificationEmail(notificationItem);
   }
 
+function isOfflineRuntime() {
+    return typeof navigator !== "undefined" && !navigator.onLine;
+  }
+
 async function loadApplicationData() {
+    if (isOfflineRuntime()) {
+      setIsOnline(false);
+      setAppDataLoaded(true);
+      setOfflineSyncMessage(
+        "Offline-Modus aktiv · Live-Daten werden automatisch geladen, sobald wieder Internet verfügbar ist.",
+      );
+      return;
+    }
+
     setAppDataLoaded(false);
 
     await Promise.all([
@@ -3854,6 +3869,7 @@ async function loadApplicationData() {
   }
 
   async function loadTickets() {
+    if (isOfflineRuntime()) return;
     // Sicherheitsrelevante Rollenfilterung bereits beim Laden der Tickets anwenden.
     // Dadurch erhält ein Techniker ausschließlich Tickets, die ihm über assigned_to
     // ausdrücklich zugewiesen wurden. Unzugewiesene Tickets (assigned_to = NULL)
@@ -3905,12 +3921,20 @@ async function loadApplicationData() {
   }
 
   async function loadDevices() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("devices")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
+      if (isOfflineRuntime() || isNetworkFailure(error)) {
+        setOfflineSyncMessage(
+          "Offline-Modus aktiv · Geräte werden nach Wiederherstellung der Verbindung geladen.",
+        );
+        return;
+      }
+
       alert("Geräte konnten nicht geladen werden.");
       return;
     }
@@ -3919,6 +3943,7 @@ async function loadApplicationData() {
   }
 
   async function loadCustomers() {
+    if (isOfflineRuntime()) return;
     const pageSize = 1000;
     let from = 0;
     let loadedCustomers: Customer[] = [];
@@ -3958,12 +3983,20 @@ async function loadApplicationData() {
 
 
   async function loadManufacturers() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("manufacturers")
       .select("*")
       .order("name", { ascending: true });
 
     if (error) {
+      if (isOfflineRuntime() || isNetworkFailure(error)) {
+        setOfflineSyncMessage(
+          "Offline-Modus aktiv · Hersteller werden nach Wiederherstellung der Verbindung geladen.",
+        );
+        return;
+      }
+
       console.error("Hersteller konnten nicht geladen werden:", error.message);
       alert("Hersteller konnten nicht geladen werden: " + error.message);
       setManufacturers([]);
@@ -3974,12 +4007,20 @@ async function loadApplicationData() {
   }
 
   async function loadDeviceModels() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("device_models")
       .select("*")
       .order("name", { ascending: true });
 
     if (error) {
+      if (isOfflineRuntime() || isNetworkFailure(error)) {
+        setOfflineSyncMessage(
+          "Offline-Modus aktiv · Modelle werden nach Wiederherstellung der Verbindung geladen.",
+        );
+        return;
+      }
+
       console.error("Geräte / Modelle konnten nicht geladen werden:", error.message);
       alert("Geräte / Modelle konnten nicht geladen werden: " + error.message);
       setDeviceModels([]);
@@ -3992,6 +4033,7 @@ async function loadApplicationData() {
 
 
   async function loadDocuments() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("documents")
       .select("*")
@@ -4055,6 +4097,7 @@ async function loadApplicationData() {
   }
 
   async function loadDeviceHistory() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("device_history")
       .select("*")
@@ -4069,6 +4112,7 @@ async function loadApplicationData() {
   }
 
   async function loadMaintenancePlans() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("maintenance_plans")
       .select("*")
@@ -4084,6 +4128,7 @@ async function loadApplicationData() {
   }
 
   async function loadServiceParts() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("spare_parts")
       .select("*")
@@ -4099,6 +4144,7 @@ async function loadApplicationData() {
   }
 
   async function loadPartUsages() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("part_usages")
       .select("*")
@@ -4118,6 +4164,7 @@ async function loadApplicationData() {
   }
 
   async function loadInventoryMovements() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("inventory_movements")
       .select("*")
@@ -4134,6 +4181,7 @@ async function loadApplicationData() {
   }
 
   async function loadVoidedPartUsages(limit = 10) {
+    if (isOfflineRuntime()) return;
     const safeLimit = Math.max(10, Number(limit) || 10);
     const { data, error, count } = await supabase
       .from("part_usages")
@@ -4172,6 +4220,13 @@ async function loadApplicationData() {
     setVoidedPartUsagesLoadingMore(false);
 
     if (error) {
+      if (isOfflineRuntime() || isNetworkFailure(error)) {
+        setOfflineSyncMessage(
+          "Offline-Modus aktiv · weitere Daten werden nach Wiederherstellung der Verbindung geladen.",
+        );
+        return;
+      }
+
       alert(`Weitere Stornos konnten nicht geladen werden: ${error.message}`);
       return;
     }
@@ -4186,6 +4241,7 @@ async function loadApplicationData() {
   }
 
   async function loadInvoices() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("invoices")
       .select("*")
@@ -4201,6 +4257,7 @@ async function loadApplicationData() {
   }
 
   async function loadNotifications() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
@@ -4216,6 +4273,7 @@ async function loadApplicationData() {
   }
 
   async function loadTicketChatMessages() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("ticket_chat_messages")
       .select("*")
@@ -4460,6 +4518,7 @@ async function loadApplicationData() {
   }
 
   async function loadContracts() {
+    if (isOfflineRuntime()) return;
     const { data, error } = await supabase
       .from("service_contracts")
       .select("*")
@@ -4475,6 +4534,7 @@ async function loadApplicationData() {
   }
 
   async function loadUserProfiles() {
+    if (isOfflineRuntime()) return;
     // Benutzerverwaltung Premium v1:
     // Dieser Bereich lädt vorhandene Profile nur lesend.
     // Keine Auth-User werden erzeugt, keine Einladungen versendet und keine Rollen automatisch geändert.
@@ -4729,6 +4789,7 @@ async function loadApplicationData() {
   }
 
   async function loadTechnicians() {
+    if (isOfflineRuntime()) return;
     // Sicherer Restore:
     // Techniker werden wieder aus public.profiles geladen.
     // Falls Supabase/RLS hängt oder einen Fehler liefert, blockiert die App nicht.
