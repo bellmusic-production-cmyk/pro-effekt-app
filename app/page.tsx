@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.51 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.52 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11059,7 +11059,7 @@ PRO-EFFEKT`,
 
   async function printAbnahmeProtocol() {
     if (!abnahmeCustomerId || selectedAbnahmeDevices.length === 0) {
-      alert("Bitte Kunde und mindestens ein Gerät / Modell auswählen.");
+      alert("Bitte Kunde und mindestens ein Modell auswählen.");
       return;
     }
 
@@ -14399,7 +14399,7 @@ PRO-EFFEKT`,
       Kalender: "Kalender",
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
-      Geräte: "Hersteller & Modell",
+      Geräte: "Hersteller & Modelle",
       "QR-Scan": "QR-Scan",
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
       Ersatzteile: "Ersatzteile",
@@ -17522,13 +17522,6 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
 
             <div className="space-y-6">
 
-              <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="Gesamt" value={notifications.length} />
-                <StatCard label="Geplant" value={notifications.filter((item) => item.status === "Geplant").length} />
-                <StatCard label="Gesendet" value={notifications.filter((item) => item.status === "Gesendet").length} />
-                <StatCard label="Fehler" value={notifications.filter((item) => item.status === "Fehler").length} />
-              </div>
-
               <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm font-bold text-blue-800">
                 Verträge können automatisch Sicherheitsprüfung- und Wartungspläne für alle Geräte des Kunden erzeugen. Gleichnamige Geräte bleiben über Kunde + Gerät eindeutig getrennt.
               </div>
@@ -18177,7 +18170,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="text-xl font-black">Kommunikationszentrale</h3>
+                    <h3 className="text-xl font-black">Nachrichten</h3>
                     <div className="rounded-full bg-slate-100 px-4 py-2 text-xs font-black text-slate-600">
                       Seite {notificationPage} / {notificationTotalPages} · {notifications.length} Einträge
                     </div>
@@ -18618,27 +18611,6 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       className="rounded-2xl border border-slate-300 bg-white px-5 py-4 text-sm font-black text-slate-700 hover:bg-slate-50"
                     >
                       Prüfung / Abnahme
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!isCustomer && (
-                <div className="rounded-[28px] border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm sm:p-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Dokumentation</p>
-                      <h3 className="mt-1 text-xl font-black text-slate-950">Prüfungen & Abnahmen</h3>
-                      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
-                        Prüf-, Abnahme- und Übergabeprotokolle erstellen. Fertige Protokolle werden anschließend im Dokumentenarchiv abgelegt.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openPage("Abnahmeprotokoll")}
-                      className="w-full shrink-0 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-sky-700 sm:w-auto"
-                    >
-                      Protokoll erstellen
                     </button>
                   </div>
                 </div>
@@ -21029,7 +21001,7 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                   {isAdmin && (
                     <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
                       <summary className="cursor-pointer text-xl font-black">
-                        {editingDeviceModel ? "Gerät / Modell bearbeiten" : "Gerät / Modell anlegen"}
+                        {editingDeviceModel ? "Modell bearbeiten" : "Modell anlegen"}
                       </summary>
 
                       <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
@@ -21099,7 +21071,7 @@ placeholder="Kundenstamm suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                             onClick={saveDeviceModel}
                             className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
                           >
-                            {editingDeviceModel ? "Modell speichern" : "Gerät / Modell hinzufügen"}
+                            {editingDeviceModel ? "Modell speichern" : "Modell hinzufügen"}
                           </button>
 
                           <button
@@ -23088,13 +23060,6 @@ placeholder="Gerät / Anlage / Modell suchen..."
                   </button>
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-4">
-                  <StatCard label="Heute geplant" value={plannedDispatchTickets.length} />
-                  <StatCard label="Diese Woche" value={dispatchPremiumWeekTickets.length} />
-                  <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                  <StatCard label="Wartungen" value={dispatchPremiumMaintenanceSuggestions.length} />
-                </div>
-
                 {dispatchPremiumMaintenanceSuggestions.length > 0 && (
                   <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {dispatchPremiumMaintenanceSuggestions.slice(0, 6).map((plan) => {
@@ -23158,13 +23123,6 @@ placeholder="Gerät / Anlage / Modell suchen..."
                   </div>
                 </div>
               )}
-
-              <div className="grid gap-4 md:grid-cols-4">
-                <StatCard label="Offene Tickets" value={activePlanningTickets.length} />
-                <StatCard label="Ungeplant" value={unplannedDispatchTickets.length} />
-                <StatCard label="Heute / Auswahl" value={plannedDispatchTickets.length} />
-                <StatCard label="Techniker" value={technicians.length} />
-              </div>
 
               <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
                 <div className="min-w-0 overflow-hidden rounded-[28px] bg-white p-5 shadow-sm">
