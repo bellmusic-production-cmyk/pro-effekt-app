@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.77 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.78 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzplanung Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1262,6 +1262,7 @@ export default function Home() {
   const [passwordSetupSaving, setPasswordSetupSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const companyDataRef = useRef<CompanyData | null>(null);
 
   const tenantBrandName =
     companyData?.name?.trim() ||
@@ -2028,16 +2029,67 @@ export default function Home() {
     }
   }, [session?.user?.id]);
 
+  function getCompanyCacheKey(userId?: string | null) {
+    return userId ? `trybun-company-data-${userId}` : "";
+  }
+
+  function readCachedCompanyData(userId?: string | null): CompanyData | null {
+    if (typeof window === "undefined" || !userId) return null;
+
+    try {
+      const raw = window.localStorage.getItem(getCompanyCacheKey(userId));
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as CompanyData;
+      return parsed?.id ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function persistCompanyData(userId: string | null | undefined, company: CompanyData | null) {
+    if (typeof window === "undefined" || !userId || !company?.id) return;
+
+    try {
+      window.localStorage.setItem(
+        getCompanyCacheKey(userId),
+        JSON.stringify(company),
+      );
+    } catch {
+      // Branding-Cache ist Komfort. Ein Storage-Fehler darf die App nicht blockieren.
+    }
+  }
+
+  function commitCompanyData(company: CompanyData | null, userIdOverride?: string | null) {
+    companyDataRef.current = company;
+    setCompanyData(company);
+
+    if (company?.id) {
+      persistCompanyData(userIdOverride || session?.user?.id, company);
+    }
+  }
+
   useEffect(() => {
     if (session?.user?.id) {
-      loadCompany(session.user.id);
+      const cachedCompany = readCachedCompanyData(session.user.id);
+
+      if (cachedCompany?.id) {
+        companyDataRef.current = cachedCompany;
+        setCompanyData(cachedCompany);
+      }
+
+      void loadCompany(session.user.id);
     } else {
+      companyDataRef.current = null;
       setCompanyData(null);
     }
   }, [session?.user?.id]);
 
   useEffect(() => {
     if (!companyData) return;
+
+    companyDataRef.current = companyData;
+    persistCompanyData(session?.user?.id, companyData);
 
     setCompanyNameInput(companyData.name || "");
     setCompanyLogoUrlInput(companyData.logo_url || "");
@@ -2105,6 +2157,7 @@ export default function Home() {
 
     const handleFocus = () => {
       verifyAccess();
+      void loadCompany(session?.user?.id);
     };
 
     window.addEventListener("focus", handleFocus);
@@ -2836,11 +2889,20 @@ export default function Home() {
   }
 
   async function loadCompany(userIdOverride?: string) {
-    if (isOfflineRuntime()) return companyData;
-
     const userId = userIdOverride || session?.user?.id;
+    const stableCompany =
+      companyDataRef.current ||
+      readCachedCompanyData(userId);
+
+    if (isOfflineRuntime()) {
+      if (stableCompany?.id && !companyDataRef.current) {
+        commitCompanyData(stableCompany, userId);
+      }
+      return stableCompany;
+    }
 
     if (!userId) {
+      companyDataRef.current = null;
       setCompanyData(null);
       return null;
     }
@@ -2866,22 +2928,31 @@ export default function Home() {
 
           if (!companyError) {
             const companiesList = (companiesResult || []) as CompanyData[];
+
             if (companiesList.length > 0) {
               const preferredCompany =
                 companiesList.find((company) => company.id === companyIds[0]) ||
                 companiesList[0];
-              setCompanyData(preferredCompany);
+
+              commitCompanyData(preferredCompany, userId);
               return preferredCompany;
             }
           } else {
-            console.error("Firma konnte über Mitgliedschaft nicht geladen werden:", companyError.message);
+            console.error(
+              "Firma konnte über Mitgliedschaft nicht geladen werden:",
+              companyError.message,
+            );
           }
         }
       } else {
-        console.error("Firmenmitgliedschaft konnte nicht geladen werden:", memberError.message);
+        console.error(
+          "Firmenmitgliedschaft konnte nicht geladen werden:",
+          memberError.message,
+        );
       }
 
       const profileCompanyName = String(userProfile?.company || "").trim();
+
       if (profileCompanyName) {
         const { data: fallbackCompany, error: fallbackError } = await supabase
           .from("companies")
@@ -2891,16 +2962,18 @@ export default function Home() {
           .maybeSingle();
 
         if (!fallbackError && fallbackCompany?.id) {
-          setCompanyData(fallbackCompany as CompanyData);
+          commitCompanyData(fallbackCompany as CompanyData, userId);
           return fallbackCompany as CompanyData;
         }
 
         if (fallbackError) {
-          console.error("Firma konnte über Profil-Fallback nicht geladen werden:", fallbackError.message);
+          console.error(
+            "Firma konnte über Profil-Fallback nicht geladen werden:",
+            fallbackError.message,
+          );
         }
       }
 
-      // Kundenportal: Firma über den zugeordneten Servicekunden ermitteln.
       if (userProfile?.customer_id) {
         const { data: customerCompany, error: customerCompanyError } = await supabase
           .from("customers")
@@ -2917,17 +2990,32 @@ export default function Home() {
             .maybeSingle();
 
           if (!portalCompanyError && portalCompany?.id) {
-            setCompanyData(portalCompany as CompanyData);
+            commitCompanyData(portalCompany as CompanyData, userId);
             return portalCompany as CompanyData;
           }
         }
       }
 
-      setCompanyData(null);
+      // Wichtig: Bei einem kurzfristigen Auth-/RLS-/Netzwerkproblem darf das bereits
+      // bestätigte Firmenbranding niemals auf TRYBUN-Standard zurückspringen.
+      if (stableCompany?.id) {
+        if (!companyDataRef.current) {
+          commitCompanyData(stableCompany, userId);
+        }
+        return stableCompany;
+      }
+
       return null;
     } catch (error) {
       console.error("Company-Ladevorgang fehlgeschlagen:", error);
-      setCompanyData(null);
+
+      if (stableCompany?.id) {
+        if (!companyDataRef.current) {
+          commitCompanyData(stableCompany, userId);
+        }
+        return stableCompany;
+      }
+
       return null;
     }
   }
@@ -3367,7 +3455,10 @@ export default function Home() {
       return;
     }
 
-    setCompanyData((data || { ...currentCompany, ...payload }) as CompanyData);
+    commitCompanyData(
+      (data || { ...currentCompany, ...payload }) as CompanyData,
+      session?.user?.id,
+    );
     alert("Firmeneinstellungen gespeichert.");
   }
 
@@ -3437,7 +3528,10 @@ export default function Home() {
       return;
     }
 
-    setCompanyData((data || { ...currentCompany, logo_url: logoUrl }) as CompanyData);
+    commitCompanyData(
+      (data || { ...currentCompany, logo_url: logoUrl }) as CompanyData,
+      session?.user?.id,
+    );
     setCompanyLogoUrlInput(logoUrl);
     alert("Firmenlogo gespeichert.");
   }
