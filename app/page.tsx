@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.00 · Tenant Safety Audit · Multi-Tenant Defense-in-Depth · Desktop/Mobile UI unverändert
+// TRYBUN Service Management System v4.13.01 · Public Legal Pages · Impressum & Datenschutz · Tenant/RLS unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -18759,6 +18759,15 @@ ${tenantBrandName}`,
           <p className="mt-6 text-center text-xs font-semibold leading-6 text-slate-500">
             {tenantBrandName} · Digitale Service-, Wartungs- und Dokumentationsplattform.
           </p>
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs font-bold">
+            <a href="/impressum" className="text-slate-400 underline underline-offset-4 hover:text-sky-400">
+              Impressum
+            </a>
+            <span className="text-slate-700">·</span>
+            <a href="/datenschutz" className="text-slate-400 underline underline-offset-4 hover:text-sky-400">
+              Datenschutz
+            </a>
+          </div>
         </div>
       </main>
     );
@@ -20865,6 +20874,27 @@ ${tenantBrandName}`,
               >
                 Einloggen
               </button>
+            </div>
+
+            <div className="mt-7 border-t border-slate-800 pt-5 text-center">
+              <p className="text-xs font-semibold leading-5 text-slate-500">
+                TRYBUN befindet sich derzeit in der Entwicklungs- und Pilotphase.
+              </p>
+              <div className="mt-3 flex items-center justify-center gap-4 text-xs font-bold">
+                <a
+                  href="/impressum"
+                  className="text-slate-400 underline decoration-slate-600 underline-offset-4 transition hover:text-sky-400"
+                >
+                  Impressum
+                </a>
+                <span className="text-slate-700">·</span>
+                <a
+                  href="/datenschutz"
+                  className="text-slate-400 underline decoration-slate-600 underline-offset-4 transition hover:text-sky-400"
+                >
+                  Datenschutz
+                </a>
+              </div>
             </div>
           </div>
         </div>
