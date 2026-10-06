@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.97 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.98 · Tenant Branding Cleanup · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -634,23 +634,7 @@ const SERVICE_PROFILE_PRESETS: Array<{
   },
 ];
 
-const fallbackDevices = [
-  "Gerät 1",
-  "Gerät 2",
-  "Gerät 3",
-];
-
 const SOFTWARE_LOGO_PATH = "/trybun-logo.png";
-const PRO_EFFEKT_LOGO_PATH = "/pro-effekt-logo.png";
-
-const DEMO_COMPANY_NAME = "Pro-Effekt";
-const DEMO_COMPANY_SUBTITLE = "Serviceplattform";
-const DEMO_COMPANY_ADDRESS = "";
-const DEMO_COMPANY_PHONE = "Tel. 01234 567890";
-const DEMO_COMPANY_FAX = "Fax 01234 567899";
-const DEMO_COMPANY_EMAIL = "";
-const DEMO_COMPANY_WEB = "";
-const DEMO_COMPANY_NOTE = "Service- und Wartungsdokumentation";
 
 const APP_DATE_MIN = "2000-01-01";
 const APP_DATE_MAX = "2100-12-31";
@@ -670,37 +654,6 @@ function isValidAppDate(value?: string | null) {
     parsed.getDate() === day
   );
 }
-const DEMO_COMPANY_LINE_HTML = `${DEMO_COMPANY_ADDRESS}<br/>${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}<br/>E-Mail: ${DEMO_COMPANY_EMAIL}, URL: ${DEMO_COMPANY_WEB}<br/>${DEMO_COMPANY_NOTE}`;
-const DEMO_COMPANY_LINE_TEXT = `${DEMO_COMPANY_ADDRESS}   ${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}   E-Mail: ${DEMO_COMPANY_EMAIL}   URL: ${DEMO_COMPANY_WEB}   ${DEMO_COMPANY_NOTE}`;
-
-let proEffektLogoDataUrlCache: string | null = null;
-
-async function getProEffektLogoDataUrl() {
-  if (typeof window === "undefined") return null;
-  if (proEffektLogoDataUrlCache) return proEffektLogoDataUrlCache;
-
-  try {
-    const response = await fetch(PRO_EFFEKT_LOGO_PATH, { cache: "force-cache" });
-
-    if (!response.ok) return null;
-
-    const blob = await response.blob();
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-
-    proEffektLogoDataUrlCache = dataUrl;
-    return dataUrl;
-  } catch (error) {
-    console.error("Pro-Effekt Logo konnte nicht für PDF geladen werden:", error);
-    return null;
-  }
-}
-
 const navItems = [
   "Dashboard",
   "Einsatz",
@@ -1345,8 +1298,7 @@ export default function Home() {
     "TRYBUN";
 
   const tenantLogoUrl =
-    companyData?.logo_url?.trim() ||
-    (tenantBrandName.toLowerCase() === "pro-effekt" ? PRO_EFFEKT_LOGO_PATH : "");
+    companyData?.logo_url?.trim() || "";
 
   const tenantPrimaryColor =
     companyData?.primary_color?.trim() || "#3B82F6";
@@ -2332,11 +2284,6 @@ export default function Home() {
       setActivePage("Geräte");
       setSelectedDeviceView(foundDevice);
     }
-  }, [devices]);
-
-  const deviceNames = useMemo(() => {
-    if (devices.length === 0) return fallbackDevices;
-    return devices.map((item) => item.name);
   }, [devices]);
 
   const customerNames = useMemo(() => {
@@ -7520,7 +7467,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const companySubtitle = companyData?.website || "Service Management";
     const companyContactLine = [companyData?.phone, companyData?.email, companyData?.website]
       .filter(Boolean)
-      .join(" · ") || `${DEMO_COMPANY_PHONE} · ${DEMO_COMPANY_EMAIL}`;
+      .join(" · ");
 
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -7528,7 +7475,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const margin = 14;
     const contentWidth = pageWidth - margin * 2;
     let y = 14;
-    const logoDataUrl = await getProEffektLogoDataUrl();
+    const logoDataUrl = await getCompanyPdfLogoDataUrl();
 
     function clean(value: any) {
       return String(value ?? "")
@@ -13933,11 +13880,22 @@ ${tenantBrandName}`,
               </div>
 
               <div class="footer-details">
-                ${DEMO_COMPANY_LINE_HTML}
+                ${
+                  [
+                    companyData?.address,
+                    companyData?.phone,
+                    companyData?.email,
+                    companyData?.website,
+                    companyData?.pdf_footer,
+                  ]
+                    .filter(Boolean)
+                    .map((value) => escapeDocumentText(value))
+                    .join("<br/>") || "Firmendaten noch nicht hinterlegt"
+                }
               </div>
 
               <div class="footer-partner">
-                DEMO<br/>PDF
+                TRYBUN<br/>PDF
               </div>
             </div>
 
@@ -14002,7 +13960,7 @@ ${tenantBrandName}`,
     const pageHeight = pdf.internal.pageSize.getHeight();
 
     let y = 9;
-    const logoDataUrl = await getProEffektLogoDataUrl();
+    const logoDataUrl = await getCompanyPdfLogoDataUrl();
 
     function clean(value: any) {
       return String(value ?? "")
@@ -14229,14 +14187,20 @@ ${tenantBrandName}`,
 
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(5.0);
-    pdf.text(DEMO_COMPANY_ADDRESS, 96, footerY);
-    pdf.text(`${DEMO_COMPANY_PHONE}, ${DEMO_COMPANY_FAX}`, 96, footerY + 3.8);
-    pdf.text(`E-Mail: ${DEMO_COMPANY_EMAIL}, URL: ${DEMO_COMPANY_WEB}`, 96, footerY + 7.6);
-    pdf.text(DEMO_COMPANY_NOTE, 96, footerY + 11.4);
+    pdf.text(String(companyData?.address || ""), 96, footerY);
+    pdf.text(
+      [companyData?.phone, companyData?.email]
+        .filter(Boolean)
+        .join(" · "),
+      96,
+      footerY + 3.8,
+    );
+    pdf.text(String(companyData?.website || ""), 96, footerY + 7.6);
+    pdf.text(String(companyData?.pdf_footer || ""), 96, footerY + 11.4);
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(5.8);
-    pdf.text("DEMO", 250, footerY + 3.8);
+    pdf.text("TRYBUN", 250, footerY + 3.8);
     pdf.text("PDF", 250, footerY + 7.6);
     pdf.setFont("helvetica", "normal");
 
@@ -14628,7 +14592,8 @@ ${tenantBrandName}`,
   async function getCompanyPdfLogoDataUrl() {
     if (typeof window === "undefined") return null;
 
-    const source = companyData?.logo_url || PRO_EFFEKT_LOGO_PATH;
+    const source = companyData?.logo_url?.trim() || "";
+    if (!source) return null;
 
     try {
       const response = await fetch(source, { cache: "no-store" });
@@ -14662,7 +14627,7 @@ ${tenantBrandName}`,
       return canvas.toDataURL("image/png");
     } catch (error) {
       console.error("Firmenlogo konnte nicht für PDF geladen werden:", error);
-      return getProEffektLogoDataUrl();
+      return null;
     }
   }
 
