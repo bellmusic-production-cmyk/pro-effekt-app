@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.98 · Tenant Branding Cleanup · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.99 · Legacy Cleanup · Tenant-sichere Benutzerlisten · Responsive UI unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -5388,93 +5388,99 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadUserProfiles() {
     if (isOfflineRuntime()) return;
-    // Benutzerverwaltung Premium v1:
-    // Dieser Bereich lädt vorhandene Profile nur lesend.
-    // Keine Auth-User werden erzeugt, keine Einladungen versendet und keine Rollen automatisch geändert.
+
     const fallbackProfiles: UserProfile[] = [];
 
     try {
+      const activeUserId = session?.user?.id || userProfile?.id || null;
+      const currentCompany =
+        companyDataRef.current ||
+        readCachedCompanyData(activeUserId) ||
+        (activeUserId ? await loadCompany(activeUserId) : null);
+
+      if (!currentCompany?.id) {
+        setUserProfiles(fallbackProfiles);
+        setUserCompanyNames({});
+        return false;
+      }
+
       const timeout = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Benutzer-Ladevorgang Timeout")), 3500);
       });
 
-      const profilesRequest = supabase
-        .from("profiles")
-        .select("id, full_name, role, company, customer_id, is_active, created_at")
-        .order("created_at", { ascending: false });
+      const scopedUsersRequest = (async () => {
+        const { data: memberships, error: membershipsError } = await supabase
+          .from("company_members")
+          .select("user_id, role")
+          .eq("company_id", currentCompany.id);
 
-      const result: any = await Promise.race([profilesRequest, timeout]);
+        if (membershipsError) throw membershipsError;
 
-      if (result?.error) {
-        console.error("Benutzerprofile konnten nicht geladen werden:", result.error.message);
-        setUserProfiles(fallbackProfiles);
-        return false;
-      }
+        const internalUserIds = Array.from(
+          new Set(
+            (memberships || [])
+              .map((membership: any) => String(membership.user_id || "").trim())
+              .filter(Boolean),
+          ),
+        );
 
-      const loadedProfiles = (result?.data || []) as UserProfile[];
+        const { data: companyCustomers, error: customerError } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("company_id", currentCompany.id);
+
+        if (customerError) throw customerError;
+
+        const customerIds = (companyCustomers || [])
+          .map((customer: any) => Number(customer.id))
+          .filter((customerId: number) => Number.isFinite(customerId) && customerId > 0);
+
+        const profileMap = new Map<string, UserProfile>();
+
+        if (internalUserIds.length > 0) {
+          const { data: internalProfiles, error: internalProfilesError } = await supabase
+            .from("profiles")
+            .select("id, full_name, role, company, customer_id, is_active, created_at")
+            .in("id", internalUserIds);
+
+          if (internalProfilesError) throw internalProfilesError;
+
+          ((internalProfiles || []) as UserProfile[]).forEach((profile) => {
+            profileMap.set(profile.id, profile);
+          });
+        }
+
+        if (customerIds.length > 0) {
+          const { data: customerProfiles, error: customerProfilesError } = await supabase
+            .from("profiles")
+            .select("id, full_name, role, company, customer_id, is_active, created_at")
+            .eq("role", "customer")
+            .in("customer_id", customerIds);
+
+          if (customerProfilesError) throw customerProfilesError;
+
+          ((customerProfiles || []) as UserProfile[]).forEach((profile) => {
+            profileMap.set(profile.id, profile);
+          });
+        }
+
+        return Array.from(profileMap.values()).sort((a, b) =>
+          String(b.created_at || "").localeCompare(String(a.created_at || "")),
+        );
+      })();
+
+      const loadedProfiles = (await Promise.race([
+        scopedUsersRequest,
+        timeout,
+      ])) as UserProfile[];
+
       setUserProfiles(loadedProfiles);
-
-      const profileIds = loadedProfiles.map((profile) => profile.id).filter(Boolean);
-
-      if (profileIds.length === 0) {
-        setUserCompanyNames({});
-        return true;
-      }
-
-      const { data: memberships, error: membershipsError } = await supabase
-        .from("company_members")
-        .select("user_id, company_id, role, created_at")
-        .in("user_id", profileIds)
-        .order("created_at", { ascending: false });
-
-      if (membershipsError) {
-        console.error("Firmenzuordnungen konnten nicht geladen werden:", membershipsError.message);
-        setUserCompanyNames({});
-        return false;
-      }
-
-      const companyIds = Array.from(
-        new Set(
-          (memberships || [])
-            .map((membership: any) => Number(membership.company_id))
-            .filter((companyId: number) => Number.isFinite(companyId) && companyId > 0),
+      setUserCompanyNames(
+        Object.fromEntries(
+          loadedProfiles.map((profile) => [profile.id, currentCompany.name]),
         ),
       );
 
-      if (companyIds.length === 0) {
-        setUserCompanyNames({});
-        return true;
-      }
-
-      const { data: companiesResult, error: companiesError } = await supabase
-        .from("companies")
-        .select("id, name")
-        .in("id", companyIds);
-
-      if (companiesError) {
-        console.error("Firmennamen konnten nicht geladen werden:", companiesError.message);
-        setUserCompanyNames({});
-        return false;
-      }
-
-      const companyNameById = new Map<number, string>(
-        (companiesResult || []).map((company: any) => [
-          Number(company.id),
-          String(company.name || "").trim(),
-        ]),
-      );
-
-      const nextUserCompanyNames: Record<string, string> = {};
-
-      (memberships || []).forEach((membership: any) => {
-        const userId = String(membership.user_id || "");
-        if (!userId || nextUserCompanyNames[userId]) return;
-
-        const companyName = companyNameById.get(Number(membership.company_id));
-        if (companyName) nextUserCompanyNames[userId] = companyName;
-      });
-
-      setUserCompanyNames(nextUserCompanyNames);
       return true;
     } catch (error) {
       console.error("Benutzer-Ladevorgang übersprungen:", error);
@@ -5643,77 +5649,69 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadTechnicians() {
     if (isOfflineRuntime()) return;
-    // Sicherer Restore:
-    // Techniker werden wieder aus public.profiles geladen.
-    // Falls Supabase/RLS hängt oder einen Fehler liefert, blockiert die App nicht.
+
     const fallbackTechnicians: UserProfile[] = [];
 
     try {
+      const activeUserId = session?.user?.id || userProfile?.id || null;
+      const currentCompany =
+        companyDataRef.current ||
+        readCachedCompanyData(activeUserId) ||
+        (activeUserId ? await loadCompany(activeUserId) : null);
+
+      if (!currentCompany?.id) {
+        setTechnicians(fallbackTechnicians);
+        return;
+      }
+
       const timeout = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Techniker-Ladevorgang Timeout")), 3500);
       });
 
-      const profilesRequest = supabase
-        .from("profiles")
-        .select("id, full_name, role, company, customer_id, is_active, created_at")
-        .in("role", ["technician", "admin"])
-        .order("full_name", { ascending: true });
+      const techniciansRequest = (async () => {
+        const { data: memberships, error: membershipsError } = await supabase
+          .from("company_members")
+          .select("user_id")
+          .eq("company_id", currentCompany.id)
+          .eq("role", "technician");
 
-      const result: any = await Promise.race([profilesRequest, timeout]);
+        if (membershipsError) throw membershipsError;
 
-      if (result?.error) {
-        console.error("Techniker konnten nicht aus profiles geladen werden:", result.error.message);
-        setTechnicians(fallbackTechnicians);
-        return;
-      }
+        const technicianIds = Array.from(
+          new Set(
+            (memberships || [])
+              .map((membership: any) => String(membership.user_id || "").trim())
+              .filter(Boolean),
+          ),
+        );
 
-      const assignableProfiles = ((result?.data || []) as UserProfile[]).filter((profile) => {
-        if (profile.is_active === false) return false;
+        if (technicianIds.length === 0) return [];
 
-        const role = String(profile.role || "").toLowerCase();
-        const name = String(profile.full_name || "").trim().toLowerCase();
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, full_name, role, company, customer_id, is_active, created_at")
+          .in("id", technicianIds);
 
-        if (role === "technician") return true;
+        if (profilesError) throw profilesError;
 
-        // Optionaler Demo-Admin kann zusätzlich als Techniker im Dropdown erscheinen.
-        // Andere Admins sollen nicht automatisch im Techniker-Dropdown erscheinen.
-        if (role === "admin" && name === "max mustermann") return true;
+        return ((profiles || []) as UserProfile[])
+          .filter(
+            (profile) =>
+              profile.is_active !== false &&
+              String(profile.role || "").toLowerCase() === "technician",
+          )
+          .sort((a, b) =>
+            String(a.full_name || a.company || "").localeCompare(
+              String(b.full_name || b.company || ""),
+              "de",
+            ),
+          );
+      })();
 
-        return false;
-      });
-
-      const profileByName = new Map<string, UserProfile>();
-
-      assignableProfiles.forEach((profile) => {
-        const nameKey = String(profile.full_name || profile.company || profile.id)
-          .trim()
-          .toLowerCase();
-
-        const existingProfile = profileByName.get(nameKey);
-
-        // Doppelte Personen vermeiden.
-        // Wenn eine Person als technician und admin existiert, wird technician bevorzugt.
-        if (!existingProfile) {
-          profileByName.set(nameKey, profile);
-          return;
-        }
-
-        if (existingProfile.role !== "technician" && profile.role === "technician") {
-          profileByName.set(nameKey, profile);
-        }
-      });
-
-      const loadedProfiles = Array.from(profileByName.values()).sort((a, b) =>
-        String(a.full_name || a.company || "").localeCompare(
-          String(b.full_name || b.company || ""),
-          "de",
-        ),
-      );
-
-      if (loadedProfiles.length === 0) {
-        setTechnicians(fallbackTechnicians);
-        return;
-      }
+      const loadedProfiles = (await Promise.race([
+        techniciansRequest,
+        timeout,
+      ])) as UserProfile[];
 
       setTechnicians(loadedProfiles);
     } catch (error) {
@@ -10055,7 +10053,7 @@ function SoftwareLogo({ compact = false, hero = false }: { dark?: boolean; compa
   );
 }
 
-function ProEffektLogo({ dark = false }: { dark?: boolean }) {
+function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     const brandName = tenantBrandName;
     const logoSrc = tenantLogoUrl;
 
@@ -12717,13 +12715,12 @@ ${tenantBrandName}`,
   const invoiceCustomerResults = (() => {
     const search = invoiceCustomerSearch.trim();
 
-    const base = customers
-      .filter(
-        (item) =>
-          !companyData?.id ||
-          item.company_id == null ||
-          Number(item.company_id) === Number(companyData.id),
-      );
+    const base = customers.filter(
+      (item) =>
+        !companyData?.id ||
+        (item.company_id != null &&
+          Number(item.company_id) === Number(companyData.id)),
+    );
 
     if (!search) {
       return base
@@ -12824,8 +12821,8 @@ ${tenantBrandName}`,
       }
     }
 
-    // Altbestand: RLS ist weiterhin die harte DB-Grenze.
-    return true;
+    // Ohne eindeutig nachweisbare Firmenzuordnung wird der Datensatz nicht angezeigt.
+    return false;
   }
 
   const accountingInvoices = invoices.filter(invoiceBelongsToCurrentCompany);
@@ -12848,9 +12845,9 @@ ${tenantBrandName}`,
       ? customers.find((item) => item.id === contract.customer_id)
       : null;
 
-    return customer?.company_id == null
-      ? true
-      : Number(customer.company_id) === Number(companyData.id);
+    return customer?.company_id != null
+      ? Number(customer.company_id) === Number(companyData.id)
+      : false;
   });
 
   const accountingRecords: AccountingRecord[] = [
@@ -18099,7 +18096,7 @@ ${tenantBrandName}`,
           }
         }
 
-        return true;
+        return false;
       });
     }
 
@@ -18390,7 +18387,7 @@ ${tenantBrandName}`,
         <div className="mx-auto max-w-5xl rounded-[36px] border border-sky-500/20 bg-[#0b1726] p-6 shadow-2xl shadow-black/40 md:p-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center">
             <div className="w-full max-w-[150px]">
-              <ProEffektLogo dark />
+              <TenantBrandLogo dark />
             </div>
 
             <div>
@@ -26739,7 +26736,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       <input
                         value={newUserFullName}
                         onChange={(event) => setNewUserFullName(event.target.value)}
-                        placeholder="z.B. Max Mustermann"
+                        placeholder="z. B. Maria Muster"
                         className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400"
                       />
                     </label>
