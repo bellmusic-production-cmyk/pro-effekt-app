@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.96 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
+// TRYBUN Service Management System v4.12.97 · Klare Stammdatenstruktur · Hersteller + Modelle + Kundengeräte + Lieferanten + Ersatzteile · Clean Software Header Branding · Kommunikationszentrale Live · E-Mail-Versand für Ticket-Chat · Chat-Benachrichtigung · Chat-Benachrichtigungen Premium · Kundenkommunikation Premium · Terminbestätigung echte App-Buttons · Kunden-Terminbestätigung · Kunden-Terminbestätigung · Einsatzkalender + Disposition Premium · Wartungsautomatik · Automatische Wartungsmails · Techniker-App Premium · Wartungsplaner Premium · Ticketakte · Kundenportal · Kundenportal · Servicebericht PDF Premium · Serviceberichte · Kommunikation · Mail-Protokollierung · E-Mail-Versand · Kundenportal Final · Mobile Technikeransicht · E-Mail · Dashboard · Dokumente · Company Branding + Wartungserinnerungen · Sichere Anmeldung · Rollenverwaltung · 
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2549,10 +2549,24 @@ export default function Home() {
   const filteredDocuments = useMemo(() => {
     const search = documentSearchTerm.trim();
 
+    const activeCompanyId = Number(
+      companyData?.id || companyDataRef.current?.id || 0,
+    );
+
+    const tenantFilteredDocuments = activeCompanyId
+      ? documents.filter(
+          (item) =>
+            item.company_id != null &&
+            Number(item.company_id) === activeCompanyId,
+        )
+      : [];
+
     const customerFilteredDocuments =
       userProfile?.role === "customer"
-        ? documents.filter((item) => item.customer_id === userProfile?.customer_id)
-        : documents;
+        ? tenantFilteredDocuments.filter(
+            (item) => item.customer_id === userProfile?.customer_id,
+          )
+        : tenantFilteredDocuments;
 
     return customerFilteredDocuments.filter((item) => {
       const linkedDevice = item.device_id
@@ -2663,6 +2677,7 @@ export default function Home() {
     documentCustomerFilter,
     documentDeviceFilter,
     userProfile,
+    companyData,
   ]);
 
   const inspectionStats = useMemo(() => {
@@ -4861,10 +4876,30 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadDocuments() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
+
+    const activeUserId = session?.user?.id || userProfile?.id || null;
+    const currentCompany =
+      companyDataRef.current ||
+      readCachedCompanyData(activeUserId) ||
+      (activeUserId ? await loadCompany(activeUserId) : null);
+
+    if (!currentCompany?.id) {
+      console.error("Dokumente konnten keiner aktiven Firma zugeordnet werden.");
+      setDocuments([]);
+      return;
+    }
+
+    let query = supabase
       .from("documents")
       .select("*")
+      .eq("company_id", currentCompany.id)
       .order("created_at", { ascending: false });
+
+    if (userProfile?.role === "customer" && userProfile.customer_id) {
+      query = query.eq("customer_id", userProfile.customer_id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Dokumente konnten nicht geladen werden:", error.message);
@@ -4872,7 +4907,11 @@ async function loadApplicationData(userIdOverride?: string) {
       return;
     }
 
-    setDocuments(data || []);
+    setDocuments(
+      (data || []).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function resolveDocumentCompanyId(
@@ -6493,6 +6532,22 @@ async function loadApplicationData(userIdOverride?: string) {
   }
 
   async function assignDocumentToTicketContext(documentItem: DocumentItem, ticket: Ticket) {
+    const activeCompanyId = Number(
+      companyData?.id || companyDataRef.current?.id || 0,
+    );
+
+    if (
+      !activeCompanyId ||
+      documentItem.company_id == null ||
+      Number(documentItem.company_id) !== activeCompanyId ||
+      ticket.company_id == null ||
+      Number(ticket.company_id) !== activeCompanyId
+    ) {
+      alert("Dokument und Ticket müssen zur aktuell angemeldeten Firma gehören.");
+      await loadDocuments();
+      return;
+    }
+
     const relatedDevice = getDeviceForTicket(ticket);
     const relatedCustomer = getCustomerForTicket(ticket);
     const finalCustomerId =
@@ -6505,7 +6560,8 @@ async function loadApplicationData(userIdOverride?: string) {
         customer_id: finalCustomerId,
         device_id: documentItem.device_id || relatedDevice?.id || null,
       })
-      .eq("id", documentItem.id);
+      .eq("id", documentItem.id)
+      .eq("company_id", activeCompanyId);
 
     if (error) {
       alert(`Dokument konnte nicht zugeordnet werden: ${error.message}`);
@@ -6522,6 +6578,29 @@ async function loadApplicationData(userIdOverride?: string) {
       alert(
         "Die Dokumentinformation ist offline verfügbar. Zum Öffnen der Datei wird eine Internetverbindung benötigt.",
       );
+      return;
+    }
+
+    const activeCompanyId = Number(
+      companyData?.id || companyDataRef.current?.id || 0,
+    );
+
+    if (
+      !activeCompanyId ||
+      item.company_id == null ||
+      Number(item.company_id) !== activeCompanyId
+    ) {
+      alert("Dieses Dokument gehört nicht zur aktuell angemeldeten Firma.");
+      await loadDocuments();
+      return;
+    }
+
+    if (
+      userProfile?.role === "customer" &&
+      Number(item.customer_id || 0) !== Number(userProfile.customer_id || 0)
+    ) {
+      alert("Dieses Dokument ist Ihrem Kundenkonto nicht zugeordnet.");
+      await loadDocuments();
       return;
     }
 
@@ -6611,10 +6690,25 @@ async function loadApplicationData(userIdOverride?: string) {
       return;
     }
 
+    const activeCompanyId = Number(
+      companyData?.id || companyDataRef.current?.id || 0,
+    );
+
+    if (
+      !activeCompanyId ||
+      item.company_id == null ||
+      Number(item.company_id) !== activeCompanyId
+    ) {
+      alert("Dieses Dokument gehört nicht zur aktuell angemeldeten Firma.");
+      await loadDocuments();
+      return;
+    }
+
     const tableResult = await supabase
       .from("documents")
       .delete()
-      .eq("id", item.id);
+      .eq("id", item.id)
+      .eq("company_id", activeCompanyId);
 
     if (tableResult.error) {
       alert(
