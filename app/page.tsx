@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.12.99 · Legacy Cleanup · Tenant-sichere Benutzerlisten · Responsive UI unverändert
+// TRYBUN Service Management System v4.13.00 · Tenant Safety Audit · Multi-Tenant Defense-in-Depth · Desktop/Mobile UI unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -243,6 +243,7 @@ type DocumentItem = {
 
 type DeviceHistory = {
   id: number;
+  company_id?: number | null;
   device_id: number | null;
   title: string;
   description: string | null;
@@ -381,6 +382,7 @@ type AccountingRecord = {
 
 type NotificationItem = {
   id: number;
+  company_id?: number | null;
   type: string;
   recipient: string;
   subject: string;
@@ -4166,6 +4168,16 @@ function isOfflineRuntime() {
     return typeof navigator !== "undefined" && !navigator.onLine;
   }
 
+  async function resolveActiveCompanyForOperation(userIdOverride?: string | null) {
+    const activeUserId = userIdOverride || session?.user?.id || userProfile?.id || null;
+
+    return (
+      companyDataRef.current ||
+      readCachedCompanyData(activeUserId) ||
+      (activeUserId ? await loadCompany(activeUserId) : null)
+    );
+  }
+
 async function loadApplicationData(userIdOverride?: string) {
     const activeUserId = userIdOverride || session?.user?.id;
 
@@ -4186,9 +4198,10 @@ async function loadApplicationData(userIdOverride?: string) {
 
     setAppDataLoaded(false);
 
+    await loadCompany(activeUserId);
+    const loadedTickets = await loadTickets();
+
     await Promise.all([
-      loadCompany(activeUserId),
-      loadTickets(),
       loadDevices(),
       loadCustomers(),
       loadManufacturers(),
@@ -4202,11 +4215,12 @@ async function loadApplicationData(userIdOverride?: string) {
       loadInventoryMovements(),
       loadInvoices(),
       loadNotifications(),
-      loadTicketChatMessages(),
       loadContracts(),
       loadTechnicians(),
       loadUserProfiles(),
     ]);
+
+    await loadTicketChatMessages(loadedTickets);
 
     setAppDataLoaded(true);
   }
@@ -4658,17 +4672,20 @@ async function loadApplicationData(userIdOverride?: string) {
   }
 
   async function loadTickets() {
-    if (isOfflineRuntime()) return;
-    // Sicherheitsrelevante Rollenfilterung bereits beim Laden der Tickets anwenden.
-    // Dadurch erhält ein Techniker ausschließlich Tickets, die ihm über assigned_to
-    // ausdrücklich zugewiesen wurden. Unzugewiesene Tickets (assigned_to = NULL)
-    // bleiben vollständig im Admin-Pool und gelangen nicht in den Techniker-State.
+    if (isOfflineRuntime()) return [] as Ticket[];
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setTickets([]);
+      return [] as Ticket[];
+    }
+
     const { data: authData, error: authError } = await supabase.auth.getUser();
 
     if (authError || !authData.user) {
       console.error("Angemeldeter Benutzer konnte für den Ticketabruf nicht ermittelt werden:", authError?.message);
       setTickets([]);
-      return;
+      return [] as Ticket[];
     }
 
     const { data: ticketProfile, error: profileError } = await supabase
@@ -4680,19 +4697,20 @@ async function loadApplicationData(userIdOverride?: string) {
     if (profileError || !ticketProfile) {
       console.error("Benutzerrolle konnte für den Ticketabruf nicht ermittelt werden:", profileError?.message);
       setTickets([]);
-      return;
+      return [] as Ticket[];
     }
 
     let ticketQuery = supabase
       .from("tickets")
-      .select("*");
+      .select("*")
+      .eq("company_id", currentCompany.id);
 
     if (ticketProfile.role === "technician") {
       ticketQuery = ticketQuery.eq("assigned_to", authData.user.id);
     } else if (ticketProfile.role === "customer") {
       if (!ticketProfile.customer_id) {
         setTickets([]);
-        return;
+        return [] as Ticket[];
       }
 
       ticketQuery = ticketQuery.eq("customer_id", ticketProfile.customer_id);
@@ -4703,18 +4721,37 @@ async function loadApplicationData(userIdOverride?: string) {
     if (error) {
       console.error("Tickets konnten nicht geladen werden:", error.message);
       setTickets([]);
-      return;
+      return [] as Ticket[];
     }
 
-    setTickets(data || []);
+    const scopedTickets = ((data || []) as Ticket[]).filter(
+      (ticket) => Number(ticket.company_id) === Number(currentCompany.id),
+    );
+
+    setTickets(scopedTickets);
+    return scopedTickets;
   }
 
   async function loadDevices() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setDevices([]);
+      return;
+    }
+
+    let query = supabase
       .from("devices")
       .select("*")
+      .eq("company_id", currentCompany.id)
       .order("created_at", { ascending: false });
+
+    if (userProfile?.role === "customer" && userProfile.customer_id) {
+      query = query.eq("customer_id", userProfile.customer_id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       if (isOfflineRuntime() || isNetworkFailure(error)) {
@@ -4728,11 +4765,22 @@ async function loadApplicationData(userIdOverride?: string) {
       return;
     }
 
-    setDevices(data || []);
+    setDevices(
+      ((data || []) as Device[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadCustomers() {
     if (isOfflineRuntime()) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setCustomers([]);
+      return;
+    }
+
     const pageSize = 1000;
     let from = 0;
     let loadedCustomers: Customer[] = [];
@@ -4740,11 +4788,18 @@ async function loadApplicationData(userIdOverride?: string) {
     while (true) {
       const to = from + pageSize - 1;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("customers")
         .select("*")
+        .eq("company_id", currentCompany.id)
         .order("created_at", { ascending: false })
         .range(from, to);
+
+      if (userProfile?.role === "customer" && userProfile.customer_id) {
+        query = query.eq("id", userProfile.customer_id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Kunden konnten nicht geladen werden:", error.message);
@@ -4752,13 +4807,12 @@ async function loadApplicationData(userIdOverride?: string) {
         return;
       }
 
-      const batch = (data || []) as Customer[];
+      const batch = ((data || []) as Customer[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      );
       loadedCustomers = [...loadedCustomers, ...batch];
 
-      if (batch.length < pageSize) {
-        break;
-      }
-
+      if (batch.length < pageSize) break;
       from += pageSize;
 
       if (from > 50000) {
@@ -4770,56 +4824,61 @@ async function loadApplicationData(userIdOverride?: string) {
     setCustomers(loadedCustomers);
   }
 
-
   async function loadManufacturers() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("manufacturers")
-      .select("*")
-      .order("name", { ascending: true });
 
-    if (error) {
-      if (isOfflineRuntime() || isNetworkFailure(error)) {
-        setOfflineSyncMessage(
-          "Offline-Modus aktiv · Hersteller werden nach Wiederherstellung der Verbindung geladen.",
-        );
-        return;
-      }
-
-      console.error("Hersteller konnten nicht geladen werden:", error.message);
-      alert("Hersteller konnten nicht geladen werden: " + error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setManufacturers([]);
       return;
     }
 
-    setManufacturers((data || []) as Manufacturer[]);
+    const { data, error } = await supabase
+      .from("manufacturers")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("manufacturers konnten nicht mandantensicher geladen werden:", error.message);
+      setManufacturers([]);
+      return;
+    }
+
+    setManufacturers(
+      ((data || []) as Manufacturer[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadDeviceModels() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("device_models")
-      .select("*")
-      .order("name", { ascending: true });
 
-    if (error) {
-      if (isOfflineRuntime() || isNetworkFailure(error)) {
-        setOfflineSyncMessage(
-          "Offline-Modus aktiv · Modelle werden nach Wiederherstellung der Verbindung geladen.",
-        );
-        return;
-      }
-
-      console.error("Geräte / Modelle konnten nicht geladen werden:", error.message);
-      alert("Geräte / Modelle konnten nicht geladen werden: " + error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setDeviceModels([]);
       return;
     }
 
-    setDeviceModels((data || []) as DeviceModel[]);
+    const { data, error } = await supabase
+      .from("device_models")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("device_models konnten nicht mandantensicher geladen werden:", error.message);
+      setDeviceModels([]);
+      return;
+    }
+
+    setDeviceModels(
+      ((data || []) as DeviceModel[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
-
-
 
   async function loadDocuments() {
     if (isOfflineRuntime()) return;
@@ -4935,65 +4994,108 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadDeviceHistory() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("device_history")
-      .select("*")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setDeviceHistory([]);
       return;
     }
 
-    setDeviceHistory(data || []);
+    const { data, error } = await supabase
+      .from("device_history")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("device_history konnten nicht mandantensicher geladen werden:", error.message);
+      setDeviceHistory([]);
+      return;
+    }
+
+    setDeviceHistory(
+      ((data || []) as DeviceHistory[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadMaintenancePlans() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("maintenance_plans")
-      .select("*")
-      .order("next_due", { ascending: true });
 
-    if (error) {
-      console.error("Service-/Wartungsplanung konnte nicht geladen werden:", error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setMaintenancePlans([]);
       return;
     }
 
-    setMaintenancePlans(data || []);
+    const { data, error } = await supabase
+      .from("maintenance_plans")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("next_due", { ascending: true });
+
+    if (error) {
+      console.error("maintenance_plans konnten nicht mandantensicher geladen werden:", error.message);
+      setMaintenancePlans([]);
+      return;
+    }
+
+    setMaintenancePlans(
+      ((data || []) as MaintenancePlan[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadServiceParts() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("spare_parts")
-      .select("*")
-      .order("name", { ascending: true });
 
-    if (error) {
-      console.error("Ersatzteile konnten nicht geladen werden:", error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setServiceParts([]);
       return;
     }
 
-    setServiceParts((data || []) as SparePart[]);
+    const { data, error } = await supabase
+      .from("spare_parts")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("spare_parts konnten nicht mandantensicher geladen werden:", error.message);
+      setServiceParts([]);
+      return;
+    }
+
+    setServiceParts(
+      ((data || []) as SparePart[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadPartUsages() {
     if (isOfflineRuntime()) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setPartUsages([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("part_usages")
       .select("*")
+      .eq("company_id", currentCompany.id)
       .eq("is_voided", false)
       .order("created_at", { ascending: false })
       .limit(25);
 
     if (error) {
-      console.error(
-        "Ersatzteilverbrauch konnte nicht geladen werden:",
-        error.message,
-      );
+      console.error("Ersatzteilverbrauch konnte nicht geladen werden:", error.message);
+      setPartUsages([]);
       return;
     }
 
@@ -5002,36 +5104,53 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadInventoryMovements() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("inventory_movements")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(250);
 
-    if (error) {
-      console.error("Lagerbewegungen konnten nicht geladen werden:", error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setInventoryMovements([]);
       return;
     }
 
-    setInventoryMovements((data || []) as InventoryMovement[]);
+    const { data, error } = await supabase
+      .from("inventory_movements")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("inventory_movements konnten nicht mandantensicher geladen werden:", error.message);
+      setInventoryMovements([]);
+      return;
+    }
+
+    setInventoryMovements(
+      ((data || []) as InventoryMovement[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadVoidedPartUsages(limit = 10) {
     if (isOfflineRuntime()) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setVoidedPartUsages([]);
+      setVoidedPartUsagesTotal(0);
+      return;
+    }
+
     const safeLimit = Math.max(10, Number(limit) || 10);
     const { data, error, count } = await supabase
       .from("part_usages")
       .select("*", { count: "exact" })
+      .eq("company_id", currentCompany.id)
       .eq("is_voided", true)
       .order("voided_at", { ascending: false })
       .range(0, safeLimit - 1);
 
     if (error) {
-      console.error(
-        "Storno-Historie konnte nicht geladen werden:",
-        error.message,
-      );
+      console.error("Storno-Historie konnte nicht geladen werden:", error.message);
       return;
     }
 
@@ -5043,6 +5162,9 @@ async function loadApplicationData(userIdOverride?: string) {
     if (voidedPartUsagesLoadingMore) return;
     if (voidedPartUsages.length >= voidedPartUsagesTotal) return;
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) return;
+
     const from = voidedPartUsages.length;
     const to = from + 9;
     setVoidedPartUsagesLoadingMore(true);
@@ -5050,6 +5172,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const { data, error, count } = await supabase
       .from("part_usages")
       .select("*", { count: "exact" })
+      .eq("company_id", currentCompany.id)
       .eq("is_voided", true)
       .order("voided_at", { ascending: false })
       .range(from, to);
@@ -5079,41 +5202,75 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadInvoices() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("invoices")
-      .select("*")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Rechnungen konnten nicht geladen werden:", error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setInvoices([]);
       return;
     }
 
-    setInvoices((data || []) as InvoiceItem[]);
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("invoices konnten nicht mandantensicher geladen werden:", error.message);
+      setInvoices([]);
+      return;
+    }
+
+    setInvoices(
+      ((data || []) as InvoiceItem[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadNotifications() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Benachrichtigungen konnten nicht geladen werden:", error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setNotifications([]);
       return;
     }
 
-    setNotifications((data || []) as NotificationItem[]);
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("notifications konnten nicht mandantensicher geladen werden:", error.message);
+      setNotifications([]);
+      return;
+    }
+
+    setNotifications(
+      ((data || []) as NotificationItem[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
-  async function loadTicketChatMessages() {
+  async function loadTicketChatMessages(ticketSource?: Ticket[]) {
     if (isOfflineRuntime()) return;
+
+    const sourceTickets = ticketSource || tickets;
+    const ticketIds = sourceTickets.map((ticket) => Number(ticket.id)).filter(Boolean);
+
+    if (ticketIds.length === 0) {
+      setTicketChatMessages([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("ticket_chat_messages")
       .select("*")
+      .in("ticket_id", ticketIds)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -5122,7 +5279,12 @@ async function loadApplicationData(userIdOverride?: string) {
       return;
     }
 
-    setTicketChatMessages((data || []) as TicketChatMessage[]);
+    const allowedTicketIds = new Set(ticketIds);
+    setTicketChatMessages(
+      ((data || []) as TicketChatMessage[]).filter((message) =>
+        allowedTicketIds.has(Number(message.ticket_id)),
+      ),
+    );
   }
 
   async function uploadTicketChatAttachment(ticketId: number, file: File | null) {
@@ -5213,7 +5375,11 @@ async function loadApplicationData(userIdOverride?: string) {
     const senderName = userProfile?.full_name || userProfile?.company || profileCustomer?.company || "Nutzer";
     const shortMessage = message.length > 600 ? `${message.slice(0, 600)}...` : message;
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(ticket.company_id) !== Number(currentCompany.id)) return;
+
     const notificationPayload = {
+      company_id: currentCompany.id,
       type: "Ticket-Chat",
       recipient,
       subject: `Neue Chatnachricht · ${ticket.ticket_number}`,
@@ -5372,18 +5538,30 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadContracts() {
     if (isOfflineRuntime()) return;
-    const { data, error } = await supabase
-      .from("service_contracts")
-      .select("*")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Verträge konnten nicht geladen werden:", error.message);
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
       setContracts([]);
       return;
     }
 
-    setContracts((data || []) as ServiceContract[]);
+    const { data, error } = await supabase
+      .from("service_contracts")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("service_contracts konnten nicht mandantensicher geladen werden:", error.message);
+      setContracts([]);
+      return;
+    }
+
+    setContracts(
+      ((data || []) as ServiceContract[]).filter(
+        (item) => Number(item.company_id) === Number(currentCompany.id),
+      ),
+    );
   }
 
   async function loadUserProfiles() {
@@ -5783,10 +5961,17 @@ async function loadApplicationData(userIdOverride?: string) {
       status: nextStatus,
     };
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(currentTicket?.company_id) !== Number(currentCompany.id)) {
+      alert("Ticket gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
     const { error } = await supabase
       .from("tickets")
       .update(payload)
-      .eq("id", ticketId);
+      .eq("id", ticketId)
+      .eq("company_id", currentCompany.id);
 
     if (error) {
       alert(`Zuweisung konnte nicht gespeichert werden: ${error.message}`);
@@ -5821,8 +6006,15 @@ async function loadApplicationData(userIdOverride?: string) {
   ) {
     if (!deviceId) return;
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) return;
+
+    const deviceItem = devices.find((item) => item.id === deviceId);
+    if (deviceItem?.company_id != null && Number(deviceItem.company_id) !== Number(currentCompany.id)) return;
+
     const { error } = await supabase.from("device_history").insert([
       {
+        company_id: currentCompany.id,
         device_id: deviceId,
         title,
         description,
@@ -6925,6 +7117,12 @@ async function loadApplicationData(userIdOverride?: string) {
   }
 
   async function createTicket() {
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     const selectedCustomerDeviceLabels = selectedTicketDevices.map((deviceItem) =>
       getCustomerDeviceTicketLabel(deviceItem),
     );
@@ -6998,6 +7196,7 @@ async function loadApplicationData(userIdOverride?: string) {
       : description;
 
     const baseTicketPayload = {
+      company_id: currentCompany.id,
       ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
       customer: currentCustomerName,
       customer_id: currentCustomerId,
@@ -7844,6 +8043,7 @@ async function loadApplicationData(userIdOverride?: string) {
             await supabase
               .from("documents")
               .select("id")
+              .eq("company_id", Number(action.ticket_snapshot.company_id || companyDataRef.current?.id || 0))
               .eq("ticket_id", action.ticket_id)
               .eq("category", "Serviceberichte")
               .limit(1);
@@ -8934,25 +9134,43 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    const targetCustomer = customers.find((item) => item.id === customerId);
+
+    if (
+      !currentCompany?.id ||
+      !targetCustomer ||
+      Number(targetCustomer.company_id) !== Number(currentCompany.id)
+    ) {
+      alert("Kunde gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
     if (!confirm("Kunde wirklich löschen?")) return;
 
     await supabase
       .from("devices")
       .update({ customer_id: null })
+      .eq("company_id", currentCompany.id)
       .eq("customer_id", customerId);
+
     await supabase
       .from("tickets")
       .update({ customer_id: null })
+      .eq("company_id", currentCompany.id)
       .eq("customer_id", customerId);
+
     await supabase
       .from("documents")
       .update({ customer_id: null })
+      .eq("company_id", currentCompany.id)
       .eq("customer_id", customerId);
 
     const { error } = await supabase
       .from("customers")
       .delete()
-      .eq("id", customerId);
+      .eq("id", customerId)
+      .eq("company_id", currentCompany.id);
 
     if (error) {
       alert(
@@ -10951,7 +11169,18 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       return;
     }
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (
+      !currentCompany?.id ||
+      Number(selectedCustomer.company_id) !== Number(currentCompany.id) ||
+      Number(selectedDevice.company_id) !== Number(currentCompany.id)
+    ) {
+      alert("Kunde oder Gerät gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
     const payload = {
+      company_id: currentCompany.id,
       device_id: deviceId,
       customer_id: customerId,
       title: `${maintenanceType} · ${selectedCustomer.company || "Kunde"} · ${selectedDevice.name}`,
@@ -11017,6 +11246,12 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
   }
 
   async function createMaintenancePlanForDevice(item: Device) {
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(item.company_id) !== Number(currentCompany.id)) {
+      alert("Gerät gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
     const intervalInput = prompt("Wartungsintervall in Tagen", "365");
 
     if (!intervalInput) return;
@@ -11034,6 +11269,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     const existingPlan = getMaintenancePlanForDevice(item.id);
 
     const payload = {
+      company_id: currentCompany.id,
       device_id: item.id,
       customer_id: item.customer_id || null,
       title: `Regelwartung ${getCustomerNameById(item.customer_id)} · ${item.name}`,
@@ -11074,6 +11310,12 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
   async function createTicketFromMaintenancePlan(plan: MaintenancePlan) {
     if (!isAdmin && !isTechnician) {
       alert("Nur Admins und Techniker können aus Wartungen Tickets erstellen.");
+      return;
+    }
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(plan.company_id) !== Number(currentCompany.id)) {
+      alert("Wartungsplan gehört nicht zur aktuell angemeldeten Firma.");
       return;
     }
 
@@ -11118,6 +11360,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       .from("tickets")
       .insert([
         {
+          company_id: currentCompany.id,
           ticket_number: ticketNumber,
           customer: customerName,
           customer_id: customerItem?.id || plan.customer_id || deviceItem?.customer_id || null,
@@ -11243,6 +11486,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     }
 
     const payload = {
+      company_id: Number(plan.company_id || companyDataRef.current?.id || 0),
       type: "Wartungserinnerung",
       recipient: draft.recipient,
       subject: draft.subject,
@@ -11366,6 +11610,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       }
 
       const payload = {
+        company_id: Number(plan.company_id || companyDataRef.current?.id || 0),
         type: "Wartungserinnerung",
         recipient: draft.recipient,
         subject: `${draft.subject} · ${reminderLevel.label}`,
@@ -11547,6 +11792,12 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       return;
     }
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     const customerName =
       profileCustomer?.company || userProfile?.company || "Kunde";
     const customerId = userProfile?.customer_id || null;
@@ -11555,6 +11806,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       .from("devices")
       .insert([
         {
+          company_id: currentCompany.id,
           name: customerDeviceName.trim(),
           manufacturer: customerDeviceManufacturer.trim() || null,
           serial_number: customerDeviceSerial.trim() || null,
@@ -11602,6 +11854,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
 
     const ticketInsert = await supabase.from("tickets").insert([
       {
+        company_id: currentCompany.id,
         ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
         customer: customerName,
         customer_id: customerId,
@@ -11630,6 +11883,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
         customerPreferredDate || new Date().toISOString().split("T")[0];
       await supabase.from("maintenance_plans").insert([
         {
+          company_id: currentCompany.id,
           device_id: deviceInsert.data.id,
           title: `${customerServiceType} angefragt · ${deviceInsert.data.name}`,
           interval_days: null,
@@ -12045,6 +12299,12 @@ ${tenantBrandName}`,
       return;
     }
 
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(contract.company_id) !== Number(currentCompany.id)) {
+      alert("Vertrag gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
     if (contract.status !== "Aktiv") {
       alert("Wartungen können erst aus einem freigegebenen aktiven Vertrag erzeugt werden.");
       return;
@@ -12073,6 +12333,7 @@ ${tenantBrandName}`,
     nextDue.setMonth(nextDue.getMonth() + intervalMonths);
 
     const maintenanceRows = customerDevices.map((deviceItem) => ({
+      company_id: currentCompany.id,
       device_id: deviceItem.id,
       customer_id: contract.customer_id,
       title: `Automatische Sicherheitsprüfung/Wartung · ${contract.contract_number} · ${deviceItem.name}`,
@@ -12448,12 +12709,19 @@ ${tenantBrandName}`,
   }
 
   async function saveNotification() {
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
     if (!notificationRecipient.trim() || !notificationSubject.trim()) {
       alert("Bitte Empfänger und Betreff ausfüllen.");
       return;
     }
 
     const payload = {
+      company_id: currentCompany.id,
       type: notificationType,
       recipient: notificationRecipient.trim(),
       subject: notificationSubject.trim(),
@@ -12468,7 +12736,11 @@ ${tenantBrandName}`,
     };
 
     const request = editingNotificationId
-      ? supabase.from("notifications").update(payload).eq("id", editingNotificationId)
+      ? supabase
+          .from("notifications")
+          .update(payload)
+          .eq("id", editingNotificationId)
+          .eq("company_id", currentCompany.id)
       : supabase.from("notifications").insert([payload]);
 
     const { error } = await request;
