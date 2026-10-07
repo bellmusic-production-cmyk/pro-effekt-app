@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.02 · Dashboard Navigation Logic Fix · Impressum & Datenschutz · Tenant/RLS unverändert
+// TRYBUN Service Management System v4.13.03 · Service Intelligence Navigation Audit · Impressum & Datenschutz · Tenant/RLS unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1676,6 +1676,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Alle");
   const [priorityFilter, setPriorityFilter] = useState("Alle");
+  const [ticketListFocus, setTicketListFocus] = useState<"Alle" | "ServiceProof">("Alle");
   const [customerDirectorySearch, setCustomerDirectorySearch] = useState("");
   const [customerTypeFilter, setCustomerTypeFilter] = useState("Alle");
   const [customerDirectoryCityFilter, setCustomerDirectoryCityFilter] = useState("Alle");
@@ -2369,7 +2370,32 @@ export default function Home() {
       const matchesPriority =
         priorityFilter === "Alle" || ticket.priority === priorityFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority;
+      const matchesTicketFocus =
+        ticketListFocus === "Alle" ||
+        (() => {
+          if (ticketListFocus !== "ServiceProof") return true;
+          if (!["Abgeschlossen", "Erledigt"].includes(ticket.status || "")) return false;
+
+          const hasTicketDocument = documents.some(
+            (documentItem) => documentItem.ticket_id === ticket.id,
+          );
+          const hasCustomerConfirmation = Boolean(
+            ticket.customer_signature ||
+              ticket.customer_approval_name ||
+              ticket.customer_approval_at,
+          );
+
+          return !(
+            ticket.completed_at &&
+            ticket.assigned_to &&
+            ticket.service_report &&
+            ticket.technician_signature &&
+            hasCustomerConfirmation &&
+            hasTicketDocument
+          );
+        })();
+
+      return matchesSearch && matchesStatus && matchesPriority && matchesTicketFocus;
     });
   }, [
     tickets,
@@ -2381,6 +2407,8 @@ export default function Home() {
     searchTerm,
     statusFilter,
     priorityFilter,
+    ticketListFocus,
+    documents,
   ]);
 
 
@@ -19089,7 +19117,7 @@ ${tenantBrandName}`,
       "Service-Tickets": "Tickets",
       Kunden: "Kunden",
       Geräte: "Hersteller & Modelle",
-      "QR-Scan": "QR-Scan",
+      "QR-Scan": "Geräteakte & QR",
       Abnahmeprotokoll: "Prüfungen & Abnahmen",
       Ersatzteile: "Ersatzteile",
       Gerätebestand: "Gerätebestand",
@@ -19152,6 +19180,10 @@ ${tenantBrandName}`,
     setActivePage(item);
     setMobileMenuOpen(false);
 
+    if (item === "Service-Tickets") {
+      setTicketListFocus("Alle");
+    }
+
     if (item === "Dokumente" && isCustomer && !customerUploadDocumentCategories.includes(uploadCategory)) {
       setUploadCategory("Sonstige Dokumente");
     }
@@ -19187,6 +19219,52 @@ ${tenantBrandName}`,
     if (typeof window !== "undefined" && session?.user?.id) {
       window.localStorage.setItem(`trybun-active-page-${session.user.id}`, "Dokumente");
       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function openFirstTimeFixWorkspace() {
+    setCalendarView("week");
+    setCalendarDate(new Date().toISOString().split("T")[0]);
+    openPage("Kalender");
+
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document
+          .getElementById("trybun-dispatch-workspace")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    }
+  }
+
+  function openServiceProofWorkspace() {
+    openPage("Service-Tickets");
+    setSearchTerm("");
+    setStatusFilter("Alle");
+    setPriorityFilter("Alle");
+    setTicketListFocus("ServiceProof");
+    setMobileTicketListOpen(true);
+
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document
+          .getElementById("trybun-ticket-directory")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    }
+  }
+
+  function openDeviceKnowledgeWorkspace() {
+    openPage("QR-Scan");
+    setQrManualCode("");
+    setQrSearchTerm("");
+    setQrScanStatus("Gerätewissen: Serviceobjekt auswählen und digitale Geräteakte öffnen.");
+
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document
+          .getElementById("trybun-device-knowledge-workspace")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
     }
   }
 
@@ -22404,7 +22482,7 @@ ${tenantBrandName}`,
                         <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
                           <button
                             type="button"
-                            onClick={() => openPage("Service-Tickets")}
+                            onClick={openFirstTimeFixWorkspace}
                             className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-sky-50/50 active:bg-sky-50 sm:p-5"
                           >
                             <div>
@@ -22435,7 +22513,7 @@ ${tenantBrandName}`,
 
                           <button
                             type="button"
-                            onClick={() => openPage("Service-Tickets")}
+                            onClick={openServiceProofWorkspace}
                             className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-emerald-50/50 active:bg-emerald-50 sm:p-5"
                           >
                             <div>
@@ -22497,7 +22575,7 @@ ${tenantBrandName}`,
 
                           <button
                             type="button"
-                            onClick={() => openPage("QR-Scan")}
+                            onClick={openDeviceKnowledgeWorkspace}
                             className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-indigo-50/50 active:bg-indigo-50 sm:p-5"
                           >
                             <div>
@@ -22592,7 +22670,7 @@ ${tenantBrandName}`,
                       </button>
 
                       <button
-                        onClick={() => openPage("QR-Scan")}
+                        onClick={openDeviceKnowledgeWorkspace}
                         className="rounded-3xl border border-slate-700 bg-slate-900 px-5 py-5 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
                       >
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">◫</span>
@@ -23237,7 +23315,10 @@ ${tenantBrandName}`,
               </div>
 
               {isAdmin && (
-                <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
+                <section
+                  id="trybun-dispatch-workspace"
+                  className="scroll-mt-24 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_12px_35px_rgba(15,23,42,0.06)]"
+                >
                   <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div>
@@ -32476,15 +32557,16 @@ placeholder="Gerät / Anlage / Modell suchen..."
                 </div>
 
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Geräte-Scan
+                  Geräteakte & QR
                 </p>
 
                 <h3 className="mt-2 text-4xl font-black">
-                  QR-Code scannen oder Gerät suchen
+                  Serviceobjekt suchen oder QR-Code scannen
                 </h3>
 
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
-                  Der QR-Scan nutzt die Kamera über html5-qrcode. Funktioniert am besten über HTTPS auf der Vercel-URL.
+                  Öffnen Sie die digitale Geräteakte über die Suche oder optional per QR-Code. Historie,
+                  Dokumente, Tickets und Gerätepass bleiben am Serviceobjekt gebündelt.
                 </p>
 
                 <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto]">
@@ -32571,12 +32653,19 @@ placeholder="Gerät / Anlage / Modell suchen..."
                 />
               </div>
 
-              <div className="rounded-[32px] bg-white p-6 shadow-sm">
+              <div
+                id="trybun-device-knowledge-workspace"
+                className="scroll-mt-24 rounded-[32px] bg-white p-6 shadow-sm"
+              >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h3 className="text-2xl font-black">Gerätesuche</h3>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-700">
+                      Gerätewissen · Lifecycle
+                    </p>
+                    <h3 className="mt-1 text-2xl font-black">Gerätewissen & digitale Geräteakte</h3>
                     <p className="mt-2 text-slate-600">
-                      Es werden nur wenige Geräte als Vorschau angezeigt. Suche nach Kunde, Gerät, Seriennummer, Standort oder Geräte-ID.
+                      Serviceobjekt auswählen und die zentrale Geräteakte mit Historie, Dokumenten,
+                      Tickets und Gerätepass öffnen.
                     </p>
                   </div>
 
@@ -32703,6 +32792,29 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                 <StatCard label="In Bearbeitung" value={ticketStats.inProgress} />
                 <StatCard label="Erledigt" value={ticketStats.completed} />
               </div>
+
+              {ticketListFocus === "ServiceProof" && (
+                <div className="mb-6 rounded-[16px] border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                        Service Proof · Nachweis-Fokus
+                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+                        Angezeigt werden nur abgeschlossene Einsätze, bei denen Abschlussdaten,
+                        Servicebericht, Signaturen oder ein zugeordnetes Dokument noch nicht vollständig sind.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTicketListFocus("Alle")}
+                      className="min-h-[42px] shrink-0 rounded-[9px] border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800"
+                    >
+                      Alle Tickets anzeigen
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {!isCustomer && (
                 <div className="mb-6 rounded-[28px] border border-sky-200 bg-sky-50 p-5 shadow-sm">
@@ -33477,7 +33589,10 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                   </div>
                 </div>
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
+                <div
+                  id="trybun-ticket-directory"
+                  className="scroll-mt-24 min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm"
+                >
                   <button
                     type="button"
                     onClick={() => setMobileTicketListOpen((prev) => !prev)}
@@ -33530,6 +33645,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           setSearchTerm("");
                           setStatusFilter("Alle");
                           setPriorityFilter("Alle");
+                          setTicketListFocus("Alle");
                         }}
                         className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
                       >
