@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.03 · Service Intelligence Navigation Audit · Impressum & Datenschutz · Tenant/RLS unverändert
+// TRYBUN Service Management System v4.13.04 · Kundenportal Namenssuche · Mehrfachzugänge · Excel-Hinweis · Tenant/RLS unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -146,6 +146,16 @@ type Customer = {
   contact_2_email?: string | null;
   contact_2_phone?: string | null;
   created_at: string;
+};
+
+type CustomerPortalPersonCandidate = {
+  key: string;
+  customerId: number;
+  name: string;
+  email: string;
+  customerLabel: string;
+  company: string;
+  customerNumber: string;
 };
 
 type Manufacturer = {
@@ -1282,6 +1292,8 @@ export default function Home() {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("technician");
   const [newUserCustomerId, setNewUserCustomerId] = useState("");
+  const [newUserNameSearchOpen, setNewUserNameSearchOpen] = useState(false);
+  const [newUserSelectedPersonKey, setNewUserSelectedPersonKey] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
   const [portalInvitingCustomerId, setPortalInvitingCustomerId] = useState<number | null>(null);
   const [customerSaving, setCustomerSaving] = useState(false);
@@ -2954,6 +2966,73 @@ export default function Home() {
       failed: emailStatusStats.failed,
     };
   }, [notifications.length, communicationFilteredNotifications.length, emailStatusStats]);
+
+  const newUserNameCandidates = useMemo<CustomerPortalPersonCandidate[]>(() => {
+    if (newUserRole !== "customer") return [];
+
+    const search = newUserFullName.trim();
+    if (!search) return [];
+
+    const candidates: CustomerPortalPersonCandidate[] = [];
+    const seen = new Set<string>();
+
+    const addCandidate = (
+      customer: Customer,
+      slot: string,
+      rawName?: string | null,
+      rawEmail?: string | null,
+    ) => {
+      const name = String(rawName || "").trim();
+      if (!name) return;
+
+      const key = `${customer.id}:${slot}:${name.toLocaleLowerCase("de-DE")}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      candidates.push({
+        key,
+        customerId: Number(customer.id),
+        name,
+        email: String(rawEmail || "").trim(),
+        customerLabel: getCustomerLabel(customer),
+        company: String(customer.company || "").trim(),
+        customerNumber: String(customer.customer_number || "").trim(),
+      });
+    };
+
+    customers.forEach((customer) => {
+      const fullName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
+      addCandidate(customer, "primary", fullName, customer.email);
+
+      if (normalizeCompareText(customer.contact_person) !== normalizeCompareText(fullName)) {
+        addCandidate(customer, "contact-person", customer.contact_person, customer.email);
+      }
+
+      addCandidate(customer, "contact-1", customer.contact_1_name, customer.contact_1_email);
+      addCandidate(customer, "contact-2", customer.contact_2_name, customer.contact_2_email);
+    });
+
+    return candidates
+      .filter((candidate) => matchesTrybunPrefixSearch([candidate.name], search))
+      .sort((a, b) => {
+        const rankDifference =
+          getTrybunSearchRank([[a.name]], search) - getTrybunSearchRank([[b.name]], search);
+        if (rankDifference !== 0) return rankDifference;
+        return a.name.localeCompare(b.name, "de");
+      })
+      .slice(0, 20);
+  }, [customers, newUserFullName, newUserRole]);
+
+  function selectNewUserCustomerPerson(candidate: CustomerPortalPersonCandidate) {
+    setNewUserFullName(candidate.name);
+    setNewUserCustomerId(String(candidate.customerId));
+    setNewUserSelectedPersonKey(candidate.key);
+    setNewUserNameSearchOpen(false);
+
+    if (candidate.email) {
+      setNewUserEmail(candidate.email);
+    }
+  }
 
   const userManagementStats = useMemo(() => {
     return {
@@ -5771,6 +5850,8 @@ async function loadApplicationData(userIdOverride?: string) {
     setNewUserEmail("");
     setNewUserRole("technician");
     setNewUserCustomerId("");
+    setNewUserNameSearchOpen(false);
+    setNewUserSelectedPersonKey("");
 
     await loadUserProfiles();
     await loadTechnicians();
@@ -5789,15 +5870,9 @@ async function loadApplicationData(userIdOverride?: string) {
     }
 
     const customerId = Number(customerItem.id);
-    const existingPortalProfile = userProfiles.find(
-      (profile) => profile.role === "customer" && Number(profile.customer_id) === customerId,
-    );
 
-    if (existingPortalProfile) {
-      alert("Für diesen Kunden besteht bereits ein Portalzugang.");
-      return;
-    }
-
+    // Mehrere Portalbenutzer dürfen demselben Kunden/Firmenkonto zugeordnet sein.
+    // Eindeutig bleibt die persönliche Login-E-Mail; doppelte Auth-E-Mails werden von Supabase abgewiesen.
     const cleanedEmail = String(customerItem.email || "").trim().toLowerCase();
     if (!cleanedEmail || !cleanedEmail.includes("@")) {
       alert("Für die Portal-Einladung muss beim Kunden eine gültige E-Mail-Adresse hinterlegt sein.");
@@ -26994,7 +27069,10 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     <label className="min-w-0 flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={manufacturerImportDuplicateMode} onChange={(event) => setManufacturerImportDuplicateMode(event.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Vorhandene überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label>
                     <button type="button" onClick={importManufacturersFromFile} disabled={manufacturerImportBusy || !manufacturerImportPreview.some((row) => row.valid)} className="w-full rounded-2xl bg-emerald-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{manufacturerImportBusy ? "Import läuft …" : "Hersteller & Modelle importieren"}</button>
                   </div>
-                  <div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Hersteller-&-Modelle-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{manufacturerImportPreview.filter((row) => row.valid).length} gültig · {manufacturerImportPreview.filter((row) => !row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Modell</th><th className="px-4 py-3">Kategorie</th><th className="px-4 py-3">Gerätetyp</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{manufacturerImportPreview.slice(0,20).map((row) => <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.manufacturerName || "-"}</td><td className="px-4 py-3">{row.modelName || "Nur Hersteller"}</td><td className="px-4 py-3">{row.category || "-"}</td><td className="px-4 py-3">{row.type || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.modelExists || (row.manufacturerExists && !row.modelName) ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.modelExists ? "Modell vorhanden" : row.manufacturerExists && !row.modelName ? "Hersteller vorhanden" : row.manufacturerExists ? "Modell neu" : "Bereit"}</span></td></tr>)}</tbody></table></div></div>
+                  <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold leading-6 text-sky-900">
+                    <span className="font-black">Hinweis:</span> Folgende Hersteller &amp; Modelle sind bereits in der Datenbank enthalten. Neue Hersteller und Modelle werden beim Import hinzugefügt.
+                  </div>
+                  <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Hersteller-&-Modelle-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{manufacturerImportPreview.filter((row) => row.valid).length} gültig · {manufacturerImportPreview.filter((row) => !row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[900px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Modell</th><th className="px-4 py-3">Kategorie</th><th className="px-4 py-3">Gerätetyp</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{manufacturerImportPreview.slice(0,20).map((row) => <tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.manufacturerName || "-"}</td><td className="px-4 py-3">{row.modelName || "Nur Hersteller"}</td><td className="px-4 py-3">{row.category || "-"}</td><td className="px-4 py-3">{row.type || "-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid ? "bg-red-100 text-red-700" : row.modelExists || (row.manufacturerExists && !row.modelName) ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{!row.valid ? row.error : row.modelExists ? "Modell vorhanden" : row.manufacturerExists && !row.modelName ? "Hersteller vorhanden" : row.manufacturerExists ? "Modell neu" : "Bereit"}</span></td></tr>)}</tbody></table></div></div>
                 </>}
                 {manufacturerImportMessage && <div className="mt-4 break-words rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700">{manufacturerImportMessage}</div>}
               </div>
@@ -27098,7 +27176,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-[28px] border border-sky-400/20 bg-sky-500/10 p-5">
+                <div id="trybun-new-user-access" className="mt-6 rounded-[28px] border border-sky-400/20 bg-sky-500/10 p-5">
                   <div className="flex flex-col gap-2">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-300">
                       Benutzer anlegen
@@ -27112,17 +27190,63 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </div>
 
                   <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_1.1fr_0.8fr_1fr_auto] lg:items-end">
-                    <label className="block">
+                    <div className="relative block">
                       <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
                         Name
                       </span>
                       <input
                         value={newUserFullName}
-                        onChange={(event) => setNewUserFullName(event.target.value)}
-                        placeholder="z. B. Maria Muster"
+                        onChange={(event) => {
+                          const nextValue = event.target.value;
+
+                          if (newUserRole === "customer" && newUserSelectedPersonKey) {
+                            setNewUserCustomerId("");
+                            setNewUserEmail("");
+                            setNewUserSelectedPersonKey("");
+                          }
+
+                          setNewUserFullName(nextValue);
+                          setNewUserNameSearchOpen(newUserRole === "customer" && Boolean(nextValue.trim()));
+                        }}
+                        onFocus={() => {
+                          if (newUserRole === "customer" && newUserFullName.trim()) {
+                            setNewUserNameSearchOpen(true);
+                          }
+                        }}
+                        onBlur={() => window.setTimeout(() => setNewUserNameSearchOpen(false), 150)}
+                        autoComplete="off"
+                        placeholder={newUserRole === "customer" ? "Person nach Namen suchen" : "z. B. Maria Muster"}
                         className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400"
                       />
-                    </label>
+
+                      {newUserRole === "customer" && newUserNameSearchOpen && newUserFullName.trim() && (
+                        <div className="absolute z-40 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 text-slate-950 shadow-2xl">
+                          {newUserNameCandidates.length > 0 ? (
+                            newUserNameCandidates.map((candidate) => (
+                              <button
+                                key={candidate.key}
+                                type="button"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => selectNewUserCustomerPerson(candidate)}
+                                className="block w-full rounded-xl px-3 py-3 text-left transition hover:bg-sky-50"
+                              >
+                                <span className="block font-black">{candidate.name}</span>
+                                <span className="mt-1 block text-xs font-semibold text-slate-500">
+                                  {candidate.company
+                                    ? `${candidate.company}${candidate.customerNumber ? ` · ${candidate.customerNumber}` : ""}`
+                                    : `Privatkunde${candidate.customerNumber ? ` · ${candidate.customerNumber}` : ""}`}
+                                  {candidate.email ? ` · ${candidate.email}` : ""}
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-4 text-sm font-bold text-slate-500">
+                              Kein gespeicherter Personenname gefunden.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     <label className="block">
                       <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
@@ -27146,6 +27270,8 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         onChange={(event) => {
                           const nextRole = event.target.value as "admin" | "technician" | "customer";
                           setNewUserRole(nextRole);
+                          setNewUserNameSearchOpen(false);
+                          setNewUserSelectedPersonKey("");
                           if (nextRole !== "customer") setNewUserCustomerId("");
                         }}
                         className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400"
@@ -27162,7 +27288,10 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       </span>
                       <select
                         value={newUserCustomerId}
-                        onChange={(event) => setNewUserCustomerId(event.target.value)}
+                        onChange={(event) => {
+                          setNewUserCustomerId(event.target.value);
+                          setNewUserSelectedPersonKey("");
+                        }}
                         disabled={newUserRole !== "customer"}
                         className="mt-2 w-full rounded-2xl border border-white/10 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-sky-400 disabled:bg-slate-200 disabled:text-slate-500"
                       >
@@ -28600,41 +28729,56 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </div>
 
                   {editingCustomer && isAdmin && (() => {
-                    const portalProfile = userProfiles.find(
-                      (profile) =>
-                        profile.role === "customer" &&
-                        Number(profile.customer_id) === Number(editingCustomer.id),
-                    );
-                    const portalInviteRunning =
-                      portalInvitingCustomerId === Number(editingCustomer.id);
+                    const portalProfiles = userProfiles
+                      .filter(
+                        (profile) =>
+                          profile.role === "customer" &&
+                          Number(profile.customer_id) === Number(editingCustomer.id),
+                      )
+                      .sort((a, b) => getUserDisplayName(a).localeCompare(getUserDisplayName(b), "de"));
 
                     return (
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                         <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
                           Kundenportal
                         </p>
-                        <h3 className="mt-1 text-xl font-black text-slate-950">Portalzugang</h3>
+                        <h3 className="mt-1 text-xl font-black text-slate-950">Portalzugänge</h3>
                         <p className="mt-2 text-sm font-bold text-slate-700">
-                          Status: {portalProfile ? "Portalzugang vorhanden" : "Kein Portalzugang"}
-                        </p>
-                        <p className="mt-1 break-words text-sm font-semibold text-slate-600">
-                          {portalProfile
-                            ? `Zugeordnet: ${portalProfile.full_name || "Kundenportal-Nutzer"}`
-                            : `Einladung an: ${editingCustomer.email || "Keine E-Mail hinterlegt"}`}
+                          Status: {portalProfiles.length > 0 ? `${portalProfiles.length} Zugang/Zugänge vorhanden` : "Kein Portalzugang"}
                         </p>
 
-                        {!portalProfile && (
-                          <button
-                            type="button"
-                            onClick={() => inviteCustomerToPortal(editingCustomer)}
-                            disabled={portalInviteRunning || !editingCustomer.email}
-                            className="mt-4 w-full cursor-pointer rounded-2xl bg-emerald-600 px-5 py-4 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                          >
-                            {portalInviteRunning
-                              ? "Einladung wird versendet..."
-                              : "Einladung zum Kundenportal senden"}
-                          </button>
+                        {portalProfiles.length > 0 ? (
+                          <div className="mt-3 space-y-2">
+                            {portalProfiles.map((profile) => (
+                              <div key={profile.id} className="rounded-xl border border-emerald-200 bg-white/80 px-3 py-2 text-sm font-bold text-slate-700">
+                                {getUserDisplayName(profile)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-1 break-words text-sm font-semibold text-slate-600">
+                            Für diesen Kunden wurde noch kein persönlicher Portalzugang angelegt.
+                          </p>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewUserRole("customer");
+                            setNewUserCustomerId(String(editingCustomer.id));
+                            setNewUserFullName("");
+                            setNewUserEmail("");
+                            setNewUserSelectedPersonKey("");
+                            setNewUserNameSearchOpen(false);
+                            openPage("Einstellungen");
+                            window.setTimeout(() => {
+                              document.getElementById("trybun-new-user-access")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            }, 120);
+                          }}
+                          className="mt-4 w-full cursor-pointer rounded-2xl bg-emerald-600 px-5 py-4 font-black text-white transition hover:bg-emerald-700"
+                        >
+                          {portalProfiles.length > 0 ? "Weiteren Portalzugang anlegen" : "Portalzugang anlegen"}
+                        </button>
                       </div>
                     );
                   })()}
