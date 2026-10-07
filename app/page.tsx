@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.01 · Public Legal Pages · Impressum & Datenschutz · Tenant/RLS unverändert
+// TRYBUN Service Management System v4.13.02 · Dashboard Navigation Logic Fix · Impressum & Datenschutz · Tenant/RLS unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -22326,7 +22326,7 @@ ${tenantBrandName}`,
 
                           <button
                             type="button"
-                            onClick={() => openPage("Geräte")}
+                            onClick={() => openPage("Abnahmeprotokoll")}
                             className="min-h-[148px] rounded-3xl border border-red-500/45 bg-red-950/20 p-4 text-left transition hover:bg-red-950/35 active:scale-[0.98]"
                           >
                             <div className="flex items-start gap-3">
@@ -22435,7 +22435,7 @@ ${tenantBrandName}`,
 
                           <button
                             type="button"
-                            onClick={() => openPage("Geräte")}
+                            onClick={() => openPage("Service-Tickets")}
                             className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-emerald-50/50 active:bg-emerald-50 sm:p-5"
                           >
                             <div>
@@ -22497,7 +22497,7 @@ ${tenantBrandName}`,
 
                           <button
                             type="button"
-                            onClick={() => openPage("Geräte")}
+                            onClick={() => openPage("QR-Scan")}
                             className="group flex min-h-[252px] flex-col justify-between bg-white p-4 text-left transition hover:bg-indigo-50/50 active:bg-indigo-50 sm:p-5"
                           >
                             <div>
@@ -22592,7 +22592,7 @@ ${tenantBrandName}`,
                       </button>
 
                       <button
-                        onClick={() => openPage("Geräte")}
+                        onClick={() => openPage("QR-Scan")}
                         className="rounded-3xl border border-slate-700 bg-slate-900 px-5 py-5 text-left font-black text-white transition hover:bg-slate-800 active:scale-[0.98]"
                       >
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-xl">◫</span>
