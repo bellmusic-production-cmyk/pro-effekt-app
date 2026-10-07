@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.04 · Kundenportal Namenssuche · Mehrfachzugänge · Excel-Hinweis · Tenant/RLS unverändert
+// TRYBUN Service Management System v4.13.05 · Kundenrolle als Standard · Direkter Namenssuch-Workflow · Tenant/RLS unverändert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1290,7 +1290,7 @@ export default function Home() {
   const [userCompanyNames, setUserCompanyNames] = useState<Record<string, string>>({});
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("technician");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "technician" | "customer">("customer");
   const [newUserCustomerId, setNewUserCustomerId] = useState("");
   const [newUserNameSearchOpen, setNewUserNameSearchOpen] = useState(false);
   const [newUserSelectedPersonKey, setNewUserSelectedPersonKey] = useState("");
@@ -5848,7 +5848,7 @@ async function loadApplicationData(userIdOverride?: string) {
 
     setNewUserFullName("");
     setNewUserEmail("");
-    setNewUserRole("technician");
+    setNewUserRole("customer");
     setNewUserCustomerId("");
     setNewUserNameSearchOpen(false);
     setNewUserSelectedPersonKey("");
