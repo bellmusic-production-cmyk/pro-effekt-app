@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.13 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.14 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4329,6 +4329,49 @@ function isOfflineRuntime() {
     );
   }
 
+  async function resolveOperationCompanyId(): Promise<number | null> {
+    const resolvedCompany = await resolveActiveCompanyForOperation();
+
+    if (resolvedCompany?.id) {
+      return Number(resolvedCompany.id);
+    }
+
+    if (userProfile?.role === "customer") {
+      const linkedCustomer =
+        userProfile.customer_id
+          ? customers.find(
+              (item) => Number(item.id) === Number(userProfile.customer_id),
+            ) || null
+          : null;
+
+      if (linkedCustomer?.company_id) {
+        return Number(linkedCustomer.company_id);
+      }
+
+      try {
+        const { data, error } = await supabase.rpc("current_customer_company_id");
+
+        if (!error && data != null && Number(data) > 0) {
+          return Number(data);
+        }
+
+        if (error) {
+          console.error(
+            "Kunden-Firmenzuordnung konnte nicht über RPC ermittelt werden:",
+            error.message,
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Kunden-Firmenzuordnung konnte nicht ermittelt werden:",
+          error,
+        );
+      }
+    }
+
+    return null;
+  }
+
 async function loadApplicationData(userIdOverride?: string) {
     const activeUserId = userIdOverride || session?.user?.id;
 
@@ -7406,9 +7449,14 @@ async function loadApplicationData(userIdOverride?: string) {
   }
 
   async function createTicket() {
-    const currentCompany = await resolveActiveCompanyForOperation();
-    if (!currentCompany?.id) {
-      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+    const currentCompanyId = await resolveOperationCompanyId();
+
+    if (!currentCompanyId) {
+      alert(
+        isCustomer
+          ? "Die Zuordnung zu deiner Servicefirma konnte nicht ermittelt werden. Bitte neu anmelden und erneut versuchen."
+          : "Ihre Firmenzuordnung konnte nicht geladen werden.",
+      );
       return;
     }
 
@@ -7467,7 +7515,9 @@ async function loadApplicationData(userIdOverride?: string) {
       null;
 
     const currentCustomerName = isCustomer
-      ? profileCustomer?.company || userProfile?.company || ""
+      ? (profileCustomer
+          ? getCustomerLabel(profileCustomer)
+          : userProfile?.full_name || userProfile?.company || "Kunde")
       : selectedCustomer
         ? getCustomerLabel(selectedCustomer)
         : customer || "Vor-Ort / nicht zugeordnet";
@@ -7502,7 +7552,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const customerMatchedManufacturer = isCustomer
       ? manufacturers.find(
           (item) =>
-            Number(item.company_id) === Number(currentCompany.id) &&
+            Number(item.company_id) === Number(currentCompanyId) &&
             normalizeCompareText(item.name) === normalizeCompareText(customerDeviceManufacturer),
         ) || null
       : null;
@@ -7510,7 +7560,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const customerMatchedModel = isCustomer
       ? deviceModels.find(
           (item) =>
-            Number(item.company_id) === Number(currentCompany.id) &&
+            Number(item.company_id) === Number(currentCompanyId) &&
             (!customerMatchedManufacturer ||
               Number(item.manufacturer_id) === Number(customerMatchedManufacturer.id)) &&
             normalizeCompareText(getDeviceModelDisplayName(item)) === normalizeCompareText(customerDeviceModel),
@@ -7582,7 +7632,7 @@ async function loadApplicationData(userIdOverride?: string) {
       : {};
 
     const baseTicketPayload = {
-      company_id: currentCompany.id,
+      company_id: currentCompanyId,
       ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
       customer: currentCustomerName,
       customer_id: currentCustomerId,
@@ -12179,9 +12229,12 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       return;
     }
 
-    const currentCompany = await resolveActiveCompanyForOperation();
-    if (!currentCompany?.id) {
-      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+    const currentCompanyId = await resolveOperationCompanyId();
+
+    if (!currentCompanyId) {
+      alert(
+        "Die Zuordnung zu deiner Servicefirma konnte nicht ermittelt werden. Bitte neu anmelden und erneut versuchen.",
+      );
       return;
     }
 
@@ -12190,7 +12243,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       ? customers.find((item) => Number(item.id) === Number(customerId)) || null
       : null;
 
-    if (!customerId || !currentCustomer || Number(currentCustomer.company_id) !== Number(currentCompany.id)) {
+    if (!customerId || !currentCustomer || Number(currentCustomer.company_id) !== Number(currentCompanyId)) {
       alert("Ihr Kundenkonto konnte der aktuell angemeldeten Firma nicht sicher zugeordnet werden.");
       return;
     }
@@ -12200,7 +12253,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     const matchedManufacturer = normalizedManufacturer
       ? manufacturers.find(
           (item) =>
-            Number(item.company_id) === Number(currentCompany.id) &&
+            Number(item.company_id) === Number(currentCompanyId) &&
             normalizeCompareText(item.name) === normalizedManufacturer,
         ) || null
       : null;
@@ -12209,7 +12262,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     const matchedModel = normalizedModel
       ? deviceModels.find(
           (item) =>
-            Number(item.company_id) === Number(currentCompany.id) &&
+            Number(item.company_id) === Number(currentCompanyId) &&
             (!matchedManufacturer || Number(item.manufacturer_id) === Number(matchedManufacturer.id)) &&
             normalizeCompareText(getDeviceModelDisplayName(item)) === normalizedModel,
         ) || null
@@ -12242,7 +12295,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       .from("tickets")
       .insert([
         {
-          company_id: currentCompany.id,
+          company_id: currentCompanyId,
           ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
           customer: customerName,
           customer_id: customerId,
@@ -33668,9 +33721,9 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                           Kunde
                         </p>
                         <p className="mt-1 text-base font-black text-slate-900">
-                          {profileCustomer?.company ||
-                            userProfile?.company ||
-                            "Dein Kundenkonto"}
+                          {profileCustomer
+                            ? getCustomerLabel(profileCustomer)
+                            : userProfile?.full_name || userProfile?.company || "Kunde"}
                         </p>
                       </div>
                     ) : (
@@ -33757,35 +33810,35 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
 
                     <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
-                        Abweichender Einsatzort / Leistungsadresse <span className="text-slate-400">(nur ausfüllen, wenn abweichend)</span>
+                        Abweichender Einsatzort / Adresse <span className="text-slate-400">(nur ausfüllen, wenn abweichend)</span>
                       </p>
 
                       <div className="mt-3 grid gap-3 md:grid-cols-2">
                         <input
                           value={serviceLocationName}
                           onChange={(e) => setServiceLocationName(e.target.value)}
-                          placeholder="Standort/Firma, z. B. Hotel Sonnenhof"
+                          placeholder="Einsatzort, z. B. Zuhause, Filiale, Praxis oder Büro"
                           className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         />
 
                         <input
                           value={serviceContactName}
                           onChange={(e) => setServiceContactName(e.target.value)}
-                          placeholder="Ansprechpartner vor Ort"
+                          placeholder="Kontaktperson vor Ort (optional)"
                           className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         />
 
                         <input
                           value={serviceContactPhone}
                           onChange={(e) => setServiceContactPhone(e.target.value)}
-                          placeholder="Telefon vor Ort"
+                          placeholder="Telefon am Einsatzort (optional)"
                           className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         />
 
                         <input
                           value={serviceContactEmail}
                           onChange={(e) => setServiceContactEmail(e.target.value)}
-                          placeholder="E-Mail vor Ort"
+                          placeholder="E-Mail am Einsatzort (optional)"
                           className="rounded-2xl border border-slate-300 px-5 py-4 text-base font-semibold"
                         />
                       </div>
@@ -33799,7 +33852,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       />
 
                       <p className="mt-3 text-xs font-bold text-slate-500">
-                        Leer lassen, wenn Auftraggeber und Einsatzort identisch sind. Nur abweichende Anfahrtsadressen werden im Ticket angezeigt.
+                        Leer lassen, wenn die hinterlegte Kundenadresse gleichzeitig der Einsatzort ist. Nur abweichende Einsatzorte werden zusätzlich im Ticket angezeigt.
                       </p>
                     </div>
 
@@ -35257,9 +35310,9 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
                       <p className="text-sm font-bold text-sky-600">Kunde</p>
                       <p className="mt-1 text-base font-black text-slate-900">
-                        {profileCustomer?.company ||
-                          userProfile?.company ||
-                          "Dein Kundenkonto"}
+                        {profileCustomer
+                          ? getCustomerLabel(profileCustomer)
+                          : userProfile?.full_name || userProfile?.company || "Kunde"}
                       </p>
                     </div>
 
