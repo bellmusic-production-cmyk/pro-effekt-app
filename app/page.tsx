@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.05 · Kundenrolle als Standard · Direkter Namenssuch-Workflow · Tenant/RLS unverändert
+// TRYBUN Service Management System v4.13.06 · Geprüfter Geräteworkflow Kunde → Techniker → Admin · Tenant/RLS mandantensicher erweitert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -34,6 +34,25 @@ type Ticket = {
   inspection_badge_number?: string | null;
   inspection_expires?: string | null;
   internal_note?: string | null;
+  customer_device_name?: string | null;
+  customer_device_manufacturer_id?: number | null;
+  customer_device_manufacturer?: string | null;
+  customer_device_model_id?: number | null;
+  customer_device_model?: string | null;
+  customer_device_serial?: string | null;
+  customer_device_location?: string | null;
+  technician_device_name?: string | null;
+  technician_device_manufacturer_id?: number | null;
+  technician_device_manufacturer?: string | null;
+  technician_device_model_id?: number | null;
+  technician_device_model?: string | null;
+  technician_device_serial?: string | null;
+  technician_device_location?: string | null;
+  device_review_status?: "not_required" | "pending" | "technician_updated" | "approved" | string | null;
+  reviewed_device_id?: number | null;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  device_review_note?: string | null;
   technician_signature?: string | null;
   customer_signature?: string | null;
   customer_approval_name?: string | null;
@@ -1554,7 +1573,23 @@ export default function Home() {
   const [customerDeviceName, setCustomerDeviceName] = useState("");
   const [customerDeviceManufacturer, setCustomerDeviceManufacturer] =
     useState("");
+  const [customerDeviceModel, setCustomerDeviceModel] = useState("");
   const [customerDeviceSerial, setCustomerDeviceSerial] = useState("");
+
+  const [technicianDeviceNameReview, setTechnicianDeviceNameReview] = useState("");
+  const [technicianManufacturerReview, setTechnicianManufacturerReview] = useState("");
+  const [technicianModelReview, setTechnicianModelReview] = useState("");
+  const [technicianSerialReview, setTechnicianSerialReview] = useState("");
+  const [technicianLocationReview, setTechnicianLocationReview] = useState("");
+  const [technicianDeviceReviewSaving, setTechnicianDeviceReviewSaving] = useState(false);
+
+  const [adminDeviceNameReview, setAdminDeviceNameReview] = useState("");
+  const [adminManufacturerReview, setAdminManufacturerReview] = useState("");
+  const [adminModelReview, setAdminModelReview] = useState("");
+  const [adminSerialReview, setAdminSerialReview] = useState("");
+  const [adminLocationReview, setAdminLocationReview] = useState("");
+  const [adminDeviceReviewNote, setAdminDeviceReviewNote] = useState("");
+  const [adminDeviceReviewSaving, setAdminDeviceReviewSaving] = useState(false);
   const [customerDeviceLocation, setCustomerDeviceLocation] = useState("");
   const [customerDefectDescription, setCustomerDefectDescription] =
     useState("");
@@ -2199,11 +2234,11 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (userProfile?.role === "admin" || userProfile?.role === "technician") {
+    if (userProfile?.role === "admin" || userProfile?.role === "technician" || userProfile?.role === "customer") {
       loadManufacturers();
       loadDeviceModels();
     }
-  }, [userProfile?.role]);
+  }, [userProfile?.role, userProfile?.customer_id, companyData?.id]);
 
   useEffect(() => {
     if (!session?.user?.id || !activePage) return;
@@ -11891,7 +11926,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     }
 
     if (!customerDeviceName.trim() || !customerDefectDescription.trim()) {
-      alert("Bitte Gerätename und Beschreibung ausfüllen.");
+      alert("Bitte Gerätebezeichnung und Beschreibung ausfüllen.");
       return;
     }
 
@@ -11901,40 +11936,35 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       return;
     }
 
-    const customerName =
-      profileCustomer?.company || userProfile?.company || "Kunde";
     const customerId = userProfile?.customer_id || null;
+    const currentCustomer = customerId
+      ? customers.find((item) => Number(item.id) === Number(customerId)) || null
+      : null;
 
-    const deviceInsert = await supabase
-      .from("devices")
-      .insert([
-        {
-          company_id: currentCompany.id,
-          name: customerDeviceName.trim(),
-          manufacturer: customerDeviceManufacturer.trim() || null,
-          serial_number: customerDeviceSerial.trim() || null,
-          location: customerDeviceLocation.trim() || null,
-          status:
-            customerServiceType === "Prüfung / Prüfsiegel"
-              ? "Prüfung erforderlich"
-              : "Aktiv",
-          note: customerDefectDescription.trim(),
-          customer_id: customerId,
-          next_check:
-            customerServiceType === "Prüfung / Prüfsiegel"
-              ? customerPreferredDate || null
-              : null,
-        },
-      ])
-      .select("id,name")
-      .single();
-
-    if (deviceInsert.error || !deviceInsert.data) {
-      alert(
-        `Gerät konnte nicht angelegt werden. Bitte versuche es erneut. Wenn das Problem bestehen bleibt, wende dich an den Administrator.`,
-      );
+    if (!customerId || !currentCustomer || Number(currentCustomer.company_id) !== Number(currentCompany.id)) {
+      alert("Ihr Kundenkonto konnte der aktuell angemeldeten Firma nicht sicher zugeordnet werden.");
       return;
     }
+
+    const customerName = getCustomerLabel(currentCustomer) || userProfile?.company || "Kunde";
+    const normalizedManufacturer = normalizeCompareText(customerDeviceManufacturer);
+    const matchedManufacturer = normalizedManufacturer
+      ? manufacturers.find(
+          (item) =>
+            Number(item.company_id) === Number(currentCompany.id) &&
+            normalizeCompareText(item.name) === normalizedManufacturer,
+        ) || null
+      : null;
+
+    const normalizedModel = normalizeCompareText(customerDeviceModel);
+    const matchedModel = normalizedModel
+      ? deviceModels.find(
+          (item) =>
+            Number(item.company_id) === Number(currentCompany.id) &&
+            (!matchedManufacturer || Number(item.manufacturer_id) === Number(matchedManufacturer.id)) &&
+            normalizeCompareText(getDeviceModelDisplayName(item)) === normalizedModel,
+        ) || null
+      : null;
 
     const issuePrefix =
       customerServiceType === "Prüfung / Prüfsiegel"
@@ -11943,77 +11973,235 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
           ? "Wartung angefragt"
           : "Defekt gemeldet";
 
+    const customerManufacturerLabel = customerDeviceManufacturer.trim() || "Unbekannt";
+    const customerModelLabel = customerDeviceModel.trim() || "Unbekannt";
+    const customerSerialLabel = customerDeviceSerial.trim() || "Nicht angegeben";
+
     const ticketDescription = [
       customerDefectDescription.trim(),
       customerPreferredDate ? `Wunschtermin: ${customerPreferredDate}` : "",
-      customerDeviceManufacturer
-        ? `Hersteller: ${customerDeviceManufacturer}`
-        : "",
-      customerDeviceSerial ? `Seriennummer: ${customerDeviceSerial}` : "",
-      customerDeviceLocation ? `Standort: ${customerDeviceLocation}` : "",
+      `Geräteangabe Kunde – Hersteller: ${customerManufacturerLabel}`,
+      `Geräteangabe Kunde – Modell: ${customerModelLabel}`,
+      `Geräteangabe Kunde – Seriennummer: ${customerSerialLabel}`,
+      customerDeviceLocation.trim() ? `Geräteangabe Kunde – Standort: ${customerDeviceLocation.trim()}` : "",
+      "Hinweis: Die Geräteangaben sind ungeprüft und werden erst nach technischer Prüfung/Adminfreigabe in die Stammdaten übernommen.",
     ]
       .filter(Boolean)
       .join("\n");
 
-    const ticketInsert = await supabase.from("tickets").insert([
-      {
-        company_id: currentCompany.id,
-        ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
-        customer: customerName,
-        customer_id: customerId,
-        device: deviceInsert.data.name,
-        issue: `${issuePrefix}: ${deviceInsert.data.name}`,
-        description: ticketDescription,
-        priority:
-          customerServiceType === "Reparatur / Defekt" ? "Hoch" : "Mittel",
-        status: "Offen",
-      },
-    ]);
+    const ticketInsert = await supabase
+      .from("tickets")
+      .insert([
+        {
+          company_id: currentCompany.id,
+          ticket_number: `T-${Math.floor(Math.random() * 9000) + 1000}`,
+          customer: customerName,
+          customer_id: customerId,
+          billing_customer_id: customerId,
+          device: customerDeviceName.trim() || "Gerät noch nicht geprüft",
+          issue: `${issuePrefix}: ${customerDeviceName.trim()}`,
+          description: ticketDescription,
+          priority: customerServiceType === "Reparatur / Defekt" ? "Hoch" : "Mittel",
+          status: "Offen",
+          customer_device_name: customerDeviceName.trim(),
+          customer_device_manufacturer_id: matchedManufacturer?.id || null,
+          customer_device_manufacturer: customerDeviceManufacturer.trim() || null,
+          customer_device_model_id: matchedModel?.id || null,
+          customer_device_model: customerDeviceModel.trim() || null,
+          customer_device_serial: customerDeviceSerial.trim() || null,
+          customer_device_location: customerDeviceLocation.trim() || null,
+          device_review_status: "pending",
+          reviewed_device_id: null,
+          reviewed_at: null,
+          reviewed_by: null,
+        },
+      ])
+      .select("*")
+      .single();
 
-    if (ticketInsert.error) {
-      alert(
-        `Gerät wurde angelegt, aber Ticket konnte nicht erstellt werden: ${ticketInsert.error.message}`,
-      );
-      await loadDevices();
+    if (ticketInsert.error || !ticketInsert.data) {
+      console.error("Kunden-Serviceanfrage konnte nicht gespeichert werden:", ticketInsert.error);
+      alert("Service-Anfrage konnte nicht gespeichert werden. Bitte versuche es erneut.");
       return;
     }
 
-    if (
-      customerServiceType === "Wartung" ||
-      customerServiceType === "Prüfung / Prüfsiegel"
-    ) {
-      const nextDue =
-        customerPreferredDate || new Date().toISOString().split("T")[0];
-      await supabase.from("maintenance_plans").insert([
-        {
-          company_id: currentCompany.id,
-          device_id: deviceInsert.data.id,
-          title: `${customerServiceType} angefragt · ${deviceInsert.data.name}`,
-          interval_days: null,
-          next_due: nextDue,
-        },
-      ]);
-    }
-
-    await createDeviceHistory(
-      deviceInsert.data.id,
-      "Kundenmeldung erstellt",
-      `${customerServiceType} · ${ticketDescription}`,
-      "Kundenportal",
-    );
-
     setCustomerDeviceName("");
     setCustomerDeviceManufacturer("");
+    setCustomerDeviceModel("");
     setCustomerDeviceSerial("");
     setCustomerDeviceLocation("");
     setCustomerDefectDescription("");
     setCustomerServiceType("Reparatur");
     setCustomerPreferredDate("");
 
-    await loadDevices();
     await loadTickets();
-    await loadMaintenancePlans();
-    alert("Gerät und Service-Anfrage wurden gespeichert.");
+    alert("Service-Anfrage wurde gespeichert. Die Geräteangaben werden vor der Übernahme in die Stammdaten geprüft.");
+  }
+
+  async function saveTechnicianDeviceFinding(ticket: Ticket) {
+    if (!isTechnician) {
+      alert("Nur der zugewiesene Techniker kann die technische Gerätefeststellung speichern.");
+      return;
+    }
+
+    if (String(ticket.assigned_to || "") !== String(userProfile?.id || "")) {
+      alert("Dieses Ticket ist Ihnen nicht zugewiesen.");
+      return;
+    }
+
+    if (ticket.device_review_status === "approved") {
+      alert("Die Geräteangaben wurden bereits durch einen Admin freigegeben.");
+      return;
+    }
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(ticket.company_id) !== Number(currentCompany.id)) {
+      alert("Ticket gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
+    const matchedManufacturer = manufacturers.find(
+      (item) =>
+        Number(item.company_id) === Number(currentCompany.id) &&
+        normalizeCompareText(item.name) === normalizeCompareText(technicianManufacturerReview),
+    ) || null;
+
+    const matchedModel = deviceModels.find(
+      (item) =>
+        Number(item.company_id) === Number(currentCompany.id) &&
+        (!matchedManufacturer || Number(item.manufacturer_id) === Number(matchedManufacturer.id)) &&
+        normalizeCompareText(getDeviceModelDisplayName(item)) === normalizeCompareText(technicianModelReview),
+    ) || null;
+
+    setTechnicianDeviceReviewSaving(true);
+    const { data, error } = await supabase
+      .from("tickets")
+      .update({
+        technician_device_name: technicianDeviceNameReview.trim() || null,
+        technician_device_manufacturer_id: matchedManufacturer?.id || null,
+        technician_device_manufacturer: technicianManufacturerReview.trim() || null,
+        technician_device_model_id: matchedModel?.id || null,
+        technician_device_model: technicianModelReview.trim() || null,
+        technician_device_serial: technicianSerialReview.trim() || null,
+        technician_device_location: technicianLocationReview.trim() || null,
+        device_review_status: "technician_updated",
+      })
+      .eq("id", ticket.id)
+      .eq("company_id", currentCompany.id)
+      .eq("assigned_to", userProfile?.id || "")
+      .select("*")
+      .maybeSingle();
+    setTechnicianDeviceReviewSaving(false);
+
+    if (error || !data) {
+      alert(`Gerätefeststellung konnte nicht gespeichert werden: ${error?.message || "Keine Berechtigung"}`);
+      return;
+    }
+
+    const updatedTicket = data as Ticket;
+    setTickets((current) => current.map((item) => item.id === updatedTicket.id ? updatedTicket : item));
+    setSelectedTicketView(updatedTicket);
+    alert("Technikerfeststellung gespeichert. Der Admin kann die Daten jetzt prüfen und freigeben.");
+  }
+
+  async function approveTicketDeviceData(ticket: Ticket) {
+    if (!isAdmin) {
+      alert("Nur Admins dürfen Geräteangaben in Hersteller-, Modell- und Kundengeräte-Stammdaten übernehmen.");
+      return;
+    }
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || Number(ticket.company_id) !== Number(currentCompany.id)) {
+      alert("Ticket gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
+    const ticketCustomerId = Number(ticket.customer_id || ticket.billing_customer_id || 0);
+    const ticketCustomer = customers.find(
+      (item) => Number(item.id) === ticketCustomerId && Number(item.company_id) === Number(currentCompany.id),
+    ) || null;
+
+    if (!ticketCustomer) {
+      alert("Für die Freigabe muss das Ticket einem Kunden der aktuellen Firma zugeordnet sein.");
+      return;
+    }
+
+    const finalDeviceName = adminDeviceNameReview.trim();
+    const finalManufacturerName = adminManufacturerReview.trim();
+    const finalModelName = adminModelReview.trim();
+    const finalSerial = adminSerialReview.trim();
+    const finalLocation = adminLocationReview.trim();
+
+    if (!finalDeviceName || !finalManufacturerName || !finalModelName) {
+      alert("Bitte Gerätebezeichnung, Hersteller und Modell vor der Freigabe vollständig prüfen.");
+      return;
+    }
+
+    if (!finalSerial) {
+      const continueWithoutSerial = window.confirm(
+        "Es ist keine Seriennummer eingetragen. Gerät trotzdem ohne Seriennummer freigeben?",
+      );
+      if (!continueWithoutSerial) return;
+    }
+
+    setAdminDeviceReviewSaving(true);
+
+    try {
+      const { data, error } = await supabase.rpc("approve_ticket_device_data", {
+        p_ticket_id: ticket.id,
+        p_device_name: finalDeviceName,
+        p_manufacturer_name: finalManufacturerName,
+        p_model_name: finalModelName,
+        p_serial_number: finalSerial || null,
+        p_location: finalLocation || null,
+        p_note: adminDeviceReviewNote.trim() || null,
+      });
+
+      if (error) {
+        throw new Error(error.message || "Adminfreigabe konnte nicht gespeichert werden.");
+      }
+
+      const result = (data || {}) as {
+        device_id?: number | string | null;
+        manufacturer_id?: number | string | null;
+        model_id?: number | string | null;
+        updated_existing_device?: boolean;
+      };
+
+      await Promise.all([loadManufacturers(), loadDeviceModels(), loadDevices(), loadTickets()]);
+
+      const refreshedTicketResult = await supabase
+        .from("tickets")
+        .select("*")
+        .eq("id", ticket.id)
+        .eq("company_id", currentCompany.id)
+        .maybeSingle();
+
+      if (!refreshedTicketResult.error && refreshedTicketResult.data) {
+        setSelectedTicketView(refreshedTicketResult.data as Ticket);
+      }
+
+      const reviewedDeviceId = Number(result.device_id || 0);
+      if (reviewedDeviceId) {
+        await createDeviceHistory(
+          reviewedDeviceId,
+          result.updated_existing_device ? "Kundengerät durch Admin geprüft" : "Kundengerät durch Admin angelegt",
+          `${ticket.ticket_number} · ${finalManufacturerName} · ${finalModelName}${finalSerial ? ` · Seriennummer ${finalSerial}` : ""}`,
+          "Adminfreigabe",
+        );
+      }
+
+      alert(
+        result.updated_existing_device
+          ? "Gerätedaten geprüft und bestehendes Kundengerät aktualisiert."
+          : "Gerätedaten geprüft und Kundengerät angelegt.",
+      );
+    } catch (error: any) {
+      console.error("Admin-Gerätefreigabe fehlgeschlagen:", error);
+      alert(error?.message || "Gerätefreigabe konnte nicht abgeschlossen werden.");
+    } finally {
+      setAdminDeviceReviewSaving(false);
+    }
   }
 
   function generateInspectionPdf(item: Device) {
@@ -17616,6 +17804,32 @@ ${tenantBrandName}`,
   const canCreateInvoiceDocument = isAdmin || canTechnicianCreateInvoice;
   const canCreateOrEditMasterData = isAdmin || isTechnician;
   const canPlanDispatch = isAdmin;
+
+  useEffect(() => {
+    const ticket = selectedTicketView
+      ? tickets.find((item) => item.id === selectedTicketView.id) || selectedTicketView
+      : null;
+    if (!ticket) return;
+
+    const preferredName = ticket.technician_device_name || ticket.customer_device_name || ticket.device || "";
+    const preferredManufacturer = ticket.technician_device_manufacturer || ticket.customer_device_manufacturer || "";
+    const preferredModel = ticket.technician_device_model || ticket.customer_device_model || "";
+    const preferredSerial = ticket.technician_device_serial || ticket.customer_device_serial || "";
+    const preferredLocation = ticket.technician_device_location || ticket.customer_device_location || "";
+
+    setTechnicianDeviceNameReview(ticket.technician_device_name || ticket.customer_device_name || ticket.device || "");
+    setTechnicianManufacturerReview(ticket.technician_device_manufacturer || ticket.customer_device_manufacturer || "");
+    setTechnicianModelReview(ticket.technician_device_model || ticket.customer_device_model || "");
+    setTechnicianSerialReview(ticket.technician_device_serial || ticket.customer_device_serial || "");
+    setTechnicianLocationReview(ticket.technician_device_location || ticket.customer_device_location || "");
+
+    setAdminDeviceNameReview(preferredName);
+    setAdminManufacturerReview(preferredManufacturer);
+    setAdminModelReview(preferredModel);
+    setAdminSerialReview(preferredSerial);
+    setAdminLocationReview(preferredLocation);
+    setAdminDeviceReviewNote(ticket.device_review_note || "");
+  }, [selectedTicketView?.id, tickets]);
 
   const visibleDocumentCategoriesForRole = isCustomer
     ? documentCategories.filter((category) => customerVisibleDocumentCategories.includes(category))
@@ -24021,6 +24235,112 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         </button>
                       </div>
                     </div>
+
+                    {currentTicket.device_review_status && currentTicket.device_review_status !== "not_required" && (
+                      <div className="mt-5 rounded-[22px] border border-amber-200 bg-amber-50 p-4 sm:p-5">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">Geräteprüfung</p>
+                            <h4 className="mt-1 text-xl font-black text-slate-950">
+                              {currentTicket.device_review_status === "approved"
+                                ? "Gerätedaten geprüft und freigegeben"
+                                : currentTicket.device_review_status === "technician_updated"
+                                  ? "Technikerfeststellung vorhanden · Adminfreigabe offen"
+                                  : "Kundenangabe ungeprüft"}
+                            </h4>
+                            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                              Kunden- und Technikerangaben bleiben zunächst am Ticket. Erst ein Admin übernimmt geprüfte Hersteller-/Modelldaten und das Kundengerät in die Stammdaten.
+                            </p>
+                          </div>
+                          <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-black ${
+                            currentTicket.device_review_status === "approved"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : currentTicket.device_review_status === "technician_updated"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-amber-100 text-amber-800"
+                          }`}>
+                            {currentTicket.device_review_status === "approved" ? "Freigegeben" : "Prüfung offen"}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                          <div className="rounded-2xl border border-amber-100 bg-white p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kundenangabe</p>
+                            <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-2">
+                              <p><span className="font-black">Gerät:</span> {currentTicket.customer_device_name || "Nicht angegeben"}</p>
+                              <p><span className="font-black">Seriennummer:</span> {currentTicket.customer_device_serial || "Nicht angegeben"}</p>
+                              <p><span className="font-black">Hersteller:</span> {currentTicket.customer_device_manufacturer || "Unbekannt"}</p>
+                              <p><span className="font-black">Modell:</span> {currentTicket.customer_device_model || "Unbekannt"}</p>
+                              <p className="sm:col-span-2"><span className="font-black">Standort:</span> {currentTicket.customer_device_location || "Nicht angegeben"}</p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-blue-100 bg-white p-4">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-600">Technikerfeststellung</p>
+                            {currentTicket.technician_device_name || currentTicket.technician_device_manufacturer || currentTicket.technician_device_model || currentTicket.technician_device_serial ? (
+                              <div className="mt-3 grid gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-2">
+                                <p><span className="font-black">Gerät:</span> {currentTicket.technician_device_name || "Nicht angegeben"}</p>
+                                <p><span className="font-black">Seriennummer:</span> {currentTicket.technician_device_serial || "Nicht angegeben"}</p>
+                                <p><span className="font-black">Hersteller:</span> {currentTicket.technician_device_manufacturer || "Unbekannt"}</p>
+                                <p><span className="font-black">Modell:</span> {currentTicket.technician_device_model || "Unbekannt"}</p>
+                                <p className="sm:col-span-2"><span className="font-black">Standort:</span> {currentTicket.technician_device_location || "Nicht angegeben"}</p>
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-sm font-semibold text-slate-500">Noch keine technische Identifikation gespeichert.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {isTechnician && currentTicket.device_review_status !== "approved" && (
+                          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                            <p className="text-sm font-black text-blue-900">Vor Ort identifizieren</p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-blue-700">Diese Angaben aktualisieren nur das Ticket. Hersteller, Modelle und Kundengeräte werden dadurch nicht automatisch angelegt.</p>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                              <input value={technicianDeviceNameReview} onChange={(e) => setTechnicianDeviceNameReview(e.target.value)} placeholder="Gerätebezeichnung" className="rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm" />
+                              <div>
+                                <input list={`tech-manufacturer-${currentTicket.id}`} value={technicianManufacturerReview} onChange={(e) => { setTechnicianManufacturerReview(e.target.value); setTechnicianModelReview(""); }} placeholder="Hersteller suchen / eingeben" className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm" />
+                                <datalist id={`tech-manufacturer-${currentTicket.id}`}>{manufacturers.map((item) => <option key={item.id} value={item.name} />)}</datalist>
+                              </div>
+                              <div>
+                                <input list={`tech-model-${currentTicket.id}`} value={technicianModelReview} onChange={(e) => setTechnicianModelReview(e.target.value)} placeholder="Modell suchen / eingeben" className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm" />
+                                <datalist id={`tech-model-${currentTicket.id}`}>{deviceModels.filter((modelItem) => { const m = manufacturers.find((item) => normalizeCompareText(item.name) === normalizeCompareText(technicianManufacturerReview)); return !m || Number(modelItem.manufacturer_id) === Number(m.id); }).map((item) => <option key={item.id} value={getDeviceModelDisplayName(item)} />)}</datalist>
+                              </div>
+                              <input value={technicianSerialReview} onChange={(e) => setTechnicianSerialReview(e.target.value)} placeholder="Seriennummer" className="rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm" />
+                              <input value={technicianLocationReview} onChange={(e) => setTechnicianLocationReview(e.target.value)} placeholder="Standort" className="rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm" />
+                              <button type="button" disabled={technicianDeviceReviewSaving} onClick={() => saveTechnicianDeviceFinding(currentTicket)} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">{technicianDeviceReviewSaving ? "Speichert..." : "Technikerfeststellung speichern"}</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {isAdmin && currentTicket.device_review_status !== "approved" && (
+                          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                            <p className="text-sm font-black text-emerald-900">Adminprüfung & Stammdatenfreigabe</p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-emerald-700">Prüfe Typenschild/Fotos und korrigiere die Angaben. Erst dieser Schritt darf Hersteller/Modell anlegen oder das Kundengerät erstellen bzw. aktualisieren.</p>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                              <input value={adminDeviceNameReview} onChange={(e) => setAdminDeviceNameReview(e.target.value)} placeholder="Geprüfte Gerätebezeichnung" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+                              <div>
+                                <input list={`admin-manufacturer-${currentTicket.id}`} value={adminManufacturerReview} onChange={(e) => { setAdminManufacturerReview(e.target.value); setAdminModelReview(""); }} placeholder="Geprüfter Hersteller" className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+                                <datalist id={`admin-manufacturer-${currentTicket.id}`}>{manufacturers.map((item) => <option key={item.id} value={item.name} />)}</datalist>
+                              </div>
+                              <div>
+                                <input list={`admin-model-${currentTicket.id}`} value={adminModelReview} onChange={(e) => setAdminModelReview(e.target.value)} placeholder="Geprüftes Modell" className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+                                <datalist id={`admin-model-${currentTicket.id}`}>{deviceModels.filter((modelItem) => { const m = manufacturers.find((item) => normalizeCompareText(item.name) === normalizeCompareText(adminManufacturerReview)); return !m || Number(modelItem.manufacturer_id) === Number(m.id); }).map((item) => <option key={item.id} value={getDeviceModelDisplayName(item)} />)}</datalist>
+                              </div>
+                              <input value={adminSerialReview} onChange={(e) => setAdminSerialReview(e.target.value)} placeholder="Geprüfte Seriennummer" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+                              <input value={adminLocationReview} onChange={(e) => setAdminLocationReview(e.target.value)} placeholder="Standort" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+                              <input value={adminDeviceReviewNote} onChange={(e) => setAdminDeviceReviewNote(e.target.value)} placeholder="Prüfnotiz optional" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+                            </div>
+                            <button type="button" disabled={adminDeviceReviewSaving} onClick={() => approveTicketDeviceData(currentTicket)} className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">{adminDeviceReviewSaving ? "Übernimmt..." : "Geprüfte Daten freigeben & Kundengerät übernehmen"}</button>
+                          </div>
+                        )}
+
+                        {isAdmin && currentTicket.device_review_status === "approved" && (
+                          <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4 text-sm font-semibold text-emerald-800">
+                            Freigabe abgeschlossen{currentTicket.reviewed_at ? ` · ${formatDateTime(currentTicket.reviewed_at)}` : ""}. Das geprüfte Kundengerät ist mit diesem Ticket verknüpft.
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="mt-5 grid gap-4 xl:grid-cols-4">
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -33847,6 +34167,21 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 <span className={`rounded-full px-3 py-1 text-xs font-black ${priorityClass(ticket.priority)}`}>
                                   Priorität {ticket.priority}
                                 </span>
+                                {ticket.device_review_status === "pending" && (
+                                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
+                                    Geräteprüfung offen
+                                  </span>
+                                )}
+                                {ticket.device_review_status === "technician_updated" && (
+                                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+                                    Technikerangabe neu · Admin prüfen
+                                  </span>
+                                )}
+                                {ticket.device_review_status === "approved" && (
+                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
+                                    Gerät geprüft
+                                  </span>
+                                )}
                               </div>
 
                               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -34166,8 +34501,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     Gerät melden & Service anfragen
                   </h3>
                   <p className="mt-2 text-base text-slate-700">
-                    Lege dein Trainingsgerät an und melde direkt Defekt, Wartung
-                    oder Prüfsiegel-Prüfung.
+                    Melde dein Gerät und deine Service-Anfrage. Bekannte Hersteller und Modelle kannst du auswählen; fehlende Angaben dürfen manuell eingetragen werden und bleiben bis zur Prüfung ungeprüft.
                   </p>
 
                   <div className="mt-5 space-y-4">
@@ -34193,37 +34527,78 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     <input
                       value={customerDeviceName}
                       onChange={(e) => setCustomerDeviceName(e.target.value)}
-                      placeholder="Gerätename, z. B. Anlage, Steuerung, Pumpe"
+                      placeholder="Gerätebezeichnung, z. B. Heizung, Pumpe, Steuerung"
                       className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
                     />
 
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <input
-                        value={customerDeviceManufacturer}
-                        onChange={(e) =>
-                          setCustomerDeviceManufacturer(e.target.value)
-                        }
-                        placeholder="Hersteller / Marke"
-                        className="rounded-2xl border border-slate-300 px-5 py-4 text-base"
-                      />
+                    <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                      <p className="text-sm font-black text-sky-800">Geräteangaben</p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-sky-700">
+                        Suche zuerst in den vorhandenen Stammdaten. Ist dein Hersteller oder Modell nicht vorhanden, kannst du die Angabe trotzdem manuell eingeben. Neue Stammdaten entstehen erst nach Prüfung durch den Admin.
+                      </p>
+                    </div>
 
-                      <input
-                        value={customerDeviceSerial}
-                        onChange={(e) =>
-                          setCustomerDeviceSerial(e.target.value)
-                        }
-                        placeholder="Seriennummer"
-                        className="rounded-2xl border border-slate-300 px-5 py-4 text-base"
-                      />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="mb-2 block text-sm font-black text-slate-700">Hersteller</label>
+                        <input
+                          list="customer-manufacturer-options"
+                          value={customerDeviceManufacturer}
+                          onChange={(e) => {
+                            setCustomerDeviceManufacturer(e.target.value);
+                            setCustomerDeviceModel("");
+                          }}
+                          placeholder="Hersteller suchen oder manuell eingeben"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                        />
+                        <datalist id="customer-manufacturer-options">
+                          {manufacturers.map((item) => <option key={item.id} value={item.name} />)}
+                        </datalist>
+                      </div>
 
-                      <input
-                        value={customerDeviceLocation}
-                        onChange={(e) =>
-                          setCustomerDeviceLocation(e.target.value)
-                        }
-                        placeholder="Standort im Studio"
-                        className="rounded-2xl border border-slate-300 px-5 py-4 text-base"
-                      />
+                      <div>
+                        <label className="mb-2 block text-sm font-black text-slate-700">Modell</label>
+                        <input
+                          list="customer-model-options"
+                          value={customerDeviceModel}
+                          onChange={(e) => setCustomerDeviceModel(e.target.value)}
+                          placeholder="Modell suchen oder manuell eingeben"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                        />
+                        <datalist id="customer-model-options">
+                          {deviceModels
+                            .filter((modelItem) => {
+                              if (!customerDeviceManufacturer.trim()) return true;
+                              const manufacturerItem = manufacturers.find(
+                                (item) => normalizeCompareText(item.name) === normalizeCompareText(customerDeviceManufacturer),
+                              );
+                              return !manufacturerItem || Number(modelItem.manufacturer_id) === Number(manufacturerItem.id);
+                            })
+                            .map((item) => (
+                              <option key={item.id} value={getDeviceModelDisplayName(item)} />
+                            ))}
+                        </datalist>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-black text-slate-700">Seriennummer</label>
+                        <input
+                          value={customerDeviceSerial}
+                          onChange={(e) => setCustomerDeviceSerial(e.target.value)}
+                          placeholder="Falls bekannt"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-black text-slate-700">Standort</label>
+                        <input
+                          value={customerDeviceLocation}
+                          onChange={(e) => setCustomerDeviceLocation(e.target.value)}
+                          placeholder="Aufstellort / Raum / Standort"
+                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
+                        />
+                      </div>
                     </div>
 
                     <input
@@ -34247,7 +34622,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       onClick={customerCreateDeviceTicketAndRequest}
                       className="w-full rounded-2xl bg-sky-500 py-5 text-lg font-black text-white"
                     >
-                      Gerät & Anfrage speichern
+                      Service-Anfrage senden
                     </button>
                   </div>
                 </div>
