@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.45 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.46 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -27041,6 +27041,37 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                                       Notiz: {getLatestCustomerAppointmentRequest(currentTicket)?.note}
                                     </p>
                                   )}
+
+                                  {!isCustomer && canCoordinateTicketAppointment(currentTicket) && (
+                                    <div className="mt-3 grid gap-2">
+                                      {getLatestCustomerAppointmentRequest(currentTicket)?.date && (
+                                        <button
+                                          type="button"
+                                          disabled={appointmentProposalSaving}
+                                          onClick={() => void acceptCustomerRequestedAppointment(currentTicket)}
+                                          className="w-full rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                                        >
+                                          {appointmentProposalSaving
+                                            ? "Wird übernommen..."
+                                            : `✓ Wunschtermin ${formatServiceDate(
+                                                getLatestCustomerAppointmentRequest(currentTicket)?.date || "",
+                                              )}${
+                                                getLatestCustomerAppointmentRequest(currentTicket)?.time
+                                                  ? ` · ${getLatestCustomerAppointmentRequest(currentTicket)?.time}`
+                                                  : ""
+                                              } übernehmen`}
+                                        </button>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() => openAppointmentCoordination(currentTicket)}
+                                        className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900"
+                                      >
+                                        Anderen Termin vorschlagen
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
 
@@ -37881,6 +37912,37 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                               <p className="mt-1">
                                                 Notiz: {getLatestCustomerAppointmentRequest(ticket)?.note}
                                               </p>
+                                            )}
+
+                                            {!isCustomer && canCoordinateTicketAppointment(ticket) && (
+                                              <div className="mt-3 grid gap-2">
+                                                {getLatestCustomerAppointmentRequest(ticket)?.date && (
+                                                  <button
+                                                    type="button"
+                                                    disabled={appointmentProposalSaving}
+                                                    onClick={() => void acceptCustomerRequestedAppointment(ticket)}
+                                                    className="w-full rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                                                  >
+                                                    {appointmentProposalSaving
+                                                      ? "Wird übernommen..."
+                                                      : `✓ Wunschtermin ${formatServiceDate(
+                                                          getLatestCustomerAppointmentRequest(ticket)?.date || "",
+                                                        )}${
+                                                          getLatestCustomerAppointmentRequest(ticket)?.time
+                                                            ? ` · ${getLatestCustomerAppointmentRequest(ticket)?.time}`
+                                                            : ""
+                                                        } übernehmen`}
+                                                  </button>
+                                                )}
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() => openAppointmentCoordination(ticket)}
+                                                  className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-black text-amber-900"
+                                                >
+                                                  Anderen Termin vorschlagen
+                                                </button>
+                                              </div>
                                             )}
                                           </div>
                                         )}
