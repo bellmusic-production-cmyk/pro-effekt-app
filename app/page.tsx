@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.21 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.22 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -6959,9 +6959,16 @@ async function loadApplicationData(userIdOverride?: string) {
 
     const safeFileName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const safeCategory = category || "Sonstige Dokumente";
+    const isCustomerUpload = userProfile?.role === "customer";
+    const safeCustomerId = customerId ? Number(customerId) : null;
+    const relativePath =
+      isCustomerUpload && safeCustomerId
+        ? `kundenportal/customer-${safeCustomerId}/ticket-${ticket.id}/${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`
+        : `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`;
+
     const storageTarget = await buildTenantDocumentStorageTarget(
-      `${safeCategory}/${Date.now()}-${ticket.ticket_number || ticket.id}-${safeFileName}`,
-      customerId,
+      relativePath,
+      safeCustomerId,
       deviceId,
       ticket.id,
     );
