@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.20 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.21 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -5244,6 +5244,63 @@ async function loadApplicationData(userIdOverride?: string) {
   async function loadDocuments() {
     if (isOfflineRuntime()) return;
 
+    // Kundenportal:
+    // Kunden sind bewusst keine company_members. Ihre Firma wird deshalb
+    // ausschließlich aus der serverseitig verifizierten Kundenidentität geladen.
+    if (userProfile?.role === "customer") {
+      const { data: identityData, error: identityError } = await supabase.rpc(
+        "customer_portal_identity",
+      );
+
+      if (identityError) {
+        console.error(
+          "Kundendokumente konnten keiner sicheren Kundenidentität zugeordnet werden:",
+          identityError.message,
+        );
+        setDocuments([]);
+        return;
+      }
+
+      const ownCustomer = Array.isArray(identityData)
+        ? ((identityData[0] || null) as Customer | null)
+        : ((identityData || null) as Customer | null);
+
+      const customerId = ownCustomer?.id ? Number(ownCustomer.id) : null;
+      const customerCompanyId = ownCustomer?.company_id
+        ? Number(ownCustomer.company_id)
+        : null;
+
+      if (!customerId || !customerCompanyId) {
+        console.error(
+          "Kundendokumente konnten keiner eindeutigen Kunden-/Firmenzuordnung zugeordnet werden.",
+        );
+        setDocuments([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("company_id", customerCompanyId)
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Kundendokumente konnten nicht geladen werden:", error.message);
+        setDocuments([]);
+        return;
+      }
+
+      setDocuments(
+        ((data || []) as DocumentItem[]).filter(
+          (item) =>
+            Number(item.company_id) === customerCompanyId &&
+            Number(item.customer_id) === customerId,
+        ),
+      );
+      return;
+    }
+
     const activeUserId = session?.user?.id || userProfile?.id || null;
     const currentCompany =
       companyDataRef.current ||
@@ -5256,17 +5313,11 @@ async function loadApplicationData(userIdOverride?: string) {
       return;
     }
 
-    let query = supabase
+    const { data, error } = await supabase
       .from("documents")
       .select("*")
       .eq("company_id", currentCompany.id)
       .order("created_at", { ascending: false });
-
-    if (userProfile?.role === "customer" && userProfile.customer_id) {
-      query = query.eq("customer_id", userProfile.customer_id);
-    }
-
-    const { data, error } = await query;
 
     if (error) {
       console.error("Dokumente konnten nicht geladen werden:", error.message);
@@ -5275,7 +5326,7 @@ async function loadApplicationData(userIdOverride?: string) {
     }
 
     setDocuments(
-      (data || []).filter(
+      ((data || []) as DocumentItem[]).filter(
         (item) => Number(item.company_id) === Number(currentCompany.id),
       ),
     );
@@ -7351,7 +7402,7 @@ async function loadApplicationData(userIdOverride?: string) {
     setIssue("");
     setDescription("");
     setPriority("Mittel");
-    setTicketCreateUploadCategory("Lieferscheine");
+    setTicketCreateUploadCategory("Fotos");
     setTicketCreateFile(null);
     setCustomerDeviceName("");
     setCustomerDeviceManufacturer("");
