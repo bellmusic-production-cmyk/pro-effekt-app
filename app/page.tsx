@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.23 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.24 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2366,7 +2366,8 @@ export default function Home() {
           : null;
 
         const belongsToCustomer =
-          ticket.customer_id === userProfile.customer_id ||
+          Number(ticket.customer_id || 0) === Number(userProfile.customer_id || 0) ||
+          Number(ticket.billing_customer_id || 0) === Number(userProfile.customer_id || 0) ||
           (!!linkedCustomer?.company &&
             ticket.customer === linkedCustomer.company);
 
@@ -4877,8 +4878,9 @@ async function loadApplicationData(userIdOverride?: string) {
   async function loadTickets() {
     if (isOfflineRuntime()) return [] as Ticket[];
 
-    const currentCompany = await resolveActiveCompanyForOperation();
-    if (!currentCompany?.id) {
+    const currentCompanyId = await resolveOperationCompanyId();
+    if (!currentCompanyId) {
+      console.error("Tickets konnten keiner aktiven Firma zugeordnet werden.");
       setTickets([]);
       return [] as Ticket[];
     }
@@ -4906,7 +4908,7 @@ async function loadApplicationData(userIdOverride?: string) {
     let ticketQuery = supabase
       .from("tickets")
       .select("*")
-      .eq("company_id", currentCompany.id);
+      .eq("company_id", currentCompanyId);
 
     if (ticketProfile.role === "technician") {
       ticketQuery = ticketQuery.eq("assigned_to", authData.user.id);
@@ -4916,7 +4918,10 @@ async function loadApplicationData(userIdOverride?: string) {
         return [] as Ticket[];
       }
 
-      ticketQuery = ticketQuery.eq("customer_id", ticketProfile.customer_id);
+      const portalCustomerId = Number(ticketProfile.customer_id);
+      ticketQuery = ticketQuery.or(
+        `customer_id.eq.${portalCustomerId},billing_customer_id.eq.${portalCustomerId}`,
+      );
     }
 
     const { data, error } = await ticketQuery.order("created_at", { ascending: false });
@@ -4928,7 +4933,7 @@ async function loadApplicationData(userIdOverride?: string) {
     }
 
     const scopedTickets = ((data || []) as Ticket[]).filter(
-      (ticket) => Number(ticket.company_id) === Number(currentCompany.id),
+      (ticket) => Number(ticket.company_id) === Number(currentCompanyId),
     );
 
     setTickets(scopedTickets);
