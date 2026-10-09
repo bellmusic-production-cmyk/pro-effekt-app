@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.26 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.27 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7579,6 +7579,27 @@ async function loadApplicationData(userIdOverride?: string) {
     setDescription(ticket.description || "");
     setPriority(ticket.priority || "Mittel");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openAdminDeviceReview(ticket: Ticket) {
+    if (!isAdmin) {
+      return;
+    }
+
+    setSelectedTicketView(ticket);
+
+    window.setTimeout(() => {
+      const reviewElement = document.getElementById(
+        `ticket-device-review-${ticket.id}`,
+      );
+
+      if (reviewElement) {
+        reviewElement.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 180);
   }
 
   function startEditDevice(item: Device) {
@@ -25029,6 +25050,16 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         >
                           Ticket bearbeiten
                         </button>
+                        {isAdmin &&
+                          currentTicket.device_review_status !== "approved" &&
+                          currentTicket.device_review_status !== "not_required" && (
+                            <button
+                              onClick={() => openAdminDeviceReview(currentTicket)}
+                              className="rounded-2xl bg-amber-100 px-4 py-3 text-sm font-black text-amber-800"
+                            >
+                              Geräteprüfung
+                            </button>
+                          )}
                         <button
                           onClick={() => prepareAbnahmeFromTicket(currentTicket)}
                           className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white"
@@ -25127,7 +25158,10 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           const modelComplete = Boolean(approvalPreview.modelName);
 
                           return (
-                            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                            <div
+                              id={`ticket-device-review-${currentTicket.id}`}
+                              className="mt-4 scroll-mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
+                            >
                               <p className="text-sm font-black text-emerald-900">Adminprüfung & Stammdatenfreigabe</p>
                               <p className="mt-1 text-xs font-semibold leading-5 text-emerald-700">
                                 Prüfe Typenschild, Fotos und Technikerangaben. TRYBUN zeigt dir vor der Freigabe, was in „Hersteller & Modelle“ und was als konkretes Kundengerät gespeichert wird.
@@ -35992,6 +36026,17 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   Bearbeiten
                                 </button>
                               )}
+
+                              {isAdmin &&
+                                ticket.device_review_status !== "approved" &&
+                                ticket.device_review_status !== "not_required" && (
+                                  <button
+                                    onClick={() => openAdminDeviceReview(ticket)}
+                                    className="w-full rounded-2xl bg-amber-100 px-3 py-3 text-center text-xs font-black text-amber-800 md:text-sm"
+                                  >
+                                    Geräteprüfung
+                                  </button>
+                                )}
 
                               {!isCustomer && (
                                 <button
