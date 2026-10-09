@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.09 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.10 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2241,10 +2241,10 @@ export default function Home() {
 
   useEffect(() => {
     if (userProfile?.role === "admin" || userProfile?.role === "technician" || userProfile?.role === "customer") {
-      loadManufacturers();
-      loadDeviceModels();
+      void loadManufacturers();
+      void loadDeviceModels();
     }
-  }, [userProfile?.role, userProfile?.customer_id, companyData?.id]);
+  }, [userProfile?.id, userProfile?.role, userProfile?.customer_id, companyData?.id]);
 
   useEffect(() => {
     if (!session?.user?.id || !activePage) return;
@@ -4972,13 +4972,60 @@ async function loadApplicationData(userIdOverride?: string) {
     setCustomers(loadedCustomers);
   }
 
+  async function resolveCatalogUserRole(): Promise<"admin" | "technician" | "customer" | null> {
+    // React-State kann direkt nach Login noch aus dem vorherigen Render stammen.
+    // Deshalb wird die Rolle für den Stammdatenkatalog bei Bedarf direkt aus dem
+    // aktuell authentifizierten Supabase-Benutzer ermittelt.
+    if (
+      userProfile?.role === "admin" ||
+      userProfile?.role === "technician" ||
+      userProfile?.role === "customer"
+    ) {
+      return userProfile.role;
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authData.user?.id) {
+      console.error(
+        "Rolle für Stammdatenkatalog konnte nicht aus Auth ermittelt werden:",
+        authError?.message,
+      );
+      return null;
+    }
+
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", authData.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        "Rolle für Stammdatenkatalog konnte nicht aus Profil ermittelt werden:",
+        profileError.message,
+      );
+      return null;
+    }
+
+    const role = String(profileData?.role || "");
+
+    if (role === "admin" || role === "technician" || role === "customer") {
+      return role;
+    }
+
+    return null;
+  }
+
   async function loadManufacturers() {
     if (isOfflineRuntime()) return;
 
     // Kunden laden den reinen Lesekatalog über eine SECURITY-DEFINER-RPC.
     // Die Funktion ermittelt die Firmen-ID ausschließlich aus auth.uid() -> profile -> customer
     // und gibt damit nur Hersteller der eigenen Servicefirma zurück.
-    if (userProfile?.role === "customer") {
+    const catalogRole = await resolveCatalogUserRole();
+
+    if (catalogRole === "customer") {
       const { data, error } = await supabase.rpc("customer_manufacturers_catalog");
 
       if (error) {
@@ -5023,7 +5070,9 @@ async function loadApplicationData(userIdOverride?: string) {
 
     // Analog zum Herstellerkatalog: Kunden lesen Modelle ausschließlich über die
     // serverseitig mandantengefilterte RPC und erhalten keinerlei Schreibrecht.
-    if (userProfile?.role === "customer") {
+    const catalogRole = await resolveCatalogUserRole();
+
+    if (catalogRole === "customer") {
       const { data, error } = await supabase.rpc("customer_device_models_catalog");
 
       if (error) {
