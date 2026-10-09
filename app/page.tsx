@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.30 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.31 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -342,11 +342,54 @@ type PartUsage = {
 
 type StockDocumentLine = {
   key: string;
-  itemType: "device_model" | "spare_part";
+  itemType: "device_model" | "spare_part" | "manual";
   itemId: string;
   quantity: string;
   unitPrice: string;
   description: string;
+  unit?: string;
+  lineType?: "travel" | "labor" | "installation" | "service" | "other" | null;
+  ticketPartRequirementId?: number | null;
+};
+
+type TicketPartRequirement = {
+  id: number;
+  company_id: number;
+  ticket_id: number;
+  customer_id?: number | null;
+  spare_part_id?: number | null;
+  supplier_id?: number | null;
+  requested_name: string;
+  quantity: number;
+  unit?: string | null;
+  status: string;
+  note?: string | null;
+  expected_date?: string | null;
+  ordered_at?: string | null;
+  available_at?: string | null;
+  installed_at?: string | null;
+  delivery_number?: string | null;
+  invoice_id?: number | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+};
+
+type InvoiceLineItem = {
+  id: number;
+  company_id: number;
+  invoice_id: number;
+  line_type: string;
+  description: string;
+  quantity: number;
+  unit?: string | null;
+  unit_price: number;
+  tax_rate?: number | null;
+  spare_part_id?: number | null;
+  device_model_id?: number | null;
+  ticket_part_requirement_id?: number | null;
+  sort_order?: number | null;
+  created_at: string;
 };
 
 type InventoryMovement = {
@@ -714,8 +757,10 @@ const statusOptions = [
   "In Bearbeitung",
   "Termin vereinbart",
   "Wartet auf Ersatzteil",
+  "Ersatzteil verfügbar",
   "Wartet auf Kundenfreigabe",
   "Abgeschlossen",
+  "Erledigt",
 ];
 
 const filterStatusOptions = [
@@ -727,8 +772,10 @@ const filterStatusOptions = [
   "In Bearbeitung",
   "Termin vereinbart",
   "Wartet auf Ersatzteil",
+  "Ersatzteil verfügbar",
   "Wartet auf Kundenfreigabe",
   "Abgeschlossen",
+  "Erledigt",
 ];
 const filterPriorityOptions = ["Alle", "Niedrig", "Mittel", "Hoch"];
 
@@ -1259,6 +1306,7 @@ export default function Home() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [editingManufacturer, setEditingManufacturer] = useState<Manufacturer | null>(null);
   const [manufacturerName, setManufacturerName] = useState("");
   const [manufacturerDealerNumber, setManufacturerDealerNumber] = useState("");
@@ -1294,6 +1342,8 @@ export default function Home() {
   const [voidedPartUsagesTotal, setVoidedPartUsagesTotal] = useState(0);
   const [voidedPartUsagesLoadingMore, setVoidedPartUsagesLoadingMore] = useState(false);
   const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>([]);
+  const [ticketPartRequirements, setTicketPartRequirements] = useState<TicketPartRequirement[]>([]);
+  const [invoiceLineItems, setInvoiceLineItems] = useState<InvoiceLineItem[]>([]);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [ticketChatMessages, setTicketChatMessages] = useState<TicketChatMessage[]>([]);
@@ -1660,6 +1710,14 @@ export default function Home() {
   const [partUsageNote, setPartUsageNote] = useState("");
   const [partSearchTerm, setPartSearchTerm] = useState("");
   const [partManufacturerFilter, setPartManufacturerFilter] = useState("Alle");
+  const [partRequirementTicketId, setPartRequirementTicketId] = useState<number | null>(null);
+  const [partRequirementPartId, setPartRequirementPartId] = useState("");
+  const [partRequirementName, setPartRequirementName] = useState("");
+  const [partRequirementQuantity, setPartRequirementQuantity] = useState("1");
+  const [partRequirementSupplierId, setPartRequirementSupplierId] = useState("");
+  const [partRequirementExpectedDate, setPartRequirementExpectedDate] = useState("");
+  const [partRequirementNote, setPartRequirementNote] = useState("");
+  const [partRequirementSaving, setPartRequirementSaving] = useState(false);
   const [inventorySearchTerm, setInventorySearchTerm] = useState("");
   const [inventoryManufacturerFilter, setInventoryManufacturerFilter] = useState("Alle");
 
@@ -4446,6 +4504,7 @@ async function loadApplicationData(userIdOverride?: string) {
       loadDevices(),
       loadCustomers(),
       loadManufacturers(),
+      loadSuppliers(),
       loadDeviceModels(),
       loadDocuments(),
       loadDeviceHistory(),
@@ -4454,6 +4513,8 @@ async function loadApplicationData(userIdOverride?: string) {
       loadPartUsages(),
       loadVoidedPartUsages(10),
       loadInventoryMovements(),
+      loadTicketPartRequirements(),
+      loadInvoiceLineItems(),
       loadInvoices(),
       loadNotifications(),
       loadContracts(),
@@ -5279,7 +5340,31 @@ async function loadApplicationData(userIdOverride?: string) {
     );
   }
 
-  async function loadDeviceModels() {
+  async function loadSuppliers() {
+    if (isOfflineRuntime()) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setSuppliers([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("suppliers")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Lieferanten konnten nicht mandantensicher geladen werden:", error.message);
+      setSuppliers([]);
+      return;
+    }
+
+    setSuppliers((data || []) as Supplier[]);
+  }
+
+async function loadDeviceModels() {
     if (isOfflineRuntime()) return;
 
     // Analog zum Herstellerkatalog: Kunden lesen Modelle ausschließlich über die
@@ -5697,7 +5782,56 @@ async function loadApplicationData(userIdOverride?: string) {
     setVoidedPartUsagesTotal(count || voidedPartUsagesTotal);
   }
 
-  async function loadInvoices() {
+  async function loadTicketPartRequirements() {
+    if (isOfflineRuntime()) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setTicketPartRequirements([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("ticket_part_requirements")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Ticket-Ersatzteilbedarf konnte nicht geladen werden:", error.message);
+      setTicketPartRequirements([]);
+      return;
+    }
+
+    setTicketPartRequirements((data || []) as TicketPartRequirement[]);
+  }
+
+  async function loadInvoiceLineItems() {
+    if (isOfflineRuntime()) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id) {
+      setInvoiceLineItems([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("invoice_line_items")
+      .select("*")
+      .eq("company_id", currentCompany.id)
+      .order("invoice_id", { ascending: false })
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      console.error("Rechnungspositionen konnten nicht geladen werden:", error.message);
+      setInvoiceLineItems([]);
+      return;
+    }
+
+    setInvoiceLineItems((data || []) as InvoiceLineItem[]);
+  }
+
+async function loadInvoices() {
     if (isOfflineRuntime()) return;
 
     const currentCompany = await resolveActiveCompanyForOperation();
@@ -10049,6 +10183,8 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return "bg-blue-100 text-blue-700";
     if (statusValue === "Wartet auf Ersatzteil" || statusValue === "Wartet auf Ersatzteile")
       return "bg-purple-100 text-purple-700";
+    if (statusValue === "Ersatzteil verfügbar")
+      return "bg-emerald-100 text-emerald-700";
     if (statusValue === "Wartet auf Kundenfreigabe")
       return "bg-orange-100 text-orange-700";
     if (statusValue === "Dringend")
@@ -15730,7 +15866,7 @@ ${tenantBrandName}`,
       .replace(/'/g, "&#039;");
   }
 
-  function createStockDocumentLine(itemType: "device_model" | "spare_part" = "device_model"): StockDocumentLine {
+  function createStockDocumentLine(itemType: "device_model" | "spare_part" | "manual" = "device_model"): StockDocumentLine {
     return {
       key: `stock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       itemType,
@@ -15738,11 +15874,34 @@ ${tenantBrandName}`,
       quantity: "1",
       unitPrice: "",
       description: "",
+      unit: itemType === "manual" ? "Pauschale" : undefined,
+      lineType: itemType === "manual" ? "service" : null,
+      ticketPartRequirementId: null,
+    };
+  }
+
+  function createManualInvoiceLine(
+    lineType: "travel" | "labor" | "installation" | "service" | "other",
+  ): StockDocumentLine {
+    const defaults: Record<string, { description: string; unit: string }> = {
+      travel: { description: "Anfahrt", unit: "km" },
+      labor: { description: "Arbeitszeit / Stundenlohn", unit: "Std." },
+      installation: { description: "Installation / Montage", unit: "Std." },
+      service: { description: "Serviceleistung", unit: "Pauschale" },
+      other: { description: "Sonstige Leistung", unit: "Pauschale" },
+    };
+    const preset = defaults[lineType];
+
+    return {
+      ...createStockDocumentLine("manual"),
+      lineType,
+      description: preset.description,
+      unit: preset.unit,
     };
   }
 
   function getStockLineItem(line: StockDocumentLine) {
-    if (!line.itemId) return null;
+    if (line.itemType === "manual" || !line.itemId) return null;
     if (line.itemType === "spare_part") {
       return serviceParts.find((item) => item.id === Number(line.itemId)) || null;
     }
@@ -15750,6 +15909,17 @@ ${tenantBrandName}`,
   }
 
   function getStockLineLabel(line: StockDocumentLine) {
+    if (line.itemType === "manual") {
+      const defaultLabels: Record<string, string> = {
+        travel: "Anfahrt",
+        labor: "Arbeitszeit / Stundenlohn",
+        installation: "Installation / Montage",
+        service: "Serviceleistung",
+        other: "Sonstige Leistung",
+      };
+      return line.description || defaultLabels[line.lineType || "service"] || "Leistung";
+    }
+
     const item: any = getStockLineItem(line);
     if (!item) return line.description || "Nicht ausgewählt";
     if (line.itemType === "spare_part") {
@@ -15760,19 +15930,30 @@ ${tenantBrandName}`,
   }
 
   function getStockLineAvailable(line: StockDocumentLine) {
+    if (line.itemType === "manual") return Number.POSITIVE_INFINITY;
     const item: any = getStockLineItem(line);
     return Number(item?.stock || 0);
   }
 
   function getStockLineUnit(line: StockDocumentLine) {
+    if (line.itemType === "manual") {
+      if (line.unit) return line.unit;
+      if (line.lineType === "labor") return "Std.";
+      if (line.lineType === "travel") return "km";
+      return "Pauschale";
+    }
     const item: any = getStockLineItem(line);
     return item?.unit || "Stück";
   }
 
   function getDefaultStockLinePrice(line: StockDocumentLine) {
+    if (line.itemType === "manual") return line.unitPrice || "";
     const item: any = getStockLineItem(line);
     if (!item) return "";
-    const price = line.itemType === "device_model" ? item.sale_price : null;
+    const price =
+      line.itemType === "device_model"
+        ? item.sale_price
+        : null;
     return price === null || price === undefined ? "" : String(Number(price));
   }
 
@@ -15788,8 +15969,20 @@ ${tenantBrandName}`,
   function validateStockDocumentLines(lines: StockDocumentLine[], requireStock = false) {
     for (const line of lines) {
       const quantity = Number(String(line.quantity).replace(",", "."));
+
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        return "Bitte bei jeder Position eine Menge größer 0 eingeben.";
+      }
+
+      if (line.itemType === "manual") {
+        if (!line.description.trim()) {
+          return "Bitte bei jeder Leistungsposition eine Beschreibung eingeben.";
+        }
+        continue;
+      }
+
       if (!line.itemId) return "Bitte bei jeder Lagerposition einen Artikel auswählen.";
-      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isInteger(quantity)) return "Bitte bei jeder Lagerposition eine ganze Menge größer 0 eingeben.";
+      if (!Number.isInteger(quantity)) return "Bitte bei Lagerpositionen eine ganze Menge größer 0 eingeben.";
       if (!getStockLineItem(line)) return "Mindestens eine Lagerposition konnte nicht mehr gefunden werden.";
       if (requireStock && quantity > getStockLineAvailable(line)) {
         return `Nicht genügend Bestand für ${getStockLineLabel(line)}. Verfügbar: ${getStockLineAvailable(line)} ${getStockLineUnit(line)}.`;
@@ -15799,14 +15992,16 @@ ${tenantBrandName}`,
   }
 
   function stockLinesToRpc(lines: StockDocumentLine[]) {
-    return lines.map((line, index) => ({
-      line_key: line.key || `line-${index + 1}`,
-      item_type: line.itemType,
-      item_id: Number(line.itemId),
-      quantity: Number(String(line.quantity).replace(",", ".")),
-      description: line.description.trim() || getStockLineLabel(line),
-      unit_price: line.unitPrice.trim() ? Number(line.unitPrice.replace(",", ".")) : null,
-    }));
+    return lines
+      .filter((line) => line.itemType !== "manual")
+      .map((line, index) => ({
+        line_key: line.key || `line-${index + 1}`,
+        item_type: line.itemType,
+        item_id: Number(line.itemId),
+        quantity: Number(String(line.quantity).replace(",", ".")),
+        description: line.description.trim() || getStockLineLabel(line),
+        unit_price: line.unitPrice.trim() ? Number(line.unitPrice.replace(",", ".")) : null,
+      }));
   }
 
   async function postInventoryDocument(
@@ -15817,7 +16012,8 @@ ${tenantBrandName}`,
     ticketId: number | null,
     lines: StockDocumentLine[],
   ) {
-    if (!lines.length) return { ok: true, error: "" };
+    const inventoryLines = lines.filter((line) => line.itemType !== "manual");
+    if (!inventoryLines.length) return { ok: true, error: "" };
 
     const { error } = await supabase.rpc("post_inventory_document", {
       p_source_type: sourceType,
@@ -15825,7 +16021,7 @@ ${tenantBrandName}`,
       p_movement_type: movementType,
       p_customer_id: customerId,
       p_ticket_id: ticketId,
-      p_lines: stockLinesToRpc(lines),
+      p_lines: stockLinesToRpc(inventoryLines),
     });
 
     if (error) return { ok: false, error: error.message };
@@ -16247,6 +16443,8 @@ ${tenantBrandName}`,
         ? customers.find((customer) => customer.id === relatedTicket.customer_id)
         : null;
 
+    const persistedLines = invoiceLineItemsToStockLines(item.id);
+
     const movementLines: StockDocumentLine[] = inventoryMovements
       .filter(
         (movement) =>
@@ -16277,7 +16475,7 @@ ${tenantBrandName}`,
       ticketLabel: relatedTicket ? `${relatedTicket.ticket_number} · ${relatedTicket.issue || ""}` : "-",
       title: item.title,
       note: item.note || "",
-      lines: stockLines.length ? stockLines : movementLines,
+      lines: stockLines.length ? stockLines : persistedLines.length ? persistedLines : movementLines,
       extraFields: [["Status", item.status || "-"]],
       amountNet: Number(item.amount_net || 0),
       taxRate: Number(item.tax_rate || 0),
@@ -16286,6 +16484,425 @@ ${tenantBrandName}`,
       technicianSignature,
       customerSignature,
     });
+  }
+
+  function getTicketPartRequirements(ticketId: number) {
+    return ticketPartRequirements.filter((item) => item.ticket_id === ticketId);
+  }
+
+  function getTicketPartRequirementPart(requirement: TicketPartRequirement) {
+    return requirement.spare_part_id
+      ? serviceParts.find((part) => part.id === requirement.spare_part_id) || null
+      : null;
+  }
+
+  function isTicketPartRequirementAvailable(requirement: TicketPartRequirement) {
+    const part = getTicketPartRequirementPart(requirement);
+    if (!part) return false;
+    return Number(part.stock || 0) >= Number(requirement.quantity || 0);
+  }
+
+  function getTicketPartRequirementStatus(requirement: TicketPartRequirement) {
+    if (["invoiced", "installed", "delivery_created", "cancelled"].includes(requirement.status)) {
+      return requirement.status;
+    }
+    if (isTicketPartRequirementAvailable(requirement)) return "available";
+    return requirement.status || "needed";
+  }
+
+  function getTicketPartRequirementStatusLabel(requirement: TicketPartRequirement) {
+    const status = getTicketPartRequirementStatus(requirement);
+    const labels: Record<string, string> = {
+      needed: "Ersatzteil benötigt",
+      ordered: "Bestellt",
+      available: "Ersatzteil verfügbar",
+      installed: "Eingebaut",
+      delivery_created: "Lieferschein erstellt",
+      invoiced: "In Rechnung gestellt",
+      cancelled: "Storniert",
+    };
+    return labels[status] || status;
+  }
+
+  function openTicketPartRequirement(ticket: Ticket, part?: SparePart | null) {
+    setPartRequirementTicketId(ticket.id);
+    setPartRequirementPartId(part?.id ? String(part.id) : "");
+    setPartRequirementName(part?.name || "");
+    setPartRequirementQuantity("1");
+    setPartRequirementSupplierId(part?.supplier_id ? String(part.supplier_id) : "");
+    setPartRequirementExpectedDate("");
+    setPartRequirementNote("");
+  }
+
+  function closeTicketPartRequirement() {
+    setPartRequirementTicketId(null);
+    setPartRequirementPartId("");
+    setPartRequirementName("");
+    setPartRequirementQuantity("1");
+    setPartRequirementSupplierId("");
+    setPartRequirementExpectedDate("");
+    setPartRequirementNote("");
+  }
+
+  async function saveTicketPartRequirement() {
+    if (!partRequirementTicketId || partRequirementSaving) return;
+
+    const ticket = tickets.find((item) => item.id === partRequirementTicketId);
+    const currentCompany = await resolveActiveCompanyForOperation();
+
+    if (!ticket || !currentCompany?.id) {
+      alert("Ticket oder Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    if (ticket.company_id != null && Number(ticket.company_id) !== Number(currentCompany.id)) {
+      alert("Dieses Ticket gehört nicht zur aktuell angemeldeten Firma.");
+      return;
+    }
+
+    const part = partRequirementPartId
+      ? serviceParts.find((item) => item.id === Number(partRequirementPartId)) || null
+      : null;
+    const quantity = Number(String(partRequirementQuantity).replace(",", "."));
+    const requestedName = (part?.name || partRequirementName).trim();
+
+    if (!requestedName) {
+      alert("Bitte ein Ersatzteil auswählen oder die benötigte Bezeichnung eintragen.");
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      alert("Bitte eine gültige benötigte Menge eingeben.");
+      return;
+    }
+
+    const available = part ? Number(part.stock || 0) >= quantity : false;
+    setPartRequirementSaving(true);
+
+    try {
+      const { error } = await supabase.from("ticket_part_requirements").insert([
+        {
+          company_id: currentCompany.id,
+          ticket_id: ticket.id,
+          customer_id: ticket.customer_id || ticket.billing_customer_id || null,
+          spare_part_id: part?.id || null,
+          supplier_id:
+            Number(partRequirementSupplierId || 0) ||
+            part?.supplier_id ||
+            null,
+          requested_name: requestedName,
+          quantity,
+          unit: part?.unit || "Stück",
+          status: available ? "available" : "needed",
+          note: partRequirementNote.trim() || null,
+          expected_date: partRequirementExpectedDate || null,
+          available_at: available ? new Date().toISOString() : null,
+          created_by: userProfile?.id || null,
+        },
+      ]);
+
+      if (error) {
+        alert(`Ersatzteilbedarf konnte nicht gespeichert werden: ${error.message}`);
+        return;
+      }
+
+      const nextTicketStatus = available ? "Ersatzteil verfügbar" : "Wartet auf Ersatzteil";
+      const nextServiceStatus = available
+        ? `Ersatzteil verfügbar: ${requestedName}`
+        : `Wartet auf Ersatzteil: ${requestedName}`;
+
+      const { error: ticketError } = await supabase
+        .from("tickets")
+        .update({
+          status: nextTicketStatus,
+          service_status: nextServiceStatus,
+        })
+        .eq("id", ticket.id)
+        .eq("company_id", currentCompany.id);
+
+      if (ticketError) {
+        console.error("Ticketstatus nach Ersatzteilbedarf konnte nicht aktualisiert werden:", ticketError.message);
+      }
+
+      await Promise.all([loadTicketPartRequirements(), loadTickets()]);
+      closeTicketPartRequirement();
+      alert(
+        available
+          ? "Ersatzteilbedarf gespeichert. Das Teil ist bereits verfügbar."
+          : "Ersatzteilbedarf gespeichert. Das Ticket wartet jetzt auf Ersatzteil.",
+      );
+    } finally {
+      setPartRequirementSaving(false);
+    }
+  }
+
+  async function updateTicketPartRequirement(
+    requirement: TicketPartRequirement,
+    patch: Partial<TicketPartRequirement>,
+  ) {
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (!currentCompany?.id || requirement.company_id !== currentCompany.id) {
+      alert("Ersatzteilbedarf gehört nicht zur aktuell angemeldeten Firma.");
+      return false;
+    }
+
+    const { error } = await supabase
+      .from("ticket_part_requirements")
+      .update({
+        ...patch,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", requirement.id)
+      .eq("company_id", currentCompany.id);
+
+    if (error) {
+      alert(`Ersatzteilstatus konnte nicht geändert werden: ${error.message}`);
+      return false;
+    }
+
+    await loadTicketPartRequirements();
+    return true;
+  }
+
+  async function assignPartToRequirement(requirement: TicketPartRequirement, part: SparePart) {
+    if (part.company_id !== requirement.company_id) {
+      alert("Ersatzteil und Ticket gehören nicht zur selben Firma.");
+      return;
+    }
+
+    const available = Number(part.stock || 0) >= Number(requirement.quantity || 0);
+    const ok = await updateTicketPartRequirement(requirement, {
+      spare_part_id: part.id,
+      supplier_id: part.supplier_id || requirement.supplier_id || null,
+      requested_name: part.name,
+      unit: part.unit || requirement.unit || "Stück",
+      status: available ? "available" : requirement.status === "ordered" ? "ordered" : "needed",
+      available_at: available ? new Date().toISOString() : null,
+    });
+
+    if (!ok) return;
+
+    if (available) {
+      const currentCompany = await resolveActiveCompanyForOperation();
+      if (currentCompany?.id) {
+        await supabase
+          .from("tickets")
+          .update({
+            status: "Ersatzteil verfügbar",
+            service_status: `Ersatzteil verfügbar: ${part.name}`,
+          })
+          .eq("id", requirement.ticket_id)
+          .eq("company_id", currentCompany.id);
+        await loadTickets();
+      }
+    }
+  }
+
+  async function markRequirementOrdered(requirement: TicketPartRequirement) {
+    const ok = await updateTicketPartRequirement(requirement, {
+      status: "ordered",
+      ordered_at: new Date().toISOString(),
+    });
+
+    if (!ok) return;
+
+    const supplier = requirement.supplier_id
+      ? suppliers.find((item) => item.id === requirement.supplier_id) || null
+      : null;
+
+    const orderUrl = supplier?.parts_url || supplier?.website || null;
+    if (orderUrl && typeof window !== "undefined") {
+      const openOrderPage = window.confirm(
+        `Als bestellt markiert. Bestellseite von ${supplier?.name || "Lieferant"} jetzt öffnen?`,
+      );
+      if (openOrderPage) window.open(orderUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
+  async function markRequirementAvailable(requirement: TicketPartRequirement) {
+    const part = getTicketPartRequirementPart(requirement);
+    if (!part || Number(part.stock || 0) < Number(requirement.quantity || 0)) {
+      alert("Der aktuelle Lagerbestand reicht für diese Position noch nicht aus.");
+      return;
+    }
+
+    const ok = await updateTicketPartRequirement(requirement, {
+      status: "available",
+      available_at: new Date().toISOString(),
+    });
+
+    if (!ok) return;
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (currentCompany?.id) {
+      await supabase
+        .from("tickets")
+        .update({
+          status: "Ersatzteil verfügbar",
+          service_status: `Ersatzteil verfügbar: ${requirement.requested_name}`,
+        })
+        .eq("id", requirement.ticket_id)
+        .eq("company_id", currentCompany.id);
+      await loadTickets();
+    }
+  }
+
+  async function installTicketPartRequirement(requirement: TicketPartRequirement) {
+    const part = getTicketPartRequirementPart(requirement);
+    if (!part) {
+      alert("Bitte zuerst ein Ersatzteil aus dem Lager zuweisen.");
+      return;
+    }
+
+    const quantity = Number(requirement.quantity || 0);
+    if (quantity <= 0 || Number(part.stock || 0) < quantity) {
+      alert("Für den Einbau ist nicht genügend Lagerbestand vorhanden.");
+      return;
+    }
+
+    if (!confirm(`${quantity} ${part.unit || "Stück"} ${part.name} jetzt als eingebaut buchen?`)) {
+      return;
+    }
+
+    const usageResult = await supabase.from("part_usages").insert([
+      {
+        part_id: part.id,
+        company_id: requirement.company_id,
+        ticket_id: requirement.ticket_id,
+        device_id: null,
+        quantity,
+        note: `Ticket-Ersatzteilbedarf #${requirement.id}${requirement.note ? ` · ${requirement.note}` : ""}`,
+        used_by: userProfile?.id || null,
+      },
+    ]);
+
+    if (usageResult.error) {
+      alert(`Einbau konnte nicht gebucht werden: ${usageResult.error.message}`);
+      return;
+    }
+
+    const stockUpdate = await supabase
+      .from("spare_parts")
+      .update({ stock: Math.max(0, Number(part.stock || 0) - quantity) })
+      .eq("id", part.id)
+      .eq("company_id", requirement.company_id);
+
+    if (stockUpdate.error) {
+      alert(`Bestand konnte nach dem Einbau nicht aktualisiert werden: ${stockUpdate.error.message}`);
+      return;
+    }
+
+    await updateTicketPartRequirement(requirement, {
+      status: requirement.delivery_number ? "delivery_created" : "installed",
+      installed_at: new Date().toISOString(),
+    });
+
+    const currentCompany = await resolveActiveCompanyForOperation();
+    if (currentCompany?.id) {
+      await supabase
+        .from("tickets")
+        .update({
+          service_status: `Ersatzteil eingebaut: ${part.name}`,
+        })
+        .eq("id", requirement.ticket_id)
+        .eq("company_id", currentCompany.id);
+    }
+
+    await Promise.all([loadServiceParts(), loadPartUsages(), loadTickets(), loadTicketPartRequirements()]);
+  }
+
+  function invoiceLineItemsToStockLines(invoiceId: number): StockDocumentLine[] {
+    return invoiceLineItems
+      .filter((item) => item.invoice_id === invoiceId)
+      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+      .map((item) => ({
+        key: `invoice-line-${item.id}`,
+        itemType:
+          item.line_type === "spare_part"
+            ? "spare_part"
+            : item.line_type === "device"
+              ? "device_model"
+              : "manual",
+        itemId: String(item.spare_part_id || item.device_model_id || ""),
+        quantity: String(item.quantity || 1),
+        unitPrice: String(item.unit_price || 0),
+        description: item.description || "",
+        unit: item.unit || undefined,
+        lineType:
+          ["travel", "labor", "installation", "service", "other"].includes(item.line_type)
+            ? (item.line_type as StockDocumentLine["lineType"])
+            : item.line_type === "manual"
+              ? "other"
+              : null,
+        ticketPartRequirementId: item.ticket_part_requirement_id || null,
+      }));
+  }
+
+  function prepareInvoiceFromTicketWorkflow(ticket: Ticket) {
+    const relatedCustomer = getCustomerForTicket(ticket);
+    const requirements = getTicketPartRequirements(ticket.id).filter(
+      (item) => !["cancelled", "invoiced"].includes(item.status),
+    );
+
+    const partLines: StockDocumentLine[] = requirements
+      .filter((item) => item.spare_part_id && ["installed", "delivery_created"].includes(getTicketPartRequirementStatus(item)))
+      .map((item) => {
+        const part = getTicketPartRequirementPart(item);
+        return {
+          key: `requirement-${item.id}`,
+          itemType: "spare_part",
+          itemId: String(item.spare_part_id || ""),
+          quantity: String(item.quantity || 1),
+          unitPrice: "",
+          description: item.requested_name,
+          ticketPartRequirementId: item.id,
+        };
+      });
+
+    setInvoiceType("Rechnung");
+    setInvoiceTicketId(String(ticket.id));
+    setInvoiceCustomerId(relatedCustomer?.id ? String(relatedCustomer.id) : "");
+    setInvoiceCustomerSearch(relatedCustomer ? getCustomerLabel(relatedCustomer) : "");
+    const deliveryRequirement = requirements.find((item) => item.delivery_number) || null;
+    const deliveryDocument = deliveryRequirement
+      ? documents.find(
+          (doc) =>
+            doc.ticket_id === ticket.id &&
+            doc.category === "Lieferscheine" &&
+            doc.file_name.includes(deliveryRequirement.delivery_number || ""),
+        ) || null
+      : null;
+
+    setInvoiceSourceType(deliveryRequirement ? "Lieferschein" : "Serviceeinsatz");
+    setInvoiceSourceNumber(deliveryRequirement?.delivery_number || ticket.ticket_number || "");
+    setInvoiceSourceDocumentId(deliveryDocument?.id || null);
+    setInvoiceSourceInvoiceId(null);
+    setInvoiceTitle(`${ticket.issue || "Serviceeinsatz"}${ticket.device ? ` · ${ticket.device}` : ""}`);
+    setInvoiceAmountNet("");
+    setInvoiceTaxRate("19");
+    setInvoicePriceMode(getDefaultBusinessPriceMode(relatedCustomer));
+    setInvoiceStatus("Entwurf");
+    setInvoiceDirectStockIssue(false);
+    setInvoiceStockLines([
+      createManualInvoiceLine("travel"),
+      createManualInvoiceLine("labor"),
+      ...partLines,
+    ]);
+    setInvoiceTechnicianSignature("");
+    setInvoiceCustomerSignature("");
+    setInvoiceNote(
+      `Abrechnung zu ${ticket.ticket_number}. Bitte Anfahrt, Arbeitszeit, Installation, Geräte und Materialpreise prüfen.`,
+    );
+
+    openAccountingWorkspace("Rechnungen & Angebote");
+
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document
+          .getElementById("invoice-create")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    }
   }
 
   async function createCommercialDocument() {
@@ -16434,7 +17051,27 @@ ${tenantBrandName}`,
         return;
       }
 
-      await loadDocuments();
+      if (commercialDocumentType === "Lieferschein" && selectedTicket) {
+        const sparePartIds = commercialDocumentLines
+          .filter((line) => line.itemType === "spare_part" && Number(line.itemId) > 0)
+          .map((line) => Number(line.itemId));
+
+        if (sparePartIds.length > 0) {
+          await supabase
+            .from("ticket_part_requirements")
+            .update({
+              status: "delivery_created",
+              delivery_number: number,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("company_id", documentCompanyId)
+            .eq("ticket_id", selectedTicket.id)
+            .in("spare_part_id", sparePartIds)
+            .in("status", ["needed", "ordered", "available", "installed", "delivery_created"]);
+        }
+      }
+
+      await Promise.all([loadDocuments(), loadTicketPartRequirements()]);
       setActiveDocumentCategory(category);
       setDocumentQuickFilter("Alle");
       setDocumentPage(1);
@@ -16642,7 +17279,37 @@ ${tenantBrandName}`,
       return;
     }
 
-    if (invoiceType === "Rechnung" && invoiceDirectStockIssue && invoiceStockLines.length > 0 && data) {
+    if (invoiceStockLines.length > 0 && data) {
+      const lineRows = invoiceStockLines.map((line, index) => ({
+        company_id: currentCompany.id,
+        invoice_id: (data as InvoiceItem).id,
+        line_type:
+          line.itemType === "manual"
+            ? line.lineType || "other"
+            : line.itemType === "spare_part"
+              ? "spare_part"
+              : "device",
+        description: line.description.trim() || getStockLineLabel(line),
+        quantity: Number(String(line.quantity).replace(",", ".")) || 1,
+        unit: getStockLineUnit(line),
+        unit_price: Number(String(line.unitPrice || "0").replace(",", ".")) || 0,
+        tax_rate: tax,
+        spare_part_id: line.itemType === "spare_part" ? Number(line.itemId) || null : null,
+        device_model_id: line.itemType === "device_model" ? Number(line.itemId) || null : null,
+        ticket_part_requirement_id: line.ticketPartRequirementId || null,
+        sort_order: index + 1,
+      }));
+
+      const { error: lineError } = await supabase.from("invoice_line_items").insert(lineRows);
+
+      if (lineError) {
+        await supabase.from("invoices").delete().eq("id", (data as InvoiceItem).id);
+        alert(`Rechnung wurde nicht gespeichert, weil die Positionen nicht gespeichert werden konnten: ${lineError.message}`);
+        return;
+      }
+    }
+
+    if (invoiceType === "Rechnung" && invoiceDirectStockIssue && invoiceStockLines.some((line) => line.itemType !== "manual") && data) {
       const inventoryResult = await postInventoryDocument(
         "Rechnung",
         String((data as InvoiceItem).number),
@@ -16652,6 +17319,7 @@ ${tenantBrandName}`,
         invoiceStockLines,
       );
       if (!inventoryResult.ok) {
+        await supabase.from("invoice_line_items").delete().eq("invoice_id", (data as InvoiceItem).id);
         await supabase.from("invoices").delete().eq("id", (data as InvoiceItem).id);
         alert(`Rechnung wurde nicht gespeichert, weil die Lagerbuchung fehlgeschlagen ist: ${inventoryResult.error}`);
         return;
@@ -16682,8 +17350,26 @@ ${tenantBrandName}`,
       }
     }
 
+    if (savedType === "Rechnung" && data) {
+      const linkedRequirementIds = invoiceStockLines
+        .map((line) => line.ticketPartRequirementId)
+        .filter((value): value is number => Number.isFinite(Number(value)) && Number(value) > 0);
+
+      if (linkedRequirementIds.length > 0) {
+        await supabase
+          .from("ticket_part_requirements")
+          .update({
+            status: "invoiced",
+            invoice_id: (data as InvoiceItem).id,
+            updated_at: new Date().toISOString(),
+          })
+          .in("id", linkedRequirementIds)
+          .eq("company_id", currentCompany.id);
+      }
+    }
+
     resetInvoiceForm();
-    await loadInvoices();
+    await Promise.all([loadInvoices(), loadInvoiceLineItems(), loadTicketPartRequirements()]);
     alert(signed ? `${savedType} wurde gespeichert und die signierte PDF-Fassung unter Dokumente → ${savedType === "Angebot" ? "Angebote" : "Rechnungen"} archiviert.` : `${savedType} wurde gespeichert.`);
   }
 
@@ -16725,6 +17411,27 @@ ${tenantBrandName}`,
           : item,
       ),
     );
+
+    if (nextStatus === "Bezahlt" && currentInvoice?.ticket_id && isAdmin) {
+      const relatedTicket = tickets.find((ticket) => ticket.id === currentInvoice.ticket_id) || null;
+
+      if (
+        relatedTicket &&
+        !["Erledigt", "Storniert"].includes(relatedTicket.status || "") &&
+        window.confirm(`Zahlung für ${currentInvoice.number} ist eingegangen. Ticket ${relatedTicket.ticket_number} jetzt auf „Erledigt“ setzen?`)
+      ) {
+        await supabase
+          .from("tickets")
+          .update({
+            status: "Erledigt",
+            service_status: "Rechnung bezahlt · Vorgang erledigt",
+          })
+          .eq("id", relatedTicket.id)
+          .eq("company_id", currentCompany.id);
+
+        await loadTickets();
+      }
+    }
   }
 
   async function deleteInvoice(invoiceId: number) {
@@ -16904,7 +17611,7 @@ ${tenantBrandName}`,
       );
 
       if (!storageTarget) {
-        return false;
+        return null;
       }
 
       const documentCompanyId = storageTarget.companyId;
@@ -16919,32 +17626,36 @@ ${tenantBrandName}`,
 
       if (uploadResult.error) {
         console.error(uploadResult.error.message);
-        return false;
+        return null;
       }
 
-      const documentInsert = await supabase.from("documents").insert([
-        {
-          company_id: documentCompanyId,
-          file_name: fileName,
-          file_path: filePath,
-          category,
-          file_size: pdfBlob.size,
-          ticket_id: item.ticket_id || null,
-          customer_id: item.customer_id || null,
-        },
-      ]);
+      const documentInsert = await supabase
+        .from("documents")
+        .insert([
+          {
+            company_id: documentCompanyId,
+            file_name: fileName,
+            file_path: filePath,
+            category,
+            file_size: pdfBlob.size,
+            ticket_id: item.ticket_id || null,
+            customer_id: item.customer_id || null,
+          },
+        ])
+        .select("*")
+        .single();
 
       if (documentInsert.error) {
         await supabase.storage.from("documents").remove([filePath]);
         console.error(documentInsert.error.message);
-        return false;
+        return null;
       }
 
       await loadDocuments();
-      return true;
+      return documentInsert.data as DocumentItem;
     } catch (error) {
       console.error(error);
-      return false;
+      return null;
     }
   }
 
@@ -16968,6 +17679,253 @@ ${tenantBrandName}`,
     } catch (error: any) {
       alert(`${item.type} konnte nicht als PDF erzeugt werden: ${error?.message || "unbekannter Fehler"}`);
     }
+  }
+
+  async function sendInvoiceToCustomer(item: InvoiceItem) {
+    if (!isAdmin) {
+      alert("Nur Administratoren können Rechnungen direkt an Kunden senden.");
+      return;
+    }
+
+    const relatedTicket = item.ticket_id
+      ? tickets.find((ticket) => ticket.id === item.ticket_id) || null
+      : null;
+    const relatedCustomer = item.customer_id
+      ? customers.find((customer) => customer.id === item.customer_id) || null
+      : relatedTicket
+        ? getCustomerForTicket(relatedTicket)
+        : null;
+
+    const recipient =
+      relatedCustomer?.email ||
+      relatedCustomer?.contact_1_email ||
+      relatedCustomer?.email_2 ||
+      "";
+
+    if (!recipient) {
+      alert("Beim Kunden ist keine E-Mail-Adresse hinterlegt.");
+      return;
+    }
+
+    try {
+      const pdfBlob = await createInvoicePdfBlob(item);
+      const archivedDocument = await archiveInvoiceDocument(item, pdfBlob);
+
+      if (!archivedDocument?.file_path) {
+        alert("Die Rechnung konnte vor dem Versand nicht sicher archiviert werden.");
+        return;
+      }
+
+      const signed = await supabase.storage
+        .from("documents")
+        .createSignedUrl(archivedDocument.file_path, 60 * 60 * 24 * 14);
+
+      if (signed.error || !signed.data?.signedUrl) {
+        alert(`Sicherer Rechnungslink konnte nicht erstellt werden: ${signed.error?.message || "unbekannter Fehler"}`);
+        return;
+      }
+
+      const customerName = relatedCustomer ? getCustomerLabel(relatedCustomer) : "Kunde";
+      const subject = `${item.type} ${item.number} · ${companyData?.name || "TRYBUN"}`;
+      const message = [
+        `Guten Tag ${customerName},`,
+        "",
+        `anbei erhalten Sie ${item.type === "Rechnung" ? "Ihre Rechnung" : "Ihr Angebot"} ${item.number}.`,
+        `Bruttobetrag: ${Number(item.amount_gross || 0).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`,
+        item.due_date ? `Fällig am: ${formatServiceDate(item.due_date)}` : "",
+        "",
+        "Der PDF-Beleg kann über den sicheren Link geöffnet werden. Der Link ist 14 Tage gültig.",
+      ].filter(Boolean).join("\n");
+
+      const notificationInsert = await supabase
+        .from("notifications")
+        .insert([
+          {
+            company_id: item.company_id || companyData?.id || null,
+            type: "Rechnung an Kunde",
+            recipient,
+            subject,
+            message,
+            related_ticket_id: item.ticket_id || null,
+            status: "Geplant",
+            email_status: "queued",
+            email_template: "Rechnung Kunde",
+            email_error: null,
+          },
+        ])
+        .select("*")
+        .single();
+
+      const { data, error } = await supabase.functions.invoke("resend-email", {
+        body: {
+          to: recipient,
+          subject,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#0f172a">
+              <div style="border:1px solid #e2e8f0;border-radius:18px;padding:24px;background:#ffffff">
+                <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0284c7;font-weight:700">
+                  ${companyData?.name || "TRYBUN"} · ${item.type}
+                </p>
+                <h1 style="margin:0 0 16px;font-size:24px">${item.type} ${item.number}</h1>
+                <p style="font-size:15px;line-height:1.6;color:#334155">
+                  Guten Tag ${customerName},<br/><br/>
+                  hier erhalten Sie ${item.type === "Rechnung" ? "Ihre Rechnung" : "Ihr Angebot"}.
+                </p>
+                <div style="margin:18px 0;padding:14px;border-radius:12px;background:#f8fafc">
+                  <strong>Bruttobetrag:</strong> ${Number(item.amount_gross || 0).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €<br/>
+                  ${item.due_date ? `<strong>Fällig:</strong> ${formatServiceDate(item.due_date)}<br/>` : ""}
+                </div>
+                <a href="${signed.data.signedUrl}" style="display:inline-block;padding:14px 20px;border-radius:12px;background:#0284c7;color:#ffffff;text-decoration:none;font-weight:700">
+                  PDF öffnen
+                </a>
+                <p style="margin-top:18px;font-size:12px;color:#64748b">Der sichere PDF-Link ist 14 Tage gültig.</p>
+              </div>
+            </div>
+          `,
+        },
+      });
+
+      const mailAccepted = !error && Boolean(data?.id || data?.success);
+
+      if (notificationInsert.data?.id) {
+        await supabase
+          .from("notifications")
+          .update({
+            email_status: mailAccepted ? "sent" : "failed",
+            status: mailAccepted ? "Gesendet" : "Fehler",
+            email_sent_at: mailAccepted ? new Date().toISOString() : null,
+            email_provider_id: data?.id || data?.message_id || null,
+            email_error: error?.message || (mailAccepted ? null : "Keine Versandbestätigung erhalten"),
+            email_last_attempt_at: new Date().toISOString(),
+          })
+          .eq("id", notificationInsert.data.id);
+      }
+
+      if (!mailAccepted) {
+        alert(`Rechnung wurde archiviert, aber die E-Mail konnte nicht gesendet werden: ${error?.message || "Versand nicht bestätigt"}`);
+        await loadNotifications();
+        return;
+      }
+
+      await updateInvoiceStatus(item.id, "Gesendet");
+      await loadNotifications();
+      alert(`${item.type} ${item.number} wurde an ${recipient} gesendet.`);
+    } catch (error: any) {
+      alert(`Versand fehlgeschlagen: ${error?.message || "unbekannter Fehler"}`);
+    }
+  }
+
+  async function sendArchivedBusinessDocumentToCustomer(
+    documentItem: DocumentItem,
+    ticket: Ticket,
+    label: "Auftrag" | "Lieferschein",
+  ) {
+    if (!isAdmin) {
+      alert("Nur Administratoren können kaufmännische Dokumente direkt an Kunden senden.");
+      return;
+    }
+
+    const customer = getCustomerForTicket(ticket);
+    const recipient =
+      customer?.email ||
+      customer?.contact_1_email ||
+      customer?.email_2 ||
+      "";
+
+    if (!customer || !recipient) {
+      alert("Beim Kunden ist keine E-Mail-Adresse hinterlegt.");
+      return;
+    }
+
+    const signed = await supabase.storage
+      .from("documents")
+      .createSignedUrl(documentItem.file_path, 60 * 60 * 24 * 14);
+
+    if (signed.error || !signed.data?.signedUrl) {
+      alert(`Sicherer Dokumentlink konnte nicht erstellt werden: ${signed.error?.message || "unbekannter Fehler"}`);
+      return;
+    }
+
+    const subject = `${label} · ${ticket.ticket_number} · ${companyData?.name || "TRYBUN"}`;
+    const message = `${label} zu ${ticket.ticket_number} wurde an ${recipient} gesendet.`;
+
+    const notificationInsert = await supabase
+      .from("notifications")
+      .insert([
+        {
+          company_id: ticket.company_id || companyData?.id || null,
+          type: `${label} an Kunde`,
+          recipient,
+          subject,
+          message,
+          related_ticket_id: ticket.id,
+          status: "Geplant",
+          email_status: "queued",
+          email_template: `${label} Kunde`,
+          email_error: null,
+        },
+      ])
+      .select("*")
+      .single();
+
+    const { data, error } = await supabase.functions.invoke("resend-email", {
+      body: {
+        to: recipient,
+        subject,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#0f172a">
+            <div style="border:1px solid #e2e8f0;border-radius:18px;padding:24px;background:#ffffff">
+              <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0284c7;font-weight:700">
+                ${companyData?.name || "TRYBUN"} · ${label}
+              </p>
+              <h1 style="margin:0 0 16px;font-size:24px">${label} zu ${ticket.ticket_number}</h1>
+              <p style="font-size:15px;line-height:1.6;color:#334155">
+                Guten Tag ${getCustomerLabel(customer)},<br/><br/>
+                hier erhalten Sie Ihren ${label.toLowerCase()} zu Ihrem Servicevorgang.
+              </p>
+              <a href="${signed.data.signedUrl}" style="display:inline-block;padding:14px 20px;border-radius:12px;background:#0284c7;color:#ffffff;text-decoration:none;font-weight:700">
+                PDF öffnen
+              </a>
+              <p style="margin-top:18px;font-size:12px;color:#64748b">Der sichere PDF-Link ist 14 Tage gültig.</p>
+            </div>
+          </div>
+        `,
+      },
+    });
+
+    const mailAccepted = !error && Boolean(data?.id || data?.success);
+
+    if (notificationInsert.data?.id) {
+      await supabase
+        .from("notifications")
+        .update({
+          email_status: mailAccepted ? "sent" : "failed",
+          status: mailAccepted ? "Gesendet" : "Fehler",
+          email_sent_at: mailAccepted ? new Date().toISOString() : null,
+          email_provider_id: data?.id || data?.message_id || null,
+          email_error: error?.message || (mailAccepted ? null : "Keine Versandbestätigung erhalten"),
+          email_last_attempt_at: new Date().toISOString(),
+        })
+        .eq("id", notificationInsert.data.id);
+    }
+
+    await loadNotifications();
+
+    if (!mailAccepted) {
+      alert(`${label} konnte nicht gesendet werden: ${error?.message || "Versand nicht bestätigt"}`);
+      return;
+    }
+
+    alert(`${label} wurde an ${recipient} gesendet.`);
+  }
+
+  function ticketCustomerReceivedDocument(ticketId: number, label: "Auftrag" | "Lieferschein") {
+    return notifications.some(
+      (item) =>
+        item.related_ticket_id === ticketId &&
+        item.type === `${label} an Kunde` &&
+        String(item.email_status || "").toLowerCase() === "sent",
+    );
   }
 
   const dueMaintenancePlans = maintenancePlans.filter((plan) => {
@@ -25509,6 +26467,93 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           {customerPortalDocuments.length} Kunden-Upload(s) · {fotoDocuments.length} Foto(s) · {videoDocuments.length} Video(s) · {lieferscheinDocuments.length} Lieferschein(e)
                         </p>
                       </div>
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Kaufmännischer Verlauf</p>
+                        <div className="mt-3 space-y-2 text-sm">
+                          {(() => {
+                            const orderDoc = contextDocuments.find((doc) => doc.category === "Aufträge") || null;
+                            const deliveryDoc = contextDocuments.find((doc) => doc.category === "Lieferscheine") || null;
+                            const invoice = invoices.find(
+                              (item) =>
+                                item.ticket_id === currentTicket.id &&
+                                item.type === "Rechnung" &&
+                                item.status !== "Storniert",
+                            ) || null;
+                            const orderSent = ticketCustomerReceivedDocument(currentTicket.id, "Auftrag");
+                            const deliverySent = ticketCustomerReceivedDocument(currentTicket.id, "Lieferschein");
+
+                            return (
+                              <>
+                                <div className="rounded-xl bg-white p-3">
+                                  <p className="font-black text-slate-800">
+                                    {orderDoc ? "✓ Auftrag erstellt" : "○ Auftrag noch nicht erstellt"}
+                                  </p>
+                                  <p className={`mt-1 text-xs font-bold ${orderSent ? "text-emerald-700" : "text-slate-500"}`}>
+                                    {orderSent ? "✓ Kunde erhielt Auftrag" : "Noch nicht als gesendet bestätigt"}
+                                  </p>
+                                  {isAdmin && orderDoc && !orderSent && (
+                                    <button
+                                      type="button"
+                                      onClick={() => sendArchivedBusinessDocumentToCustomer(orderDoc, currentTicket, "Auftrag")}
+                                      className="mt-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white"
+                                    >
+                                      Auftrag an Kunde senden
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="rounded-xl bg-white p-3">
+                                  <p className="font-black text-slate-800">
+                                    {deliveryDoc ? "✓ Lieferschein erstellt" : "○ Lieferschein noch nicht erstellt"}
+                                  </p>
+                                  <p className={`mt-1 text-xs font-bold ${deliverySent ? "text-emerald-700" : "text-slate-500"}`}>
+                                    {deliverySent ? "✓ Kunde erhielt Lieferschein" : "Noch nicht als gesendet bestätigt"}
+                                  </p>
+                                  {isAdmin && deliveryDoc && !deliverySent && (
+                                    <button
+                                      type="button"
+                                      onClick={() => sendArchivedBusinessDocumentToCustomer(deliveryDoc, currentTicket, "Lieferschein")}
+                                      className="mt-2 rounded-lg bg-amber-500 px-3 py-2 text-xs font-black text-white"
+                                    >
+                                      Lieferschein an Kunde senden
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="rounded-xl bg-white p-3">
+                                  <p className="font-black text-slate-800">
+                                    {invoice ? `✓ Rechnung ${invoice.number}` : "○ Rechnung noch nicht erstellt"}
+                                  </p>
+                                  <p className={`mt-1 text-xs font-bold ${
+                                    invoice?.status === "Bezahlt"
+                                      ? "text-emerald-700"
+                                      : invoice?.status === "Gesendet"
+                                        ? "text-blue-700"
+                                        : "text-slate-500"
+                                  }`}>
+                                    {invoice?.status === "Bezahlt"
+                                      ? "✓ Bezahlt"
+                                      : invoice?.status === "Gesendet"
+                                        ? "✓ Kunde erhielt Rechnung · Zahlung offen"
+                                        : invoice
+                                          ? `Status: ${invoice.status}`
+                                          : "Abrechnung noch offen"}
+                                  </p>
+                                  {isAdmin && !invoice && (
+                                    <button
+                                      type="button"
+                                      onClick={() => prepareInvoiceFromTicketWorkflow(currentTicket)}
+                                      className="mt-2 rounded-lg bg-sky-600 px-3 py-2 text-xs font-black text-white"
+                                    >
+                                      Rechnung vorbereiten
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </div>
 
                     <div className={`mt-5 rounded-[18px] border p-4 sm:p-5 ${firstTimeFix.status.borderClassName}`}>
@@ -26182,6 +27227,75 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   </div>
                 </div>
               )}
+
+              <div className="rounded-[24px] border border-violet-200 bg-violet-50 p-4 shadow-sm sm:p-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Ticket-Ersatzteilbedarf</p>
+                    <h3 className="mt-1 text-xl font-black text-slate-950">Offene Tickets mit Materialbedarf</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-600">
+                      Zeigt benötigte, bestellte und verfügbare Ersatzteile aus Tickets. Über „Öffnen“ kannst du Lagerteil, Bestellung, Wareneingang und Einbau steuern.
+                    </p>
+                  </div>
+                  <span className="w-fit rounded-full bg-white px-4 py-2 text-sm font-black text-violet-700">
+                    {ticketPartRequirements.filter((item) => !["invoiced", "cancelled"].includes(item.status)).length} offen
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                  {ticketPartRequirements
+                    .filter((item) => !["invoiced", "cancelled"].includes(item.status))
+                    .slice(0, 12)
+                    .map((item) => {
+                      const ticket = tickets.find((ticketItem) => ticketItem.id === item.ticket_id);
+                      const part = getTicketPartRequirementPart(item);
+                      const effectiveStatus = getTicketPartRequirementStatus(item);
+                      return (
+                        <div key={item.id} className="rounded-2xl border border-violet-100 bg-white p-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                              {ticket?.ticket_number || `Ticket ${item.ticket_id}`}
+                            </span>
+                            <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                              effectiveStatus === "available"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : effectiveStatus === "ordered"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : effectiveStatus === "delivery_created"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : effectiveStatus === "installed"
+                                      ? "bg-cyan-100 text-cyan-800"
+                                      : "bg-violet-100 text-violet-800"
+                            }`}>
+                              {getTicketPartRequirementStatusLabel(item)}
+                            </span>
+                          </div>
+                          <h4 className="mt-3 font-black text-slate-950">{item.requested_name}</h4>
+                          <p className="mt-1 text-sm font-semibold text-slate-600">
+                            {item.quantity} {item.unit || part?.unit || "Stück"} · Kunde: {ticket?.customer || getCustomerNameById(item.customer_id || null)}
+                          </p>
+                          <p className="mt-1 text-xs font-bold text-slate-500">
+                            {part
+                              ? `Lagerbestand: ${Number(part.stock || 0)} ${part.unit || "Stück"}`
+                              : "Noch keinem Lagerartikel zugeordnet"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => ticket && openTicketPartRequirement(ticket)}
+                            className="mt-3 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-black text-white"
+                          >
+                            Bedarf öffnen
+                          </button>
+                        </div>
+                      );
+                    })}
+                  {ticketPartRequirements.filter((item) => !["invoiced", "cancelled"].includes(item.status)).length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-violet-200 bg-white p-4 text-sm font-semibold text-slate-500 lg:col-span-2 xl:col-span-3">
+                      Aktuell gibt es keinen offenen Ticket-Ersatzteilbedarf.
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                 <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
@@ -27263,36 +28377,177 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     />
 
                     <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         <div>
-                          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Warenpositionen</p>
-                          <p className="mt-1 text-sm font-semibold text-slate-600">Optional Modelle/Verkaufsgeräte oder Ersatzteile hinzufügen.</p>
+                          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Rechnungspositionen</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-600">
+                            Anfahrt, Arbeitszeit, Installation, Geräteverkauf und Ersatzteile gemeinsam auf einer Rechnung erfassen.
+                          </p>
                         </div>
-                        <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine()])} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">+ Position</button>
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("travel")])} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700">+ Anfahrt</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("labor")])} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700">+ Arbeitszeit</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("installation")])} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700">+ Installation</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine("spare_part")])} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white">+ Ersatzteil</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine("device_model")])} className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-black text-white">+ Gerät</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("other")])} className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-black text-white">+ Sonstiges</button>
+                        </div>
                       </div>
-                      {invoiceStockLines.length > 0 && (
+
+                      {invoiceStockLines.length === 0 ? (
+                        <div className="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold text-slate-500">
+                          Noch keine Position. Füge Anfahrt, Arbeitszeit, Installation, Gerät oder Ersatzteil hinzu.
+                        </div>
+                      ) : (
                         <div className="mt-4 space-y-3">
-                          {invoiceStockLines.map((line) => (
-                            <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
-                              <div className="grid gap-3 lg:grid-cols-[145px_minmax(0,1fr)_100px_130px_auto]">
-                                <select value={line.itemType} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-xl border border-slate-300 px-3 py-3 font-bold"><option value="device_model">Modell / Gerät</option><option value="spare_part">Ersatzteil</option></select>
-                                <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold">
-                                  <option value="">Artikel auswählen</option>
-                                  {line.itemType === "device_model"
-                                    ? deviceModels.filter((item) => item.is_stocked).sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de")).map((item) => <option key={item.id} value={item.id}>{getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}</option>)
-                                    : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
-                                </select>
-                                <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
-                                <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
-                                <button type="button" onClick={() => setInvoiceStockLines(invoiceStockLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
+                          {invoiceStockLines.map((line) => {
+                            const kindValue =
+                              line.itemType === "manual"
+                                ? line.lineType || "service"
+                                : line.itemType;
+
+                            return (
+                              <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
+                                <div className="grid gap-3 xl:grid-cols-[150px_minmax(0,1fr)_95px_110px_135px_auto]">
+                                  <select
+                                    value={kindValue}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (value === "device_model" || value === "spare_part") {
+                                        updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, {
+                                          itemType: value,
+                                          itemId: "",
+                                          unitPrice: "",
+                                          description: "",
+                                          unit: undefined,
+                                          lineType: null,
+                                          ticketPartRequirementId: null,
+                                        });
+                                      } else {
+                                        const manual = createManualInvoiceLine(
+                                          value as "travel" | "labor" | "installation" | "service" | "other",
+                                        );
+                                        updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, {
+                                          itemType: "manual",
+                                          itemId: "",
+                                          description: manual.description,
+                                          unit: manual.unit,
+                                          lineType: manual.lineType,
+                                          unitPrice: line.itemType === "manual" ? line.unitPrice : "",
+                                          ticketPartRequirementId: null,
+                                        });
+                                      }
+                                    }}
+                                    className="rounded-xl border border-slate-300 px-3 py-3 font-bold"
+                                  >
+                                    <option value="travel">Anfahrt</option>
+                                    <option value="labor">Arbeitszeit</option>
+                                    <option value="installation">Installation</option>
+                                    <option value="service">Serviceleistung</option>
+                                    <option value="other">Sonstige Leistung</option>
+                                    <option value="device_model">Gerät / Modell</option>
+                                    <option value="spare_part">Ersatzteil</option>
+                                  </select>
+
+                                  {line.itemType === "manual" ? (
+                                    <input
+                                      value={line.description}
+                                      onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { description: e.target.value })}
+                                      placeholder="Leistungsbeschreibung"
+                                      className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold"
+                                    />
+                                  ) : (
+                                    <select
+                                      value={line.itemId}
+                                      onChange={(e) => {
+                                        const next = { ...line, itemId: e.target.value };
+                                        updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, {
+                                          itemId: e.target.value,
+                                          unitPrice: getDefaultStockLinePrice(next),
+                                          description: getStockLineLabel(next),
+                                        });
+                                      }}
+                                      className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold"
+                                    >
+                                      <option value="">Artikel auswählen</option>
+                                      {line.itemType === "device_model"
+                                        ? deviceModels
+                                            .filter((item) => item.is_stocked)
+                                            .sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de"))
+                                            .map((item) => (
+                                              <option key={item.id} value={item.id}>
+                                                {getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}
+                                              </option>
+                                            ))
+                                        : serviceParts
+                                            .filter((item) => !item.is_archived)
+                                            .sort((a,b) => a.name.localeCompare(b.name, "de"))
+                                            .map((item) => (
+                                              <option key={item.id} value={item.id}>
+                                                {item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}
+                                              </option>
+                                            ))}
+                                    </select>
+                                  )}
+
+                                  <input
+                                    type="number"
+                                    min="0.01"
+                                    step={line.itemType === "manual" ? "0.25" : "1"}
+                                    value={line.quantity}
+                                    onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { quantity: e.target.value })}
+                                    placeholder="Menge"
+                                    className="rounded-xl border border-slate-300 px-3 py-3"
+                                  />
+
+                                  <input
+                                    value={getStockLineUnit(line)}
+                                    onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unit: e.target.value })}
+                                    disabled={line.itemType !== "manual"}
+                                    className="rounded-xl border border-slate-300 px-3 py-3 text-sm disabled:bg-slate-100"
+                                  />
+
+                                  <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={line.unitPrice}
+                                      onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unitPrice: e.target.value })}
+                                      placeholder="Preis"
+                                      className="min-w-0 flex-1 border-0 px-3 py-3 outline-none"
+                                    />
+                                    <span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setInvoiceStockLines(invoiceStockLines.filter((item) => item.key !== line.key))}
+                                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700"
+                                  >
+                                    Entfernen
+                                  </button>
+                                </div>
+
+                                {line.itemType !== "manual" && (
+                                  <p className="mt-2 text-xs font-bold text-slate-500">
+                                    Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}
+                                    {line.ticketPartRequirementId ? " · aus Ticket-Ersatzteilbedarf übernommen" : ""}
+                                  </p>
+                                )}
                               </div>
-                              <p className="mt-2 text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</p>
-                            </div>
-                          ))}
-                          {invoiceType === "Rechnung" && (
+                            );
+                          })}
+
+                          {invoiceType === "Rechnung" && invoiceStockLines.some((line) => line.itemType !== "manual") && (
                             <label className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                               <input type="checkbox" checked={invoiceDirectStockIssue} onChange={(e) => setInvoiceDirectStockIssue(e.target.checked)} className="mt-1 h-5 w-5" />
-                              <span><strong>Direktverkauf – Bestand mit Rechnung ausbuchen</strong><span className="mt-1 block text-sm text-amber-700">Nur aktivieren, wenn für diese Ware kein Lieferschein den Lagerabgang bereits gebucht hat. So wird eine Doppelbuchung verhindert.</span></span>
+                              <span>
+                                <strong>Direktverkauf – Bestand mit Rechnung ausbuchen</strong>
+                                <span className="mt-1 block text-sm text-amber-700">
+                                  Nur aktivieren, wenn für diese Ware kein Lieferschein den Lagerabgang bereits gebucht hat. So wird eine Doppelbuchung verhindert.
+                                </span>
+                              </span>
                             </label>
                           )}
                         </div>
@@ -27430,6 +28685,19 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               <p className="mt-1 text-sm font-bold text-slate-800">
                                 Netto: {item.amount_net.toFixed(2)} € · Brutto: {item.amount_gross.toFixed(2)} €
                               </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {item.source_type && (
+                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
+                                    Quelle: {item.source_type}{item.source_number ? ` · ${item.source_number}` : ""}
+                                  </span>
+                                )}
+                                {item.status === "Gesendet" && (
+                                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">Kunde erhielt Rechnung</span>
+                                )}
+                                {item.status === "Bezahlt" && (
+                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">Bezahlt</span>
+                                )}
+                              </div>
                               {item.note && (
                                 <p className="mt-2 break-words text-sm text-slate-500">
                                   {item.note}
@@ -27458,6 +28726,15 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               >
                                 PDF / Druck
                               </button>
+
+                              {isAdmin && item.type === "Rechnung" && item.status !== "Storniert" && (
+                                <button
+                                  onClick={() => sendInvoiceToCustomer(item)}
+                                  className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
+                                >
+                                  Rechnung an Kunde senden
+                                </button>
+                              )}
 
 {isAdmin && (
                               <button
@@ -35861,6 +37138,26 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                     {getCustomerAppointmentResponseState(ticket)?.label}
                                   </span>
                                 )}
+                                {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "available") && (
+                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+                                    ✓ Ersatzteil verfügbar
+                                  </span>
+                                )}
+                                {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "ordered") && (
+                                  <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-800">
+                                    Ersatzteil bestellt
+                                  </span>
+                                )}
+                                {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "delivery_created") && (
+                                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
+                                    Lieferschein erstellt
+                                  </span>
+                                )}
+                                {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "invoiced") && (
+                                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">
+                                    In Rechnung gestellt
+                                  </span>
+                                )}
                               </div>
 
                               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -36106,6 +37403,15 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   className="w-full rounded-2xl bg-sky-100 px-3 py-3 text-center text-xs font-bold text-sky-600 md:text-sm"
                                 >
                                   Bearbeiten
+                                </button>
+                              )}
+
+                              {!isCustomer && (
+                                <button
+                                  onClick={() => openTicketPartRequirement(ticket)}
+                                  className="w-full rounded-2xl bg-violet-100 px-3 py-3 text-center text-xs font-black text-violet-700 md:text-sm"
+                                >
+                                  Ersatzteilbedarf
                                 </button>
                               )}
 
@@ -36804,6 +38110,53 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   {part.note}
                                 </p>
                               )}
+
+                              {ticketPartRequirements.filter((item) =>
+                                !["invoiced", "cancelled", "installed", "delivery_created"].includes(getTicketPartRequirementStatus(item)) &&
+                                (
+                                  item.spare_part_id === part.id ||
+                                  normalizeCompareText(item.requested_name) === normalizeCompareText(part.name)
+                                ),
+                              ).length > 0 && (
+                                <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3">
+                                  <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-700">
+                                    Passende offene Tickets
+                                  </p>
+                                  <div className="mt-2 space-y-2">
+                                    {ticketPartRequirements
+                                      .filter((item) =>
+                                        !["invoiced", "cancelled", "installed", "delivery_created"].includes(getTicketPartRequirementStatus(item)) &&
+                                        (
+                                          item.spare_part_id === part.id ||
+                                          normalizeCompareText(item.requested_name) === normalizeCompareText(part.name)
+                                        ),
+                                      )
+                                      .slice(0, 6)
+                                      .map((item) => {
+                                        const ticket = tickets.find((ticketItem) => ticketItem.id === item.ticket_id);
+                                        return (
+                                          <div key={item.id} className="flex flex-col gap-2 rounded-lg bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0">
+                                              <p className="truncate text-xs font-black text-slate-800">
+                                                {ticket?.ticket_number || `Ticket ${item.ticket_id}`} · {ticket?.customer || "Kunde"}
+                                              </p>
+                                              <p className="text-xs font-semibold text-slate-500">
+                                                Bedarf: {item.quantity} {item.unit || part.unit || "Stück"}
+                                              </p>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => assignPartToRequirement(item, part)}
+                                              className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-black text-white"
+                                            >
+                                              Ticket zuweisen
+                                            </button>
+                                          </div>
+                                        );
+                                      })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -37002,6 +38355,346 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
         </section>
       </div>
 
+
+      {(isAdmin || isTechnician) && partRequirementTicketId != null && (() => {
+        const requirementTicket = tickets.find((item) => item.id === partRequirementTicketId) || null;
+        if (!requirementTicket) return null;
+
+        const requirements = getTicketPartRequirements(requirementTicket.id);
+        const selectedRequirementPart = partRequirementPartId
+          ? serviceParts.find((item) => item.id === Number(partRequirementPartId)) || null
+          : null;
+
+        return (
+          <div className="fixed inset-0 z-[125] flex items-start justify-center overflow-y-auto bg-slate-950/75 p-3 sm:p-6">
+            <div className="my-4 w-full max-w-6xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">
+                    Ersatzteilworkflow
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black text-slate-950">
+                    {requirementTicket.ticket_number} · Ersatzteilbedarf
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                    Bedarf erfassen, Lagerteil zuweisen, Bestellung verfolgen, Einbau buchen und Abrechnung vorbereiten.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeTicketPartRequirement}
+                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700"
+                >
+                  Schließen
+                </button>
+              </div>
+
+              <div className="p-5 sm:p-6">
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ticket</p>
+                    <p className="mt-2 font-black text-slate-950">{requirementTicket.issue || "Serviceeinsatz"}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-600">Kunde: {requirementTicket.customer}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-600">Status: {requirementTicket.status}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Termin</p>
+                    <p className="mt-2 font-black text-slate-950">
+                      {requirementTicket.service_date
+                        ? formatServiceAppointment(requirementTicket.service_date, requirementTicket.service_time)
+                        : "Noch nicht geplant"}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-600">
+                      Techniker: {getTechnicianNameById(requirementTicket.assigned_to) || "nicht zugewiesen"}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Abrechnung</p>
+                    <p className="mt-2 font-black text-slate-950">
+                      {invoices.some((item) => item.ticket_id === requirementTicket.id && item.type === "Rechnung" && item.status !== "Storniert")
+                        ? "Rechnung vorhanden"
+                        : "Noch keine Rechnung"}
+                    </p>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => prepareInvoiceFromTicketWorkflow(requirementTicket)}
+                        className="mt-3 rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
+                      >
+                        Rechnung vorbereiten
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-[24px] border border-violet-200 bg-violet-50 p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Neuer Bedarf</p>
+                      <h3 className="mt-1 text-lg font-black text-slate-950">Ersatzteil zum Ticket hinzufügen</h3>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">Vorhandenes Lagerteil optional</label>
+                      <select
+                        value={partRequirementPartId}
+                        onChange={(e) => {
+                          const partId = e.target.value;
+                          setPartRequirementPartId(partId);
+                          const part = serviceParts.find((item) => item.id === Number(partId)) || null;
+                          if (part) {
+                            setPartRequirementName(part.name);
+                            setPartRequirementSupplierId(part.supplier_id ? String(part.supplier_id) : "");
+                          }
+                        }}
+                        className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-bold"
+                      >
+                        <option value="">Noch nicht im Lager / freie Bezeichnung</option>
+                        {serviceParts
+                          .filter((item) => !item.is_archived)
+                          .sort((a, b) => a.name.localeCompare(b.name, "de"))
+                          .map((part) => (
+                            <option key={part.id} value={part.id}>
+                              {part.name}{part.sku ? ` · ${part.sku}` : ""} · Bestand {Number(part.stock || 0)}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">Benötigtes Ersatzteil</label>
+                      <input
+                        value={partRequirementName}
+                        onChange={(e) => setPartRequirementName(e.target.value)}
+                        disabled={Boolean(selectedRequirementPart)}
+                        placeholder="z. B. Umwälzpumpe Typ XYZ"
+                        className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm disabled:bg-slate-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">Menge</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="1"
+                        value={partRequirementQuantity}
+                        onChange={(e) => setPartRequirementQuantity(e.target.value)}
+                        className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">Lieferant optional</label>
+                      <select
+                        value={partRequirementSupplierId}
+                        onChange={(e) => setPartRequirementSupplierId(e.target.value)}
+                        className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                      >
+                        <option value="">Kein Lieferant zugeordnet</option>
+                        {suppliers.map((supplier) => (
+                          <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">Erwartet am optional</label>
+                      <input
+                        type="date"
+                        value={partRequirementExpectedDate}
+                        onChange={(e) => setPartRequirementExpectedDate(e.target.value)}
+                        className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">Hinweis</label>
+                      <input
+                        value={partRequirementNote}
+                        onChange={(e) => setPartRequirementNote(e.target.value)}
+                        placeholder="z. B. defekte Pumpe vor Ort festgestellt"
+                        className="w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {selectedRequirementPart && (
+                    <div className={`mt-3 rounded-xl p-3 text-sm font-black ${
+                      Number(selectedRequirementPart.stock || 0) >= Number(partRequirementQuantity || 0)
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-900"
+                    }`}>
+                      Lagerbestand: {Number(selectedRequirementPart.stock || 0)} {selectedRequirementPart.unit || "Stück"} ·{" "}
+                      {Number(selectedRequirementPart.stock || 0) >= Number(partRequirementQuantity || 0)
+                        ? "sofort verfügbar"
+                        : "Bestellung / Wareneingang erforderlich"}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={partRequirementSaving}
+                    onClick={saveTicketPartRequirement}
+                    className="mt-4 rounded-xl bg-violet-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+                  >
+                    {partRequirementSaving ? "Speichert …" : "Ersatzteilbedarf speichern"}
+                  </button>
+                </div>
+
+                <div className="mt-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Workflow</p>
+                      <h3 className="mt-1 text-xl font-black text-slate-950">Ersatzteile zu diesem Ticket</h3>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">{requirements.length}</span>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {requirements.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm font-semibold text-slate-500">
+                        Noch kein Ersatzteilbedarf zu diesem Ticket erfasst.
+                      </div>
+                    ) : (
+                      requirements.map((requirement) => {
+                        const part = getTicketPartRequirementPart(requirement);
+                        const effectiveStatus = getTicketPartRequirementStatus(requirement);
+                        const supplier = requirement.supplier_id
+                          ? suppliers.find((item) => item.id === requirement.supplier_id) || null
+                          : null;
+
+                        return (
+                          <div key={requirement.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                    effectiveStatus === "available"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : effectiveStatus === "ordered"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : effectiveStatus === "delivery_created"
+                                          ? "bg-amber-100 text-amber-800"
+                                          : effectiveStatus === "invoiced"
+                                            ? "bg-sky-100 text-sky-800"
+                                            : effectiveStatus === "installed"
+                                              ? "bg-cyan-100 text-cyan-800"
+                                              : "bg-violet-100 text-violet-800"
+                                  }`}>
+                                    {getTicketPartRequirementStatusLabel(requirement)}
+                                  </span>
+                                  {requirement.delivery_number && (
+                                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700">
+                                      Lieferschein {requirement.delivery_number}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h4 className="mt-3 text-lg font-black text-slate-950">{requirement.requested_name}</h4>
+                                <p className="mt-1 text-sm font-semibold text-slate-600">
+                                  Menge: {requirement.quantity} {requirement.unit || part?.unit || "Stück"}
+                                  {part ? ` · Lager: ${Number(part.stock || 0)} ${part.unit || "Stück"}` : ""}
+                                </p>
+                                {supplier && (
+                                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                                    Lieferant: {supplier.name}
+                                  </p>
+                                )}
+                                {requirement.expected_date && (
+                                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                                    Erwartet: {formatServiceDate(requirement.expected_date)}
+                                  </p>
+                                )}
+                                {requirement.note && (
+                                  <p className="mt-2 rounded-xl bg-white p-3 text-sm font-semibold text-slate-600">{requirement.note}</p>
+                                )}
+                              </div>
+
+                              <div className="flex w-full flex-col gap-2 xl:w-64">
+                                {!part && !["cancelled", "invoiced"].includes(effectiveStatus) && (
+                                  <select
+                                    defaultValue=""
+                                    onChange={(e) => {
+                                      const nextPart = serviceParts.find((item) => item.id === Number(e.target.value));
+                                      if (nextPart) void assignPartToRequirement(requirement, nextPart);
+                                      e.currentTarget.value = "";
+                                    }}
+                                    className="rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm font-bold"
+                                  >
+                                    <option value="">Lagerteil zuweisen …</option>
+                                    {serviceParts.filter((item) => !item.is_archived).map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.name} · Bestand {Number(item.stock || 0)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+
+                                {part && !isTicketPartRequirementAvailable(requirement) && !["ordered", "installed", "delivery_created", "invoiced", "cancelled"].includes(effectiveStatus) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => markRequirementOrdered(requirement)}
+                                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-black text-white"
+                                  >
+                                    Als bestellt markieren
+                                  </button>
+                                )}
+
+                                {part && isTicketPartRequirementAvailable(requirement) && !["installed", "delivery_created", "invoiced", "cancelled"].includes(effectiveStatus) && effectiveStatus !== "available" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => markRequirementAvailable(requirement)}
+                                    className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
+                                  >
+                                    Wareneingang / verfügbar bestätigen
+                                  </button>
+                                )}
+
+                                {effectiveStatus === "available" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => installTicketPartRequirement(requirement)}
+                                    className="rounded-xl bg-cyan-600 px-4 py-3 text-sm font-black text-white"
+                                  >
+                                    Vor Ort eingebaut
+                                  </button>
+                                )}
+
+                                {isAdmin && ["installed", "delivery_created"].includes(effectiveStatus) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => prepareInvoiceFromTicketWorkflow(requirementTicket)}
+                                    className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-black text-white"
+                                  >
+                                    {requirement.delivery_number ? "Lieferschein in Rechnung" : "In Rechnung übernehmen"}
+                                  </button>
+                                )}
+
+                                {supplier && (supplier.parts_url || supplier.website) && ["needed", "ordered"].includes(effectiveStatus) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(supplier.parts_url || supplier.website || "", "_blank", "noopener,noreferrer")}
+                                    className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700"
+                                  >
+                                    Lieferant / Bestellseite öffnen
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {isAdmin && adminDeviceReviewTicketId != null && (() => {
         const reviewTicket =
