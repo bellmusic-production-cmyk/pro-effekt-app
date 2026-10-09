@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.42 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.45 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10737,7 +10737,8 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       const linkedCustomer = getCustomerForTicket(ticket);
       const customerRecipient =
         linkedCustomer?.email ||
-        linkedCustomer?.contact_email ||
+        linkedCustomer?.contact_1_email ||
+        linkedCustomer?.email_2 ||
         "";
 
       if (customerRecipient) {
@@ -18657,15 +18658,15 @@ ${tenantBrandName}`,
     const currentCompany = await requireExportCompany();
     if (!currentCompany) return;
 
-    const customerById = new Map(
+    const customerById = new Map<number, Customer>(
       customers
         .filter((item) => Number(item.company_id) === Number(currentCompany.id))
-        .map((item) => [item.id, item]),
+        .map((item): [number, Customer] => [item.id, item]),
     );
-    const modelById = new Map(
+    const modelById = new Map<number, DeviceModel>(
       deviceModels
         .filter((item) => Number(item.company_id) === Number(currentCompany.id))
-        .map((item) => [item.id, item]),
+        .map((item): [number, DeviceModel] => [item.id, item]),
     );
 
     const rows = devices
@@ -19580,8 +19581,12 @@ ${tenantBrandName}`,
   }, [supplierImportRows, supplierImportMapping, importSupplierReference]);
 
   const sparePartImportPreview = useMemo(() => {
-    const manufacturerById = new Map(manufacturers.map((item) => [item.id, item]));
-    const supplierById = new Map(importSupplierReference.map((item) => [item.id, item]));
+    const manufacturerById = new Map<number, Manufacturer>(
+      manufacturers.map((item): [number, Manufacturer] => [item.id, item]),
+    );
+    const supplierById = new Map<number, Supplier>(
+      importSupplierReference.map((item): [number, Supplier] => [item.id, item]),
+    );
     return sparePartImportRows.map((row, index) => {
       const name = importValue(row, sparePartImportMapping, "name");
       const sku = importValue(row, sparePartImportMapping, "sku");
@@ -22419,7 +22424,7 @@ ${tenantBrandName}`,
       : null;
 
   const customerDirectoryCityOptions = Array.from(
-    new Set(
+    new Set<string>(
       customers
         .map((item) => String(item.city || "").trim())
         .filter(Boolean),
