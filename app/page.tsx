@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.29 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.30 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -3216,6 +3216,42 @@ export default function Home() {
     const formattedDate = formatServiceDate(date);
     const formattedTime = formatServiceTime(time);
     return formattedTime ? `${formattedDate} · ${formattedTime}` : formattedDate;
+  }
+
+  function getCustomerAppointmentResponseState(ticket: Ticket) {
+    const serviceStatus = String(ticket.service_status || "");
+    const internalNote = String(ticket.internal_note || "");
+
+    const confirmed =
+      serviceStatus === "Kunde hat Termin bestätigt" ||
+      ticket.status === "Termin vereinbart" ||
+      internalNote.includes("Termin vom Kunden bestätigt:");
+
+    const rescheduleRequested =
+      serviceStatus === "Kunde bittet um Terminverschiebung" ||
+      internalNote.includes("Terminverschiebung angefragt");
+
+    if (rescheduleRequested) {
+      return {
+        kind: "reschedule" as const,
+        label: "Kunde bittet um Terminverschiebung",
+        detail: ticket.customer_approval_at
+          ? `Kundenrückmeldung: ${formatDateTime(ticket.customer_approval_at)}`
+          : "Kundenrückmeldung eingegangen",
+      };
+    }
+
+    if (confirmed) {
+      return {
+        kind: "confirmed" as const,
+        label: "Kunde hat Termin bestätigt",
+        detail: ticket.customer_approval_at
+          ? `Bestätigt am ${formatDateTime(ticket.customer_approval_at)}`
+          : "Vom Kunden bestätigt",
+      };
+    }
+
+    return null;
   }
 
   function isCustomerPortalDocument(documentItem: DocumentItem) {
@@ -23967,6 +24003,16 @@ ${tenantBrandName}`,
                                     <p className="mt-1 text-xs font-bold text-slate-600">
                                       {meta.appointment}
                                     </p>
+                                    {getCustomerAppointmentResponseState(ticket) && (
+                                      <div className={`mt-2 rounded-xl px-3 py-2 text-xs font-black ${
+                                        getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                          ? "bg-emerald-100 text-emerald-800"
+                                          : "bg-amber-100 text-amber-900"
+                                      }`}>
+                                        {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
+                                        {getCustomerAppointmentResponseState(ticket)?.label}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 
@@ -25433,6 +25479,25 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         <p className="mt-1 text-sm font-bold text-slate-600">
                           Termin: {currentTicket.service_date ? formatServiceAppointment(currentTicket.service_date, currentTicket.service_time) : "Nicht geplant"}
                         </p>
+                        {getCustomerAppointmentResponseState(currentTicket) && (
+                          <div className={`mt-3 rounded-xl border px-3 py-3 ${
+                            getCustomerAppointmentResponseState(currentTicket)?.kind === "confirmed"
+                              ? "border-emerald-200 bg-emerald-50"
+                              : "border-amber-200 bg-amber-50"
+                          }`}>
+                            <p className={`text-sm font-black ${
+                              getCustomerAppointmentResponseState(currentTicket)?.kind === "confirmed"
+                                ? "text-emerald-800"
+                                : "text-amber-900"
+                            }`}>
+                              {getCustomerAppointmentResponseState(currentTicket)?.kind === "confirmed" ? "✓ " : "⚠ "}
+                              {getCustomerAppointmentResponseState(currentTicket)?.label}
+                            </p>
+                            <p className="mt-1 text-xs font-bold text-slate-600">
+                              {getCustomerAppointmentResponseState(currentTicket)?.detail}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
@@ -33638,6 +33703,16 @@ placeholder="Gerät / Anlage / Modell suchen..."
                               <p className="mt-1 text-sm font-semibold text-slate-600">
                                 {ticket.device || "Gerät offen"} · {ticket.status}
                               </p>
+                              {getCustomerAppointmentResponseState(ticket) && (
+                                <p className={`mt-2 rounded-xl px-3 py-2 text-xs font-black ${
+                                  getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-amber-100 text-amber-900"
+                                }`}>
+                                  {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
+                                  {getCustomerAppointmentResponseState(ticket)?.label}
+                                </p>
+                              )}
                             </button>
                           );
                         })}
@@ -33689,6 +33764,16 @@ placeholder="Gerät / Anlage / Modell suchen..."
                               {ticket.service_status && (
                                 <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
                                   Einsatz: {ticket.service_status}
+                                </span>
+                              )}
+                              {getCustomerAppointmentResponseState(ticket) && (
+                                <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                  getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-amber-100 text-amber-900"
+                                }`}>
+                                  {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
+                                  {getCustomerAppointmentResponseState(ticket)?.label}
                                 </span>
                               )}
                               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
@@ -34405,6 +34490,7 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                                 <p className="truncate font-black text-slate-900">{ticket.ticket_number} · {ticket.issue}</p>
                                 <p className="mt-1 text-xs font-bold text-slate-500">
                                   {ticket.customer} · {ticket.service_date ? formatServiceDate(ticket.service_date) : "ohne Termin"} {ticket.service_time ? `· ${formatServiceTime(ticket.service_time)}` : ""}
+                                  {getCustomerAppointmentResponseState(ticket) ? ` · ${getCustomerAppointmentResponseState(ticket)?.label}` : ""}
                                 </p>
                               </div>
                               <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
@@ -35765,6 +35851,16 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                     Gerät geprüft
                                   </span>
                                 )}
+                                {getCustomerAppointmentResponseState(ticket) && (
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                    getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-amber-100 text-amber-900"
+                                  }`}>
+                                    {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
+                                    {getCustomerAppointmentResponseState(ticket)?.label}
+                                  </span>
+                                )}
                               </div>
 
                               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -35837,6 +35933,16 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                     {formatServiceAppointment(ticket.service_date, ticket.service_time)}
                                     {ticket.service_status ? ` · ${ticket.service_status}` : ""}
                                   </p>
+                                  {getCustomerAppointmentResponseState(ticket) && (
+                                    <p className={`mt-2 rounded-lg px-2.5 py-2 text-xs font-black ${
+                                      getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                        ? "bg-emerald-100 text-emerald-800"
+                                        : "bg-amber-100 text-amber-900"
+                                    }`}>
+                                      {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
+                                      {getCustomerAppointmentResponseState(ticket)?.detail}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
