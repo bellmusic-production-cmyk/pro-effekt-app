@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.41 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.42 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -3319,11 +3319,15 @@ export default function Home() {
 
     if (
       serviceStatus === "Kunde hat Termin bestätigt" ||
+      serviceStatus === "Wunschtermin bestätigt" ||
       (!serviceStatus && ticket.status === "Termin vereinbart")
     ) {
       return {
         kind: "confirmed" as const,
-        label: "Termin bestätigt",
+        label:
+          serviceStatus === "Wunschtermin bestätigt"
+            ? "Wunschtermin bestätigt"
+            : "Termin bestätigt",
         detail: ticket.customer_approval_at
           ? `Bestätigt am ${formatDateTime(ticket.customer_approval_at)}`
           : "Vom Kunden bestätigt",
@@ -3336,10 +3340,16 @@ export default function Home() {
   function getCustomerAppointmentResponseState(ticket: Ticket) {
     const serviceStatus = String(ticket.service_status || "").trim();
 
-    if (serviceStatus === "Kunde hat Termin bestätigt") {
+    if (
+      serviceStatus === "Kunde hat Termin bestätigt" ||
+      serviceStatus === "Wunschtermin bestätigt"
+    ) {
       return {
         kind: "confirmed" as const,
-        label: "Termin bestätigt",
+        label:
+          serviceStatus === "Wunschtermin bestätigt"
+            ? "Wunschtermin bestätigt"
+            : "Termin bestätigt",
         detail: ticket.customer_approval_at
           ? `Bestätigt am ${formatDateTime(ticket.customer_approval_at)}`
           : "Vom Kunden bestätigt",
@@ -3370,6 +3380,32 @@ export default function Home() {
           line.includes("Kundenwunsch"),
       )
       .slice(-6);
+  }
+
+  function getLatestCustomerAppointmentRequest(ticket: Ticket) {
+    const lines = String(ticket.internal_note || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const requestLine = [...lines]
+      .reverse()
+      .find((line) => line.includes("Terminverschiebung angefragt"));
+
+    if (!requestLine) {
+      return null;
+    }
+
+    const dateMatch = requestLine.match(/Wunschdatum:\s*(\d{4}-\d{2}-\d{2})/i);
+    const timeMatch = requestLine.match(/Wunschzeit:\s*(\d{2}:\d{2})(?::\d{2})?/i);
+    const noteMatch = requestLine.match(/Notiz:\s*(.+?)(?:\s·\s|$)/i);
+
+    return {
+      raw: requestLine,
+      date: dateMatch?.[1] || "",
+      time: timeMatch?.[1] || "",
+      note: noteMatch?.[1]?.trim() || "",
+    };
   }
 
   function isCustomerPortalDocument(documentItem: DocumentItem) {
@@ -10599,6 +10635,138 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     setAppointmentProposalDate(ticket.service_date || "");
     setAppointmentProposalTime(ticket.service_time ? ticket.service_time.slice(0, 5) : "");
     setAppointmentProposalNote("");
+  }
+
+  async function acceptCustomerRequestedAppointment(ticket: Ticket) {
+    if (!canCoordinateTicketAppointment(ticket)) {
+      alert("Sie dürfen für dieses Ticket keinen Kundentermin bestätigen.");
+      return;
+    }
+
+    const request = getLatestCustomerAppointmentRequest(ticket);
+
+    if (!request?.date) {
+      alert(
+        "Der Kunde hat kein konkretes Wunschdatum angegeben. Bitte einen neuen Termin vorschlagen.",
+      );
+      return;
+    }
+
+    setAppointmentProposalSaving(true);
+
+    try {
+      const currentCompany = await resolveActiveCompanyForOperation();
+
+      if (
+        !currentCompany?.id ||
+        Number(ticket.company_id) !== Number(currentCompany.id)
+      ) {
+        alert("Ticket gehört nicht zur aktuell angemeldeten Firma.");
+        return;
+      }
+
+      const confirmedAt = new Date().toISOString();
+      const actor =
+        userProfile?.full_name ||
+        userProfile?.company ||
+        (isAdmin ? "Admin" : "Techniker");
+
+      const payload = {
+        service_date: request.date,
+        service_time: request.time || null,
+        service_status: "Wunschtermin bestätigt",
+        status: "Termin vereinbart",
+        customer_approval_at: ticket.customer_approval_at || confirmedAt,
+        internal_note: [
+          ticket.internal_note || "",
+          [
+            "Wunschtermin vom Service bestätigt",
+            `Termin: ${request.date}${request.time ? ` ${request.time}` : ""}`,
+            `Bestätigt von: ${actor}`,
+          ].join(" · "),
+        ]
+          .filter(Boolean)
+          .join("\\n"),
+      };
+
+      let updateQuery = supabase
+        .from("tickets")
+        .update(payload)
+        .eq("id", ticket.id)
+        .eq("company_id", currentCompany.id)
+        .select("*")
+        .maybeSingle();
+
+      if (isTechnician && userProfile?.id) {
+        updateQuery = supabase
+          .from("tickets")
+          .update(payload)
+          .eq("id", ticket.id)
+          .eq("company_id", currentCompany.id)
+          .eq("assigned_to", userProfile.id)
+          .select("*")
+          .maybeSingle();
+      }
+
+      const { data: updatedTicket, error } = await updateQuery;
+
+      if (error) {
+        alert(`Wunschtermin konnte nicht bestätigt werden: ${error.message}`);
+        return;
+      }
+
+      if (!updatedTicket) {
+        alert("Der Wunschtermin konnte für dieses Ticket nicht übernommen werden.");
+        return;
+      }
+
+      setTickets((prev) =>
+        prev.map((item) =>
+          item.id === ticket.id
+            ? { ...item, ...(updatedTicket as Ticket) }
+            : item,
+        ),
+      );
+
+      setSelectedTicketView((current) =>
+        current?.id === ticket.id
+          ? { ...current, ...(updatedTicket as Ticket) }
+          : current,
+      );
+
+      const linkedCustomer = getCustomerForTicket(ticket);
+      const customerRecipient =
+        linkedCustomer?.email ||
+        linkedCustomer?.contact_email ||
+        "";
+
+      if (customerRecipient) {
+        await supabase.from("notifications").insert([
+          {
+            type: "Wunschtermin bestätigt",
+            recipient: customerRecipient,
+            subject: `Wunschtermin bestätigt · ${ticket.ticket_number}`,
+            message: [
+              `Ticket: ${ticket.ticket_number}`,
+              `Termin: ${request.date}${request.time ? ` ${request.time}` : ""}`,
+              "Ihr gewünschter Termin wurde vom Service bestätigt.",
+            ].join("\\n"),
+            related_ticket_id: ticket.id,
+            status: "Geplant",
+            email_status: "pending",
+            email_template: "Terminbestätigung Service",
+            email_error: null,
+          },
+        ]);
+      }
+
+      await loadTickets();
+      await loadNotifications();
+      setAppointmentCoordinationTicketId(null);
+      alert("Der Wunschtermin des Kunden wurde übernommen und bestätigt.");
+    } finally {
+      setAppointmentProposalSaving(false);
+    }
   }
 
   async function sendAppointmentProposal(ticket: Ticket) {
@@ -26849,6 +27017,28 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                             <p className="mt-1 text-xs font-bold text-slate-600">
                               {getCustomerAppointmentWorkflowState(currentTicket)?.detail}
                             </p>
+
+                            {getCustomerAppointmentWorkflowState(currentTicket)?.kind === "reschedule" &&
+                              getLatestCustomerAppointmentRequest(currentTicket) && (
+                                <div className="mt-3 rounded-xl border border-amber-200 bg-white p-3 text-xs font-bold text-slate-700">
+                                  <p>
+                                    Wunschdatum:{" "}
+                                    {getLatestCustomerAppointmentRequest(currentTicket)?.date
+                                      ? formatServiceDate(getLatestCustomerAppointmentRequest(currentTicket)?.date)
+                                      : "Nicht angegeben"}
+                                  </p>
+                                  <p className="mt-1">
+                                    Wunschzeit:{" "}
+                                    {getLatestCustomerAppointmentRequest(currentTicket)?.time || "Nicht angegeben"}
+                                  </p>
+                                  {getLatestCustomerAppointmentRequest(currentTicket)?.note && (
+                                    <p className="mt-1">
+                                      Notiz: {getLatestCustomerAppointmentRequest(currentTicket)?.note}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
                             {!isCustomer && canCoordinateTicketAppointment(currentTicket) && (
                               <button
                                 type="button"
@@ -37668,6 +37858,27 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                       <p className="mt-1 font-bold opacity-80">
                                         {getCustomerAppointmentWorkflowState(ticket)?.detail}
                                       </p>
+
+                                      {getCustomerAppointmentWorkflowState(ticket)?.kind === "reschedule" &&
+                                        getLatestCustomerAppointmentRequest(ticket) && (
+                                          <div className="mt-2 rounded-lg border border-amber-200 bg-white/80 p-2 text-slate-800">
+                                            <p>
+                                              Wunschdatum:{" "}
+                                              {getLatestCustomerAppointmentRequest(ticket)?.date
+                                                ? formatServiceDate(getLatestCustomerAppointmentRequest(ticket)?.date)
+                                                : "Nicht angegeben"}
+                                            </p>
+                                            <p>
+                                              Wunschzeit:{" "}
+                                              {getLatestCustomerAppointmentRequest(ticket)?.time || "Nicht angegeben"}
+                                            </p>
+                                            {getLatestCustomerAppointmentRequest(ticket)?.note && (
+                                              <p className="mt-1">
+                                                Notiz: {getLatestCustomerAppointmentRequest(ticket)?.note}
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
                                     </div>
                                   )}
                                 </div>
@@ -39503,20 +39714,69 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                   </p>
                 </div>
 
-                {workflowState?.kind === "reschedule" && communicationLines.length > 0 && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
-                      Kundenwunsch
-                    </p>
-                    <div className="mt-2 space-y-1">
-                      {communicationLines.slice(-3).map((line, index) => (
-                        <p key={`${line}-${index}`} className="text-sm font-bold text-slate-700">
-                          {line}
+                {workflowState?.kind === "reschedule" && (() => {
+                  const request = getLatestCustomerAppointmentRequest(appointmentTicket);
+
+                  return (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
+                        Kundenwunsch
+                      </p>
+
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-amber-200 bg-white p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                            Wunschdatum
+                          </p>
+                          <p className="mt-1 text-base font-black text-slate-900">
+                            {request?.date
+                              ? formatServiceDate(request.date)
+                              : "Nicht angegeben"}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-amber-200 bg-white p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                            Wunschzeit
+                          </p>
+                          <p className="mt-1 text-base font-black text-slate-900">
+                            {request?.time || "Nicht angegeben"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {request?.note && (
+                        <div className="mt-3 rounded-xl border border-amber-200 bg-white p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+                            Nachricht des Kunden
+                          </p>
+                          <p className="mt-1 text-sm font-bold text-slate-800">
+                            {request.note}
+                          </p>
+                        </div>
+                      )}
+
+                      {request?.date && (
+                        <button
+                          type="button"
+                          disabled={appointmentProposalSaving}
+                          onClick={() => void acceptCustomerRequestedAppointment(appointmentTicket)}
+                          className="mt-4 w-full rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-black text-white disabled:opacity-50"
+                        >
+                          {appointmentProposalSaving
+                            ? "Wird übernommen..."
+                            : `✓ Wunschtermin ${formatServiceDate(request.date)}${request.time ? ` · ${request.time}` : ""} übernehmen`}
+                        </button>
+                      )}
+
+                      {!request?.date && (
+                        <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-bold text-amber-900">
+                          Der Kunde hat kein konkretes Wunschdatum angegeben. Bitte unten einen neuen Termin vorschlagen.
                         </p>
-                      ))}
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
