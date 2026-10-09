@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.32 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.33 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -20680,11 +20680,26 @@ ${tenantBrandName}`,
 
   const visibleDocuments = useMemo(() => {
     if (isCustomer) {
-      return documents.filter((item) => item.customer_id === userProfile?.customer_id);
+      // loadDocuments() lädt im Kundenportal bereits ausschließlich die Dokumente
+      // der serverseitig verifizierten Kundenidentität. userProfile.customer_id
+      // kann bei älteren/neu verknüpften Portalprofilen leer oder noch nicht
+      // synchron sein und darf die bereits sicher geladenen Dokumente nicht
+      // anschließend wieder ausblenden.
+      const portalCustomerId = Number(
+        profileCustomer?.id || userProfile?.customer_id || 0,
+      );
+
+      if (!portalCustomerId) {
+        return documents;
+      }
+
+      return documents.filter(
+        (item) => Number(item.customer_id || 0) === portalCustomerId,
+      );
     }
 
     return documents;
-  }, [documents, isCustomer, userProfile]);
+  }, [documents, isCustomer, profileCustomer?.id, userProfile?.customer_id]);
 
 
   const completedTicketsCount = tickets.filter(
@@ -21991,7 +22006,7 @@ ${tenantBrandName}`,
     );
 
     const customerDocuments = documents.filter(
-      (documentItem) => documentItem.customer_id === customerId,
+      (documentItem) => Number(documentItem.customer_id || 0) === Number(customerId),
     );
 
     const openTickets = customerTickets.filter((ticketItem) => {
