@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.38 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.39 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1877,6 +1877,11 @@ export default function Home() {
 
   const [appointmentResponseNoteByTicket, setAppointmentResponseNoteByTicket] = useState<Record<number, string>>({});
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
+  const [appointmentCoordinationTicketId, setAppointmentCoordinationTicketId] = useState<number | null>(null);
+  const [appointmentProposalDate, setAppointmentProposalDate] = useState("");
+  const [appointmentProposalTime, setAppointmentProposalTime] = useState("");
+  const [appointmentProposalNote, setAppointmentProposalNote] = useState("");
+  const [appointmentProposalSaving, setAppointmentProposalSaving] = useState(false);
 
   useEffect(() => {
     if (
@@ -3287,33 +3292,39 @@ export default function Home() {
     return formattedTime ? `${formattedDate} · ${formattedTime}` : formattedDate;
   }
 
-  function getCustomerAppointmentResponseState(ticket: Ticket) {
-    const serviceStatus = String(ticket.service_status || "");
-    const internalNote = String(ticket.internal_note || "");
+  function getCustomerAppointmentWorkflowState(ticket: Ticket) {
+    const serviceStatus = String(ticket.service_status || "").trim();
 
-    const confirmed =
-      serviceStatus === "Kunde hat Termin bestätigt" ||
-      ticket.status === "Termin vereinbart" ||
-      internalNote.includes("Termin vom Kunden bestätigt:");
+    if (
+      serviceStatus === "Wartet auf Kundenbestätigung" ||
+      serviceStatus === "Geplant"
+    ) {
+      return {
+        kind: "waiting" as const,
+        label: "Wartet auf Kundenbestätigung",
+        detail: ticket.service_date
+          ? formatServiceAppointment(ticket.service_date, ticket.service_time)
+          : "Termin wurde noch nicht vollständig geplant",
+      };
+    }
 
-    const rescheduleRequested =
-      serviceStatus === "Kunde bittet um Terminverschiebung" ||
-      internalNote.includes("Terminverschiebung angefragt");
-
-    if (rescheduleRequested) {
+    if (serviceStatus === "Kunde bittet um Terminverschiebung") {
       return {
         kind: "reschedule" as const,
-        label: "Kunde bittet um Terminverschiebung",
+        label: "Kunde bittet um neuen Termin",
         detail: ticket.customer_approval_at
           ? `Kundenrückmeldung: ${formatDateTime(ticket.customer_approval_at)}`
           : "Kundenrückmeldung eingegangen",
       };
     }
 
-    if (confirmed) {
+    if (
+      serviceStatus === "Kunde hat Termin bestätigt" ||
+      (!serviceStatus && ticket.status === "Termin vereinbart")
+    ) {
       return {
         kind: "confirmed" as const,
-        label: "Kunde hat Termin bestätigt",
+        label: "Termin bestätigt",
         detail: ticket.customer_approval_at
           ? `Bestätigt am ${formatDateTime(ticket.customer_approval_at)}`
           : "Vom Kunden bestätigt",
@@ -3321,6 +3332,26 @@ export default function Home() {
     }
 
     return null;
+  }
+
+  function getCustomerAppointmentResponseState(ticket: Ticket) {
+    const workflowState = getCustomerAppointmentWorkflowState(ticket);
+    return workflowState?.kind === "confirmed" || workflowState?.kind === "reschedule"
+      ? workflowState
+      : null;
+  }
+
+  function getAppointmentCommunicationLines(ticket: Ticket) {
+    return String(ticket.internal_note || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(
+        (line) =>
+          line.includes("Termin") ||
+          line.includes("Wunschdatum") ||
+          line.includes("Kundenwunsch"),
+      )
+      .slice(-6);
   }
 
   function isCustomerPortalDocument(documentItem: DocumentItem) {
@@ -6639,12 +6670,29 @@ async function loadInvoices() {
         : "Zugewiesen"
       : currentTicket?.status || "Offen";
 
+    const currentServiceTime = currentTicket?.service_time
+      ? currentTicket.service_time.slice(0, 5)
+      : null;
+    const normalizedServiceTime = serviceTime ? serviceTime.slice(0, 5) : null;
+    const appointmentChanged =
+      (currentTicket?.service_date || null) !== (serviceDate || null) ||
+      currentServiceTime !== normalizedServiceTime;
+
     const payload = {
       assigned_to: assignedTo,
       assigned_at: assignedTo ? new Date().toISOString() : null,
       service_date: serviceDate || null,
       service_time: serviceTime || null,
-      service_status: assignedTo ? "Geplant" : null,
+      service_status:
+        appointmentChanged && serviceDate
+          ? "Wartet auf Kundenbestätigung"
+          : currentTicket?.service_status || (assignedTo ? "Geplant" : null),
+      customer_approval_name: appointmentChanged
+        ? null
+        : currentTicket?.customer_approval_name || null,
+      customer_approval_at: appointmentChanged
+        ? null
+        : currentTicket?.customer_approval_at || null,
       status: nextStatus,
     };
 
@@ -10292,13 +10340,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
   }
 
   function canCustomerRespondToAppointment(ticket: Ticket) {
-    const currentResponse = getCustomerAppointmentResponseState(ticket);
+    const workflowState = getCustomerAppointmentWorkflowState(ticket);
 
     return (
       isCustomer &&
       isOwnCustomerTicket(ticket) &&
       Boolean(ticket.service_date) &&
-      !currentResponse &&
+      workflowState?.kind === "waiting" &&
       !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || "")
     );
   }
@@ -10410,10 +10458,134 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       ),
     );
 
+    setSelectedTicketView((current) =>
+      current?.id === ticket.id ? { ...current, ...updatePayload } : current,
+    );
+
     await loadTickets();
     await loadNotifications();
 
     alert(action === "confirm" ? "Termin wurde bestätigt." : "Terminverschiebung wurde angefragt.");
+  }
+
+  function canCoordinateTicketAppointment(ticket: Ticket) {
+    if (isAdmin) return true;
+
+    if (isTechnician) {
+      return Boolean(
+        userProfile?.id &&
+        ticket.assigned_to &&
+        String(ticket.assigned_to) === String(userProfile.id),
+      );
+    }
+
+    return false;
+  }
+
+  function openAppointmentCoordination(ticket: Ticket) {
+    if (!canCoordinateTicketAppointment(ticket)) {
+      alert("Die Terminabstimmung ist nur für Admins oder den zugewiesenen Techniker verfügbar.");
+      return;
+    }
+
+    setAppointmentCoordinationTicketId(ticket.id);
+    setAppointmentProposalDate(ticket.service_date || "");
+    setAppointmentProposalTime(ticket.service_time ? ticket.service_time.slice(0, 5) : "");
+    setAppointmentProposalNote("");
+  }
+
+  async function sendAppointmentProposal(ticket: Ticket) {
+    if (!canCoordinateTicketAppointment(ticket)) {
+      alert("Sie dürfen für dieses Ticket keinen Termin an den Kunden senden.");
+      return;
+    }
+
+    if (!appointmentProposalDate) {
+      alert("Bitte zuerst ein Datum auswählen.");
+      return;
+    }
+
+    if (!isValidAppDate(appointmentProposalDate)) {
+      alert("Bitte ein vollständiges Datum zwischen 01.01.2000 und 31.12.2100 eingeben.");
+      return;
+    }
+
+    setAppointmentProposalSaving(true);
+
+    try {
+      const currentCompany = await resolveActiveCompanyForOperation();
+
+      if (
+        !currentCompany?.id ||
+        Number(ticket.company_id) !== Number(currentCompany.id)
+      ) {
+        alert("Ticket gehört nicht zur aktuell angemeldeten Firma.");
+        return;
+      }
+
+      const senderName =
+        userProfile?.full_name ||
+        userProfile?.company ||
+        (isAdmin ? "Admin" : "Techniker");
+
+      const proposalText = [
+        `Terminvorschlag gesendet: ${appointmentProposalDate}${appointmentProposalTime ? ` ${appointmentProposalTime}` : ""}`,
+        appointmentProposalNote ? `Hinweis: ${appointmentProposalNote}` : "",
+        `Gesendet von: ${senderName}`,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      const payload = {
+        service_date: appointmentProposalDate,
+        service_time: appointmentProposalTime || null,
+        service_status: "Wartet auf Kundenbestätigung",
+        customer_approval_name: null,
+        customer_approval_at: null,
+        status:
+          ticket.status === "Abgeschlossen" || ticket.status === "Erledigt"
+            ? ticket.status
+            : ticket.assigned_to
+              ? "Zugewiesen"
+              : ticket.status || "Offen",
+        internal_note: [ticket.internal_note || "", proposalText]
+          .filter(Boolean)
+          .join("\n"),
+      };
+
+      let updateQuery = supabase
+        .from("tickets")
+        .update(payload)
+        .eq("id", ticket.id)
+        .eq("company_id", currentCompany.id);
+
+      if (isTechnician && userProfile?.id) {
+        updateQuery = updateQuery.eq("assigned_to", userProfile.id);
+      }
+
+      const { error } = await updateQuery;
+
+      if (error) {
+        alert(`Terminvorschlag konnte nicht gespeichert werden: ${error.message}`);
+        return;
+      }
+
+      setTickets((prev) =>
+        prev.map((item) =>
+          item.id === ticket.id ? { ...item, ...payload } : item,
+        ),
+      );
+
+      setSelectedTicketView((current) =>
+        current?.id === ticket.id ? { ...current, ...payload } : current,
+      );
+
+      await loadTickets();
+      setAppointmentCoordinationTicketId(null);
+      alert("Terminvorschlag wurde an den Kunden zur Bestätigung freigegeben.");
+    } finally {
+      setAppointmentProposalSaving(false);
+    }
   }
 
   function ticketServiceTypeText(ticket: Ticket) {
@@ -26545,23 +26717,40 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         <p className="mt-1 text-sm font-bold text-slate-600">
                           Termin: {currentTicket.service_date ? formatServiceAppointment(currentTicket.service_date, currentTicket.service_time) : "Nicht geplant"}
                         </p>
-                        {getCustomerAppointmentResponseState(currentTicket) && (
+                        {getCustomerAppointmentWorkflowState(currentTicket) && (
                           <div className={`mt-3 rounded-xl border px-3 py-3 ${
-                            getCustomerAppointmentResponseState(currentTicket)?.kind === "confirmed"
+                            getCustomerAppointmentWorkflowState(currentTicket)?.kind === "confirmed"
                               ? "border-emerald-200 bg-emerald-50"
-                              : "border-amber-200 bg-amber-50"
+                              : getCustomerAppointmentWorkflowState(currentTicket)?.kind === "reschedule"
+                                ? "border-amber-200 bg-amber-50"
+                                : "border-blue-200 bg-blue-50"
                           }`}>
                             <p className={`text-sm font-black ${
-                              getCustomerAppointmentResponseState(currentTicket)?.kind === "confirmed"
+                              getCustomerAppointmentWorkflowState(currentTicket)?.kind === "confirmed"
                                 ? "text-emerald-800"
-                                : "text-amber-900"
+                                : getCustomerAppointmentWorkflowState(currentTicket)?.kind === "reschedule"
+                                  ? "text-amber-900"
+                                  : "text-blue-800"
                             }`}>
-                              {getCustomerAppointmentResponseState(currentTicket)?.kind === "confirmed" ? "✓ " : "⚠ "}
-                              {getCustomerAppointmentResponseState(currentTicket)?.label}
+                              {getCustomerAppointmentWorkflowState(currentTicket)?.kind === "confirmed"
+                                ? "✓ "
+                                : getCustomerAppointmentWorkflowState(currentTicket)?.kind === "reschedule"
+                                  ? "⚠ "
+                                  : "◷ "}
+                              {getCustomerAppointmentWorkflowState(currentTicket)?.label}
                             </p>
                             <p className="mt-1 text-xs font-bold text-slate-600">
-                              {getCustomerAppointmentResponseState(currentTicket)?.detail}
+                              {getCustomerAppointmentWorkflowState(currentTicket)?.detail}
                             </p>
+                            {!isCustomer && canCoordinateTicketAppointment(currentTicket) && (
+                              <button
+                                type="button"
+                                onClick={() => openAppointmentCoordination(currentTicket)}
+                                className="mt-3 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white"
+                              >
+                                Terminabstimmung öffnen
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -33197,6 +33386,15 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                                 </button>
                               )}
 
+                              {!isCustomer && canCoordinateTicketAppointment(ticket) && (
+                                <button
+                                  onClick={() => openAppointmentCoordination(ticket)}
+                                  className="w-full rounded-2xl bg-emerald-100 px-3 py-3 text-center text-xs font-black text-emerald-700 md:text-sm"
+                                >
+                                  Terminabstimmung
+                                </button>
+                              )}
+
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
@@ -35151,14 +35349,20 @@ placeholder="Gerät / Anlage / Modell suchen..."
                                   Einsatz: {ticket.service_status}
                                 </span>
                               )}
-                              {getCustomerAppointmentResponseState(ticket) && (
+                              {getCustomerAppointmentWorkflowState(ticket) && (
                                 <span className={`rounded-full px-3 py-1 text-xs font-black ${
-                                  getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                  getCustomerAppointmentWorkflowState(ticket)?.kind === "confirmed"
                                     ? "bg-emerald-100 text-emerald-800"
-                                    : "bg-amber-100 text-amber-900"
+                                    : getCustomerAppointmentWorkflowState(ticket)?.kind === "reschedule"
+                                      ? "bg-amber-100 text-amber-900"
+                                      : "bg-blue-100 text-blue-800"
                                 }`}>
-                                  {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
-                                  {getCustomerAppointmentResponseState(ticket)?.label}
+                                  {getCustomerAppointmentWorkflowState(ticket)?.kind === "confirmed"
+                                    ? "✓ "
+                                    : getCustomerAppointmentWorkflowState(ticket)?.kind === "reschedule"
+                                      ? "⚠ "
+                                      : "◷ "}
+                                  {getCustomerAppointmentWorkflowState(ticket)?.label}
                                 </span>
                               )}
                               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
@@ -37338,15 +37542,26 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                     {formatServiceAppointment(ticket.service_date, ticket.service_time)}
                                     {ticket.service_status ? ` · ${ticket.service_status}` : ""}
                                   </p>
-                                  {getCustomerAppointmentResponseState(ticket) && (
-                                    <p className={`mt-2 rounded-lg px-2.5 py-2 text-xs font-black ${
-                                      getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                  {getCustomerAppointmentWorkflowState(ticket) && (
+                                    <div className={`mt-2 rounded-lg px-2.5 py-2 text-xs font-black ${
+                                      getCustomerAppointmentWorkflowState(ticket)?.kind === "confirmed"
                                         ? "bg-emerald-100 text-emerald-800"
-                                        : "bg-amber-100 text-amber-900"
+                                        : getCustomerAppointmentWorkflowState(ticket)?.kind === "reschedule"
+                                          ? "bg-amber-100 text-amber-900"
+                                          : "bg-blue-100 text-blue-800"
                                     }`}>
-                                      {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed" ? "✓ " : "⚠ "}
-                                      {getCustomerAppointmentResponseState(ticket)?.detail}
-                                    </p>
+                                      <p>
+                                        {getCustomerAppointmentWorkflowState(ticket)?.kind === "confirmed"
+                                          ? "✓ "
+                                          : getCustomerAppointmentWorkflowState(ticket)?.kind === "reschedule"
+                                            ? "⚠ "
+                                            : "◷ "}
+                                        {getCustomerAppointmentWorkflowState(ticket)?.label}
+                                      </p>
+                                      <p className="mt-1 font-bold opacity-80">
+                                        {getCustomerAppointmentWorkflowState(ticket)?.detail}
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -37910,7 +38125,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                     {getCustomerAppointmentResponseState(ticket)?.detail}
                                   </p>
                                   <p className="mt-2 text-xs font-semibold text-slate-500">
-                                    Admin und zugewiesener Techniker sehen diese Rückmeldung direkt am Ticket.
+                                    Ihre Antwort ist abgeschlossen. Die Terminbuttons bleiben jetzt gesperrt, bis Admin oder Techniker einen neuen Terminvorschlag sendet.
                                   </p>
                                 </div>
                               ) : canCustomerRespondToAppointment(ticket) ? (
@@ -37969,7 +38184,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 </div>
                               ) : (
                                 <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-500">
-                                  Sobald Admin oder Techniker einen Termin eingetragen hat, können Sie ihn hier bestätigen oder einen anderen Termin anfragen.
+                                  Aktuell gibt es keine offene Terminanfrage. Sobald Admin oder Techniker einen neuen Termin zur Bestätigung sendet, werden die beiden Antwortmöglichkeiten wieder freigeschaltet.
                                 </p>
                               )}
                             </div>
@@ -39078,6 +39293,170 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                 >
                   {adminDeviceReviewSaving ? "Übernimmt..." : approvalPreview.buttonLabel}
                 </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {!isCustomer && appointmentCoordinationTicketId != null && (() => {
+        const appointmentTicket =
+          tickets.find((item) => item.id === appointmentCoordinationTicketId) ||
+          (selectedTicketView?.id === appointmentCoordinationTicketId ? selectedTicketView : null);
+
+        if (!appointmentTicket) return null;
+
+        const workflowState = getCustomerAppointmentWorkflowState(appointmentTicket);
+        const communicationLines = getAppointmentCommunicationLines(appointmentTicket);
+
+        return (
+          <div className="fixed inset-0 z-[130] flex items-start justify-center overflow-y-auto bg-slate-950/70 p-3 sm:p-6">
+            <div className="my-4 w-full max-w-3xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
+                    Terminabstimmung
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black text-slate-950">
+                    {appointmentTicket.ticket_number}
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                    Pro Terminvorschlag kann der Kunde genau einmal antworten.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAppointmentCoordinationTicketId(null)}
+                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700"
+                >
+                  Schließen
+                </button>
+              </div>
+
+              <div className="space-y-5 p-5 sm:p-6">
+                <div className={`rounded-2xl border p-4 ${
+                  workflowState?.kind === "confirmed"
+                    ? "border-emerald-200 bg-emerald-50"
+                    : workflowState?.kind === "reschedule"
+                      ? "border-amber-200 bg-amber-50"
+                      : workflowState?.kind === "waiting"
+                        ? "border-blue-200 bg-blue-50"
+                        : "border-slate-200 bg-slate-50"
+                }`}>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                    Aktueller Status
+                  </p>
+                  <p className="mt-2 text-lg font-black text-slate-900">
+                    {workflowState?.kind === "confirmed"
+                      ? "✓ Termin bestätigt"
+                      : workflowState?.kind === "reschedule"
+                        ? "⚠ Kunde bittet um neuen Termin"
+                        : workflowState?.kind === "waiting"
+                          ? "◷ Wartet auf Kundenbestätigung"
+                          : "Noch keine aktive Terminabstimmung"}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-slate-600">
+                    {appointmentTicket.service_date
+                      ? formatServiceAppointment(
+                          appointmentTicket.service_date,
+                          appointmentTicket.service_time,
+                        )
+                      : "Noch kein Termin geplant"}
+                  </p>
+                </div>
+
+                {workflowState?.kind === "reschedule" && communicationLines.length > 0 && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">
+                      Kundenwunsch
+                    </p>
+                    <div className="mt-2 space-y-1">
+                      {communicationLines.slice(-3).map((line, index) => (
+                        <p key={`${line}-${index}`} className="text-sm font-bold text-slate-700">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                    Neuen Terminvorschlag senden
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">
+                    Erst nach dem Senden werden die Kundenbuttons wieder einmalig freigeschaltet.
+                  </p>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">
+                        Datum
+                      </label>
+                      <input
+                        type="date"
+                        min={APP_DATE_MIN}
+                        max={APP_DATE_MAX}
+                        value={appointmentProposalDate}
+                        onChange={(e) => setAppointmentProposalDate(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-black text-slate-600">
+                        Uhrzeit
+                      </label>
+                      <input
+                        type="time"
+                        step={60}
+                        value={appointmentProposalTime}
+                        onChange={(e) => setAppointmentProposalTime(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs font-black text-slate-600">
+                      Nachricht an den Kunden
+                    </label>
+                    <input
+                      value={appointmentProposalNote}
+                      onChange={(e) => setAppointmentProposalNote(e.target.value)}
+                      placeholder="Optional, z. B. Techniker kommt im Zeitfenster 14–16 Uhr"
+                      className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm font-bold"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={appointmentProposalSaving}
+                    onClick={() => void sendAppointmentProposal(appointmentTicket)}
+                    className="mt-4 w-full rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-black text-white disabled:opacity-50"
+                  >
+                    {appointmentProposalSaving
+                      ? "Wird gesendet..."
+                      : "Termin an Kunden senden"}
+                  </button>
+                </div>
+
+                {communicationLines.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                      Termin-Kommunikation
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {communicationLines.map((line, index) => (
+                        <div
+                          key={`${line}-${index}`}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+                        >
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
