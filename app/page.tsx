@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.34 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.35 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -5414,10 +5414,41 @@ async function loadDeviceModels() {
   async function loadDocuments() {
     if (isOfflineRuntime()) return;
 
+    // Wichtig:
+    // loadApplicationData() startet direkt nach dem Login und kann noch mit einer
+    // älteren React-Closure laufen. Deshalb darf die Dokumentlogik die Rolle nicht
+    // allein aus userProfile lesen. Rolle und customer_id werden live aus dem
+    // aktuell authentifizierten Profil ermittelt.
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authData.user) {
+      console.error(
+        "Angemeldeter Benutzer konnte für den Dokumentabruf nicht ermittelt werden:",
+        authError?.message,
+      );
+      setDocuments([]);
+      return;
+    }
+
+    const { data: liveProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, role, customer_id")
+      .eq("id", authData.user.id)
+      .maybeSingle();
+
+    if (profileError || !liveProfile) {
+      console.error(
+        "Benutzerrolle konnte für den Dokumentabruf nicht ermittelt werden:",
+        profileError?.message,
+      );
+      setDocuments([]);
+      return;
+    }
+
     // Kundenportal:
-    // Kunden sind bewusst keine company_members. Ihre Firma wird deshalb
-    // ausschließlich aus der serverseitig verifizierten Kundenidentität geladen.
-    if (userProfile?.role === "customer") {
+    // Kunden sind bewusst keine company_members. Ihre Firma und Kunden-ID werden
+    // ausschließlich serverseitig aus der verifizierten Portalidentität geladen.
+    if (liveProfile.role === "customer") {
       const { data: identityData, error: identityError } = await supabase.rpc(
         "customer_portal_identity",
       );
@@ -5435,10 +5466,10 @@ async function loadDeviceModels() {
         ? ((identityData[0] || null) as Customer | null)
         : ((identityData || null) as Customer | null);
 
-      const customerId = ownCustomer?.id ? Number(ownCustomer.id) : null;
-      const customerCompanyId = ownCustomer?.company_id
-        ? Number(ownCustomer.company_id)
-        : null;
+      const customerId = Number(
+        ownCustomer?.id || liveProfile.customer_id || 0,
+      );
+      const customerCompanyId = Number(ownCustomer?.company_id || 0);
 
       if (!customerId || !customerCompanyId) {
         console.error(
@@ -5461,17 +5492,17 @@ async function loadDeviceModels() {
         return;
       }
 
-      setDocuments(
-        ((data || []) as DocumentItem[]).filter(
-          (item) =>
-            Number(item.company_id) === customerCompanyId &&
-            Number(item.customer_id) === customerId,
-        ),
+      const ownDocuments = ((data || []) as DocumentItem[]).filter(
+        (item) =>
+          Number(item.company_id) === customerCompanyId &&
+          Number(item.customer_id) === customerId,
       );
+
+      setDocuments(ownDocuments);
       return;
     }
 
-    const activeUserId = session?.user?.id || userProfile?.id || null;
+    const activeUserId = authData.user.id;
     const currentCompany =
       companyDataRef.current ||
       readCachedCompanyData(activeUserId) ||
@@ -7382,13 +7413,19 @@ async function loadInvoices() {
       return;
     }
 
-    if (
-      userProfile?.role === "customer" &&
-      Number(item.customer_id || 0) !== Number(userProfile.customer_id || 0)
-    ) {
-      alert("Dieses Dokument ist Ihrem Kundenkonto nicht zugeordnet.");
-      await loadDocuments();
-      return;
+    if (userProfile?.role === "customer") {
+      const portalCustomerId = Number(
+        profileCustomer?.id || userProfile.customer_id || 0,
+      );
+
+      if (
+        portalCustomerId > 0 &&
+        Number(item.customer_id || 0) !== portalCustomerId
+      ) {
+        alert("Dieses Dokument ist Ihrem Kundenkonto nicht zugeordnet.");
+        await loadDocuments();
+        return;
+      }
     }
 
     const { data, error } = await supabase.storage
