@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.24 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.25 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2542,7 +2542,8 @@ export default function Home() {
           : null;
 
         const belongsToCustomer =
-          ticket.customer_id === userProfile.customer_id ||
+          Number(ticket.customer_id || 0) === Number(userProfile.customer_id || 0) ||
+          Number(ticket.billing_customer_id || 0) === Number(userProfile.customer_id || 0) ||
           (!!linkedCustomer?.company && ticket.customer === linkedCustomer.company);
 
         return belongsToCustomer;
@@ -4878,17 +4879,13 @@ async function loadApplicationData(userIdOverride?: string) {
   async function loadTickets() {
     if (isOfflineRuntime()) return [] as Ticket[];
 
-    const currentCompanyId = await resolveOperationCompanyId();
-    if (!currentCompanyId) {
-      console.error("Tickets konnten keiner aktiven Firma zugeordnet werden.");
-      setTickets([]);
-      return [] as Ticket[];
-    }
-
     const { data: authData, error: authError } = await supabase.auth.getUser();
 
     if (authError || !authData.user) {
-      console.error("Angemeldeter Benutzer konnte für den Ticketabruf nicht ermittelt werden:", authError?.message);
+      console.error(
+        "Angemeldeter Benutzer konnte für den Ticketabruf nicht ermittelt werden:",
+        authError?.message,
+      );
       setTickets([]);
       return [] as Ticket[];
     }
@@ -4900,9 +4897,51 @@ async function loadApplicationData(userIdOverride?: string) {
       .maybeSingle();
 
     if (profileError || !ticketProfile) {
-      console.error("Benutzerrolle konnte für den Ticketabruf nicht ermittelt werden:", profileError?.message);
+      console.error(
+        "Benutzerrolle konnte für den Ticketabruf nicht ermittelt werden:",
+        profileError?.message,
+      );
       setTickets([]);
       return [] as Ticket[];
+    }
+
+    let currentCompanyId: number | null = null;
+
+    if (ticketProfile.role === "customer") {
+      if (!ticketProfile.customer_id) {
+        setTickets([]);
+        return [] as Ticket[];
+      }
+
+      // Wichtig: Nicht von userProfile/companyData aus einer eventuell älteren
+      // React-Closure abhängen. Die Kundenfirma wird live und serverseitig aus
+      // auth.uid() -> profiles.customer_id -> customers.company_id aufgelöst.
+      const { data: customerCompanyId, error: companyError } = await supabase.rpc(
+        "current_customer_company_id",
+      );
+
+      if (
+        companyError ||
+        customerCompanyId == null ||
+        Number(customerCompanyId) <= 0
+      ) {
+        console.error(
+          "Kunden-Firmenzuordnung konnte für den Ticketabruf nicht ermittelt werden:",
+          companyError?.message || customerCompanyId,
+        );
+        setTickets([]);
+        return [] as Ticket[];
+      }
+
+      currentCompanyId = Number(customerCompanyId);
+    } else {
+      currentCompanyId = await resolveOperationCompanyId();
+
+      if (!currentCompanyId) {
+        console.error("Tickets konnten keiner aktiven Firma zugeordnet werden.");
+        setTickets([]);
+        return [] as Ticket[];
+      }
     }
 
     let ticketQuery = supabase
@@ -4913,18 +4952,19 @@ async function loadApplicationData(userIdOverride?: string) {
     if (ticketProfile.role === "technician") {
       ticketQuery = ticketQuery.eq("assigned_to", authData.user.id);
     } else if (ticketProfile.role === "customer") {
-      if (!ticketProfile.customer_id) {
-        setTickets([]);
-        return [] as Ticket[];
-      }
-
       const portalCustomerId = Number(ticketProfile.customer_id);
+
+      // Beide Zuordnungsfelder berücksichtigen. Bei Kunden-Tickets sind derzeit
+      // customer_id und billing_customer_id identisch, die Abfrage bleibt aber
+      // kompatibel zu bestehenden Datensätzen.
       ticketQuery = ticketQuery.or(
         `customer_id.eq.${portalCustomerId},billing_customer_id.eq.${portalCustomerId}`,
       );
     }
 
-    const { data, error } = await ticketQuery.order("created_at", { ascending: false });
+    const { data, error } = await ticketQuery.order("created_at", {
+      ascending: false,
+    });
 
     if (error) {
       console.error("Tickets konnten nicht geladen werden:", error.message);
@@ -4933,7 +4973,11 @@ async function loadApplicationData(userIdOverride?: string) {
     }
 
     const scopedTickets = ((data || []) as Ticket[]).filter(
-      (ticket) => Number(ticket.company_id) === Number(currentCompanyId),
+      (ticket) =>
+        Number(ticket.company_id) === Number(currentCompanyId) &&
+        (ticketProfile.role !== "customer" ||
+          Number(ticket.customer_id || 0) === Number(ticketProfile.customer_id || 0) ||
+          Number(ticket.billing_customer_id || 0) === Number(ticketProfile.customer_id || 0)),
     );
 
     setTickets(scopedTickets);
