@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.11 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.12 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -34090,47 +34090,88 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                       className="w-full rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                                       autoComplete="off"
                                     />
-                                    {customerModelSearch.trim() && (
-                                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-xl border border-sky-200 bg-white p-2 shadow-sm">
-                                        {deviceModels
-                                          .filter((modelItem) => Number(modelItem.manufacturer_id) === Number(customerSelectedManufacturerId))
-                                          .filter((modelItem) =>
+                                    {(() => {
+                                      const manufacturerModels = deviceModels.filter(
+                                        (modelItem) =>
+                                          Number(modelItem.manufacturer_id) ===
+                                          Number(customerSelectedManufacturerId),
+                                      );
+
+                                      const visibleManufacturerModels = customerModelSearch.trim()
+                                        ? manufacturerModels.filter((modelItem) =>
                                             matchesTrybunPrefixSearch(
-                                              [getDeviceModelDisplayName(modelItem), getDeviceModelTypeName(modelItem)],
+                                              [
+                                                getDeviceModelDisplayName(modelItem),
+                                                getDeviceModelTypeName(modelItem),
+                                              ],
                                               customerModelSearch,
                                             ),
                                           )
-                                          .slice(0, 12)
-                                          .map((modelItem) => (
-                                            <button
-                                              key={modelItem.id}
-                                              type="button"
-                                              onClick={() => {
-                                                const modelLabel = getDeviceModelDisplayName(modelItem);
-                                                setCustomerSelectedModelId(String(modelItem.id));
-                                                setCustomerDeviceModel(modelLabel);
-                                                setCustomerModelSearch(modelLabel);
-                                              }}
-                                              className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:border-sky-200 hover:bg-sky-50"
-                                            >
-                                              <span>
-                                                {getDeviceModelDisplayName(modelItem)}
-                                                {getDeviceModelTypeName(modelItem) ? (
-                                                  <span className="ml-2 font-semibold text-slate-400">{getDeviceModelTypeName(modelItem)}</span>
-                                                ) : null}
-                                              </span>
-                                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-sky-600">auswählen</span>
-                                            </button>
-                                          ))}
-                                        {deviceModels
-                                          .filter((modelItem) => Number(modelItem.manufacturer_id) === Number(customerSelectedManufacturerId))
-                                          .filter((modelItem) => matchesTrybunPrefixSearch([getDeviceModelDisplayName(modelItem), getDeviceModelTypeName(modelItem)], customerModelSearch)).length === 0 && (
-                                          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
-                                            Kein passendes Modell bei {customerDeviceManufacturer} gefunden.
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
+                                        : manufacturerModels;
+
+                                      return (
+                                        <div className="mt-2">
+                                          <div className="mb-2 flex items-center justify-between gap-3">
+                                            <span className="text-xs font-black text-sky-800">
+                                              {manufacturerModels.length} Modell{manufacturerModels.length === 1 ? "" : "e"} von {customerDeviceManufacturer}
+                                            </span>
+                                            {customerModelSearch.trim() ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => setCustomerModelSearch("")}
+                                                className="text-[11px] font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
+                                              >
+                                                alle anzeigen
+                                              </button>
+                                            ) : null}
+                                          </div>
+
+                                          <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-sky-200 bg-white p-2 shadow-sm">
+                                            {visibleManufacturerModels
+                                              .slice(0, 50)
+                                              .map((modelItem) => (
+                                                <button
+                                                  key={modelItem.id}
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const modelLabel = getDeviceModelDisplayName(modelItem);
+                                                    setCustomerSelectedModelId(String(modelItem.id));
+                                                    setCustomerDeviceModel(modelLabel);
+                                                    setCustomerModelSearch(modelLabel);
+                                                  }}
+                                                  className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-black transition ${
+                                                    String(modelItem.id) === String(customerSelectedModelId)
+                                                      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                                                      : "border-transparent bg-white text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                                                  }`}
+                                                >
+                                                  <span>
+                                                    {getDeviceModelDisplayName(modelItem)}
+                                                    {getDeviceModelTypeName(modelItem) ? (
+                                                      <span className="ml-2 font-semibold text-slate-400">
+                                                        {getDeviceModelTypeName(modelItem)}
+                                                      </span>
+                                                    ) : null}
+                                                  </span>
+                                                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-sky-600">
+                                                    {String(modelItem.id) === String(customerSelectedModelId) ? "gewählt" : "auswählen"}
+                                                  </span>
+                                                </button>
+                                              ))}
+
+                                            {manufacturerModels.length === 0 ? (
+                                              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                                                Für {customerDeviceManufacturer} sind noch keine Modelle in den Stammdaten hinterlegt.
+                                              </p>
+                                            ) : visibleManufacturerModels.length === 0 ? (
+                                              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                                                Kein passendes Modell bei {customerDeviceManufacturer} gefunden. Lösche den Suchtext, um alle Modelle wieder anzuzeigen.
+                                              </p>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
                                     {customerSelectedModelId && customerDeviceModel && (
                                       <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
                                         <span className="text-xs font-black text-emerald-800">✓ Stammdaten-Modell: {customerDeviceModel}</span>
