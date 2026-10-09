@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.25 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.26 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11605,6 +11605,94 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     };
   }
 
+  function getAdminDeviceApprovalPreview(ticket: Ticket) {
+    const companyId = Number(ticket.company_id || 0);
+    const customerId = Number(ticket.customer_id || ticket.billing_customer_id || 0);
+    const manufacturerName = adminManufacturerReview.trim();
+    const modelName = adminModelReview.trim();
+    const serial = adminSerialReview.trim();
+
+    const manufacturerMatch =
+      manufacturers.find(
+        (item) =>
+          Number(item.company_id || companyId) === companyId &&
+          normalizeCompareText(item.name) === normalizeCompareText(manufacturerName),
+      ) || null;
+
+    const modelMatch =
+      manufacturerMatch && modelName
+        ? deviceModels.find(
+            (item) =>
+              Number(item.company_id || companyId) === companyId &&
+              Number(item.manufacturer_id || 0) === Number(manufacturerMatch.id) &&
+              normalizeCompareText(getDeviceModelDisplayName(item)) === normalizeCompareText(modelName),
+          ) || null
+        : null;
+
+    const reviewedDeviceId = Number(ticket.reviewed_device_id || 0);
+    const linkedReviewedDevice =
+      reviewedDeviceId > 0
+        ? devices.find(
+            (item) =>
+              Number(item.id) === reviewedDeviceId &&
+              Number(item.company_id || 0) === companyId &&
+              Number(item.customer_id || 0) === customerId,
+          ) || null
+        : null;
+
+    const serialDevice =
+      !linkedReviewedDevice && serial
+        ? devices.find(
+            (item) =>
+              Number(item.company_id || 0) === companyId &&
+              Number(item.customer_id || 0) === customerId &&
+              normalizeCompareText(item.serial_number || "") === normalizeCompareText(serial),
+          ) || null
+        : null;
+
+    const existingDevice = linkedReviewedDevice || serialDevice;
+    const customer =
+      customers.find(
+        (item) =>
+          Number(item.id) === customerId &&
+          Number(item.company_id || companyId) === companyId,
+      ) || null;
+
+    let masterDataAction = "Hersteller und Modell vollständig prüfen.";
+    if (manufacturerName && modelName) {
+      if (manufacturerMatch && modelMatch) {
+        masterDataAction = "Hersteller und Modell sind bereits vorhanden. Es werden keine neuen Stammdaten angelegt.";
+      } else if (manufacturerMatch) {
+        masterDataAction = `Neues Modell „${modelName}“ wird unter „${manufacturerMatch.name}“ angelegt.`;
+      } else {
+        masterDataAction = `Neuer Hersteller „${manufacturerName}“ und neues Modell „${modelName}“ werden angelegt.`;
+      }
+    }
+
+    const customerDeviceAction = existingDevice
+      ? "Vorhandenes Kundengerät wird aktualisiert und mit dem Ticket verknüpft."
+      : "Neues Kundengerät wird für diesen Kunden angelegt und mit dem Ticket verknüpft.";
+
+    const buttonLabel = existingDevice
+      ? "Geprüfte Daten freigeben & Kundengerät aktualisieren"
+      : manufacturerName && modelName && (!manufacturerMatch || !modelMatch)
+        ? "Stammdaten übernehmen & Kundengerät anlegen"
+        : "Geprüfte Daten freigeben & Kundengerät anlegen";
+
+    return {
+      customer,
+      manufacturerMatch,
+      modelMatch,
+      existingDevice,
+      manufacturerName,
+      modelName,
+      serial,
+      masterDataAction,
+      customerDeviceAction,
+      buttonLabel,
+    };
+  }
+
 
   function getAbnahmeLibraryDeviceById(deviceId: string) {
     const numericId = Number(deviceId);
@@ -12725,6 +12813,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     const finalModelName = adminModelReview.trim();
     const finalSerial = adminSerialReview.trim();
     const finalLocation = adminLocationReview.trim();
+    const approvalPreview = getAdminDeviceApprovalPreview(ticket);
 
     if (!finalDeviceName || !finalManufacturerName || !finalModelName) {
       alert("Bitte Gerätebezeichnung, Hersteller und Modell vor der Freigabe vollständig prüfen.");
@@ -12785,10 +12874,19 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
         );
       }
 
+      const masterDataResult =
+        approvalPreview.manufacturerMatch && approvalPreview.modelMatch
+          ? "Vorhandene Hersteller-/Modelldaten wurden verwendet."
+          : approvalPreview.manufacturerMatch
+            ? `Das neue Modell „${finalModelName}“ wurde dem Hersteller „${finalManufacturerName}“ zugeordnet.`
+            : `Der neue Hersteller „${finalManufacturerName}“ und das Modell „${finalModelName}“ wurden in die Stammdaten übernommen.`;
+
       alert(
-        result.updated_existing_device
-          ? "Gerätedaten geprüft und bestehendes Kundengerät aktualisiert."
-          : "Gerätedaten geprüft und Kundengerät angelegt.",
+        `${masterDataResult}\n\n${
+          result.updated_existing_device
+            ? "Das bestehende Kundengerät wurde aktualisiert und mit dem Ticket verknüpft."
+            : "Das neue Kundengerät wurde angelegt und mit dem Ticket verknüpft."
+        }`,
       );
     } catch (error: any) {
       console.error("Admin-Gerätefreigabe fehlgeschlagen:", error);
@@ -25022,27 +25120,215 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           </div>
                         )}
 
-                        {isAdmin && currentTicket.device_review_status !== "approved" && (
-                          <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                            <p className="text-sm font-black text-emerald-900">Adminprüfung & Stammdatenfreigabe</p>
-                            <p className="mt-1 text-xs font-semibold leading-5 text-emerald-700">Prüfe Typenschild/Fotos und korrigiere die Angaben. Erst dieser Schritt darf Hersteller/Modell anlegen oder das Kundengerät erstellen bzw. aktualisieren.</p>
-                            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                              <input value={adminDeviceNameReview} onChange={(e) => setAdminDeviceNameReview(e.target.value)} placeholder="Geprüfte Gerätebezeichnung" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
-                              <div>
-                                <input list={`admin-manufacturer-${currentTicket.id}`} value={adminManufacturerReview} onChange={(e) => { setAdminManufacturerReview(e.target.value); setAdminModelReview(""); }} placeholder="Geprüfter Hersteller" className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
-                                <datalist id={`admin-manufacturer-${currentTicket.id}`}>{manufacturers.map((item) => <option key={item.id} value={item.name} />)}</datalist>
+                        {isAdmin && currentTicket.device_review_status !== "approved" && (() => {
+                          const approvalPreview = getAdminDeviceApprovalPreview(currentTicket);
+                          const approvalCustomer = approvalPreview.customer;
+                          const manufacturerComplete = Boolean(approvalPreview.manufacturerName);
+                          const modelComplete = Boolean(approvalPreview.modelName);
+
+                          return (
+                            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                              <p className="text-sm font-black text-emerald-900">Adminprüfung & Stammdatenfreigabe</p>
+                              <p className="mt-1 text-xs font-semibold leading-5 text-emerald-700">
+                                Prüfe Typenschild, Fotos und Technikerangaben. TRYBUN zeigt dir vor der Freigabe, was in „Hersteller & Modelle“ und was als konkretes Kundengerät gespeichert wird.
+                              </p>
+
+                              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                                <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+                                  <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                                    1. Hersteller & Modelle
+                                  </p>
+                                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                                    Stammdaten ohne Seriennummer und ohne Kundenzuordnung.
+                                  </p>
+
+                                  <div className="mt-3 grid gap-3">
+                                    <div>
+                                      <label className="mb-1 block text-xs font-black text-slate-600">Hersteller</label>
+                                      <input
+                                        list={`admin-manufacturer-${currentTicket.id}`}
+                                        value={adminManufacturerReview}
+                                        onChange={(e) => {
+                                          setAdminManufacturerReview(e.target.value);
+                                          setAdminModelReview("");
+                                        }}
+                                        placeholder="Geprüfter Hersteller"
+                                        className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm"
+                                      />
+                                      <datalist id={`admin-manufacturer-${currentTicket.id}`}>
+                                        {manufacturers.map((item) => <option key={item.id} value={item.name} />)}
+                                      </datalist>
+                                      <p className={`mt-2 rounded-lg px-3 py-2 text-xs font-black ${
+                                        approvalPreview.manufacturerMatch
+                                          ? "bg-emerald-50 text-emerald-700"
+                                          : manufacturerComplete
+                                            ? "bg-amber-50 text-amber-800"
+                                            : "bg-slate-50 text-slate-500"
+                                      }`}>
+                                        {approvalPreview.manufacturerMatch
+                                          ? `✓ Hersteller vorhanden: ${approvalPreview.manufacturerMatch.name}`
+                                          : manufacturerComplete
+                                            ? `+ Neuer Hersteller: ${approvalPreview.manufacturerName}`
+                                            : "Hersteller noch nicht vollständig geprüft"}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <label className="mb-1 block text-xs font-black text-slate-600">Modell</label>
+                                      <input
+                                        list={`admin-model-${currentTicket.id}`}
+                                        value={adminModelReview}
+                                        onChange={(e) => setAdminModelReview(e.target.value)}
+                                        placeholder="Geprüftes Modell"
+                                        className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm"
+                                      />
+                                      <datalist id={`admin-model-${currentTicket.id}`}>
+                                        {deviceModels
+                                          .filter((modelItem) => {
+                                            const m = manufacturers.find(
+                                              (item) =>
+                                                normalizeCompareText(item.name) ===
+                                                normalizeCompareText(adminManufacturerReview),
+                                            );
+                                            return !m || Number(modelItem.manufacturer_id) === Number(m.id);
+                                          })
+                                          .map((item) => (
+                                            <option key={item.id} value={getDeviceModelDisplayName(item)} />
+                                          ))}
+                                      </datalist>
+                                      <p className={`mt-2 rounded-lg px-3 py-2 text-xs font-black ${
+                                        approvalPreview.modelMatch
+                                          ? "bg-emerald-50 text-emerald-700"
+                                          : modelComplete
+                                            ? "bg-amber-50 text-amber-800"
+                                            : "bg-slate-50 text-slate-500"
+                                      }`}>
+                                        {approvalPreview.modelMatch
+                                          ? `✓ Modell vorhanden: ${getDeviceModelDisplayName(approvalPreview.modelMatch)}`
+                                          : modelComplete
+                                            ? approvalPreview.manufacturerMatch
+                                              ? `+ Neues Modell wird unter ${approvalPreview.manufacturerMatch.name} angelegt`
+                                              : "+ Modell wird zusammen mit dem neuen Hersteller angelegt"
+                                            : "Modell noch nicht angegeben"}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                                    <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">
+                                      Stammdaten-Aktion
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold leading-5 text-slate-700">
+                                      {approvalPreview.masterDataAction}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-sky-200 bg-white p-4">
+                                  <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-700">
+                                    2. Kundengerät
+                                  </p>
+                                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                                    Das konkrete Gerät beim Kunden. Hier gehören Seriennummer und Standort hin.
+                                  </p>
+
+                                  <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                                    <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kunde</p>
+                                    <p className="mt-1 text-sm font-black text-slate-900">
+                                      {approvalCustomer ? getCustomerLabel(approvalCustomer) : currentTicket.customer || "Nicht zugeordnet"}
+                                    </p>
+                                    <p className="mt-1 text-xs font-bold text-slate-600">
+                                      Kundennummer: {approvalCustomer?.customer_number || "–"}
+                                    </p>
+                                  </div>
+
+                                  <div className="mt-3 grid gap-3">
+                                    <div>
+                                      <label className="mb-1 block text-xs font-black text-slate-600">Gerätebezeichnung</label>
+                                      <input
+                                        value={adminDeviceNameReview}
+                                        onChange={(e) => setAdminDeviceNameReview(e.target.value)}
+                                        placeholder="z. B. Heiztherme Keller"
+                                        className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm"
+                                      />
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                      <div>
+                                        <label className="mb-1 block text-xs font-black text-slate-600">Seriennummer</label>
+                                        <input
+                                          value={adminSerialReview}
+                                          onChange={(e) => setAdminSerialReview(e.target.value)}
+                                          placeholder="Geprüfte Seriennummer"
+                                          className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="mb-1 block text-xs font-black text-slate-600">Standort</label>
+                                        <input
+                                          value={adminLocationReview}
+                                          onChange={(e) => setAdminLocationReview(e.target.value)}
+                                          placeholder="z. B. Keller"
+                                          className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="mb-1 block text-xs font-black text-slate-600">Prüfnotiz</label>
+                                      <input
+                                        value={adminDeviceReviewNote}
+                                        onChange={(e) => setAdminDeviceReviewNote(e.target.value)}
+                                        placeholder="Optional, z. B. Typenschild geprüft"
+                                        className="w-full rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className={`mt-3 rounded-xl border p-3 ${
+                                    approvalPreview.existingDevice
+                                      ? "border-blue-200 bg-blue-50"
+                                      : "border-sky-200 bg-sky-50"
+                                  }`}>
+                                    <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-700">
+                                      Kundengeräte-Aktion
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold leading-5 text-slate-700">
+                                      {approvalPreview.customerDeviceAction}
+                                    </p>
+                                    {approvalPreview.existingDevice && (
+                                      <p className="mt-2 text-xs font-bold text-blue-700">
+                                        Gefundenes Kundengerät: {approvalPreview.existingDevice.name || "Gerät"} · Seriennummer {approvalPreview.existingDevice.serial_number || "nicht hinterlegt"}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <input list={`admin-model-${currentTicket.id}`} value={adminModelReview} onChange={(e) => setAdminModelReview(e.target.value)} placeholder="Geprüftes Modell" className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
-                                <datalist id={`admin-model-${currentTicket.id}`}>{deviceModels.filter((modelItem) => { const m = manufacturers.find((item) => normalizeCompareText(item.name) === normalizeCompareText(adminManufacturerReview)); return !m || Number(modelItem.manufacturer_id) === Number(m.id); }).map((item) => <option key={item.id} value={getDeviceModelDisplayName(item)} />)}</datalist>
+
+                              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
+                                  Was passiert beim Freigeben?
+                                </p>
+                                <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
+                                  {approvalPreview.masterDataAction}
+                                </p>
+                                <p className="mt-1 text-sm font-bold leading-6 text-slate-700">
+                                  {approvalPreview.customerDeviceAction}
+                                </p>
+                                <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                                  Die Seriennummer wird nur am Kundengerät gespeichert – nicht in „Hersteller & Modelle“.
+                                </p>
                               </div>
-                              <input value={adminSerialReview} onChange={(e) => setAdminSerialReview(e.target.value)} placeholder="Geprüfte Seriennummer" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
-                              <input value={adminLocationReview} onChange={(e) => setAdminLocationReview(e.target.value)} placeholder="Standort" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
-                              <input value={adminDeviceReviewNote} onChange={(e) => setAdminDeviceReviewNote(e.target.value)} placeholder="Prüfnotiz optional" className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm" />
+
+                              <button
+                                type="button"
+                                disabled={adminDeviceReviewSaving}
+                                onClick={() => approveTicketDeviceData(currentTicket)}
+                                className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+                              >
+                                {adminDeviceReviewSaving ? "Übernimmt..." : approvalPreview.buttonLabel}
+                              </button>
                             </div>
-                            <button type="button" disabled={adminDeviceReviewSaving} onClick={() => approveTicketDeviceData(currentTicket)} className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-50">{adminDeviceReviewSaving ? "Übernimmt..." : "Geprüfte Daten freigeben & Kundengerät übernehmen"}</button>
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {isAdmin && currentTicket.device_review_status === "approved" && (
                           <div className="mt-4 rounded-2xl border border-emerald-200 bg-white p-4 text-sm font-semibold text-emerald-800">
