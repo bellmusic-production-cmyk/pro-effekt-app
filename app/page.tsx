@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.19 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.18 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4978,35 +4978,12 @@ async function loadApplicationData(userIdOverride?: string) {
   async function loadCustomers() {
     if (isOfflineRuntime()) return;
 
-    // Die Rolle wird hier bewusst live aus dem aktuell authentifizierten Profil
-    // ermittelt. loadApplicationData() kann direkt nach dem Login noch mit einem
-    // älteren React-Closure laufen; userProfile allein wäre dann nicht zuverlässig.
-    let liveRole = userProfile?.role || null;
-
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      const activeUserId = authData.user?.id || session?.user?.id || null;
-
-      if (activeUserId) {
-        const { data: liveProfile, error: liveProfileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", activeUserId)
-          .maybeSingle();
-
-        if (!liveProfileError && liveProfile?.role) {
-          liveRole = liveProfile.role as UserProfile["role"];
-        }
-      }
-    } catch (error) {
-      console.error("Live-Rolle für Kundenladen konnte nicht ermittelt werden:", error);
-    }
-
     // Kundenportal:
-    // Kunden haben bewusst keinen company_members-Eintrag. Die eigene Identität
-    // wird deshalb ausschließlich serverseitig über auth.uid() -> profiles.customer_id
-    // -> customers.id geladen, niemals über Name oder E-Mail.
-    if (liveRole === "customer") {
+    // Kunden haben bewusst keinen company_members-Eintrag. Außerdem kann der
+    // React-/LocalStorage-Profilcache direkt nach einer SQL-Zuordnung noch eine
+    // alte customer_id enthalten. Deshalb wird die eigene Kundenidentität hier
+    // serverseitig über auth.uid() ermittelt und nicht über Name/E-Mail.
+    if (userProfile?.role === "customer") {
       const { data, error } = await supabase.rpc("customer_portal_identity");
 
       if (error) {
@@ -5014,6 +4991,7 @@ async function loadApplicationData(userIdOverride?: string) {
           "Kundenidentität konnte nicht geladen werden:",
           error.message,
         );
+        setCustomers([]);
         return;
       }
 
@@ -5022,7 +5000,7 @@ async function loadApplicationData(userIdOverride?: string) {
         : ((data || null) as Customer | null);
 
       if (!ownCustomer?.id || !ownCustomer.customer_number?.trim()) {
-        console.error("Kundenidentität ist unvollständig oder ohne Kundennummer.");
+        setCustomers([]);
         return;
       }
 
@@ -7622,7 +7600,7 @@ async function loadApplicationData(userIdOverride?: string) {
         : customer || "Vor-Ort / nicht zugeordnet";
 
     const currentCustomerId = isCustomer
-      ? profileCustomer?.id || userProfile?.customer_id || null
+      ? userProfile?.customer_id || null
       : selectedCustomer?.id || null;
 
     if (isCustomer) {
@@ -12359,12 +12337,10 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       return;
     }
 
-    const customerId = profileCustomer?.id || userProfile?.customer_id || null;
-    const currentCustomer =
-      profileCustomer ||
-      (customerId
-        ? customers.find((item) => Number(item.id) === Number(customerId)) || null
-        : null);
+    const customerId = userProfile?.customer_id || null;
+    const currentCustomer = customerId
+      ? customers.find((item) => Number(item.id) === Number(customerId)) || null
+      : null;
 
     if (
       !customerId ||
@@ -19495,12 +19471,9 @@ ${tenantBrandName}`,
     });
   }
 
-  const profileCustomer =
-    userProfile?.role === "customer"
-      ? customers[0] || null
-      : userProfile?.customer_id
-        ? customers.find((item) => Number(item.id) === Number(userProfile.customer_id)) || null
-        : null;
+  const profileCustomer = userProfile?.customer_id
+    ? customers.find((item) => item.id === userProfile.customer_id)
+    : null;
   if (session && userProfile && !profileLoading && !legalAccepted) {
     return (
       <main className="min-h-screen bg-[#07111d] px-5 py-8 text-white">
@@ -29875,17 +29848,12 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       >
                         <div className="flex min-w-0 flex-col gap-4">
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-xs font-bold text-sky-500">
-                                {getCustomerDisplayName(item) || "Kein Ansprechpartner"}
-                              </p>
-                              <span className="rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-[11px] font-black text-sky-700">
-                                Kundennummer: {item.customer_number || "nicht hinterlegt"}
-                              </span>
-                            </div>
+                            <p className="text-xs font-bold text-sky-500">
+                              {getCustomerDisplayName(item) || "Kein Ansprechpartner"}
+                            </p>
 
                             <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
-                              {item.company || getCustomerLabel(item)}
+                              {item.company}
                             </h4>
 
                             <p className="mt-2 break-words text-sm text-slate-600">
