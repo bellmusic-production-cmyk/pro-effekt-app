@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.17 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.18 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2249,6 +2249,12 @@ export default function Home() {
       void loadDeviceModels();
     }
   }, [userProfile?.id, userProfile?.role, userProfile?.customer_id, companyData?.id]);
+
+  useEffect(() => {
+    if (userProfile?.role === "customer" && session?.user?.id) {
+      void loadCustomers();
+    }
+  }, [session?.user?.id, userProfile?.id, userProfile?.role, userProfile?.customer_id]);
 
   useEffect(() => {
     if (!session?.user?.id || !activePage) return;
@@ -4972,6 +4978,62 @@ async function loadApplicationData(userIdOverride?: string) {
   async function loadCustomers() {
     if (isOfflineRuntime()) return;
 
+    // Kundenportal:
+    // Kunden haben bewusst keinen company_members-Eintrag. Außerdem kann der
+    // React-/LocalStorage-Profilcache direkt nach einer SQL-Zuordnung noch eine
+    // alte customer_id enthalten. Deshalb wird die eigene Kundenidentität hier
+    // serverseitig über auth.uid() ermittelt und nicht über Name/E-Mail.
+    if (userProfile?.role === "customer") {
+      const { data, error } = await supabase.rpc("customer_portal_identity");
+
+      if (error) {
+        console.error(
+          "Kundenidentität konnte nicht geladen werden:",
+          error.message,
+        );
+        setCustomers([]);
+        return;
+      }
+
+      const ownCustomer = Array.isArray(data)
+        ? ((data[0] || null) as Customer | null)
+        : ((data || null) as Customer | null);
+
+      if (!ownCustomer?.id || !ownCustomer.customer_number?.trim()) {
+        setCustomers([]);
+        return;
+      }
+
+      setCustomers([ownCustomer]);
+
+      // Einen eventuell noch alten Profilcache direkt korrigieren.
+      if (Number(userProfile.customer_id || 0) !== Number(ownCustomer.id)) {
+        setUserProfile((current) => {
+          if (!current || current.role !== "customer") return current;
+
+          const nextProfile = {
+            ...current,
+            customer_id: Number(ownCustomer.id),
+          };
+
+          if (typeof window !== "undefined") {
+            try {
+              window.localStorage.setItem(
+                `trybun-user-profile-${current.id}`,
+                JSON.stringify(nextProfile),
+              );
+            } catch {
+              // Cache ist Komfort, kein Blocker.
+            }
+          }
+
+          return nextProfile;
+        });
+      }
+
+      return;
+    }
+
     const currentCompany = await resolveActiveCompanyForOperation();
     if (!currentCompany?.id) {
       setCustomers([]);
@@ -4985,18 +5047,12 @@ async function loadApplicationData(userIdOverride?: string) {
     while (true) {
       const to = from + pageSize - 1;
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("customers")
         .select("*")
         .eq("company_id", currentCompany.id)
         .order("created_at", { ascending: false })
         .range(from, to);
-
-      if (userProfile?.role === "customer" && userProfile.customer_id) {
-        query = query.eq("id", userProfile.customer_id);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error("Kunden konnten nicht geladen werden:", error.message);
@@ -5013,7 +5069,9 @@ async function loadApplicationData(userIdOverride?: string) {
       from += pageSize;
 
       if (from > 50000) {
-        console.warn("Kunden-Ladevorgang wurde zur Sicherheit bei 50.000 Datensätzen gestoppt.");
+        console.warn(
+          "Kunden-Ladevorgang wurde zur Sicherheit bei 50.000 Datensätzen gestoppt.",
+        );
         break;
       }
     }
