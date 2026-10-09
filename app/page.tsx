@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.12 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.13 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1579,6 +1579,9 @@ export default function Home() {
   const [customerModelSearch, setCustomerModelSearch] = useState("");
   const [customerSelectedManufacturerId, setCustomerSelectedManufacturerId] = useState("");
   const [customerSelectedModelId, setCustomerSelectedModelId] = useState("");
+  const [customerManufacturerModels, setCustomerManufacturerModels] = useState<DeviceModel[]>([]);
+  const [customerManufacturerModelsLoading, setCustomerManufacturerModelsLoading] = useState(false);
+  const [customerManufacturerModelsError, setCustomerManufacturerModelsError] = useState("");
   const [customerManualManufacturer, setCustomerManualManufacturer] = useState(false);
   const [customerManualModel, setCustomerManualModel] = useState(false);
 
@@ -7142,6 +7145,50 @@ async function loadApplicationData(userIdOverride?: string) {
     };
   }
 
+  async function loadCustomerModelsForManufacturer(manufacturerId: string) {
+    const numericManufacturerId = Number(manufacturerId);
+
+    setCustomerManufacturerModels([]);
+    setCustomerManufacturerModelsError("");
+
+    if (!numericManufacturerId) return;
+
+    setCustomerManufacturerModelsLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc("customer_device_models_catalog");
+
+      if (error) {
+        console.error("Kunden-Modelle für ausgewählten Hersteller konnten nicht geladen werden:", error.message);
+        setCustomerManufacturerModelsError(
+          "Modelle konnten nicht geladen werden. Bitte erneut versuchen.",
+        );
+        return;
+      }
+
+      const matchingModels = ((data || []) as DeviceModel[])
+        .filter(
+          (modelItem) =>
+            Number(modelItem.manufacturer_id) === numericManufacturerId,
+        )
+        .sort((a, b) =>
+          getDeviceModelDisplayName(a).localeCompare(
+            getDeviceModelDisplayName(b),
+            "de",
+          ),
+        );
+
+      setCustomerManufacturerModels(matchingModels);
+    } catch (error) {
+      console.error("Kunden-Modelle für Hersteller konnten nicht geladen werden:", error);
+      setCustomerManufacturerModelsError(
+        "Modelle konnten nicht geladen werden. Bitte erneut versuchen.",
+      );
+    } finally {
+      setCustomerManufacturerModelsLoading(false);
+    }
+  }
+
   function resetTicketForm() {
     setEditingTicket(null);
     setCustomer("");
@@ -7172,6 +7219,9 @@ async function loadApplicationData(userIdOverride?: string) {
     setCustomerModelSearch("");
     setCustomerSelectedManufacturerId("");
     setCustomerSelectedModelId("");
+    setCustomerManufacturerModels([]);
+    setCustomerManufacturerModelsLoading(false);
+    setCustomerManufacturerModelsError("");
     setCustomerManualManufacturer(false);
     setCustomerManualModel(false);
     setCustomerDeviceLocation("");
@@ -12232,6 +12282,9 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     setCustomerModelSearch("");
     setCustomerSelectedManufacturerId("");
     setCustomerSelectedModelId("");
+    setCustomerManufacturerModels([]);
+    setCustomerManufacturerModelsLoading(false);
+    setCustomerManufacturerModelsError("");
     setCustomerManualManufacturer(false);
     setCustomerManualModel(false);
     setCustomerDeviceLocation("");
@@ -33890,6 +33943,8 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                         setCustomerModelSearch("");
                                         setCustomerSelectedManufacturerId(selected ? "" : String(deviceItem.manufacturer_id || ""));
                                         setCustomerSelectedModelId(selected ? "" : String(deviceItem.model_id || ""));
+                                        setCustomerManufacturerModels([]);
+                                        setCustomerManufacturerModelsError("");
                                         setCustomerManualManufacturer(false);
                                         setCustomerManualModel(false);
                                       }}
@@ -33973,6 +34028,8 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                         setCustomerManufacturerSearch(e.target.value);
                                         setCustomerSelectedManufacturerId("");
                                         setCustomerSelectedModelId("");
+                                        setCustomerManufacturerModels([]);
+                                        setCustomerManufacturerModelsError("");
                                         setCustomerDeviceManufacturer("");
                                         setCustomerDeviceModel("");
                                         setCustomerModelSearch("");
@@ -33994,13 +34051,15 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                               key={item.id}
                                               type="button"
                                               onClick={() => {
-                                                setCustomerSelectedManufacturerId(String(item.id));
+                                                const selectedManufacturerId = String(item.id);
+                                                setCustomerSelectedManufacturerId(selectedManufacturerId);
                                                 setCustomerDeviceManufacturer(item.name);
                                                 setCustomerManufacturerSearch(item.name);
                                                 setCustomerSelectedModelId("");
                                                 setCustomerDeviceModel("");
                                                 setCustomerModelSearch("");
                                                 setCustomerManualModel(false);
+                                                void loadCustomerModelsForManufacturer(selectedManufacturerId);
                                               }}
                                               className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:border-sky-200 hover:bg-sky-50"
                                             >
@@ -34023,6 +34082,8 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                           type="button"
                                           onClick={() => {
                                             setCustomerSelectedManufacturerId("");
+                                            setCustomerManufacturerModels([]);
+                                            setCustomerManufacturerModelsError("");
                                             setCustomerDeviceManufacturer("");
                                             setCustomerManufacturerSearch("");
                                             setCustomerSelectedModelId("");
@@ -34061,6 +34122,8 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                     setCustomerManualManufacturer(nextManual);
                                     setCustomerSelectedManufacturerId("");
                                     setCustomerSelectedModelId("");
+                                    setCustomerManufacturerModels([]);
+                                    setCustomerManufacturerModelsError("");
                                     setCustomerManufacturerSearch("");
                                     setCustomerModelSearch("");
                                     setCustomerDeviceManufacturer(nextManual ? "" : "");
@@ -34091,11 +34154,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                       autoComplete="off"
                                     />
                                     {(() => {
-                                      const manufacturerModels = deviceModels.filter(
-                                        (modelItem) =>
-                                          Number(modelItem.manufacturer_id) ===
-                                          Number(customerSelectedManufacturerId),
-                                      );
+                                      const manufacturerModels = customerManufacturerModels;
 
                                       const visibleManufacturerModels = customerModelSearch.trim()
                                         ? manufacturerModels.filter((modelItem) =>
@@ -34125,6 +34184,25 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                               </button>
                                             ) : null}
                                           </div>
+
+                                          {customerManufacturerModelsLoading ? (
+                                            <p className="mb-2 rounded-lg bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800">
+                                              Modelle werden geladen …
+                                            </p>
+                                          ) : null}
+
+                                          {customerManufacturerModelsError ? (
+                                            <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                                              <p className="text-xs font-bold text-amber-800">{customerManufacturerModelsError}</p>
+                                              <button
+                                                type="button"
+                                                onClick={() => void loadCustomerModelsForManufacturer(customerSelectedManufacturerId)}
+                                                className="mt-1 text-xs font-black text-amber-900 underline"
+                                              >
+                                                erneut laden
+                                              </button>
+                                            </div>
+                                          ) : null}
 
                                           <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-sky-200 bg-white p-2 shadow-sm">
                                             {visibleManufacturerModels
@@ -34159,11 +34237,14 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                                 </button>
                                               ))}
 
-                                            {manufacturerModels.length === 0 ? (
+                                            {!customerManufacturerModelsLoading &&
+                                            !customerManufacturerModelsError &&
+                                            manufacturerModels.length === 0 ? (
                                               <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
                                                 Für {customerDeviceManufacturer} sind noch keine Modelle in den Stammdaten hinterlegt.
                                               </p>
-                                            ) : visibleManufacturerModels.length === 0 ? (
+                                            ) : visibleManufacturerModels.length === 0 &&
+                                              manufacturerModels.length > 0 ? (
                                               <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
                                                 Kein passendes Modell bei {customerDeviceManufacturer} gefunden. Lösche den Suchtext, um alle Modelle wieder anzuzeigen.
                                               </p>
