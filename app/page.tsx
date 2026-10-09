@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.14 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.15 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -22382,6 +22382,14 @@ ${tenantBrandName}`,
               >
                 {userProfile?.full_name || session.user.email}
               </p>
+              {isCustomer && (
+                <p
+                  className="mt-0.5 truncate text-[11px] font-semibold opacity-75"
+                  style={{ color: tenantMenuTextColor }}
+                >
+                  Kundennummer: {profileCustomer?.customer_number || "–"}
+                </p>
+              )}
               <p
                 className="mt-0.5 truncate text-[11px] font-medium opacity-65"
                 style={{ color: tenantMenuTextColor }}
@@ -22553,6 +22561,14 @@ ${tenantBrandName}`,
                       >
                         {isAdmin ? "Administrator" : isTechnician ? "Techniker" : "Kunde"}
                       </p>
+                      {isCustomer && (
+                        <p
+                          className="mt-1 truncate text-[11px] font-semibold opacity-70"
+                          style={{ color: tenantMenuTextColor }}
+                        >
+                          Kundennummer: {profileCustomer?.customer_number || "–"}
+                        </p>
+                      )}
                       <p
                         className="mt-1 truncate text-[11px] font-medium opacity-55"
                         style={{ color: tenantMenuTextColor }}
@@ -33725,6 +33741,9 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                             ? getCustomerLabel(profileCustomer)
                             : userProfile?.full_name || userProfile?.company || "Kunde"}
                         </p>
+                        <p className="mt-1 text-sm font-bold text-slate-600">
+                          Kundennummer: {profileCustomer?.customer_number || "–"}
+                        </p>
                       </div>
                     ) : (
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -35313,6 +35332,9 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         {profileCustomer
                           ? getCustomerLabel(profileCustomer)
                           : userProfile?.full_name || userProfile?.company || "Kunde"}
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-slate-600">
+                        Kundennummer: {profileCustomer?.customer_number || "–"}
                       </p>
                     </div>
 
