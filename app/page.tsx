@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.36 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.37 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2648,32 +2648,31 @@ export default function Home() {
 
   const filteredDocuments = useMemo(() => {
     const search = documentSearchTerm.trim();
+    const customerPortalActive = userProfile?.role === "customer";
 
-    // Kunden sind bewusst keine company_members. Deshalb darf das Archiv beim
-    // Kunden nicht ausschließlich von companyData/companyDataRef abhängen.
-    // Die sichere Firma kommt im Kundenportal aus profileCustomer.
+    // loadDocuments() liefert im Kundenportal bereits ausschließlich die
+    // serverseitig verifizierten Dokumente des eigenen Kundenkontos.
+    // Deshalb darf dieser frühe Archiv-Memo NICHT auf isCustomer/profileCustomer
+    // zugreifen: Beide werden im Komponentenablauf erst später deklariert.
+    // Für Mitarbeiter bleibt die zusätzliche company_id-Absicherung bestehen.
     const activeCompanyId = Number(
-      isCustomer
-        ? profileCustomer?.company_id || 0
-        : companyData?.id || companyDataRef.current?.id || 0,
+      companyData?.id || companyDataRef.current?.id || 0,
     );
 
-    const tenantFilteredDocuments = activeCompanyId
-      ? documents.filter(
-          (item) =>
-            item.company_id != null &&
-            Number(item.company_id) === activeCompanyId,
-        )
-      : isCustomer
-        ? documents
+    const tenantFilteredDocuments = customerPortalActive
+      ? documents
+      : activeCompanyId
+        ? documents.filter(
+            (item) =>
+              item.company_id != null &&
+              Number(item.company_id) === activeCompanyId,
+          )
         : [];
 
-    const portalCustomerId = Number(
-      profileCustomer?.id || userProfile?.customer_id || 0,
-    );
+    const portalCustomerId = Number(userProfile?.customer_id || 0);
 
     const customerFilteredDocuments =
-      isCustomer && portalCustomerId
+      customerPortalActive && portalCustomerId
         ? tenantFilteredDocuments.filter(
             (item) => Number(item.customer_id || 0) === portalCustomerId,
           )
@@ -2789,9 +2788,6 @@ export default function Home() {
     documentDeviceFilter,
     userProfile,
     companyData,
-    isCustomer,
-    profileCustomer?.id,
-    profileCustomer?.company_id,
   ]);
 
   const inspectionStats = useMemo(() => {
