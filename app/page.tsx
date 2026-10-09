@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.35 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.36 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -2649,8 +2649,13 @@ export default function Home() {
   const filteredDocuments = useMemo(() => {
     const search = documentSearchTerm.trim();
 
+    // Kunden sind bewusst keine company_members. Deshalb darf das Archiv beim
+    // Kunden nicht ausschließlich von companyData/companyDataRef abhängen.
+    // Die sichere Firma kommt im Kundenportal aus profileCustomer.
     const activeCompanyId = Number(
-      companyData?.id || companyDataRef.current?.id || 0,
+      isCustomer
+        ? profileCustomer?.company_id || 0
+        : companyData?.id || companyDataRef.current?.id || 0,
     );
 
     const tenantFilteredDocuments = activeCompanyId
@@ -2659,12 +2664,18 @@ export default function Home() {
             item.company_id != null &&
             Number(item.company_id) === activeCompanyId,
         )
-      : [];
+      : isCustomer
+        ? documents
+        : [];
+
+    const portalCustomerId = Number(
+      profileCustomer?.id || userProfile?.customer_id || 0,
+    );
 
     const customerFilteredDocuments =
-      userProfile?.role === "customer"
+      isCustomer && portalCustomerId
         ? tenantFilteredDocuments.filter(
-            (item) => item.customer_id === userProfile?.customer_id,
+            (item) => Number(item.customer_id || 0) === portalCustomerId,
           )
         : tenantFilteredDocuments;
 
@@ -2778,6 +2789,9 @@ export default function Home() {
     documentDeviceFilter,
     userProfile,
     companyData,
+    isCustomer,
+    profileCustomer?.id,
+    profileCustomer?.company_id,
   ]);
 
   const inspectionStats = useMemo(() => {
