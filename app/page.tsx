@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.08 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.09 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -4975,6 +4975,24 @@ async function loadApplicationData(userIdOverride?: string) {
   async function loadManufacturers() {
     if (isOfflineRuntime()) return;
 
+    // Kunden laden den reinen Lesekatalog über eine SECURITY-DEFINER-RPC.
+    // Die Funktion ermittelt die Firmen-ID ausschließlich aus auth.uid() -> profile -> customer
+    // und gibt damit nur Hersteller der eigenen Servicefirma zurück.
+    if (userProfile?.role === "customer") {
+      const { data, error } = await supabase.rpc("customer_manufacturers_catalog");
+
+      if (error) {
+        console.error("Kunden-Herstellerkatalog konnte nicht geladen werden:", error.message);
+        setManufacturers([]);
+        return;
+      }
+
+      setManufacturers(((data || []) as Manufacturer[]).slice().sort((a, b) =>
+        String(a.name || "").localeCompare(String(b.name || ""), "de"),
+      ));
+      return;
+    }
+
     const currentCompany = await resolveActiveCompanyForOperation();
     if (!currentCompany?.id) {
       setManufacturers([]);
@@ -5002,6 +5020,23 @@ async function loadApplicationData(userIdOverride?: string) {
 
   async function loadDeviceModels() {
     if (isOfflineRuntime()) return;
+
+    // Analog zum Herstellerkatalog: Kunden lesen Modelle ausschließlich über die
+    // serverseitig mandantengefilterte RPC und erhalten keinerlei Schreibrecht.
+    if (userProfile?.role === "customer") {
+      const { data, error } = await supabase.rpc("customer_device_models_catalog");
+
+      if (error) {
+        console.error("Kunden-Modellkatalog konnte nicht geladen werden:", error.message);
+        setDeviceModels([]);
+        return;
+      }
+
+      setDeviceModels(((data || []) as DeviceModel[]).slice().sort((a, b) =>
+        getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de"),
+      ));
+      return;
+    }
 
     const currentCompany = await resolveActiveCompanyForOperation();
     if (!currentCompany?.id) {
