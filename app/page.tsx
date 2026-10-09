@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.07 · Kunden-Geräteformular + geprüfter Workflow Kunde → Techniker → Admin · Tenant/RLS mandantensicher erweitert
+// TRYBUN Service Management System v4.13.08 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1575,6 +1575,12 @@ export default function Home() {
     useState("");
   const [customerDeviceModel, setCustomerDeviceModel] = useState("");
   const [customerDeviceSerial, setCustomerDeviceSerial] = useState("");
+  const [customerManufacturerSearch, setCustomerManufacturerSearch] = useState("");
+  const [customerModelSearch, setCustomerModelSearch] = useState("");
+  const [customerSelectedManufacturerId, setCustomerSelectedManufacturerId] = useState("");
+  const [customerSelectedModelId, setCustomerSelectedModelId] = useState("");
+  const [customerManualManufacturer, setCustomerManualManufacturer] = useState(false);
+  const [customerManualModel, setCustomerManualModel] = useState(false);
 
   const [technicianDeviceNameReview, setTechnicianDeviceNameReview] = useState("");
   const [technicianManufacturerReview, setTechnicianManufacturerReview] = useState("");
@@ -7078,6 +7084,12 @@ async function loadApplicationData(userIdOverride?: string) {
     setCustomerDeviceManufacturer("");
     setCustomerDeviceModel("");
     setCustomerDeviceSerial("");
+    setCustomerManufacturerSearch("");
+    setCustomerModelSearch("");
+    setCustomerSelectedManufacturerId("");
+    setCustomerSelectedModelId("");
+    setCustomerManualManufacturer(false);
+    setCustomerManualModel(false);
     setCustomerDeviceLocation("");
   }
 
@@ -12132,6 +12144,12 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     setCustomerDeviceManufacturer("");
     setCustomerDeviceModel("");
     setCustomerDeviceSerial("");
+    setCustomerManufacturerSearch("");
+    setCustomerModelSearch("");
+    setCustomerSelectedManufacturerId("");
+    setCustomerSelectedModelId("");
+    setCustomerManualManufacturer(false);
+    setCustomerManualModel(false);
     setCustomerDeviceLocation("");
     setCustomerDefectDescription("");
     setCustomerServiceType("Reparatur");
@@ -33784,6 +33802,12 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                         setCustomerDeviceModel(selected ? "" : modelLabel === "Modell offen" ? "" : modelLabel);
                                         setCustomerDeviceSerial(selected ? "" : deviceItem.serial_number || "");
                                         setCustomerDeviceLocation(selected ? "" : deviceItem.location || "");
+                                        setCustomerManufacturerSearch("");
+                                        setCustomerModelSearch("");
+                                        setCustomerSelectedManufacturerId(selected ? "" : String(deviceItem.manufacturer_id || ""));
+                                        setCustomerSelectedModelId(selected ? "" : String(deviceItem.model_id || ""));
+                                        setCustomerManualManufacturer(false);
+                                        setCustomerManualModel(false);
                                       }}
                                       className={`w-full rounded-xl border p-3 text-left transition ${
                                         selected
@@ -33839,118 +33863,257 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                             />
                           </div>
 
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="relative">
-                              <label className="mb-2 block text-sm font-black text-slate-700">Hersteller</label>
-                              <input
-                                value={customerDeviceManufacturer}
-                                onChange={(e) => {
-                                  setCustomerDeviceManufacturer(e.target.value);
-                                  setCustomerDeviceModel("");
-                                  setSelectedTicketDeviceIds([]);
-                                  setDevice("");
-                                }}
-                                placeholder="Hersteller suchen, z. B. Bosch"
-                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
-                                autoComplete="off"
-                              />
-                              {customerDeviceManufacturer.trim() &&
-                                normalizeCompareText(customerDeviceManufacturer) !== "unbekannt" && (
-                                <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
-                                  {manufacturers
-                                    .filter((item) => Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id))
-                                    .filter((item) => matchesTrybunPrefixSearch([item.name], customerDeviceManufacturer))
-                                    .slice(0, 8)
-                                    .map((item) => (
-                                      <button
-                                        key={item.id}
-                                        type="button"
-                                        onClick={() => {
-                                          setCustomerDeviceManufacturer(item.name);
-                                          setCustomerDeviceModel("");
-                                        }}
-                                        className="w-full rounded-lg bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:bg-sky-50"
-                                      >
-                                        {item.name}
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomerDeviceManufacturer("Unbekannt");
-                                  setCustomerDeviceModel("");
-                                  setSelectedTicketDeviceIds([]);
-                                  setDevice("");
-                                }}
-                                className="mt-2 text-xs font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
-                              >
-                                Hersteller nicht vorhanden / unbekannt
-                              </button>
+                          <div className="rounded-2xl border-2 border-sky-200 bg-sky-50/70 p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-black text-sky-900">1. Zuerst in den Stammdaten suchen</p>
+                                <p className="mt-1 text-xs font-semibold leading-5 text-sky-700">
+                                  Suche zuerst den Hersteller und danach das dazugehörige Modell aus den Stammdaten deiner Servicefirma. Erst wenn nichts passt, wechselst du zur manuellen Eingabe.
+                                </p>
+                              </div>
+                              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-sky-700 shadow-sm">
+                                {manufacturers.filter((item) => Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id)).length} Hersteller verfügbar
+                              </span>
                             </div>
 
-                            <div className="relative">
-                              <label className="mb-2 block text-sm font-black text-slate-700">Modell / Typ</label>
-                              <input
-                                value={customerDeviceModel}
-                                onChange={(e) => {
-                                  setCustomerDeviceModel(e.target.value);
-                                  setSelectedTicketDeviceIds([]);
-                                  setDevice("");
-                                }}
-                                placeholder="Modell suchen oder Typ vom Gerät eingeben"
-                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
-                                autoComplete="off"
-                              />
-                              {customerDeviceModel.trim() &&
-                                normalizeCompareText(customerDeviceModel) !== "unbekannt" && (
-                                <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
-                                  {deviceModels
-                                    .filter((modelItem) => Number(modelItem.company_id) === Number(companyData?.id || companyDataRef.current?.id))
-                                    .filter((modelItem) => {
-                                      const exactManufacturer = manufacturers.find(
-                                        (item) =>
-                                          Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id) &&
-                                          normalizeCompareText(item.name) === normalizeCompareText(customerDeviceManufacturer),
-                                      );
-                                      return !exactManufacturer || Number(modelItem.manufacturer_id) === Number(exactManufacturer.id);
-                                    })
-                                    .filter((modelItem) =>
-                                      matchesTrybunPrefixSearch(
-                                        [getDeviceModelDisplayName(modelItem), getDeviceModelTypeName(modelItem)],
-                                        customerDeviceModel,
-                                      ),
-                                    )
-                                    .slice(0, 8)
-                                    .map((modelItem) => (
-                                      <button
-                                        key={modelItem.id}
-                                        type="button"
-                                        onClick={() => setCustomerDeviceModel(getDeviceModelDisplayName(modelItem))}
-                                        className="w-full rounded-lg bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:bg-sky-50"
-                                      >
-                                        {getDeviceModelDisplayName(modelItem)}
-                                        <span className="ml-2 font-semibold text-slate-400">
-                                          {getManufacturerNameById(modelItem.manufacturer_id)}
-                                        </span>
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomerDeviceModel("Unbekannt");
-                                  setSelectedTicketDeviceIds([]);
-                                  setDevice("");
-                                }}
-                                className="mt-2 text-xs font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
-                              >
-                                Modell nicht vorhanden / unbekannt
-                              </button>
+                            <div className="mt-4 grid gap-4 md:grid-cols-2">
+                              <div className="relative">
+                                <label className="mb-2 block text-sm font-black text-slate-700">Hersteller aus Stammdaten</label>
+                                {!customerManualManufacturer ? (
+                                  <>
+                                    <input
+                                      value={customerManufacturerSearch}
+                                      onChange={(e) => {
+                                        setCustomerManufacturerSearch(e.target.value);
+                                        setCustomerSelectedManufacturerId("");
+                                        setCustomerSelectedModelId("");
+                                        setCustomerDeviceManufacturer("");
+                                        setCustomerDeviceModel("");
+                                        setCustomerModelSearch("");
+                                        setCustomerManualModel(false);
+                                        setSelectedTicketDeviceIds([]);
+                                        setDevice("");
+                                      }}
+                                      placeholder="Hersteller suchen, z. B. Bosch"
+                                      className="w-full rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                                      autoComplete="off"
+                                    />
+                                    {customerManufacturerSearch.trim() && (
+                                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-xl border border-sky-200 bg-white p-2 shadow-sm">
+                                        {manufacturers
+                                          .filter((item) => Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id))
+                                          .filter((item) => matchesTrybunPrefixSearch([item.name], customerManufacturerSearch))
+                                          .slice(0, 12)
+                                          .map((item) => (
+                                            <button
+                                              key={item.id}
+                                              type="button"
+                                              onClick={() => {
+                                                setCustomerSelectedManufacturerId(String(item.id));
+                                                setCustomerDeviceManufacturer(item.name);
+                                                setCustomerManufacturerSearch(item.name);
+                                                setCustomerSelectedModelId("");
+                                                setCustomerDeviceModel("");
+                                                setCustomerModelSearch("");
+                                                setCustomerManualModel(false);
+                                              }}
+                                              className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                                            >
+                                              <span>{item.name}</span>
+                                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-sky-600">auswählen</span>
+                                            </button>
+                                          ))}
+                                        {manufacturers
+                                          .filter((item) => Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id))
+                                          .filter((item) => matchesTrybunPrefixSearch([item.name], customerManufacturerSearch)).length === 0 && (
+                                          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                                            Kein Hersteller in den Stammdaten gefunden.
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                    {customerSelectedManufacturerId && customerDeviceManufacturer && (
+                                      <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                                        <span className="text-xs font-black text-emerald-800">✓ Stammdaten-Hersteller: {customerDeviceManufacturer}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCustomerSelectedManufacturerId("");
+                                            setCustomerDeviceManufacturer("");
+                                            setCustomerManufacturerSearch("");
+                                            setCustomerSelectedModelId("");
+                                            setCustomerDeviceModel("");
+                                            setCustomerModelSearch("");
+                                          }}
+                                          className="text-xs font-black text-emerald-700 underline"
+                                        >
+                                          ändern
+                                        </button>
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <input
+                                      value={customerDeviceManufacturer}
+                                      onChange={(e) => {
+                                        setCustomerDeviceManufacturer(e.target.value);
+                                        setCustomerDeviceModel("");
+                                        setCustomerSelectedManufacturerId("");
+                                        setCustomerSelectedModelId("");
+                                        setSelectedTicketDeviceIds([]);
+                                        setDevice("");
+                                      }}
+                                      placeholder="Hersteller laut Gerät / Typenschild eintragen"
+                                      className="w-full rounded-xl border border-amber-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                                    />
+                                    <p className="mt-2 text-xs font-semibold text-amber-700">Manuelle Kundenangabe – noch keine Stammdaten.</p>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const nextManual = !customerManualManufacturer;
+                                    setCustomerManualManufacturer(nextManual);
+                                    setCustomerSelectedManufacturerId("");
+                                    setCustomerSelectedModelId("");
+                                    setCustomerManufacturerSearch("");
+                                    setCustomerModelSearch("");
+                                    setCustomerDeviceManufacturer(nextManual ? "" : "");
+                                    setCustomerDeviceModel("");
+                                    setCustomerManualModel(nextManual);
+                                  }}
+                                  className="mt-2 text-xs font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
+                                >
+                                  {customerManualManufacturer ? "← Zurück zur Hersteller-Suche" : "Hersteller nicht gefunden? Manuell eingeben"}
+                                </button>
+                              </div>
+
+                              <div className="relative">
+                                <label className="mb-2 block text-sm font-black text-slate-700">Modell / Typ aus Stammdaten</label>
+                                {!customerManualModel && customerSelectedManufacturerId ? (
+                                  <>
+                                    <input
+                                      value={customerModelSearch}
+                                      onChange={(e) => {
+                                        setCustomerModelSearch(e.target.value);
+                                        setCustomerSelectedModelId("");
+                                        setCustomerDeviceModel("");
+                                        setSelectedTicketDeviceIds([]);
+                                        setDevice("");
+                                      }}
+                                      placeholder={`Modell von ${customerDeviceManufacturer} suchen`}
+                                      className="w-full rounded-xl border border-sky-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+                                      autoComplete="off"
+                                    />
+                                    {customerModelSearch.trim() && (
+                                      <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-xl border border-sky-200 bg-white p-2 shadow-sm">
+                                        {deviceModels
+                                          .filter((modelItem) => Number(modelItem.company_id) === Number(companyData?.id || companyDataRef.current?.id))
+                                          .filter((modelItem) => Number(modelItem.manufacturer_id) === Number(customerSelectedManufacturerId))
+                                          .filter((modelItem) =>
+                                            matchesTrybunPrefixSearch(
+                                              [getDeviceModelDisplayName(modelItem), getDeviceModelTypeName(modelItem)],
+                                              customerModelSearch,
+                                            ),
+                                          )
+                                          .slice(0, 12)
+                                          .map((modelItem) => (
+                                            <button
+                                              key={modelItem.id}
+                                              type="button"
+                                              onClick={() => {
+                                                const modelLabel = getDeviceModelDisplayName(modelItem);
+                                                setCustomerSelectedModelId(String(modelItem.id));
+                                                setCustomerDeviceModel(modelLabel);
+                                                setCustomerModelSearch(modelLabel);
+                                              }}
+                                              className="flex w-full items-center justify-between gap-3 rounded-lg border border-transparent bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:border-sky-200 hover:bg-sky-50"
+                                            >
+                                              <span>
+                                                {getDeviceModelDisplayName(modelItem)}
+                                                {getDeviceModelTypeName(modelItem) ? (
+                                                  <span className="ml-2 font-semibold text-slate-400">{getDeviceModelTypeName(modelItem)}</span>
+                                                ) : null}
+                                              </span>
+                                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-sky-600">auswählen</span>
+                                            </button>
+                                          ))}
+                                        {deviceModels
+                                          .filter((modelItem) => Number(modelItem.company_id) === Number(companyData?.id || companyDataRef.current?.id))
+                                          .filter((modelItem) => Number(modelItem.manufacturer_id) === Number(customerSelectedManufacturerId))
+                                          .filter((modelItem) => matchesTrybunPrefixSearch([getDeviceModelDisplayName(modelItem), getDeviceModelTypeName(modelItem)], customerModelSearch)).length === 0 && (
+                                          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                                            Kein passendes Modell bei {customerDeviceManufacturer} gefunden.
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                    {customerSelectedModelId && customerDeviceModel && (
+                                      <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                                        <span className="text-xs font-black text-emerald-800">✓ Stammdaten-Modell: {customerDeviceModel}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCustomerSelectedModelId("");
+                                            setCustomerDeviceModel("");
+                                            setCustomerModelSearch("");
+                                          }}
+                                          className="text-xs font-black text-emerald-700 underline"
+                                        >
+                                          ändern
+                                        </button>
+                                      </div>
+                                    )}
+                                  </>
+                                ) : customerManualManufacturer || customerManualModel ? (
+                                  <>
+                                    <input
+                                      value={customerDeviceModel}
+                                      onChange={(e) => {
+                                        setCustomerDeviceModel(e.target.value);
+                                        setCustomerSelectedModelId("");
+                                        setSelectedTicketDeviceIds([]);
+                                        setDevice("");
+                                      }}
+                                      placeholder="Modell / Typ laut Gerät eintragen"
+                                      className="w-full rounded-xl border border-amber-300 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                                    />
+                                    <p className="mt-2 text-xs font-semibold text-amber-700">Manuelle Kundenangabe – noch keine Stammdaten.</p>
+                                  </>
+                                ) : (
+                                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                                    Zuerst einen Hersteller aus den Stammdaten auswählen.
+                                  </div>
+                                )}
+
+                                {customerSelectedManufacturerId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const nextManual = !customerManualModel;
+                                      setCustomerManualModel(nextManual);
+                                      setCustomerSelectedModelId("");
+                                      setCustomerModelSearch("");
+                                      setCustomerDeviceModel("");
+                                    }}
+                                    className="mt-2 text-xs font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
+                                  >
+                                    {customerManualModel ? "← Zurück zur Modell-Suche" : "Modell nicht gefunden? Manuell eingeben"}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
+
+                          {(customerManualManufacturer || customerManualModel) && (
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                              <p className="text-sm font-black text-amber-900">2. Manuelle Angabe nur wenn Stammdaten nicht passen</p>
+                              <p className="mt-1 text-xs font-semibold leading-5 text-amber-800">
+                                Diese Werte bleiben ungeprüfte Kundenangaben im Ticket. Sie werden nicht automatisch als Hersteller, Modell oder Kundengerät gespeichert.
+                              </p>
+                            </div>
+                          )}
 
                           <div className="grid gap-4 md:grid-cols-2">
                             <div>
