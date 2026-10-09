@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.16 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.17 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -909,7 +909,7 @@ type AbnahmeDeviceRow = {
 
 
 
-type CustomerImportDuplicateMode = "skip" | "update" | "create";
+type CustomerImportDuplicateMode = "skip" | "update";
 
 type CustomerImportField =
   | "customer_number"
@@ -1445,6 +1445,7 @@ export default function Home() {
   const [sparePartImportDuplicateMode, setSparePartImportDuplicateMode] = useState<MasterImportDuplicateMode>("skip");
   const [sparePartImportBusy, setSparePartImportBusy] = useState(false);
   const [sparePartImportMessage, setSparePartImportMessage] = useState("");
+  const [dataAreaClearBusy, setDataAreaClearBusy] = useState("");
 
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
@@ -3044,7 +3045,9 @@ export default function Home() {
       });
     };
 
-    customers.forEach((customer) => {
+    customers
+      .filter((customer) => Boolean(String(customer.customer_number || "").trim()))
+      .forEach((customer) => {
       const fullName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim();
       addCandidate(customer, "primary", fullName, customer.email);
 
@@ -5993,6 +5996,16 @@ async function loadApplicationData(userIdOverride?: string) {
       return;
     }
 
+    if (newUserRole === "customer") {
+      const selectedPortalCustomer = customers.find(
+        (item) => Number(item.id) === Number(newUserCustomerId),
+      );
+      if (!selectedPortalCustomer?.customer_number?.trim()) {
+        alert("Portalzugang gestoppt: Dem ausgewählten Kunden fehlt eine Kundennummer. Erst die Kundennummer ermöglicht eine eindeutige Zuordnung.");
+        return;
+      }
+    }
+
     setCreatingUser(true);
 
     const { data, error } = await supabase.functions.invoke("create-user", {
@@ -6041,6 +6054,12 @@ async function loadApplicationData(userIdOverride?: string) {
     }
 
     const customerId = Number(customerItem.id);
+    const customerNumber = String(customerItem.customer_number || "").trim();
+
+    if (!customerNumber) {
+      alert("Portalzugang gestoppt: Für diesen Kunden ist keine Kundennummer hinterlegt. Bitte zuerst eine eindeutige Kundennummer vergeben.");
+      return;
+    }
 
     // Mehrere Portalbenutzer dürfen demselben Kunden/Firmenkonto zugeordnet sein.
     // Eindeutig bleibt die persönliche Login-E-Mail; doppelte Auth-E-Mails werden von Supabase abgewiesen.
@@ -7525,6 +7544,17 @@ async function loadApplicationData(userIdOverride?: string) {
     const currentCustomerId = isCustomer
       ? userProfile?.customer_id || null
       : selectedCustomer?.id || null;
+
+    if (isCustomer) {
+      if (!profileCustomer || !profileCustomer.customer_number?.trim()) {
+        alert("Ticket kann nicht erstellt werden: Dein Kundenkonto ist noch nicht eindeutig über eine Kundennummer zugeordnet. Bitte den Administrator kontaktieren.");
+        return;
+      }
+      if (Number(profileCustomer.id) !== Number(currentCustomerId)) {
+        alert("Ticket kann nicht erstellt werden: Die Kunden-Zuordnung ist nicht eindeutig.");
+        return;
+      }
+    }
 
     if (!issue || !description) {
       alert("Bitte Art des Tickets, Betreff und Beschreibung ausfüllen. Ein Gerät kann später zugewiesen werden.");
@@ -9388,6 +9418,11 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    if (!customerNumber.trim()) {
+      alert("Bitte eine eindeutige Kundennummer eingeben. Kunden ohne Kundennummer dürfen nicht angelegt werden.");
+      return;
+    }
+
     customerSavingRef.current = true;
     setCustomerSaving(true);
 
@@ -9396,7 +9431,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       .insert([
         {
           company_id: currentCompany.id,
-          customer_number: customerNumber.trim() || null,
+          customer_number: customerNumber.trim(),
           supplier_number: customerSupplierNumber.trim() || null,
           customer_type: customerType,
           company: isPrivateCustomer ? null : normalizedCustomerCompany,
@@ -9512,9 +9547,15 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    if (!customerNumber.trim()) {
+      alert("Bitte eine eindeutige Kundennummer eingeben. Kunden ohne Kundennummer dürfen nicht gespeichert werden.");
+      return;
+    }
+
     const { error } = await supabase
       .from("customers")
       .update({
+        customer_number: customerNumber.trim(),
         customer_type: customerType,
         company: isPrivateCustomer ? null : normalizedCustomerCompany,
         contact_person: customerContact || privateCustomerName || null,
@@ -12243,8 +12284,13 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       ? customers.find((item) => Number(item.id) === Number(customerId)) || null
       : null;
 
-    if (!customerId || !currentCustomer || Number(currentCustomer.company_id) !== Number(currentCompanyId)) {
-      alert("Ihr Kundenkonto konnte der aktuell angemeldeten Firma nicht sicher zugeordnet werden.");
+    if (
+      !customerId ||
+      !currentCustomer ||
+      !currentCustomer.customer_number?.trim() ||
+      Number(currentCustomer.company_id) !== Number(currentCompanyId)
+    ) {
+      alert("Service-Anfrage gestoppt: Dein Kundenkonto ist nicht eindeutig über eine Kundennummer der aktuellen Servicefirma zugeordnet.");
       return;
     }
 
@@ -16984,6 +17030,77 @@ ${tenantBrandName}`,
     );
   }
 
+  async function clearAdminImportArea(
+    area:
+      | "customers"
+      | "customer_devices"
+      | "manufacturers_models"
+      | "device_stock"
+      | "suppliers"
+      | "spare_parts",
+    label: string,
+  ) {
+    if (!isAdmin) {
+      alert("Nur Admins können komplette Datenbereiche leeren.");
+      return;
+    }
+    if (dataAreaClearBusy) return;
+
+    const currentCompany = companyData || (await loadCompany(session?.user?.id));
+    if (!currentCompany?.id) {
+      alert("Ihre Firmenzuordnung konnte nicht geladen werden.");
+      return;
+    }
+
+    const extraWarning =
+      area === "customers"
+        ? "\n\nKundenportal-Profile werden von den bisherigen Kundendatensätzen getrennt und müssen nach dem Neuimport wieder eindeutig zugeordnet werden."
+        : "";
+
+    const typed = window.prompt(
+      `ACHTUNG: Der komplette Bereich „${label}“ von ${currentCompany.name} wird geleert.${extraWarning}\n\nDieser Vorgang kann nicht rückgängig gemacht werden.\nZum Bestätigen exakt eingeben:\nLÖSCHEN ${label}`,
+      "",
+    );
+
+    if (typed !== `LÖSCHEN ${label}`) {
+      if (typed !== null) alert("Löschen abgebrochen: Bestätigung stimmt nicht überein.");
+      return;
+    }
+
+    setDataAreaClearBusy(area);
+    try {
+      const { data, error } = await supabase.rpc("admin_clear_import_area", {
+        p_area: area,
+        p_confirmation: `DELETE-${area.toUpperCase()}`,
+      });
+
+      if (error) {
+        alert(`Bereich konnte nicht geleert werden: ${error.message}`);
+        return;
+      }
+
+      await Promise.all([
+        loadCustomers(),
+        loadDevices(),
+        loadManufacturers(),
+        loadDeviceModels(),
+        loadServiceParts(),
+        loadTickets(),
+        loadDocuments(),
+        loadMaintenancePlans(),
+        loadContracts(),
+        loadUserProfiles(),
+      ]);
+
+      alert(
+        `${label} wurde für ${currentCompany.name} geleert.${area === "customers" ? "\n\nPortalzugänge ohne Kunden-Zuordnung müssen nach dem Neuimport anhand der Kundennummer neu verknüpft werden." : ""}`,
+      );
+      console.info("Datenbereich geleert:", data);
+    } finally {
+      setDataAreaClearBusy("");
+    }
+  }
+
   async function handleCustomerImportFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -17047,28 +17164,33 @@ ${tenantBrandName}`,
 
   function findCustomerImportDuplicate(values: Partial<Record<CustomerImportField, string>>) {
     const customerNumber = String(values.customer_number || "").trim().toLowerCase();
-    const emailValue = String(values.email || "").trim().toLowerCase();
+    if (!customerNumber) return null;
 
-    if (customerNumber) {
-      const match = customers.find((item) => String(item.customer_number || "").trim().toLowerCase() === customerNumber);
-      if (match) return match;
-    }
-
-    if (emailValue) {
-      const match = customers.find((item) => String(item.email || "").trim().toLowerCase() === emailValue);
-      if (match) return match;
-    }
-
-    return null;
+    return (
+      customers.find(
+        (item) =>
+          String(item.customer_number || "").trim().toLowerCase() === customerNumber,
+      ) || null
+    );
   }
 
   const customerImportPreview = useMemo<CustomerImportPreviewRow[]>(() => {
-    return customerImportRows.map((row, index) => {
+    const preparedRows = customerImportRows.map((row, index) => {
       const values: Partial<Record<CustomerImportField, string>> = {};
       customerImportFields.forEach((field) => {
         values[field.key] = getCustomerImportValue(row, field.key);
       });
+      return { index, values };
+    });
 
+    const customerNumberCounts = new Map<string, number>();
+    preparedRows.forEach(({ values }) => {
+      const key = String(values.customer_number || "").trim().toLowerCase();
+      if (!key) return;
+      customerNumberCounts.set(key, (customerNumberCounts.get(key) || 0) + 1);
+    });
+
+    return preparedRows.map(({ index, values }) => {
       const customerTypeValue = String(values.customer_type || "B2B").trim() || "B2B";
       const isPrivate = ["privat", "privatkunde", "private"].includes(customerTypeValue.toLowerCase());
       const hasCompany = Boolean(String(values.company || "").trim());
@@ -17076,14 +17198,27 @@ ${tenantBrandName}`,
         `${String(values.first_name || "")} ${String(values.last_name || "")}`.trim() ||
         String(values.contact_person || "").trim(),
       );
-      const valid = isPrivate ? hasPrivateName : hasCompany;
+      const customerNumber = String(values.customer_number || "").trim();
+      const numberKey = customerNumber.toLowerCase();
+      const duplicateInFile = Boolean(numberKey && (customerNumberCounts.get(numberKey) || 0) > 1);
+      const hasIdentity = isPrivate ? hasPrivateName : hasCompany;
+      const valid = Boolean(customerNumber) && hasIdentity && !duplicateInFile;
       const duplicate = findCustomerImportDuplicate(values);
+
+      let error = "";
+      if (!customerNumber) error = "Kundennummer fehlt";
+      else if (duplicateInFile) error = "Kundennummer mehrfach in Importdatei";
+      else if (!hasIdentity) {
+        error = isPrivate
+          ? "Vor-/Nachname oder Ansprechpartner fehlt"
+          : "Firmenname fehlt";
+      }
 
       return {
         rowNumber: index + 2,
         values: { ...values, customer_type: customerTypeValue },
         valid,
-        error: valid ? "" : isPrivate ? "Vor-/Nachname oder Ansprechpartner fehlt" : "Firmenname fehlt",
+        error,
         duplicateCustomerId: duplicate?.id || null,
       };
     });
@@ -17145,7 +17280,7 @@ ${tenantBrandName}`,
 
       const payload = {
         company_id: currentCompany.id,
-        customer_number: String(values.customer_number || "").trim() || null,
+        customer_number: String(values.customer_number || "").trim(),
         supplier_number: String(values.supplier_number || "").trim() || null,
         customer_type: normalizedCustomerType,
         company: isPrivate ? null : String(values.company || "").trim() || null,
@@ -27536,12 +27671,20 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-600">Datenimport · Kunden</p>
                     <h3 className="mt-2 text-2xl font-black tracking-[-0.03em] text-slate-950">Kunden importieren</h3>
                     <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-                      Keine Abhängigkeit. Für Firmenkunden ist der Firmenname erforderlich; bei Privatkunden genügt Vor-/Nachname oder Ansprechpartner.
+                      Kundennummer ist für jeden Kunden Pflicht und innerhalb der Firma eindeutig. Zusätzlich ist bei Firmenkunden der Firmenname erforderlich; bei Privatkunden Vor-/Nachname oder Ansprechpartner.
                     </p>
                   </div>
                   <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <button type="button" onClick={exportCustomersToExcel} className="w-full rounded-[9px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800 transition hover:bg-sky-100 sm:w-auto">
                       Excel exportieren
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => clearAdminImportArea("customers", "Kunden")}
+                      disabled={Boolean(dataAreaClearBusy)}
+                      className="w-full rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
+                    >
+                      {dataAreaClearBusy === "customers" ? "Wird geleert …" : "Tabelle leeren"}
                     </button>
                     {customerImportRows.length > 0 && (
                       <button type="button" onClick={resetCustomerImport} disabled={customerImportBusy} className="w-full rounded-[9px] border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:w-auto">
@@ -27583,7 +27726,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           {customerImportFields.map((field) => (
                             <label key={field.key} className="block rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]">
                               <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
-                                {field.label}{field.key === "company" ? " · Pflicht bei B2B" : ""}
+                                {field.label}{field.key === "customer_number" ? " · Pflicht & eindeutig" : field.key === "company" ? " · Pflicht bei B2B" : ""}
                               </span>
                               <select value={customerImportMapping[field.key]} onChange={(event) => setCustomerImportMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-2 w-full rounded-xl border border-[#c3cede] bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-sky-400">
                                 <option value="">Nicht importieren</option>
@@ -27601,11 +27744,11 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         <select value={customerImportDuplicateMode} onChange={(event) => setCustomerImportDuplicateMode(event.target.value as CustomerImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800">
                           <option value="skip">Überspringen</option>
                           <option value="update">Vorhandene Kunden aktualisieren</option>
-                          <option value="create">Trotzdem neu anlegen</option>
+                          
                         </select>
                       </label>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-600">
-                        Duplikaterkennung: zuerst Kundennummer, ersatzweise E-Mail. Gefunden: <span className="font-black text-slate-950">{customerImportPreview.filter((row) => row.duplicateCustomerId).length}</span>
+                        Eindeutige Zuordnung ausschließlich über Kundennummer. Bereits vorhanden: <span className="font-black text-slate-950">{customerImportPreview.filter((row) => row.duplicateCustomerId).length}</span>
                       </div>
                       <button type="button" onClick={importCustomersFromFile} disabled={customerImportBusy || customerImportPreview.some((row) => !row.valid)} className="rounded-2xl bg-sky-500 px-6 py-4 text-sm font-black text-white shadow-sm hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-300">
                         {customerImportBusy ? "Import läuft …" : "Kunden importieren"}
@@ -27650,6 +27793,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <button type="button" onClick={exportDevicesToExcel} className="w-full rounded-[9px] border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800 transition hover:bg-indigo-100 sm:w-auto">
                       Excel exportieren
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => clearAdminImportArea("customer_devices", "Kundengeräte")}
+                      disabled={Boolean(dataAreaClearBusy)}
+                      className="w-full rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
+                    >
+                      {dataAreaClearBusy === "customer_devices" ? "Wird geleert …" : "Tabelle leeren"}
                     </button>
                     {deviceImportRows.length > 0 && <button type="button" onClick={resetDeviceImport} disabled={deviceImportBusy} className="w-full rounded-[9px] border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 sm:w-auto">Import zurücksetzen</button>}
                   </div>
@@ -27696,6 +27847,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <button type="button" onClick={exportManufacturersAndModelsToExcel} className="w-full shrink-0 rounded-[9px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 sm:w-auto">
                     Excel exportieren
                   </button>
+                    <button
+                      type="button"
+                      onClick={() => clearAdminImportArea("manufacturers_models", "Hersteller & Modelle")}
+                      disabled={Boolean(dataAreaClearBusy)}
+                      className="w-full rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
+                    >
+                      {dataAreaClearBusy === "manufacturers_models" ? "Wird geleert …" : "Tabelle leeren"}
+                    </button>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Hersteller-/Modelle-Excel oder CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleManufacturerImportFile} disabled={manufacturerImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm disabled:opacity-50" /></label>
@@ -27734,6 +27893,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <button type="button" onClick={exportDeviceStockToExcel} className="w-full shrink-0 rounded-[9px] border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800 transition hover:bg-violet-100 sm:w-auto">
                     Excel exportieren
                   </button>
+                    <button
+                      type="button"
+                      onClick={() => clearAdminImportArea("device_stock", "Gerätebestand")}
+                      disabled={Boolean(dataAreaClearBusy)}
+                      className="w-full rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
+                    >
+                      {dataAreaClearBusy === "device_stock" ? "Wird geleert …" : "Tabelle leeren"}
+                    </button>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                   <label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Gerätebestand-Excel oder CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleDeviceStockImportFile} disabled={deviceStockImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm disabled:opacity-50" /></label>
@@ -27769,6 +27936,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <button type="button" onClick={exportSuppliersToExcel} className="w-full shrink-0 rounded-[9px] border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-bold text-cyan-800 transition hover:bg-cyan-100 sm:w-auto">
                     Excel exportieren
                   </button>
+                    <button
+                      type="button"
+                      onClick={() => clearAdminImportArea("suppliers", "Lieferanten")}
+                      disabled={Boolean(dataAreaClearBusy)}
+                      className="w-full rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
+                    >
+                      {dataAreaClearBusy === "suppliers" ? "Wird geleert …" : "Tabelle leeren"}
+                    </button>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Lieferanten-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleSupplierImportFile} disabled={supplierImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label><div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{supplierImportFileName || "Noch keine Datei"}</div></div>
                 {supplierImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(supplierImportMapping).filter(Boolean).length} von {supplierImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{supplierImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={supplierImportMapping[field.key]||""} onChange={e=>setSupplierImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-[#c3cede] px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{supplierImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={supplierImportDuplicateMode} onChange={e=>setSupplierImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSuppliersFromFile} disabled={supplierImportBusy || !supplierImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{supplierImportBusy?"Import läuft …":"Lieferanten importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Lieferanten-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{supplierImportPreview.filter((row)=>row.valid).length} gültig · {supplierImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[850px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Kundennummer</th><th className="px-4 py-3">Ansprechpartner</th><th className="px-4 py-3">E-Mail</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{supplierImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3">{row.dealerNumber||"-"}</td><td className="px-4 py-3">{row.contactPerson||"-"}</td><td className="px-4 py-3">{row.email||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
@@ -27784,6 +27959,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   <button type="button" onClick={exportSparePartsToExcel} className="w-full shrink-0 rounded-[9px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800 transition hover:bg-amber-100 sm:w-auto">
                     Excel exportieren
                   </button>
+                    <button
+                      type="button"
+                      onClick={() => clearAdminImportArea("spare_parts", "Ersatzteile")}
+                      disabled={Boolean(dataAreaClearBusy)}
+                      className="w-full rounded-[9px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 sm:w-auto"
+                    >
+                      {dataAreaClearBusy === "spare_parts" ? "Wird geleert …" : "Tabelle leeren"}
+                    </button>
                 </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ersatzteile-Excel / CSV auswählen</span><input type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleSparePartImportFile} disabled={sparePartImportBusy} className="mt-2 block min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 sm:px-4 sm:text-sm file:mr-2 file:rounded-xl file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white sm:file:mr-4 sm:file:px-4 sm:file:text-sm disabled:opacity-50" /></label><div className="min-w-0 max-w-full break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white sm:px-5 sm:text-sm">{sparePartImportFileName || "Noch keine Datei"}</div></div>
                 {sparePartImportRows.length>0&&<><details className="mt-5 rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"><summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-slate-950">Spaltenzuordnung prüfen oder ändern</p><p className="mt-1 text-sm font-semibold text-slate-500">{Object.values(sparePartImportMapping).filter(Boolean).length} von {sparePartImportFields.length} Feldern zugeordnet</p></div><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Öffnen ▾</span></summary><div className="grid gap-3 border-t border-slate-200 p-4 md:grid-cols-2 xl:grid-cols-3">{sparePartImportFields.map(field=><label key={field.key} className="rounded-[10px] border border-[#b8c5d8] bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.045)] transition hover:border-[#7d91af]"><span className="text-xs font-black uppercase text-slate-500">{field.label}{field.key==="name" ? " · Pflicht" : ""}</span><select value={sparePartImportMapping[field.key]||""} onChange={e=>setSparePartImportMapping(c=>({...c,[field.key]:e.target.value}))} className="mt-2 min-w-0 w-full max-w-full rounded-xl border border-[#c3cede] px-3 py-2 text-sm font-bold"><option value="">Nicht importieren</option>{sparePartImportHeaders.map(h=><option key={`${field.key}-${h}`} value={h}>{h}</option>)}</select></label>)}</div></details><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="flex-1 text-xs font-black uppercase text-slate-500">Duplikate<select value={sparePartImportDuplicateMode} onChange={e=>setSparePartImportDuplicateMode(e.target.value as MasterImportDuplicateMode)} className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-800"><option value="skip">Überspringen</option><option value="update">Vorhandene aktualisieren</option></select></label><button type="button" onClick={importSparePartsFromFile} disabled={sparePartImportBusy || !sparePartImportPreview.some((row)=>row.valid)} className="w-full rounded-2xl bg-amber-500 px-6 py-4 text-sm font-black text-white disabled:bg-slate-300 sm:w-auto">{sparePartImportBusy?"Import läuft …":"Ersatzteile importieren"}</button></div><div className="mt-6 overflow-hidden rounded-[28px] border border-slate-200"><div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-950 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between"><div><h4 className="font-black">Ersatzteil-Importvorschau</h4><p className="text-xs font-bold text-slate-400">Die ersten 20 Zeilen werden angezeigt.</p></div><div className="text-sm font-black">{sparePartImportPreview.filter((row)=>row.valid).length} gültig · {sparePartImportPreview.filter((row)=>!row.valid).length} fehlerhaft</div></div><div className="overflow-x-auto"><table className="min-w-[1050px] w-full text-left text-sm"><thead className="bg-slate-100 text-xs font-black uppercase tracking-[0.1em] text-slate-500"><tr><th className="px-4 py-3">Zeile</th><th className="px-4 py-3">Ersatzteil</th><th className="px-4 py-3">SKU</th><th className="px-4 py-3">Hersteller</th><th className="px-4 py-3">Lieferant</th><th className="px-4 py-3">Bestand</th><th className="px-4 py-3">Lagerort</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{sparePartImportPreview.slice(0,20).map((row)=><tr key={row.rowNumber}><td className="px-4 py-3 font-black">{row.rowNumber}</td><td className="px-4 py-3 font-black text-slate-900">{row.name||"-"}</td><td className="px-4 py-3 font-bold">{row.sku||"-"}</td><td className="px-4 py-3">{row.manufacturerName||"-"}</td><td className="px-4 py-3">{row.supplierName||"-"}</td><td className="px-4 py-3 font-black">{row.stock}</td><td className="px-4 py-3">{row.storageLocation||"-"}</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${!row.valid?"bg-red-100 text-red-700":row.duplicateId?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{!row.valid?row.error:row.duplicateId?"Duplikat":"Bereit"}</span></td></tr>)}</tbody></table></div></div></>}
@@ -27945,9 +28128,11 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         <option value="">
                           {newUserRole === "customer" ? "Kunde auswählen" : "Nur für Kundenrolle"}
                         </option>
-                        {customers.map((customerItem) => (
+                        {customers
+                          .filter((customerItem) => Boolean(String(customerItem.customer_number || "").trim()))
+                          .map((customerItem) => (
                           <option key={customerItem.id} value={customerItem.id}>
-                            {getCustomerLabel(customerItem)}
+                            {getCustomerLabel(customerItem)} · Kd.-Nr. {customerItem.customer_number}
                           </option>
                         ))}
                       </select>
