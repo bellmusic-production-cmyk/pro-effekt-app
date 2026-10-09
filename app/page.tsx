@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.33 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.34 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -20678,30 +20678,6 @@ ${tenantBrandName}`,
     };
   })();
 
-  const visibleDocuments = useMemo(() => {
-    if (isCustomer) {
-      // loadDocuments() lädt im Kundenportal bereits ausschließlich die Dokumente
-      // der serverseitig verifizierten Kundenidentität. userProfile.customer_id
-      // kann bei älteren/neu verknüpften Portalprofilen leer oder noch nicht
-      // synchron sein und darf die bereits sicher geladenen Dokumente nicht
-      // anschließend wieder ausblenden.
-      const portalCustomerId = Number(
-        profileCustomer?.id || userProfile?.customer_id || 0,
-      );
-
-      if (!portalCustomerId) {
-        return documents;
-      }
-
-      return documents.filter(
-        (item) => Number(item.customer_id || 0) === portalCustomerId,
-      );
-    }
-
-    return documents;
-  }, [documents, isCustomer, profileCustomer?.id, userProfile?.customer_id]);
-
-
   const completedTicketsCount = tickets.filter(
     (ticket) =>
       ticket.status === "Abgeschlossen" ||
@@ -20789,6 +20765,28 @@ ${tenantBrandName}`,
       : userProfile?.customer_id
         ? customers.find((item) => Number(item.id) === Number(userProfile.customer_id)) || null
         : null;
+
+  const visibleDocuments = useMemo(() => {
+    if (isCustomer) {
+      // Die Kundenidentität ist hier bereits deklariert. Damit bleibt die
+      // Dokumentansicht sicher auf den Portal-Kunden begrenzt, ohne beim
+      // Next.js-Typecheck auf eine Variable vor ihrer Deklaration zuzugreifen.
+      const portalCustomerId = Number(
+        profileCustomer?.id || userProfile?.customer_id || 0,
+      );
+
+      if (!portalCustomerId) {
+        return documents;
+      }
+
+      return documents.filter(
+        (item) => Number(item.customer_id || 0) === portalCustomerId,
+      );
+    }
+
+    return documents;
+  }, [documents, isCustomer, profileCustomer?.id, userProfile?.customer_id]);
+
   if (session && userProfile && !profileLoading && !legalAccepted) {
     return (
       <main className="min-h-screen bg-[#07111d] px-5 py-8 text-white">
