@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.31 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.32 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10242,10 +10242,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
   }
 
   function canCustomerRespondToAppointment(ticket: Ticket) {
+    const currentResponse = getCustomerAppointmentResponseState(ticket);
+
     return (
       isCustomer &&
       isOwnCustomerTicket(ticket) &&
       Boolean(ticket.service_date) &&
+      !currentResponse &&
       !["Abgeschlossen", "Erledigt", "Storniert"].includes(ticket.status || "")
     );
   }
@@ -10265,7 +10268,11 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     }
 
     const now = new Date().toISOString();
-    const customerName = profileCustomer?.company || userProfile?.company || "Kunde";
+    const customerName =
+      (profileCustomer ? getCustomerLabel(profileCustomer) : "") ||
+      userProfile?.full_name ||
+      userProfile?.company ||
+      "Kunde";
 
     const nextStatus = action === "confirm" ? "Termin vereinbart" : "Wartet auf Kundenfreigabe";
     const nextServiceStatus = action === "confirm" ? "Kunde hat Termin bestätigt" : "Kunde bittet um Terminverschiebung";
@@ -10282,11 +10289,20 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       internal_note: [ticket.internal_note || "", responseText].filter(Boolean).join("\n"),
     };
 
+    const portalCustomerId = Number(profileCustomer?.id || userProfile?.customer_id || 0);
+
+    if (!portalCustomerId) {
+      alert("Ihre Kundenzuordnung konnte nicht ermittelt werden.");
+      return;
+    }
+
     const { error } = await supabase
       .from("tickets")
       .update(updatePayload)
       .eq("id", ticket.id)
-      .eq("customer_id", userProfile?.customer_id || -1);
+      .or(
+        `customer_id.eq.${portalCustomerId},billing_customer_id.eq.${portalCustomerId}`,
+      );
 
     if (error) {
       alert(`Terminantwort konnte nicht gespeichert werden: ${error.message}`);
@@ -37760,17 +37776,62 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                             </span>
 
                             <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
-                                Terminbestätigung
-                              </p>
-                              <p className="mt-2 text-sm font-bold text-slate-700">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                                  Terminfreigabe
+                                </p>
+                                {getCustomerAppointmentResponseState(ticket) && (
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                    getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                      ? "bg-emerald-600 text-white"
+                                      : "bg-amber-500 text-white"
+                                  }`}>
+                                    {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                      ? "✓ Termin bestätigt"
+                                      : "⚠ Neuer Termin angefragt"}
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="mt-2 text-base font-black text-slate-900">
                                 {ticket.service_date
                                   ? formatServiceAppointment(ticket.service_date, ticket.service_time)
                                   : "Noch kein Termin geplant"}
                               </p>
 
-                              {canCustomerRespondToAppointment(ticket) ? (
-                                <div className="mt-3 space-y-3">
+                              {getCustomerAppointmentResponseState(ticket) ? (
+                                <div className={`mt-3 rounded-2xl border p-4 ${
+                                  getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                    ? "border-emerald-200 bg-white"
+                                    : "border-amber-200 bg-amber-50"
+                                }`}>
+                                  <p className={`text-sm font-black ${
+                                    getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                      ? "text-emerald-800"
+                                      : "text-amber-900"
+                                  }`}>
+                                    {getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
+                                      ? "✓ Sie haben diesen Termin bestätigt."
+                                      : "⚠ Ihre Bitte um einen neuen Termin wurde an den Service gesendet."}
+                                  </p>
+                                  <p className="mt-1 text-xs font-bold text-slate-600">
+                                    {getCustomerAppointmentResponseState(ticket)?.detail}
+                                  </p>
+                                  <p className="mt-2 text-xs font-semibold text-slate-500">
+                                    Admin und zugewiesener Techniker sehen diese Rückmeldung direkt am Ticket.
+                                  </p>
+                                </div>
+                              ) : canCustomerRespondToAppointment(ticket) ? (
+                                <div className="mt-4 space-y-3">
+                                  <div className="rounded-2xl border border-emerald-200 bg-white p-3">
+                                    <p className="text-sm font-black text-slate-800">
+                                      Passt der vorgeschlagene Termin?
+                                    </p>
+                                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                                      Bestätigen Sie direkt oder schlagen Sie ein anderes Datum bzw. eine andere Uhrzeit vor.
+                                    </p>
+                                  </div>
+
                                   <div className="grid gap-2 sm:grid-cols-2">
                                     <input
                                       type="date"
@@ -37781,6 +37842,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                           [ticket.id]: e.target.value,
                                         }))
                                       }
+                                      aria-label="Wunschdatum"
                                       className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
                                     />
                                     <input
@@ -37791,7 +37853,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                           [ticket.id]: e.target.value,
                                         }))
                                       }
-                                      placeholder="Notiz / Uhrzeitwunsch"
+                                      placeholder="Wunschuhrzeit / kurze Notiz"
                                       className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
                                     />
                                   </div>
@@ -37802,20 +37864,20 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                       onClick={() => customerRespondToAppointment(ticket, "confirm")}
                                       className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
                                     >
-                                      Termin bestätigen
+                                      ✓ Termin bestätigen
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => customerRespondToAppointment(ticket, "reschedule")}
                                       className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-black text-orange-700"
                                     >
-                                      Verschieben anfragen
+                                      Anderen Termin anfragen
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <p className="mt-2 text-xs font-bold text-slate-500">
-                                  Terminantwort möglich, sobald ein offener Termin geplant ist.
+                                <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-500">
+                                  Sobald Admin oder Techniker einen Termin eingetragen hat, können Sie ihn hier bestätigen oder einen anderen Termin anfragen.
                                 </p>
                               )}
                             </div>
