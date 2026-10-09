@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.15 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.16 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -33744,6 +33744,23 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                         <p className="mt-1 text-sm font-bold text-slate-600">
                           Kundennummer: {profileCustomer?.customer_number || "–"}
                         </p>
+                        <p className="mt-2 text-sm font-semibold leading-5 text-slate-700">
+                          {buildCustomerAddress(profileCustomer) || "Keine Kundenadresse hinterlegt"}
+                        </p>
+                        {profileCustomer?.company &&
+                        userProfile?.full_name &&
+                        normalizeCompareText(userProfile.full_name) !==
+                          normalizeCompareText(getCustomerLabel(profileCustomer)) ? (
+                          <p className="mt-2 text-xs font-bold text-slate-500">
+                            Angemeldet als: {userProfile.full_name}
+                          </p>
+                        ) : null}
+                        <p className="mt-3 rounded-xl border border-sky-200 bg-white/70 px-3 py-2 text-xs font-bold leading-5 text-sky-800">
+                          Dieses Ticket wird automatisch deinem Kundenkonto
+                          {profileCustomer?.customer_number
+                            ? ` ${profileCustomer.customer_number}`
+                            : ""} zugeordnet.
+                        </p>
                       </div>
                     ) : (
                       <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -33871,7 +33888,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       />
 
                       <p className="mt-3 text-xs font-bold text-slate-500">
-                        Leer lassen, wenn die hinterlegte Kundenadresse gleichzeitig der Einsatzort ist. Nur abweichende Einsatzorte werden zusätzlich im Ticket angezeigt.
+                        Die oben angezeigte Kundenadresse ist der Standard-Einsatzort. Diesen Bereich nur ausfüllen, wenn der Service an einer anderen Adresse stattfinden soll.
                       </p>
                     </div>
 
@@ -35335,6 +35352,23 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       </p>
                       <p className="mt-1 text-sm font-bold text-slate-600">
                         Kundennummer: {profileCustomer?.customer_number || "–"}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold leading-5 text-slate-700">
+                        {buildCustomerAddress(profileCustomer) || "Keine Kundenadresse hinterlegt"}
+                      </p>
+                      {profileCustomer?.company &&
+                      userProfile?.full_name &&
+                      normalizeCompareText(userProfile.full_name) !==
+                        normalizeCompareText(getCustomerLabel(profileCustomer)) ? (
+                        <p className="mt-2 text-xs font-bold text-slate-500">
+                          Angemeldet als: {userProfile.full_name}
+                        </p>
+                      ) : null}
+                      <p className="mt-3 rounded-xl border border-sky-200 bg-white/70 px-3 py-2 text-xs font-bold leading-5 text-sky-800">
+                        Diese Service-Anfrage wird automatisch deinem Kundenkonto
+                        {profileCustomer?.customer_number
+                          ? ` ${profileCustomer.customer_number}`
+                          : ""} zugeordnet.
                       </p>
                     </div>
 
