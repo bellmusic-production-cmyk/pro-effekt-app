@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.06 · Geprüfter Geräteworkflow Kunde → Techniker → Admin · Tenant/RLS mandantensicher erweitert
+// TRYBUN Service Management System v4.13.07 · Kunden-Geräteformular + geprüfter Workflow Kunde → Techniker → Admin · Tenant/RLS mandantensicher erweitert
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7074,6 +7074,11 @@ async function loadApplicationData(userIdOverride?: string) {
     setPriority("Mittel");
     setTicketCreateUploadCategory("Lieferscheine");
     setTicketCreateFile(null);
+    setCustomerDeviceName("");
+    setCustomerDeviceManufacturer("");
+    setCustomerDeviceModel("");
+    setCustomerDeviceSerial("");
+    setCustomerDeviceLocation("");
   }
 
   function resetDeviceForm() {
@@ -7275,8 +7280,27 @@ async function loadApplicationData(userIdOverride?: string) {
       ...selectedTicketModelLabels,
     ].filter(Boolean);
 
-    const currentDeviceName =
-      allSelectedDeviceLabels.length > 0
+    const customerSelectedExistingDevice = isCustomer
+      ? selectedTicketDevices[0] || null
+      : null;
+
+    const customerManualDeviceLabel = [
+      customerDeviceManufacturer.trim() && normalizeCompareText(customerDeviceManufacturer) !== "unbekannt"
+        ? customerDeviceManufacturer.trim()
+        : "",
+      customerDeviceModel.trim() && normalizeCompareText(customerDeviceModel) !== "unbekannt"
+        ? customerDeviceModel.trim()
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const currentDeviceName = isCustomer
+      ? customerSelectedExistingDevice?.name ||
+        customerDeviceName.trim() ||
+        customerManualDeviceLabel ||
+        "Unbekanntes Gerät"
+      : allSelectedDeviceLabels.length > 0
         ? allSelectedDeviceLabels.join(" | ")
         : customDeviceName.trim() || device || "Noch nicht zugewiesen";
 
@@ -7329,9 +7353,87 @@ async function loadApplicationData(userIdOverride?: string) {
         : "",
     ].filter(Boolean);
 
-    const finalDescription = deviceDescriptionParts.length > 0
-      ? `${description}\n\n${deviceDescriptionParts.join("\n\n")}`
-      : description;
+    const customerMatchedManufacturer = isCustomer
+      ? manufacturers.find(
+          (item) =>
+            Number(item.company_id) === Number(currentCompany.id) &&
+            normalizeCompareText(item.name) === normalizeCompareText(customerDeviceManufacturer),
+        ) || null
+      : null;
+
+    const customerMatchedModel = isCustomer
+      ? deviceModels.find(
+          (item) =>
+            Number(item.company_id) === Number(currentCompany.id) &&
+            (!customerMatchedManufacturer ||
+              Number(item.manufacturer_id) === Number(customerMatchedManufacturer.id)) &&
+            normalizeCompareText(getDeviceModelDisplayName(item)) === normalizeCompareText(customerDeviceModel),
+        ) || null
+      : null;
+
+    const customerDeviceDescriptionParts =
+      isCustomer && !customerSelectedExistingDevice
+        ? [
+            `Kundenangabe Gerät: ${customerDeviceName.trim() || "Unbekannt"}`,
+            `Kundenangabe Hersteller: ${customerDeviceManufacturer.trim() || "Unbekannt"}`,
+            `Kundenangabe Modell: ${customerDeviceModel.trim() || "Unbekannt"}`,
+            `Kundenangabe Seriennummer: ${customerDeviceSerial.trim() || "Nicht angegeben"}`,
+            customerDeviceLocation.trim()
+              ? `Kundenangabe Standort: ${customerDeviceLocation.trim()}`
+              : "",
+            "Geräteangaben ungeprüft – Techniker kann vor Ort ergänzen, Admin gibt Stammdaten frei.",
+          ].filter(Boolean)
+        : [];
+
+    const finalDescription = [
+      description,
+      ...deviceDescriptionParts,
+      ...customerDeviceDescriptionParts,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const customerDeviceReviewPayload = isCustomer
+      ? customerSelectedExistingDevice
+        ? {
+            customer_device_name: customerSelectedExistingDevice.name || null,
+            customer_device_manufacturer_id: customerSelectedExistingDevice.manufacturer_id || null,
+            customer_device_manufacturer:
+              customerSelectedExistingDevice.manufacturer ||
+              getManufacturerNameById(customerSelectedExistingDevice.manufacturer_id) ||
+              null,
+            customer_device_model_id: customerSelectedExistingDevice.model_id || null,
+            customer_device_model:
+              getDeviceModelNameById(customerSelectedExistingDevice.model_id) ||
+              customerSelectedExistingDevice.model ||
+              null,
+            customer_device_serial: customerSelectedExistingDevice.serial_number || null,
+            customer_device_location: customerSelectedExistingDevice.location || null,
+            device_review_status: "approved",
+            reviewed_device_id: customerSelectedExistingDevice.id,
+            reviewed_at: null,
+            reviewed_by: null,
+          }
+        : {
+            customer_device_name: customerDeviceName.trim() || null,
+            customer_device_manufacturer_id: customerMatchedManufacturer?.id || null,
+            customer_device_manufacturer:
+              normalizeCompareText(customerDeviceManufacturer) === "unbekannt"
+                ? null
+                : customerDeviceManufacturer.trim() || null,
+            customer_device_model_id: customerMatchedModel?.id || null,
+            customer_device_model:
+              normalizeCompareText(customerDeviceModel) === "unbekannt"
+                ? null
+                : customerDeviceModel.trim() || null,
+            customer_device_serial: customerDeviceSerial.trim() || null,
+            customer_device_location: customerDeviceLocation.trim() || null,
+            device_review_status: "pending",
+            reviewed_device_id: null,
+            reviewed_at: null,
+            reviewed_by: null,
+          }
+      : {};
 
     const baseTicketPayload = {
       company_id: currentCompany.id,
@@ -7349,6 +7451,7 @@ async function loadApplicationData(userIdOverride?: string) {
       description: finalDescription,
       priority,
       status: "Offen",
+      ...customerDeviceReviewPayload,
     };
 
     const ticketPayload = isTechnician
@@ -33611,6 +33714,284 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       </p>
                     </div>
 
+                    {isCustomer ? (
+                      <div className="min-w-0 overflow-hidden rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-sm font-black text-sky-800">Gerät für dieses Ticket</p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-sky-700">
+                              Wähle ein bereits registriertes Kundengerät oder melde ein neues bzw. noch unbekanntes Gerät. Neue Hersteller, Modelle und Kundengeräte werden erst nach Prüfung durch den Admin in die Stammdaten übernommen.
+                            </p>
+                          </div>
+                          <span className="inline-flex w-fit rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-sky-700 shadow-sm">
+                            Stammdaten geschützt
+                          </span>
+                        </div>
+
+                        {devices.filter((item) => Number(item.customer_id) === Number(userProfile?.customer_id)).length > 0 && (
+                          <div className="mt-4 rounded-2xl border border-sky-100 bg-white p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+                              Bereits vorhandenes Kundengerät
+                            </p>
+                            <input
+                              value={ticketDeviceSearch}
+                              onChange={(e) => setTicketDeviceSearch(e.target.value)}
+                              placeholder="Vorhandenes Gerät suchen: Name, Hersteller, Modell, Seriennummer, Standort..."
+                              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
+                              autoComplete="off"
+                            />
+                            <div className="mt-2 max-h-52 space-y-2 overflow-y-auto">
+                              {devices
+                                .filter((item) => Number(item.customer_id) === Number(userProfile?.customer_id))
+                                .filter((item) =>
+                                  !ticketDeviceSearch.trim() ||
+                                  matchesTrybunPrefixSearch(
+                                    [
+                                      item.name,
+                                      item.manufacturer,
+                                      getManufacturerNameById(item.manufacturer_id),
+                                      item.model,
+                                      getDeviceModelNameById(item.model_id),
+                                      item.serial_number,
+                                      item.location,
+                                    ],
+                                    ticketDeviceSearch,
+                                  ),
+                                )
+                                .slice(0, 12)
+                                .map((deviceItem) => {
+                                  const selected = selectedTicketDeviceIds.includes(String(deviceItem.id));
+                                  const manufacturerLabel =
+                                    deviceItem.manufacturer ||
+                                    getManufacturerNameById(deviceItem.manufacturer_id) ||
+                                    "Hersteller offen";
+                                  const modelLabel =
+                                    getDeviceModelNameById(deviceItem.model_id) ||
+                                    deviceItem.model ||
+                                    "Modell offen";
+
+                                  return (
+                                    <button
+                                      key={deviceItem.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedTicketDeviceIds(selected ? [] : [String(deviceItem.id)]);
+                                        setSelectedTicketModelIds([]);
+                                        setDevice(selected ? "" : deviceItem.name);
+                                        setCustomDeviceName("");
+                                        setCustomerDeviceName(selected ? "" : deviceItem.name);
+                                        setCustomerDeviceManufacturer(selected ? "" : manufacturerLabel === "Hersteller offen" ? "" : manufacturerLabel);
+                                        setCustomerDeviceModel(selected ? "" : modelLabel === "Modell offen" ? "" : modelLabel);
+                                        setCustomerDeviceSerial(selected ? "" : deviceItem.serial_number || "");
+                                        setCustomerDeviceLocation(selected ? "" : deviceItem.location || "");
+                                      }}
+                                      className={`w-full rounded-xl border p-3 text-left transition ${
+                                        selected
+                                          ? "border-emerald-400 bg-emerald-50"
+                                          : "border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50"
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <p className="font-black text-slate-900">{deviceItem.name}</p>
+                                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                                            {manufacturerLabel} · {modelLabel}
+                                          </p>
+                                          <p className="mt-1 text-xs font-semibold text-slate-500">
+                                            {deviceItem.serial_number ? `SN: ${deviceItem.serial_number}` : "Keine Seriennummer"} · {deviceItem.location || "Kein Standort"}
+                                          </p>
+                                        </div>
+                                        <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black ${
+                                          selected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
+                                        }`}>
+                                          {selected ? "✓ gewählt" : "Wählen"}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="my-4 flex items-center gap-3">
+                          <div className="h-px flex-1 bg-sky-200" />
+                          <span className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
+                            oder neues / unbekanntes Gerät
+                          </span>
+                          <div className="h-px flex-1 bg-sky-200" />
+                        </div>
+
+                        <div className="space-y-4 rounded-2xl border border-sky-100 bg-white p-4">
+                          <div>
+                            <label className="mb-2 block text-sm font-black text-slate-700">
+                              Gerätebezeichnung <span className="font-semibold text-slate-400">(falls bekannt)</span>
+                            </label>
+                            <input
+                              value={customerDeviceName}
+                              onChange={(e) => {
+                                setCustomerDeviceName(e.target.value);
+                                setSelectedTicketDeviceIds([]);
+                                setDevice("");
+                              }}
+                              placeholder="z. B. Gastherme, Wärmepumpe, Kaffeemaschine"
+                              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
+                            />
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="relative">
+                              <label className="mb-2 block text-sm font-black text-slate-700">Hersteller</label>
+                              <input
+                                value={customerDeviceManufacturer}
+                                onChange={(e) => {
+                                  setCustomerDeviceManufacturer(e.target.value);
+                                  setCustomerDeviceModel("");
+                                  setSelectedTicketDeviceIds([]);
+                                  setDevice("");
+                                }}
+                                placeholder="Hersteller suchen, z. B. Bosch"
+                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
+                                autoComplete="off"
+                              />
+                              {customerDeviceManufacturer.trim() &&
+                                normalizeCompareText(customerDeviceManufacturer) !== "unbekannt" && (
+                                <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                  {manufacturers
+                                    .filter((item) => Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id))
+                                    .filter((item) => matchesTrybunPrefixSearch([item.name], customerDeviceManufacturer))
+                                    .slice(0, 8)
+                                    .map((item) => (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setCustomerDeviceManufacturer(item.name);
+                                          setCustomerDeviceModel("");
+                                        }}
+                                        className="w-full rounded-lg bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:bg-sky-50"
+                                      >
+                                        {item.name}
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomerDeviceManufacturer("Unbekannt");
+                                  setCustomerDeviceModel("");
+                                  setSelectedTicketDeviceIds([]);
+                                  setDevice("");
+                                }}
+                                className="mt-2 text-xs font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
+                              >
+                                Hersteller nicht vorhanden / unbekannt
+                              </button>
+                            </div>
+
+                            <div className="relative">
+                              <label className="mb-2 block text-sm font-black text-slate-700">Modell / Typ</label>
+                              <input
+                                value={customerDeviceModel}
+                                onChange={(e) => {
+                                  setCustomerDeviceModel(e.target.value);
+                                  setSelectedTicketDeviceIds([]);
+                                  setDevice("");
+                                }}
+                                placeholder="Modell suchen oder Typ vom Gerät eingeben"
+                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
+                                autoComplete="off"
+                              />
+                              {customerDeviceModel.trim() &&
+                                normalizeCompareText(customerDeviceModel) !== "unbekannt" && (
+                                <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
+                                  {deviceModels
+                                    .filter((modelItem) => Number(modelItem.company_id) === Number(companyData?.id || companyDataRef.current?.id))
+                                    .filter((modelItem) => {
+                                      const exactManufacturer = manufacturers.find(
+                                        (item) =>
+                                          Number(item.company_id) === Number(companyData?.id || companyDataRef.current?.id) &&
+                                          normalizeCompareText(item.name) === normalizeCompareText(customerDeviceManufacturer),
+                                      );
+                                      return !exactManufacturer || Number(modelItem.manufacturer_id) === Number(exactManufacturer.id);
+                                    })
+                                    .filter((modelItem) =>
+                                      matchesTrybunPrefixSearch(
+                                        [getDeviceModelDisplayName(modelItem), getDeviceModelTypeName(modelItem)],
+                                        customerDeviceModel,
+                                      ),
+                                    )
+                                    .slice(0, 8)
+                                    .map((modelItem) => (
+                                      <button
+                                        key={modelItem.id}
+                                        type="button"
+                                        onClick={() => setCustomerDeviceModel(getDeviceModelDisplayName(modelItem))}
+                                        className="w-full rounded-lg bg-white px-3 py-2 text-left text-sm font-black text-slate-800 hover:bg-sky-50"
+                                      >
+                                        {getDeviceModelDisplayName(modelItem)}
+                                        <span className="ml-2 font-semibold text-slate-400">
+                                          {getManufacturerNameById(modelItem.manufacturer_id)}
+                                        </span>
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomerDeviceModel("Unbekannt");
+                                  setSelectedTicketDeviceIds([]);
+                                  setDevice("");
+                                }}
+                                className="mt-2 text-xs font-black text-sky-700 underline decoration-sky-300 underline-offset-4"
+                              >
+                                Modell nicht vorhanden / unbekannt
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                              <label className="mb-2 block text-sm font-black text-slate-700">Seriennummer</label>
+                              <input
+                                value={customerDeviceSerial}
+                                onChange={(e) => {
+                                  setCustomerDeviceSerial(e.target.value);
+                                  setSelectedTicketDeviceIds([]);
+                                  setDevice("");
+                                }}
+                                placeholder="Falls vorhanden – sonst leer lassen"
+                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-2 block text-sm font-black text-slate-700">Standort / Aufstellort</label>
+                              <input
+                                value={customerDeviceLocation}
+                                onChange={(e) => {
+                                  setCustomerDeviceLocation(e.target.value);
+                                  setSelectedTicketDeviceIds([]);
+                                  setDevice("");
+                                }}
+                                placeholder="z. B. Keller, Technikraum, Filiale 2"
+                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">
+                              Ungeprüfte Geräteangabe
+                            </p>
+                            <p className="mt-1 text-xs font-semibold leading-5 text-amber-800">
+                              Du darfst auch unvollständige Angaben senden. Ein Techniker kann Hersteller, Modell und Seriennummer vor Ort ergänzen. Erst der Admin gibt die geprüften Daten für Hersteller &amp; Modelle sowie Kundengeräte frei.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
                     <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-700">
                         Geräte suchen und auswählen <span className="text-slate-400">(optional, Mehrfachauswahl)</span>
@@ -33794,6 +34175,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                       />
                     </div>
 
+                    )}
                     <input
                       value={issue}
                       onChange={(e) => setIssue(e.target.value)}
