@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.40 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.41 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1877,6 +1877,8 @@ export default function Home() {
 
   const [appointmentResponseNoteByTicket, setAppointmentResponseNoteByTicket] = useState<Record<number, string>>({});
   const [appointmentResponseDateByTicket, setAppointmentResponseDateByTicket] = useState<Record<number, string>>({});
+  const [appointmentResponseTimeByTicket, setAppointmentResponseTimeByTicket] = useState<Record<number, string>>({});
+  const [appointmentResponseSavingTicketId, setAppointmentResponseSavingTicketId] = useState<number | null>(null);
   const [appointmentCoordinationTicketId, setAppointmentCoordinationTicketId] = useState<number | null>(null);
   const [appointmentProposalDate, setAppointmentProposalDate] = useState("");
   const [appointmentProposalTime, setAppointmentProposalTime] = useState("");
@@ -10373,136 +10375,204 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
-    const note = (appointmentResponseNoteByTicket[ticket.id] || "").trim();
-    const requestedDate = (appointmentResponseDateByTicket[ticket.id] || "").trim();
-
-    if (action === "reschedule" && !requestedDate && !note) {
-      alert("Bitte Wunschdatum oder kurze Notiz für die Verschiebung eintragen.");
+    if (appointmentResponseSavingTicketId === ticket.id) {
       return;
     }
 
-    const now = new Date().toISOString();
+    const note = (appointmentResponseNoteByTicket[ticket.id] || "").trim();
+    const requestedDate = (appointmentResponseDateByTicket[ticket.id] || "").trim();
+    const requestedTime = (appointmentResponseTimeByTicket[ticket.id] || "").trim();
+
+    if (
+      action === "reschedule" &&
+      !requestedDate &&
+      !requestedTime &&
+      !note
+    ) {
+      alert("Bitte Wunschdatum, Wunschzeit oder eine kurze Notiz eintragen.");
+      return;
+    }
+
     const customerName =
       (profileCustomer ? getCustomerLabel(profileCustomer) : "") ||
       userProfile?.full_name ||
       userProfile?.company ||
       "Kunde";
 
-    const nextStatus = action === "confirm" ? "Termin vereinbart" : "Wartet auf Kundenfreigabe";
-    const nextServiceStatus = action === "confirm" ? "Kunde hat Termin bestätigt" : "Kunde bittet um Terminverschiebung";
-    const responseText =
-      action === "confirm"
-        ? `Termin vom Kunden bestätigt: ${ticket.service_date}${ticket.service_time ? ` ${ticket.service_time}` : ""}`
-        : `Terminverschiebung angefragt${requestedDate ? ` · Wunschdatum: ${requestedDate}` : ""}${note ? ` · Notiz: ${note}` : ""}`;
-
-    const updatePayload = {
-      status: nextStatus,
-      service_status: nextServiceStatus,
-      customer_approval_name: customerName,
-      customer_approval_at: now,
-      internal_note: [ticket.internal_note || "", responseText].filter(Boolean).join("\n"),
-    };
-
-    const portalCustomerId = Number(profileCustomer?.id || userProfile?.customer_id || 0);
+    const portalCustomerId = Number(
+      profileCustomer?.id || userProfile?.customer_id || 0,
+    );
 
     if (!portalCustomerId) {
       alert("Ihre Kundenzuordnung konnte nicht ermittelt werden.");
       return;
     }
 
-    const { data: updatedTicket, error } = await supabase
-      .from("tickets")
-      .update(updatePayload)
-      .eq("id", ticket.id)
-      .select("*")
-      .maybeSingle();
+    setAppointmentResponseSavingTicketId(ticket.id);
 
-    if (error) {
-      alert(`Terminantwort konnte nicht gespeichert werden: ${error.message}`);
-      return;
-    }
-
-    if (!updatedTicket) {
-      alert(
-        "Die Terminantwort wurde nicht gespeichert. Das Ticket konnte für dieses Kundenkonto nicht aktualisiert werden.",
+    try {
+      const { data: rpcData, error } = await supabase.rpc(
+        "customer_respond_to_appointment",
+        {
+          p_ticket_id: ticket.id,
+          p_action: action,
+          p_requested_date:
+            action === "reschedule" && requestedDate ? requestedDate : null,
+          p_requested_time:
+            action === "reschedule" && requestedTime ? requestedTime : null,
+          p_note:
+            action === "reschedule" && note ? note : null,
+        },
       );
-      return;
-    }
 
-    const updatedCustomerId = Number(
-      updatedTicket.customer_id || updatedTicket.billing_customer_id || 0,
-    );
+      if (error) {
+        alert(`Terminantwort konnte nicht gespeichert werden: ${error.message}`);
+        await loadTickets();
+        return;
+      }
 
-    if (updatedCustomerId !== portalCustomerId) {
-      alert("Die Terminantwort wurde aus Sicherheitsgründen nicht übernommen.");
-      await loadTickets();
-      return;
-    }
+      const updatedTicket = (
+        Array.isArray(rpcData) ? rpcData[0] : rpcData
+      ) as Ticket | null;
 
-    const relatedDevice = devices.find(
-      (item) => item.name === ticket.device || item.customer_id === userProfile?.customer_id,
-    );
+      if (!updatedTicket?.id) {
+        alert(
+          "Die Terminantwort wurde nicht gespeichert. Bitte laden Sie das Ticket neu und versuchen Sie es erneut.",
+        );
+        await loadTickets();
+        return;
+      }
 
-    await createDeviceHistory(
-      relatedDevice?.id || null,
-      action === "confirm" ? "Termin vom Kunden bestätigt" : "Terminverschiebung vom Kunden angefragt",
-      `${ticket.ticket_number} · ${responseText}`,
-      "Kundenportal",
-    );
+      const updatedCustomerId = Number(
+        updatedTicket.customer_id ||
+          updatedTicket.billing_customer_id ||
+          0,
+      );
 
-    const adminRecipient = companyData?.email || "admin@trybun.local";
+      if (updatedCustomerId !== portalCustomerId) {
+        alert("Die Terminantwort wurde aus Sicherheitsgründen nicht übernommen.");
+        await loadTickets();
+        return;
+      }
 
-    await supabase.from("notifications").insert([
-      {
-        type: action === "confirm" ? "Termin bestätigt" : "Terminverschiebung angefragt",
-        recipient: adminRecipient,
-        subject:
-          action === "confirm"
-            ? `Termin bestätigt · ${ticket.ticket_number}`
-            : `Terminverschiebung angefragt · ${ticket.ticket_number}`,
-        message: [
-          `Ticket: ${ticket.ticket_number}`,
-          `Kunde: ${customerName}`,
-          `Gerät: ${ticket.device || "-"}`,
-          `Termin: ${ticket.service_date || "-"}${ticket.service_time ? ` ${ticket.service_time}` : ""}`,
-          requestedDate ? `Wunschdatum: ${requestedDate}` : "",
-          note ? `Notiz: ${note}` : "",
-        ].filter(Boolean).join("\n"),
-        related_ticket_id: ticket.id,
-        status: "Geplant",
-        email_status: "pending",
-        email_template: "Terminantwort Kunde",
-        email_error: null,
-      },
-    ]);
+      const expectedServiceStatus =
+        action === "confirm"
+          ? "Kunde hat Termin bestätigt"
+          : "Kunde bittet um Terminverschiebung";
 
-    setAppointmentResponseNoteByTicket((prev) => ({ ...prev, [ticket.id]: "" }));
-    setAppointmentResponseDateByTicket((prev) => ({ ...prev, [ticket.id]: "" }));
+      if (String(updatedTicket.service_status || "") !== expectedServiceStatus) {
+        alert(
+          "Die Terminantwort wurde serverseitig nicht vollständig übernommen. Bitte das Ticket neu laden.",
+        );
+        await loadTickets();
+        return;
+      }
 
-    setTickets((prev) =>
-      prev.map((item) =>
-        item.id === ticket.id
+      const responseText =
+        action === "confirm"
+          ? `Termin vom Kunden bestätigt: ${ticket.service_date}${ticket.service_time ? ` ${ticket.service_time}` : ""}`
+          : [
+              "Terminverschiebung angefragt",
+              requestedDate ? `Wunschdatum: ${requestedDate}` : "",
+              requestedTime ? `Wunschzeit: ${requestedTime}` : "",
+              note ? `Notiz: ${note}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+
+      const relatedDevice = devices.find(
+        (item) =>
+          item.name === ticket.device ||
+          Number(item.customer_id || 0) === portalCustomerId,
+      );
+
+      await createDeviceHistory(
+        relatedDevice?.id || null,
+        action === "confirm"
+          ? "Termin vom Kunden bestätigt"
+          : "Terminverschiebung vom Kunden angefragt",
+        `${ticket.ticket_number} · ${responseText}`,
+        "Kundenportal",
+      );
+
+      const adminRecipient = companyData?.email || "admin@trybun.local";
+
+      await supabase.from("notifications").insert([
+        {
+          type:
+            action === "confirm"
+              ? "Termin bestätigt"
+              : "Terminverschiebung angefragt",
+          recipient: adminRecipient,
+          subject:
+            action === "confirm"
+              ? `Termin bestätigt · ${ticket.ticket_number}`
+              : `Terminverschiebung angefragt · ${ticket.ticket_number}`,
+          message: [
+            `Ticket: ${ticket.ticket_number}`,
+            `Kunde: ${customerName}`,
+            `Gerät: ${ticket.device || "-"}`,
+            `Termin: ${ticket.service_date || "-"}${ticket.service_time ? ` ${ticket.service_time}` : ""}`,
+            requestedDate ? `Wunschdatum: ${requestedDate}` : "",
+            requestedTime ? `Wunschzeit: ${requestedTime}` : "",
+            note ? `Notiz: ${note}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          related_ticket_id: ticket.id,
+          status: "Geplant",
+          email_status: "pending",
+          email_template: "Terminantwort Kunde",
+          email_error: null,
+        },
+      ]);
+
+      setAppointmentResponseNoteByTicket((prev) => ({
+        ...prev,
+        [ticket.id]: "",
+      }));
+      setAppointmentResponseDateByTicket((prev) => ({
+        ...prev,
+        [ticket.id]: "",
+      }));
+      setAppointmentResponseTimeByTicket((prev) => ({
+        ...prev,
+        [ticket.id]: "",
+      }));
+
+      setTickets((prev) =>
+        prev.map((item) =>
+          item.id === ticket.id
+            ? {
+                ...item,
+                ...updatedTicket,
+              }
+            : item,
+        ),
+      );
+
+      setSelectedTicketView((current) =>
+        current?.id === ticket.id
           ? {
-              ...item,
-              ...(updatedTicket as Ticket),
+              ...current,
+              ...updatedTicket,
             }
-          : item,
-      ),
-    );
+          : current,
+      );
 
-    setSelectedTicketView((current) =>
-      current?.id === ticket.id
-        ? {
-            ...current,
-            ...(updatedTicket as Ticket),
-          }
-        : current,
-    );
+      await loadTickets();
+      await loadNotifications();
 
-    await loadTickets();
-    await loadNotifications();
-
-    alert(action === "confirm" ? "Termin wurde bestätigt." : "Terminverschiebung wurde angefragt.");
+      alert(
+        action === "confirm"
+          ? "Termin wurde bestätigt."
+          : "Terminverschiebung wurde angefragt.",
+      );
+    } finally {
+      setAppointmentResponseSavingTicketId((current) =>
+        current === ticket.id ? null : current,
+      );
+    }
   }
 
   function canCoordinateTicketAppointment(ticket: Ticket) {
@@ -38177,45 +38247,76 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   </div>
 
                                   <div className="grid gap-2 sm:grid-cols-2">
-                                    <input
-                                      type="date"
-                                      value={appointmentResponseDateByTicket[ticket.id] || ""}
-                                      onChange={(e) =>
-                                        setAppointmentResponseDateByTicket((prev) => ({
-                                          ...prev,
-                                          [ticket.id]: e.target.value,
-                                        }))
-                                      }
-                                      aria-label="Wunschdatum"
-                                      className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
-                                    />
-                                    <input
-                                      value={appointmentResponseNoteByTicket[ticket.id] || ""}
-                                      onChange={(e) =>
-                                        setAppointmentResponseNoteByTicket((prev) => ({
-                                          ...prev,
-                                          [ticket.id]: e.target.value,
-                                        }))
-                                      }
-                                      placeholder="Wunschuhrzeit / kurze Notiz"
-                                      className="rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
-                                    />
+                                    <div>
+                                      <label className="mb-1 block text-xs font-black text-slate-600">
+                                        Wunschdatum
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={appointmentResponseDateByTicket[ticket.id] || ""}
+                                        onChange={(e) =>
+                                          setAppointmentResponseDateByTicket((prev) => ({
+                                            ...prev,
+                                            [ticket.id]: e.target.value,
+                                          }))
+                                        }
+                                        aria-label="Wunschdatum"
+                                        className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="mb-1 block text-xs font-black text-slate-600">
+                                        Wunschzeit
+                                      </label>
+                                      <input
+                                        type="time"
+                                        step={60}
+                                        value={appointmentResponseTimeByTicket[ticket.id] || ""}
+                                        onChange={(e) =>
+                                          setAppointmentResponseTimeByTicket((prev) => ({
+                                            ...prev,
+                                            [ticket.id]: e.target.value,
+                                          }))
+                                        }
+                                        aria-label="Wunschzeit"
+                                        className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
+                                      />
+                                    </div>
                                   </div>
+
+                                  <input
+                                    value={appointmentResponseNoteByTicket[ticket.id] || ""}
+                                    onChange={(e) =>
+                                      setAppointmentResponseNoteByTicket((prev) => ({
+                                        ...prev,
+                                        [ticket.id]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Optionale Notiz zum Terminwunsch"
+                                    className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold"
+                                  />
 
                                   <div className="grid gap-2 sm:grid-cols-2">
                                     <button
                                       type="button"
+                                      disabled={appointmentResponseSavingTicketId === ticket.id}
                                       onClick={() => customerRespondToAppointment(ticket, "confirm")}
-                                      className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
+                                      className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                      ✓ Termin bestätigen
+                                      {appointmentResponseSavingTicketId === ticket.id
+                                        ? "Wird gespeichert..."
+                                        : "✓ Termin bestätigen"}
                                     </button>
                                     <button
                                       type="button"
+                                      disabled={appointmentResponseSavingTicketId === ticket.id}
                                       onClick={() => customerRespondToAppointment(ticket, "reschedule")}
-                                      className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-black text-orange-700"
+                                      className="rounded-2xl bg-orange-100 px-4 py-3 text-sm font-black text-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
-                                      Anderen Termin anfragen
+                                      {appointmentResponseSavingTicketId === ticket.id
+                                        ? "Wird gespeichert..."
+                                        : "Anderen Termin anfragen"}
                                     </button>
                                   </div>
                                 </div>
