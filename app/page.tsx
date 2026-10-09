@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.28 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.29 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1454,7 +1454,6 @@ export default function Home() {
 
   const [customer, setCustomer] = useState("");
   const [device, setDevice] = useState("");
-  const [customDeviceName, setCustomDeviceName] = useState("");
   const [ticketTypes, setTicketTypes] = useState<string[]>(["Reparatur"]);
   const [ticketTypeDropdownOpen, setTicketTypeDropdownOpen] = useState(false);
   const [ticketCustomerSearch, setTicketCustomerSearch] = useState("");
@@ -7443,7 +7442,6 @@ async function loadApplicationData(userIdOverride?: string) {
     setEditingTicket(null);
     setCustomer("");
     setDevice("");
-    setCustomDeviceName("");
     setTicketTypes(["Reparatur"]);
     setTicketTypeDropdownOpen(false);
     setTicketCustomerSearch("");
@@ -7567,7 +7565,6 @@ async function loadApplicationData(userIdOverride?: string) {
     setTicketDeviceSearch(ticket.device || "");
     setSelectedTicketDeviceIds([]);
     setSelectedTicketModelIds([]);
-    setCustomDeviceName("");
     setServiceLocationName(ticket.service_location_name || "");
     setServiceAddress(ticket.service_address || "");
     setServiceContactName(ticket.service_contact_name || "");
@@ -7692,16 +7689,6 @@ async function loadApplicationData(userIdOverride?: string) {
       ? selectedTicketDevices[0] || null
       : null;
 
-    const customerManualDeviceLabel = [
-      customerDeviceManufacturer.trim() && normalizeCompareText(customerDeviceManufacturer) !== "unbekannt"
-        ? customerDeviceManufacturer.trim()
-        : "",
-      customerDeviceModel.trim() && normalizeCompareText(customerDeviceModel) !== "unbekannt"
-        ? customerDeviceModel.trim()
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
 
     const currentDeviceName = isCustomer
       ? customerSelectedExistingDevice?.name ||
@@ -7709,7 +7696,7 @@ async function loadApplicationData(userIdOverride?: string) {
         "Noch nicht als Kundengerät zugewiesen"
       : allSelectedDeviceLabels.length > 0
         ? allSelectedDeviceLabels.join(" | ")
-        : customDeviceName.trim() || device || "Noch nicht zugewiesen";
+        : device || "Noch nicht zugewiesen";
 
     const relatedDevice =
       selectedTicketDevices[0] ||
@@ -7965,7 +7952,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const currentDeviceName =
       allSelectedDeviceLabels.length > 0
         ? allSelectedDeviceLabels.join(" | ")
-        : customDeviceName.trim() || device || "Noch nicht zugewiesen";
+        : device || "Noch nicht zugewiesen";
 
     const nextIssue = `${getTicketTypeLabel()}: ${issue.trim()}`;
     const selectedBillingCustomer =
@@ -9870,7 +9857,6 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     setTicketCustomerSearch(nextCustomerName);
     setDevice(item.name);
     setTicketDeviceSearch(item.name);
-    setCustomDeviceName("");
     setServiceLocationName("");
     setServiceAddress(item.location || "");
     setServiceContactName("");
@@ -11304,7 +11290,6 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
         : [...prev, modelId],
     );
     setDevice("");
-    setCustomDeviceName("");
   }
 
   function getCustomerDeviceTicketLabel(deviceItem?: Device | null) {
@@ -11335,7 +11320,6 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     );
 
     setDevice("");
-    setCustomDeviceName("");
   }
 
   async function loadCustomerPartReservations(customerId: number) {
@@ -11562,6 +11546,24 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
   function getDeviceModelNameById(modelId?: number | null) {
     if (!modelId) return "";
     return getDeviceModelDisplayName(deviceModels.find((item) => item.id === modelId));
+  }
+
+  function ticketNeedsManufacturerOrModelReview(ticket: Ticket, linkedDevice?: Device | null) {
+    const manufacturer =
+      ticket.technician_device_manufacturer ||
+      ticket.customer_device_manufacturer ||
+      linkedDevice?.manufacturer ||
+      getManufacturerNameById(linkedDevice?.manufacturer_id) ||
+      "";
+
+    const model =
+      ticket.technician_device_model ||
+      ticket.customer_device_model ||
+      getDeviceModelNameById(linkedDevice?.model_id) ||
+      linkedDevice?.model ||
+      "";
+
+    return !manufacturer.trim() || !model.trim();
   }
 
   function getTicketDeviceSummary(ticket: Ticket, linkedDevice?: Device | null) {
@@ -34778,8 +34780,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                                         setSelectedTicketDeviceIds(selected ? [] : [String(deviceItem.id)]);
                                         setSelectedTicketModelIds([]);
                                         setDevice(selected ? "" : deviceItem.name);
-                                        setCustomDeviceName("");
-                                        setCustomerDeviceName(selected ? "" : deviceItem.name);
+                                                                            setCustomerDeviceName(selected ? "" : deviceItem.name);
                                         setCustomerDeviceManufacturer(selected ? "" : manufacturerLabel === "Hersteller offen" ? "" : manufacturerLabel);
                                         setCustomerDeviceModel(selected ? "" : modelLabel === "Modell offen" ? "" : modelLabel);
                                         setCustomerDeviceSerial(selected ? "" : deviceItem.serial_number || "");
@@ -35217,8 +35218,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                         onChange={(e) => {
                           setTicketDeviceSearch(e.target.value);
                           setDevice("");
-                          setCustomDeviceName("");
-                        }}
+                                              }}
                         placeholder={
                           selectedTicketCustomer
                             ? "Kundengerät oder Modell suchen: Hersteller, Kategorie, Modell, Seriennummer, Standort..."
@@ -35269,13 +35269,13 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
 
                       {selectedTicketCustomer && !ticketDeviceSearch.trim() && ticketCustomerDevices.length === 0 && (
                         <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          Für diesen Kunden ist noch kein Kundengerät zugeordnet. Du kannst ein Modell aus dem Katalog suchen oder unten einen freien Gerätenamen eintragen.
+                          Für diesen Kunden ist noch kein Kundengerät zugeordnet. Du kannst ein vorhandenes Modell aus dem Katalog auswählen.
                         </p>
                       )}
 
                       {ticketDeviceSearch.trim() && filteredTicketDevices.length === 0 && filteredTicketLibraryModels.length === 0 && (
                         <p className="mt-3 rounded-2xl bg-white p-3 text-sm font-bold text-slate-500">
-                          Kein Treffer gefunden. Du kannst unten einen freien Gerätenamen eintragen.
+                          Kein Treffer gefunden. Bitte prüfe Hersteller und Modell über die Geräteprüfung bzw. wähle ein vorhandenes Modell aus dem Katalog.
                         </p>
                       )}
 
@@ -35367,24 +35367,6 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                         </div>
                       )}
 
-                      <div className="my-3 text-center text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                        oder freien Gerätenamen eintragen (optional)
-                      </div>
-
-                      <input
-                        value={customDeviceName}
-                        onChange={(e) => {
-                          setCustomDeviceName(e.target.value);
-                          setDevice("");
-                          setSelectedTicketDeviceIds([]);
-                          setSelectedTicketModelIds([]);
-                          setTicketDeviceSearch("");
-                        }}
-                        placeholder="Optional: unbekanntes Gerät, Seriennummer oder Standort"
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-4 text-base"
-                        autoComplete="off"
-                        inputMode="text"
-                      />
                     </div>
 
                     )}
@@ -35761,14 +35743,21 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 <span className={`rounded-full px-3 py-1 text-xs font-black ${priorityClass(ticket.priority)}`}>
                                   Priorität {ticket.priority}
                                 </span>
-                                {ticket.device_review_status === "pending" && (
-                                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
-                                    Geräteprüfung offen
-                                  </span>
-                                )}
+                                {ticket.device_review_status === "pending" &&
+                                  ticketNeedsManufacturerOrModelReview(ticket, ticketDevice) && (
+                                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
+                                      Geräteprüfung offen
+                                    </span>
+                                  )}
                                 {ticket.device_review_status === "technician_updated" && (
-                                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
-                                    Technikerangabe neu · Admin prüfen
+                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                    ticketNeedsManufacturerOrModelReview(ticket, ticketDevice)
+                                      ? "bg-amber-100 text-amber-800"
+                                      : "bg-blue-100 text-blue-700"
+                                  }`}>
+                                    {ticketNeedsManufacturerOrModelReview(ticket, ticketDevice)
+                                      ? "Geräteprüfung offen"
+                                      : "Technikerangabe vollständig · Adminfreigabe"}
                                   </span>
                                 )}
                                 {ticket.device_review_status === "approved" && (
