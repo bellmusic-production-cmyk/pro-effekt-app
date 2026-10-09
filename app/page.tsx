@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.39 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.40 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -3295,10 +3295,7 @@ export default function Home() {
   function getCustomerAppointmentWorkflowState(ticket: Ticket) {
     const serviceStatus = String(ticket.service_status || "").trim();
 
-    if (
-      serviceStatus === "Wartet auf Kundenbestätigung" ||
-      serviceStatus === "Geplant"
-    ) {
+    if (serviceStatus === "Wartet auf Kundenbestätigung") {
       return {
         kind: "waiting" as const,
         label: "Wartet auf Kundenbestätigung",
@@ -3335,10 +3332,29 @@ export default function Home() {
   }
 
   function getCustomerAppointmentResponseState(ticket: Ticket) {
-    const workflowState = getCustomerAppointmentWorkflowState(ticket);
-    return workflowState?.kind === "confirmed" || workflowState?.kind === "reschedule"
-      ? workflowState
-      : null;
+    const serviceStatus = String(ticket.service_status || "").trim();
+
+    if (serviceStatus === "Kunde hat Termin bestätigt") {
+      return {
+        kind: "confirmed" as const,
+        label: "Termin bestätigt",
+        detail: ticket.customer_approval_at
+          ? `Bestätigt am ${formatDateTime(ticket.customer_approval_at)}`
+          : "Vom Kunden bestätigt",
+      };
+    }
+
+    if (serviceStatus === "Kunde bittet um Terminverschiebung") {
+      return {
+        kind: "reschedule" as const,
+        label: "Kunde bittet um neuen Termin",
+        detail: ticket.customer_approval_at
+          ? `Kundenrückmeldung: ${formatDateTime(ticket.customer_approval_at)}`
+          : "Kundenrückmeldung eingegangen",
+      };
+    }
+
+    return null;
   }
 
   function getAppointmentCommunicationLines(ticket: Ticket) {
@@ -10394,16 +10410,32 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
-    const { error } = await supabase
+    const { data: updatedTicket, error } = await supabase
       .from("tickets")
       .update(updatePayload)
       .eq("id", ticket.id)
-      .or(
-        `customer_id.eq.${portalCustomerId},billing_customer_id.eq.${portalCustomerId}`,
-      );
+      .select("*")
+      .maybeSingle();
 
     if (error) {
       alert(`Terminantwort konnte nicht gespeichert werden: ${error.message}`);
+      return;
+    }
+
+    if (!updatedTicket) {
+      alert(
+        "Die Terminantwort wurde nicht gespeichert. Das Ticket konnte für dieses Kundenkonto nicht aktualisiert werden.",
+      );
+      return;
+    }
+
+    const updatedCustomerId = Number(
+      updatedTicket.customer_id || updatedTicket.billing_customer_id || 0,
+    );
+
+    if (updatedCustomerId !== portalCustomerId) {
+      alert("Die Terminantwort wurde aus Sicherheitsgründen nicht übernommen.");
+      await loadTickets();
       return;
     }
 
@@ -10452,14 +10484,19 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
         item.id === ticket.id
           ? {
               ...item,
-              ...updatePayload,
+              ...(updatedTicket as Ticket),
             }
           : item,
       ),
     );
 
     setSelectedTicketView((current) =>
-      current?.id === ticket.id ? { ...current, ...updatePayload } : current,
+      current?.id === ticket.id
+        ? {
+            ...current,
+            ...(updatedTicket as Ticket),
+          }
+        : current,
     );
 
     await loadTickets();
