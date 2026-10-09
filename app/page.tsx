@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.37 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.38 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1332,6 +1332,7 @@ export default function Home() {
   const [modelPurchasePrice, setModelPurchasePrice] = useState("");
   const [modelSalePrice, setModelSalePrice] = useState("");
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const customerDocumentsReloadKeyRef = useRef<string>("");
   const [deviceHistory, setDeviceHistory] = useState<DeviceHistory[]>([]);
   const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlan[]>(
     [],
@@ -4552,6 +4553,7 @@ async function loadApplicationData(userIdOverride?: string) {
     setManufacturers([]);
     setDeviceModels([]);
     setDocuments([]);
+    customerDocumentsReloadKeyRef.current = "";
     setDeviceHistory([]);
     setMaintenancePlans([]);
     setServiceParts([]);
@@ -4797,6 +4799,7 @@ async function loadApplicationData(userIdOverride?: string) {
     setManufacturers([]);
     setDeviceModels([]);
     setDocuments([]);
+    customerDocumentsReloadKeyRef.current = "";
     setDeviceHistory([]);
     setMaintenancePlans([]);
     setServiceParts([]);
@@ -20813,6 +20816,30 @@ ${tenantBrandName}`,
         ? customers.find((item) => Number(item.id) === Number(userProfile.customer_id)) || null
         : null;
 
+  useEffect(() => {
+    if (
+      userProfile?.role !== "customer" ||
+      !session?.user?.id ||
+      !profileCustomer?.id
+    ) {
+      return;
+    }
+
+    const reloadKey = `${session.user.id}:${Number(profileCustomer.id)}`;
+
+    if (customerDocumentsReloadKeyRef.current === reloadKey) {
+      return;
+    }
+
+    customerDocumentsReloadKeyRef.current = reloadKey;
+
+    void loadDocuments();
+  }, [
+    session?.user?.id,
+    userProfile?.role,
+    profileCustomer?.id,
+  ]);
+
   const visibleDocuments = useMemo(() => {
     if (isCustomer) {
       // Die Kundenidentität ist hier bereits deklariert. Damit bleibt die
@@ -21353,6 +21380,11 @@ ${tenantBrandName}`,
 
     if (item !== "Dokumente") {
       setDocumentQuickFilter("Alle");
+    } else if (userProfile?.role === "customer") {
+      // Dokumentarchiv beim Öffnen immer frisch aus Supabase laden.
+      // Das verhindert, dass ein leerer Initialzustand aus dem Login-Ladevorgang
+      // im Kundenportal bis zum nächsten vollständigen Reload bestehen bleibt.
+      void loadDocuments();
     }
 
     if (typeof window !== "undefined") {
