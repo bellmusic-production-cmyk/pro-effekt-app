@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.22 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.23 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -7649,8 +7649,7 @@ async function loadApplicationData(userIdOverride?: string) {
     const currentDeviceName = isCustomer
       ? customerSelectedExistingDevice?.name ||
         customerDeviceName.trim() ||
-        customerManualDeviceLabel ||
-        "Unbekanntes Gerät"
+        "Noch nicht als Kundengerät zugewiesen"
       : allSelectedDeviceLabels.length > 0
         ? allSelectedDeviceLabels.join(" | ")
         : customDeviceName.trim() || device || "Noch nicht zugewiesen";
@@ -11506,6 +11505,55 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
   function getDeviceModelNameById(modelId?: number | null) {
     if (!modelId) return "";
     return getDeviceModelDisplayName(deviceModels.find((item) => item.id === modelId));
+  }
+
+  function getTicketDeviceSummary(ticket: Ticket, linkedDevice?: Device | null) {
+    const isPendingReview =
+      Boolean(ticket.device_review_status) &&
+      ticket.device_review_status !== "approved" &&
+      ticket.device_review_status !== "not_required";
+
+    const deviceName =
+      ticket.technician_device_name ||
+      ticket.customer_device_name ||
+      linkedDevice?.name ||
+      (!isPendingReview ? ticket.device : "") ||
+      "";
+
+    const manufacturer =
+      ticket.technician_device_manufacturer ||
+      ticket.customer_device_manufacturer ||
+      linkedDevice?.manufacturer ||
+      getManufacturerNameById(linkedDevice?.manufacturer_id) ||
+      "";
+
+    const model =
+      ticket.technician_device_model ||
+      ticket.customer_device_model ||
+      getDeviceModelNameById(linkedDevice?.model_id) ||
+      linkedDevice?.model ||
+      "";
+
+    const serial =
+      ticket.technician_device_serial ||
+      ticket.customer_device_serial ||
+      linkedDevice?.serial_number ||
+      "";
+
+    const location =
+      ticket.technician_device_location ||
+      ticket.customer_device_location ||
+      linkedDevice?.location ||
+      "";
+
+    return {
+      deviceName,
+      manufacturer: manufacturer || "Hersteller nicht angegeben",
+      model: model || (isPendingReview ? "Kein Modell angegeben" : "Modell offen"),
+      serial: serial || "Nicht angegeben",
+      location: location || "Nicht angegeben",
+      isPendingReview,
+    };
   }
 
 
@@ -23734,13 +23782,21 @@ ${tenantBrandName}`,
 
                                   <div className="rounded-2xl bg-slate-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                       Gerät
+                                      Geräteangabe
                                     </p>
-                                    <p className="mt-1 break-words text-sm font-black text-slate-900">
-                                      {ticket.device || "Noch nicht zugewiesen"}
+                                    {getTicketDeviceSummary(ticket, meta.ticketDevice).deviceName && (
+                                      <p className="mt-1 break-words text-sm font-black text-slate-900">
+                                        {getTicketDeviceSummary(ticket, meta.ticketDevice).deviceName}
+                                      </p>
+                                    )}
+                                    <p className="mt-1 text-xs font-bold text-slate-600">
+                                      Hersteller: {getTicketDeviceSummary(ticket, meta.ticketDevice).manufacturer}
                                     </p>
                                     <p className="mt-1 text-xs font-bold text-slate-600">
-                                      {meta.ticketDevice?.serial_number ? `SN: ${meta.ticketDevice.serial_number}` : "Seriennummer offen"}
+                                      Modell: {getTicketDeviceSummary(ticket, meta.ticketDevice).model}
+                                    </p>
+                                    <p className="mt-1 text-xs font-bold text-slate-600">
+                                      Seriennummer: {getTicketDeviceSummary(ticket, meta.ticketDevice).serial}
                                     </p>
                                   </div>
 
@@ -24982,17 +25038,22 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                           </div>
                         ) : (
                           <>
-                            <h4 className="mt-2 text-lg font-black text-slate-900">
-                              {ticketDevice?.name || currentTicket.device || "Noch nicht zugewiesen"}
-                            </h4>
+                            {getTicketDeviceSummary(currentTicket, ticketDevice).deviceName && (
+                              <h4 className="mt-2 text-lg font-black text-slate-900">
+                                {getTicketDeviceSummary(currentTicket, ticketDevice).deviceName}
+                              </h4>
+                            )}
                             <p className="mt-2 text-sm font-semibold text-slate-600">
-                              {ticketDevice?.manufacturer || getManufacturerNameById(ticketDevice?.manufacturer_id) || "Hersteller offen"}
+                              Hersteller: {getTicketDeviceSummary(currentTicket, ticketDevice).manufacturer}
                             </p>
                             <p className="mt-1 text-sm font-semibold text-slate-600">
-                              {ticketDevice?.serial_number ? `SN: ${ticketDevice.serial_number}` : "Seriennummer offen"}
+                              Modell: {getTicketDeviceSummary(currentTicket, ticketDevice).model}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-slate-600">
+                              Seriennummer: {getTicketDeviceSummary(currentTicket, ticketDevice).serial}
                             </p>
                             <p className="mt-2 text-xs font-bold text-slate-500">
-                              {ticketDevice?.location || "Standort offen"}
+                              Standort: {getTicketDeviceSummary(currentTicket, ticketDevice).location}
                             </p>
                           </>
                         )}
@@ -33307,15 +33368,21 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
                               <div className="rounded-3xl bg-slate-50 p-4">
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
-                                  Gerät
+                                  Geräteangabe
                                 </p>
-                                <p className="mt-1 break-words text-lg font-black text-slate-900">
-                                  {ticket.device || "Gerät offen"}
+                                {getTicketDeviceSummary(ticket, relatedDevice).deviceName && (
+                                  <p className="mt-1 break-words text-lg font-black text-slate-900">
+                                    {getTicketDeviceSummary(ticket, relatedDevice).deviceName}
+                                  </p>
+                                )}
+                                <p className="mt-1 break-words text-sm font-bold text-slate-600">
+                                  Hersteller: {getTicketDeviceSummary(ticket, relatedDevice).manufacturer}
                                 </p>
                                 <p className="mt-1 break-words text-sm font-bold text-slate-600">
-                                  {relatedDevice?.serial_number
-                                    ? `SN: ${relatedDevice.serial_number}`
-                                    : "Seriennummer offen"}
+                                  Modell: {getTicketDeviceSummary(ticket, relatedDevice).model}
+                                </p>
+                                <p className="mt-1 break-words text-sm font-bold text-slate-600">
+                                  Seriennummer: {getTicketDeviceSummary(ticket, relatedDevice).serial}
                                 </p>
                               </div>
                             </div>
@@ -35393,14 +35460,24 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                                     Gerät
+                                    Geräteangabe
                                   </p>
-                                  <p className="mt-1 break-words text-sm font-black text-slate-900">
-                                    {ticket.device || "Noch nicht zugewiesen"}
+                                  {getTicketDeviceSummary(ticket, ticketDevice).deviceName && (
+                                    <p className="mt-1 break-words text-sm font-black text-slate-900">
+                                      {getTicketDeviceSummary(ticket, ticketDevice).deviceName}
+                                    </p>
+                                  )}
+                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                    Hersteller: {getTicketDeviceSummary(ticket, ticketDevice).manufacturer}
                                   </p>
                                   <p className="mt-1 break-words text-xs font-bold text-slate-600">
-                                    {ticketDevice?.serial_number ? `SN: ${ticketDevice.serial_number}` : "Seriennummer offen"}
-                                    {ticketDevice?.location ? ` · ${ticketDevice.location}` : ""}
+                                    Modell: {getTicketDeviceSummary(ticket, ticketDevice).model}
+                                  </p>
+                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                    Seriennummer: {getTicketDeviceSummary(ticket, ticketDevice).serial}
+                                  </p>
+                                  <p className="mt-1 break-words text-xs font-bold text-slate-500">
+                                    Standort: {getTicketDeviceSummary(ticket, ticketDevice).location}
                                   </p>
                                 </div>
 
