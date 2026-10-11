@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.46 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.47 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -26605,7 +26605,8 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         </button>
                         {isAdmin &&
                           currentTicket.device_review_status !== "approved" &&
-                          currentTicket.device_review_status !== "not_required" && (
+                          currentTicket.device_review_status !== "not_required" &&
+                          ticketNeedsManufacturerOrModelReview(currentTicket, ticketDevice) && (
                             <button
                               onClick={() => openAdminDeviceReview(currentTicket)}
                               className="rounded-2xl bg-amber-100 px-4 py-3 text-sm font-black text-amber-800"
@@ -26628,7 +26629,10 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                       </div>
                     </div>
 
-                    {currentTicket.device_review_status && currentTicket.device_review_status !== "not_required" && (
+                    {currentTicket.device_review_status &&
+                      currentTicket.device_review_status !== "not_required" &&
+                      currentTicket.device_review_status !== "approved" &&
+                      ticketNeedsManufacturerOrModelReview(currentTicket, ticketDevice) && (
                       <div className="mt-5 rounded-[22px] border border-amber-200 bg-amber-50 p-4 sm:p-5">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div>
@@ -38125,7 +38129,8 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
                               {isAdmin &&
                                 ticket.device_review_status !== "approved" &&
-                                ticket.device_review_status !== "not_required" && (
+                                ticket.device_review_status !== "not_required" &&
+                                ticketNeedsManufacturerOrModelReview(ticket, ticketDevice) && (
                                   <button
                                     onClick={() => openAdminDeviceReview(ticket)}
                                     className="w-full rounded-2xl bg-amber-100 px-3 py-3 text-center text-xs font-black text-amber-800 md:text-sm"
