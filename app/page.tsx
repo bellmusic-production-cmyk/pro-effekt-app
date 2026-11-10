@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.56
+// TRYBUN Service Management System v4.13.57
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1371,6 +1371,38 @@ export default function Home() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptDigitalDocumentation, setAcceptDigitalDocumentation] = useState(false);
   const [activePage, setActivePage] = useState("Dashboard");
+  const [appearanceMode, setAppearanceMode] = useState<"light" | "dark">("light");
+  const [listPages, setListPages] = useState<Record<string, number>>({});
+  const isDarkMode = appearanceMode === "dark";
+
+  function getListPage(key: string, totalItems: number, pageSize = 10) {
+    const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
+    return Math.min(Math.max(1, Number(listPages[key] || 1)), pageCount);
+  }
+
+  function getPagedItems<T>(key: string, items: T[], pageSize = 10) {
+    const page = getListPage(key, items.length, pageSize);
+    const start = (page - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }
+
+  function renderListPagination(key: string, totalItems: number, pageSize = 10) {
+    if (totalItems <= pageSize) return null;
+    const page = getListPage(key, totalItems, pageSize);
+    const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, totalItems);
+    return (
+      <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-slate-600">{start}–{end} von {totalItems}</p>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setListPages((prev) => ({ ...prev, [key]: Math.max(1, page - 1) }))} disabled={page <= 1} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Zurück</button>
+          <span className="min-w-[110px] text-center text-sm font-bold text-slate-600">Seite {page} von {pageCount}</span>
+          <button type="button" onClick={() => setListPages((prev) => ({ ...prev, [key]: Math.min(pageCount, page + 1) }))} disabled={page >= pageCount} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Weiter</button>
+        </div>
+      </div>
+    );
+  }
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -2402,6 +2434,21 @@ export default function Home() {
   }, [activePage, session?.user?.id]);
 
   useEffect(() => {
+    if (!session?.user?.id || typeof window === "undefined") return;
+    const savedMode = window.localStorage.getItem(`trybun-appearance-${session.user.id}`);
+    setAppearanceMode(savedMode === "dark" ? "dark" : "light");
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!session?.user?.id || typeof window === "undefined") return;
+    window.localStorage.setItem(`trybun-appearance-${session.user.id}`, appearanceMode);
+  }, [appearanceMode, session?.user?.id]);
+
+  useEffect(() => {
+    setListPages({});
+  }, [activePage, searchTerm, statusFilter, priorityFilter, ticketListFocus, customerDirectorySearch, customerTypeFilter, customerDirectoryCityFilter, userManagementRoleFilter, userManagementSearch, partSearchTerm, partManufacturerFilter, inventorySearchTerm, inventoryManufacturerFilter, accountingSearch, accountingTypeFilter, accountingStatusFilter]);
+
+  useEffect(() => {
     if (!session?.user?.id) return;
 
     let cancelled = false;
@@ -2658,10 +2705,7 @@ export default function Home() {
         })
     : sortTicketsByCreatedAtDesc(filteredTickets);
 
-  const ticketListDisplayTickets =
-    statusFilter === "Alle"
-      ? sortedTicketListTickets
-      : sortedTicketListTickets.slice(0, 5);
+  const ticketListDisplayTickets = getPagedItems("tickets", sortedTicketListTickets, 10);
 
   const visibleRoleTickets = useMemo(() => {
     return tickets.filter((ticket) => {
@@ -22668,7 +22712,7 @@ ${tenantBrandName}`,
       });
   })();
 
-  const filteredCustomerDirectory = customerDirectoryMatches.slice(0, 30);
+  const filteredCustomerDirectory = getPagedItems("customers", customerDirectoryMatches, 10);
 
   const customerDirectorySearchIsActive =
     customerDirectorySearch.trim().length >= 1 ||
@@ -24175,7 +24219,7 @@ ${tenantBrandName}`,
 
   return (
     <main
-      className="trybun-premium-ui min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-white lg:pb-0"
+      className={`trybun-premium-ui ${isDarkMode ? "trybun-dark" : "trybun-light"} min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--pe-black)] pb-[max(env(safe-area-inset-bottom),2rem)] text-slate-900 lg:bg-white lg:pb-0`}
       style={{
         ["--pe-blue" as any]: tenantPrimaryColor,
         ["--pe-black" as any]: tenantSecondaryColor,
@@ -24443,6 +24487,31 @@ ${tenantBrandName}`,
                 0 6px 18px rgba(15, 23, 42, 0.04) !important;
             }
           }
+
+          .trybun-premium-ui.trybun-dark { background: #07111d !important; color: #e5edf7 !important; }
+          .trybun-premium-ui.trybun-dark .bg-white { background-color: #101c2b !important; }
+          .trybun-premium-ui.trybun-dark .bg-slate-50 { background-color: #0b1624 !important; }
+          .trybun-premium-ui.trybun-dark .bg-slate-100,
+          .trybun-premium-ui.trybun-dark .bg-slate-200 { background-color: #172538 !important; }
+          .trybun-premium-ui.trybun-dark .text-slate-950,
+          .trybun-premium-ui.trybun-dark .text-slate-900,
+          .trybun-premium-ui.trybun-dark .text-slate-800,
+          .trybun-premium-ui.trybun-dark .text-slate-700 { color: #f1f5f9 !important; }
+          .trybun-premium-ui.trybun-dark .text-slate-600,
+          .trybun-premium-ui.trybun-dark .text-slate-500,
+          .trybun-premium-ui.trybun-dark .text-slate-400 { color: #aebdce !important; }
+          .trybun-premium-ui.trybun-dark .border-slate-100,
+          .trybun-premium-ui.trybun-dark .border-slate-200,
+          .trybun-premium-ui.trybun-dark .border-slate-300 { border-color: #304158 !important; }
+          .trybun-premium-ui.trybun-dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+          .trybun-premium-ui.trybun-dark select,
+          .trybun-premium-ui.trybun-dark textarea { background-color: #0b1624 !important; border-color: #304158 !important; color: #f8fafc !important; }
+          .trybun-premium-ui.trybun-dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+          .trybun-premium-ui.trybun-dark select:focus,
+          .trybun-premium-ui.trybun-dark textarea:focus { background-color: #0e1b2b !important; }
+          .trybun-premium-ui.trybun-dark option { color: #f8fafc !important; background: #0b1624 !important; }
+          .trybun-premium-ui.trybun-dark table thead { background: #0b1624 !important; }
+          .trybun-premium-ui.trybun-dark table tbody tr:hover { background-color: #132338 !important; }
 
           @media (min-width: 1024px) {
             .trybun-premium-ui {
@@ -28563,7 +28632,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       Für diese Auswahl wurden keine Geschäftsvorgänge gefunden.
                     </div>
                   ) : (
-                    filteredAccountingRecords.slice(0, 80).map((record) => (
+                    getPagedItems("accounting", filteredAccountingRecords, 20).map((record) => (
                       <div
                         key={record.key}
                         className="grid gap-3 rounded-[10px] border border-slate-200 bg-white p-3 sm:p-4 lg:grid-cols-[150px_minmax(0,1fr)_180px_160px_auto] lg:items-center"
@@ -28683,6 +28752,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       </div>
                     ))
                   )}
+                  {renderListPagination("accounting", filteredAccountingRecords.length, 20)}
                 </div>
               </section>
 
@@ -29451,7 +29521,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         Noch keine Rechnungen oder Angebote vorhanden.
                       </div>
                     ) : (
-                      visibleInvoices.map((item) => (
+                      getPagedItems("invoices", visibleInvoices, 10).map((item) => (
                         <div
                           key={item.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -29534,6 +29604,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         </div>
                       ))
                     )}
+                    {renderListPagination("invoices", visibleInvoices.length, 10)}
                   </div>
                 </div>
               </div>
@@ -30931,7 +31002,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                             : "Keine Benutzer in dieser Rolle vorhanden."}
                       </div>
                     ) : (
-                      userManagementProfiles.map((profile) => {
+                      getPagedItems("users", userManagementProfiles, 10).map((profile) => {
                         const linkedCustomer = getCustomerForUserProfile(profile);
 
                         return (
@@ -30984,6 +31055,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                         );
                       })
                     )}
+                    {renderListPagination("users", userManagementProfiles.length, 10)}
                   </div>
                 </div>
 
@@ -31381,6 +31453,19 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
                   Logo, Firmenfarbe und Kontaktdaten steuern das Erscheinungsbild von Dashboard, Login, PDF-Dokumenten und Kundenportal.
                 </p>
+              </div>
+
+              <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Darstellung</h3>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">Wähle deine bevorzugte Ansicht.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
+                    <button type="button" onClick={() => setAppearanceMode("light")} className={`rounded-xl px-5 py-3 text-sm font-black ${appearanceMode === "light" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Hell</button>
+                    <button type="button" onClick={() => setAppearanceMode("dark")} className={`rounded-xl px-5 py-3 text-sm font-black ${appearanceMode === "dark" ? "bg-slate-900 text-white shadow-sm" : "text-slate-500"}`}>Dunkel</button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -32634,6 +32719,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       );
                     })
                   )}
+                  {renderListPagination("customers", customerDirectoryMatches.length, 10)}
                 </div>
               </div>
             </div>
@@ -34183,7 +34269,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                         Noch keine Verträge vorhanden.
                       </div>
                     ) : (
-                      contracts.map((item) => (
+                      getPagedItems("contracts", contracts, 10).map((item) => (
                         <div
                           key={item.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -34277,6 +34363,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                         </div>
                       ))
                     )}
+                    {renderListPagination("contracts", contracts.length, 10)}
                   </div>
                 </div>
               </div>
@@ -34817,7 +34904,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       Keine Wartungen vorhanden.
                     </div>
                   ) : (
-                    assignedMaintenancePlans.map((plan) => {
+                    getPagedItems("maintenance", assignedMaintenancePlans, 10).map((plan) => {
                       const deviceItem = devices.find((device) => device.id === plan.device_id);
                       const status = getMaintenanceStatus(plan.next_due);
                       const reminderInfo = getMaintenanceReminderStatus(plan);
@@ -34903,6 +34990,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       );
                     })
                   )}
+                  {renderListPagination("maintenance", assignedMaintenancePlans.length, 10)}
                 </div>
               </div>
             </div>
@@ -35709,7 +35797,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       Noch keine Geräte vorhanden.
                     </div>
                   ) : (
-                    devices.map((item) => {
+                    getPagedItems("inspections", devices, 10).map((item) => {
                       const inspection = getInspectionStatus(item.next_check);
 
                       return (
@@ -35781,6 +35869,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       );
                     })
                   )}
+                  {renderListPagination("inspections", devices.length, 10)}
                 </div>
               </div>
             </div>
@@ -37951,6 +38040,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       );
                       })
                     )}
+                    {renderListPagination("tickets", sortedTicketListTickets.length, 10)}
                   </div>
                   </div>
                 </div>
@@ -38168,12 +38258,11 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           ein Gerät frei eintragen.
                         </div>
                       ) : (
-                        devices
-                          .filter(
-                            (item) =>
-                              item.customer_id === userProfile?.customer_id,
-                          )
-                          .map((item) => (
+                        getPagedItems(
+                          "customer-devices",
+                          devices.filter((item) => item.customer_id === userProfile?.customer_id),
+                          10,
+                        ).map((item) => (
                             <div
                               key={item.id}
                               className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -38190,6 +38279,11 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                             </div>
                           ))
                       )}
+                      {renderListPagination(
+                        "customer-devices",
+                        devices.filter((item) => item.customer_id === userProfile?.customer_id).length,
+                        10,
+                      )}
                     </div>
                   </div>
 
@@ -38201,7 +38295,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           Keine kommenden Wartungen vorhanden.
                         </div>
                       ) : (
-                        assignedMaintenancePlans.map((plan) => (
+                        getPagedItems("customer-maintenance", assignedMaintenancePlans, 10).map((plan) => (
                           <div
                             key={plan.id}
                             className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -38221,6 +38315,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           </div>
                         ))
                       )}
+                      {renderListPagination("customer-maintenance", assignedMaintenancePlans.length, 10)}
                     </div>
                   </div>
 
@@ -38232,7 +38327,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           Noch keine Tickets vorhanden.
                         </div>
                       ) : (
-                        filteredTickets.map((ticket) => (
+                        getPagedItems("customer-tickets", filteredTickets, 10).map((ticket) => (
                           <div
                             key={ticket.id}
                             className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -38392,6 +38487,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           </div>
                         ))
                       )}
+                      {renderListPagination("customer-tickets", filteredTickets.length, 10)}
                     </div>
                   </div>
                 </div>
@@ -38425,7 +38521,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
               </div>
 
               <div className="space-y-4">
-                {filteredInventoryModels.map((modelItem) => {
+                {getPagedItems("inventory-models", filteredInventoryModels, 10).map((modelItem) => {
                   const critical = Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0);
                   return <div key={`model-${modelItem.id}`} className="rounded-[24px] border border-sky-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -38434,6 +38530,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     </div>
                   </div>;
                 })}
+                {renderListPagination("inventory-models", filteredInventoryModels.length, 10)}
                 {filteredInventoryModels.length === 0 && <div className="rounded-[24px] bg-white p-6 text-center font-bold text-slate-500 shadow-sm">Keine passenden Lagergeräte gefunden. Modelle werden hier erst angezeigt, wenn sie als Lagerware geführt werden.</div>}
               </div>
             </div>
@@ -38655,7 +38752,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         : "Noch keine Ersatzteile angelegt. Admins können oben erste Ersatzteile erfassen."}
                     </div>
                   ) : (
-                    filteredActiveServiceParts.map((part) => {
+                    getPagedItems("parts", filteredActiveServiceParts, 10).map((part) => {
                       const status = stockStatus(part);
                       return (
                         <div
@@ -38765,6 +38862,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       );
                     })
                   )}
+                  {renderListPagination("parts", filteredActiveServiceParts.length, 10)}
                 </div>
               </div>
 
@@ -38787,7 +38885,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       Keine aktiven Verbrauchsbuchungen vorhanden.
                     </div>
                   ) : (
-                    partUsages.map((usage) => (
+                    getPagedItems("part-usages", partUsages, 20).map((usage) => (
                       <div
                         key={usage.id}
                         className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
@@ -38824,6 +38922,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       </div>
                     ))
                   )}
+                  {renderListPagination("part-usages", partUsages.length, 20)}
                 </div>
               </div>
 
@@ -38849,7 +38948,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     </div>
                   ) : (
                     <>
-                      {voidedPartUsages.map((usage) => (
+                      {getPagedItems("voided-part-usages", voidedPartUsages, 20).map((usage) => (
                         <div
                           key={usage.id}
                           className="min-w-0 overflow-hidden rounded-2xl border border-red-200 bg-red-50/60 p-4"
@@ -38918,6 +39017,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       )}
                     </>
                   )}
+                  {renderListPagination("voided-part-usages", voidedPartUsages.length, 20)}
                 </div>
               </div>
             </div>
