@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.50 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.51 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10339,17 +10339,33 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
       return;
     }
 
+    const currentCustomerId = Number(userProfile?.customer_id || 0);
+    if (!currentCustomerId) {
+      alert("Ihre Kundenzuordnung konnte nicht ermittelt werden.");
+      return;
+    }
+
     if (!confirm("Dieses offene Ticket wirklich stornieren?")) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("tickets")
       .update({ status: "Storniert" })
       .eq("id", ticket.id)
-      .eq("customer_id", userProfile?.customer_id || -1)
-      .eq("status", "Offen");
+      .eq("status", "Offen")
+      .or(
+        `customer_id.eq.${currentCustomerId},billing_customer_id.eq.${currentCustomerId}`,
+      )
+      .select("id")
+      .maybeSingle();
 
     if (error) {
       alert(`Ticket konnte nicht storniert werden: ${error.message}`);
+      return;
+    }
+
+    if (!data?.id) {
+      alert("Ticket konnte nicht storniert werden. Die Kundenzuordnung oder der Ticketstatus hat sich geändert.");
+      await loadTickets();
       return;
     }
 
