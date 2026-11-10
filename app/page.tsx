@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.53 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.54 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -824,6 +824,128 @@ const customerUploadDocumentCategories = [
   "Schadensbilder",
   "Sonstige Dokumente",
 ];
+
+const documentUploadAccept = [
+  ".pdf",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+  ".svg",
+  ".heic",
+  ".heif",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".webm",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".csv",
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+  "image/heic",
+  "image/heif",
+  "video/mp4",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/webm",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+].join(",");
+
+const documentUploadAllowedMimeTypes = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+  "image/heic",
+  "image/heif",
+  "video/mp4",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/webm",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+]);
+
+const documentUploadAllowedExtensions = new Set([
+  "pdf",
+  "png",
+  "jpg",
+  "jpeg",
+  "webp",
+  "gif",
+  "svg",
+  "heic",
+  "heif",
+  "mp4",
+  "mov",
+  "avi",
+  "webm",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "csv",
+]);
+
+const documentVideoMimeTypes = new Set([
+  "video/mp4",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/webm",
+]);
+
+const documentVideoExtensions = new Set(["mp4", "mov", "avi", "webm"]);
+
+const documentUploadMaxBytes = 50 * 1024 * 1024;
+const documentVideoUploadMaxBytes = 100 * 1024 * 1024;
+const companyAssetUploadMaxBytes = 10 * 1024 * 1024;
+
+function getUploadFileExtension(file: File) {
+  const parts = String(file.name || "").toLowerCase().split(".");
+  return parts.length > 1 ? parts.pop() || "" : "";
+}
+
+function validateDocumentUploadFile(file: File) {
+  const extension = getUploadFileExtension(file);
+  const normalizedType = String(file.type || "").toLowerCase();
+  const isAllowedType =
+    documentUploadAllowedMimeTypes.has(normalizedType) ||
+    documentUploadAllowedExtensions.has(extension);
+
+  if (!isAllowedType) {
+    return "Dieser Dateityp wird nicht unterstützt. Erlaubt sind PDF, Bilder, Videos, Word-, Excel- und CSV-Dateien.";
+  }
+
+  const isVideo =
+    documentVideoMimeTypes.has(normalizedType) ||
+    documentVideoExtensions.has(extension);
+  const maxBytes = isVideo ? documentVideoUploadMaxBytes : documentUploadMaxBytes;
+
+  if (file.size > maxBytes) {
+    return isVideo
+      ? "Videos dürfen maximal 100 MB groß sein."
+      : "Dokumente, Bilder und Office-Dateien dürfen maximal 50 MB groß sein.";
+  }
+
+  return null;
+}
 
 const customerVisibleDocumentCategories = [
   "Alle",
@@ -4034,6 +4156,12 @@ export default function Home() {
       return;
     }
 
+    if (file.size > companyAssetUploadMaxBytes) {
+      alert("Firmenlogos dürfen maximal 10 MB groß sein.");
+      event.target.value = "";
+      return;
+    }
+
     setCompanyLogoUploading(true);
 
     const safeName = file.name
@@ -6015,6 +6143,11 @@ async function loadInvoices() {
   async function uploadTicketChatAttachment(ticketId: number, file: File | null) {
     if (!file) return { name: null as string | null, url: null as string | null };
 
+    const validationError = validateDocumentUploadFile(file);
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
     const ticket = tickets.find((item) => item.id === ticketId) || null;
     if (!ticket) {
       throw new Error("Ticket konnte für den Dateianhang nicht gefunden werden.");
@@ -6785,6 +6918,13 @@ async function loadInvoices() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const validationError = validateDocumentUploadFile(file);
+    if (validationError) {
+      alert(validationError);
+      event.target.value = "";
+      return;
+    }
+
     if (!isAdmin) {
       alert("Der zentrale Dokumenten-Upload ist ausschließlich für Administratoren vorgesehen. Bitte Dateien direkt über das zugehörige Ticket hochladen.");
       event.target.value = "";
@@ -7004,6 +7144,13 @@ async function loadInvoices() {
 
     if (!file) return;
 
+    const validationError = validateDocumentUploadFile(file);
+    if (validationError) {
+      alert(validationError);
+      event.target.value = "";
+      return;
+    }
+
     if (!isAdmin) {
       alert("Techniker laden Einsatzfotos und Nachweise direkt über das zugehörige Ticket hoch.");
       event.target.value = "";
@@ -7201,6 +7348,13 @@ async function loadInvoices() {
 
     if (!file) return;
 
+    const validationError = validateDocumentUploadFile(file);
+    if (validationError) {
+      alert(validationError);
+      event.target.value = "";
+      return;
+    }
+
     if (!uploadDocumentCategoriesForRole.includes(uploadCategory)) {
       alert("Diese Dokumentkategorie darf in Ihrer Rolle nicht über ein Ticket hochgeladen werden.");
       event.target.value = "";
@@ -7282,6 +7436,12 @@ async function loadInvoices() {
     customerId: number | null,
     deviceId: number | null,
   ) {
+    const validationError = validateDocumentUploadFile(file);
+    if (validationError) {
+      alert(`Ticket wurde erstellt, aber das Dokument ist nicht zulässig: ${validationError}`);
+      return;
+    }
+
     if (!uploadDocumentCategoriesForRole.includes(category)) {
       alert("Ticket wurde erstellt, aber diese Dokumentkategorie ist für Ihre Rolle nicht freigegeben.");
       return;
@@ -7352,6 +7512,13 @@ async function loadInvoices() {
   ) {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const validationError = validateDocumentUploadFile(file);
+    if (validationError) {
+      alert(validationError);
+      event.target.value = "";
+      return;
+    }
 
     if (!uploadDocumentCategoriesForRole.includes(ticketAkteUploadCategory)) {
       alert("Diese Dokumentkategorie darf in Ihrer Rolle nicht über die Ticket-Akte hochgeladen werden.");
@@ -27611,6 +27778,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                               {uploading ? "Upload läuft..." : "Datei hochladen und zuordnen"}
                               <input
                                 type="file"
+                                accept={documentUploadAccept}
                                 className="hidden"
                                 disabled={uploading}
                                 onChange={(event) => handleTicketAkteFileUpload(event, currentTicket)}
@@ -29888,6 +30056,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
                             <input
                               type="file"
+                              accept={documentUploadAccept}
                               className="hidden"
                               onChange={(event) => {
                                 setCustomerUploadFile(
@@ -31261,6 +31430,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     <input
                       type="file"
                       accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      title="PNG, JPG, WEBP oder SVG · maximal 10 MB"
                       onChange={uploadCompanyLogo}
                       disabled={companyLogoUploading}
                       className="hidden"
@@ -33222,6 +33392,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
 
                       <input
                         type="file"
+                        accept={documentUploadAccept}
                         className="hidden"
                         disabled={uploading}
                         onChange={(event) =>
@@ -37217,8 +37388,25 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                             {ticketCreateFile ? ticketCreateFile.name : "Datei auswählen"}
                             <input
                               type="file"
+                              accept={documentUploadAccept}
                               className="hidden"
-                              onChange={(event) => setTicketCreateFile(event.target.files?.[0] || null)}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0] || null;
+                                if (!file) {
+                                  setTicketCreateFile(null);
+                                  return;
+                                }
+
+                                const validationError = validateDocumentUploadFile(file);
+                                if (validationError) {
+                                  alert(validationError);
+                                  event.target.value = "";
+                                  setTicketCreateFile(null);
+                                  return;
+                                }
+
+                                setTicketCreateFile(file);
+                              }}
                             />
                           </label>
                         </div>
