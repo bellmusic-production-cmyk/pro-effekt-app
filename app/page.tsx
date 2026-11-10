@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.55 · Techniker-Firmenname geschützt · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.56
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -8242,7 +8242,6 @@ async function loadInvoices() {
             customerDeviceLocation.trim()
               ? `Kundenangabe Standort: ${customerDeviceLocation.trim()}`
               : "",
-            "Geräteangaben ungeprüft – Techniker kann vor Ort ergänzen, Admin gibt Stammdaten frei.",
           ].filter(Boolean)
         : [];
 
@@ -9316,7 +9315,7 @@ async function loadInvoices() {
     if (archivedDocument) {
       alert("Servicebericht gespeichert, unterschrieben und als PDF archiviert.");
     } else {
-      alert("Servicebericht gespeichert. Automatische PDF-Archivierung bitte prüfen.");
+      alert("Servicebericht gespeichert.");
     }
   }
 
@@ -10657,7 +10656,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
       if (String(updatedTicket.service_status || "") !== expectedServiceStatus) {
         alert(
-          "Die Terminantwort wurde serverseitig nicht vollständig übernommen. Bitte das Ticket neu laden.",
+          "Die Terminantwort konnte nicht vollständig gespeichert werden. Bitte das Ticket neu laden.",
         );
         await loadTickets();
         return;
@@ -12513,17 +12512,17 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
     let masterDataAction = "Hersteller und Modell vollständig prüfen.";
     if (manufacturerName && modelName) {
       if (manufacturerMatch && modelMatch) {
-        masterDataAction = "Hersteller und Modell sind bereits vorhanden. Es werden keine neuen Stammdaten angelegt.";
+        masterDataAction = "Hersteller und Modell sind bereits vorhanden.";
       } else if (manufacturerMatch) {
-        masterDataAction = `Neues Modell „${modelName}“ wird unter „${manufacturerMatch.name}“ angelegt.`;
+        masterDataAction = `Modell „${modelName}“ wird unter „${manufacturerMatch.name}“ angelegt.`;
       } else {
-        masterDataAction = `Neuer Hersteller „${manufacturerName}“ und neues Modell „${modelName}“ werden angelegt.`;
+        masterDataAction = `Hersteller „${manufacturerName}“ und Modell „${modelName}“ werden angelegt.`;
       }
     }
 
     const customerDeviceAction = existingDevice
-      ? "Vorhandenes Kundengerät wird aktualisiert und mit dem Ticket verknüpft."
-      : "Neues Kundengerät wird für diesen Kunden angelegt und mit dem Ticket verknüpft.";
+      ? "Kundengerät wird aktualisiert."
+      : "Kundengerät wird angelegt.";
 
     const buttonLabel = existingDevice
       ? "Geprüfte Daten freigeben & Kundengerät aktualisieren"
@@ -13509,7 +13508,6 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       `Geräteangabe Kunde – Modell: ${customerModelLabel}`,
       `Geräteangabe Kunde – Seriennummer: ${customerSerialLabel}`,
       customerDeviceLocation.trim() ? `Geräteangabe Kunde – Standort: ${customerDeviceLocation.trim()}` : "",
-      "Hinweis: Die Geräteangaben sind ungeprüft und werden erst nach technischer Prüfung/Adminfreigabe in die Stammdaten übernommen.",
     ]
       .filter(Boolean)
       .join("\n");
@@ -13693,7 +13691,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
       });
 
       if (error) {
-        throw new Error(error.message || "Adminfreigabe konnte nicht gespeichert werden.");
+        throw new Error(error.message || "Gerätedaten konnten nicht freigegeben werden.");
       }
 
       const result = (data || {}) as {
@@ -13722,7 +13720,7 @@ function TenantBrandLogo({ dark = false }: { dark?: boolean }) {
           reviewedDeviceId,
           result.updated_existing_device ? "Kundengerät durch Admin geprüft" : "Kundengerät durch Admin angelegt",
           `${ticket.ticket_number} · ${finalManufacturerName} · ${finalModelName}${finalSerial ? ` · Seriennummer ${finalSerial}` : ""}`,
-          "Adminfreigabe",
+          "Gerätedaten freigegeben",
         );
       }
 
@@ -26797,12 +26795,9 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                               {currentTicket.device_review_status === "approved"
                                 ? "Gerätedaten geprüft und freigegeben"
                                 : currentTicket.device_review_status === "technician_updated"
-                                  ? "Technikerfeststellung vorhanden · Adminfreigabe offen"
+                                  ? "Geräteprüfung offen"
                                   : "Kundenangabe ungeprüft"}
                             </h4>
-                            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                              Kunden- und Technikerangaben bleiben zunächst am Ticket. Erst ein Admin übernimmt geprüfte Hersteller-/Modelldaten und das Kundengerät in die Stammdaten.
-                            </p>
                           </div>
                           <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-black ${
                             currentTicket.device_review_status === "approved"
@@ -26846,7 +26841,6 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                         {isTechnician && currentTicket.device_review_status !== "approved" && (
                           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
                             <p className="text-sm font-black text-blue-900">Vor Ort identifizieren</p>
-                            <p className="mt-1 text-xs font-semibold leading-5 text-blue-700">Diese Angaben aktualisieren nur das Ticket. Hersteller, Modelle und Kundengeräte werden dadurch nicht automatisch angelegt.</p>
                             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                               <input value={technicianDeviceNameReview} onChange={(e) => setTechnicianDeviceNameReview(e.target.value)} placeholder="Gerätebezeichnung" className="rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm" />
                               <div>
@@ -26875,9 +26869,9 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                               id={`ticket-device-review-${currentTicket.id}`}
                               className="mt-4 scroll-mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"
                             >
-                              <p className="text-sm font-black text-emerald-900">Adminprüfung & Stammdatenfreigabe</p>
+                              <p className="text-sm font-black text-emerald-900">Geräteprüfung & Stammdaten</p>
                               <p className="mt-1 text-xs font-semibold leading-5 text-emerald-700">
-                                Prüfe Typenschild, Fotos und Technikerangaben. TRYBUN zeigt dir vor der Freigabe, was in „Hersteller & Modelle“ und was als konkretes Kundengerät gespeichert wird.
+                                Prüfe Typenschild, Fotos und Angaben vor der Übernahme.
                               </p>
 
                               <div className="mt-4 grid gap-4 xl:grid-cols-2">
@@ -31837,13 +31831,6 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   {editingCustomer ? "Kunde bearbeiten" : "Neuer Kunde"}
                 </h3>
 
-                {editingCustomer && isTechnician && (
-                  <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-bold leading-6 text-sky-800">
-                    Vor-Ort-Bearbeitung: Kontakt-, Adress- und Servicedaten dürfen aktualisiert werden.
-                    Kundennummer, Firmenname sowie Vor- und Nachname bleiben geschützt.
-                  </div>
-                )}
-
                 <div className="mt-5 space-y-4">
                   <div className="grid gap-3 md:grid-cols-2">
                     <input
@@ -31851,7 +31838,6 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       onChange={(e) => setCustomerNumber(e.target.value)}
                       placeholder="Kundennummer"
                       disabled={Boolean(editingCustomer && isTechnician)}
-                      title={editingCustomer && isTechnician ? "Kundennummer kann nur vom Admin geändert werden." : undefined}
                       className="rounded-2xl border border-slate-300 px-5 py-3 font-bold disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     />
 
@@ -31871,7 +31857,6 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     onChange={(e) => setCustomerCompany(e.target.value)}
                     placeholder={customerType === "Privatkunde" ? "Firma optional" : "Firma / Studio"}
                     disabled={Boolean(editingCustomer && isTechnician)}
-                    title={editingCustomer && isTechnician ? "Firmenname kann nur vom Admin geändert werden." : undefined}
                     className="w-full rounded-2xl border border-slate-300 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   />
 
@@ -31890,7 +31875,6 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       onChange={(e) => setCustomerFirstName(e.target.value)}
                       placeholder="Vorname Ansprechpartner"
                       disabled={Boolean(editingCustomer && isTechnician)}
-                      title={editingCustomer && isTechnician ? "Vorname kann nur vom Admin geändert werden." : undefined}
                       className="rounded-2xl border border-slate-300 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     />
 
@@ -31899,7 +31883,6 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       onChange={(e) => setCustomerLastName(e.target.value)}
                       placeholder="Nachname Ansprechpartner"
                       disabled={Boolean(editingCustomer && isTechnician)}
-                      title={editingCustomer && isTechnician ? "Nachname kann nur vom Admin geändert werden." : undefined}
                       className="rounded-2xl border border-slate-300 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     />
                   </div>
@@ -32234,10 +32217,6 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       )}
                     </div>
 
-                    <div className="mt-4 rounded-[9px] border border-slate-200 bg-white p-3 text-xs font-medium leading-5 text-slate-500">
-                      Modellbibliothek: erzeugt ein neues Kundengerät. Gerätebestand: reduziert beim Speichern den verfügbaren Bestand.
-                      Ersatzteile: werden als Kundenmaterial vorgemerkt und erst bei tatsächlicher Verwendung über den Servicefall/Lagerprozess gebucht.
-                    </div>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
@@ -36518,7 +36497,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                           <div>
                             <p className="text-sm font-black text-sky-800">Gerät für dieses Ticket</p>
                             <p className="mt-1 text-xs font-semibold leading-5 text-sky-700">
-                              Wähle ein bereits registriertes Kundengerät oder melde ein neues bzw. noch unbekanntes Gerät. Neue Hersteller, Modelle und Kundengeräte werden erst nach Prüfung durch den Admin in die Stammdaten übernommen.
+                              Wähle ein bereits registriertes Kundengerät oder erfasse ein neues bzw. noch unbekanntes Gerät.
                             </p>
                           </div>
                           <span className="inline-flex w-fit rounded-full bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-sky-700 shadow-sm">
@@ -36995,7 +36974,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                               Ungeprüfte Geräteangabe
                             </p>
                             <p className="mt-1 text-xs font-semibold leading-5 text-amber-800">
-                              Du darfst auch unvollständige Angaben senden. Ein Techniker kann Hersteller, Modell und Seriennummer vor Ort ergänzen. Erst der Admin gibt die geprüften Daten für Hersteller &amp; Modelle sowie Kundengeräte frei.
+                              Unvollständige Gerätedaten können später ergänzt werden.
                             </p>
                           </div>
                         </div>
@@ -37570,7 +37549,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   }`}>
                                     {ticketNeedsManufacturerOrModelReview(ticket, ticketDevice)
                                       ? "Geräteprüfung offen"
-                                      : "Technikerangabe vollständig · Adminfreigabe"}
+                                      : "Geräteangaben vollständig"}
                                   </span>
                                 )}
                                 {ticket.device_review_status === "approved" && (
@@ -38084,7 +38063,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
                       <p className="text-sm font-black text-sky-800">Geräteangaben</p>
                       <p className="mt-1 text-sm font-semibold leading-6 text-sky-700">
-                        Suche zuerst in den vorhandenen Stammdaten. Ist dein Hersteller oder Modell nicht vorhanden, kannst du die Angabe trotzdem manuell eingeben. Neue Stammdaten entstehen erst nach Prüfung durch den Admin.
+                        Suche zuerst in den vorhandenen Stammdaten. Ist Hersteller oder Modell nicht vorhanden, kannst du die Angabe manuell eingeben.
                       </p>
                     </div>
 
@@ -39308,7 +39287,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                     Geräteprüfung
                   </p>
                   <h2 className="mt-1 text-2xl font-black text-slate-950">
-                    {reviewTicket.ticket_number} · Adminprüfung & Stammdatenfreigabe
+                    {reviewTicket.ticket_number} · Geräteprüfung & Stammdaten
                   </h2>
                   <p className="mt-1 text-sm font-semibold text-slate-600">
                     Prüfe die Angaben und übernimm anschließend Hersteller/Modell sowie das konkrete Kundengerät.
