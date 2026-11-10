@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.51 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.52 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -11493,23 +11493,20 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     return getTechnicianNameById(linkedTicket?.assigned_to || null);
   }
 
-  function canDeleteDocument(item: DocumentItem) {
-    if (isAdmin) return true;
-
-    if (isCustomer) return false;
-
-    if (userProfile?.role === "technician") {
-      if (item.category === "Abnahmeprotokolle") return false;
-      if (item.file_path?.startsWith("Abnahmeprotokolle/")) return false;
-      if (item.file_name?.toLowerCase().includes("abnahmeprotokoll")) return false;
-      return true;
-    }
-
-    return false;
+  function canDeleteDocument(_item: DocumentItem) {
+    return isAdmin;
   }
 
   function documentDeleteLockedReason(item: DocumentItem) {
-    if (isTechnician && item.category === "Abnahmeprotokolle") {
+    if (isTechnician) {
+      return "Dokumente können nur vom Admin gelöscht werden.";
+    }
+
+    if (isCustomer) {
+      return "Dokumente können im Kundenportal nicht gelöscht werden.";
+    }
+
+    if (item.category === "Abnahmeprotokolle") {
       return "Abnahmeprotokolle sind geschützt und können nur vom Admin gelöscht werden.";
     }
 
