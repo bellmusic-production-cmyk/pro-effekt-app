@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.54 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.55 · Techniker-Firmenname geschützt · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -31840,7 +31840,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 {editingCustomer && isTechnician && (
                   <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-bold leading-6 text-sky-800">
                     Vor-Ort-Bearbeitung: Kontakt-, Adress- und Servicedaten dürfen aktualisiert werden.
-                    Kundennummer sowie Vor- und Nachname bleiben geschützt.
+                    Kundennummer, Firmenname sowie Vor- und Nachname bleiben geschützt.
                   </div>
                 )}
 
@@ -31870,7 +31870,9 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     value={customerCompany}
                     onChange={(e) => setCustomerCompany(e.target.value)}
                     placeholder={customerType === "Privatkunde" ? "Firma optional" : "Firma / Studio"}
-                    className="w-full rounded-2xl border border-slate-300 px-5 py-3"
+                    disabled={Boolean(editingCustomer && isTechnician)}
+                    title={editingCustomer && isTechnician ? "Firmenname kann nur vom Admin geändert werden." : undefined}
+                    className="w-full rounded-2xl border border-slate-300 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                   />
 
                   <select
