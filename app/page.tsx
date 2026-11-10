@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.48 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.49 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -513,31 +513,7 @@ type UserProfile = {
   customer_id: number | null;
   is_active?: boolean | null;
   created_at: string;
-};
-
-
-
-
-/* v4.5.0 Kunden-Terminbestätigung */
-
-
-/* v4.5.1 Terminbestätigung */
-
-type CustomerAppointmentLiveAction = {
-  ticket_id: number;
-  action: "confirm" | "reschedule";
-  requested_date?: string | null;
-  note?: string | null;
-};
-
-type CustomerAppointmentResponse = {
-  ticket_id: number;
-  response_type: "bestaetigt" | "verschieben";
-  customer_note?: string | null;
-  created_at?: string;
-};
-
-type ServiceProfileKey =
+};type ServiceProfileKey =
   | "general"
   | "fire_safety"
   | "hvac"
@@ -790,13 +766,6 @@ const ticketTypeOptions = [
   "Sonstiges",
 ];
 
-const deviceStatusOptions = [
-  "Aktiv",
-  "Wartung bald fällig",
-  "Prüfung erforderlich",
-  "Außer Betrieb",
-];
-
 // Gerätebereich: Kundengeräte bleiben mit Seriennummer/Kunde verknüpft.
 // Der sichtbare Gerätekatalog zeigt jedes Modell nur 1x und niemals Kunden-/Seriennummern-Daten.
 const deviceDirectoryMinSearchLength = 1;
@@ -827,15 +796,6 @@ const documentCategories = [
   "Fotos",
   "Videos",
   "Sonstige Dokumente",
-];
-
-const financialDocumentCategories = [
-  "Rechnungen",
-  "Angebote",
-  "Aufträge",
-  "Lieferscheine",
-  "Bestellungen",
-  "Verträge",
 ];
 
 const technicianTicketUploadDocumentCategories = [
@@ -880,15 +840,6 @@ const customerVisibleDocumentCategories = [
   "Fotos",
   "Videos",
   "Sonstige Dokumente",
-];
-
-const customerPortalFinalFeatures = [
-  "Eigenes Kunden-Dashboard",
-  "Eigene Geräte",
-  "Eigene Tickets",
-  "Eigene Dokumente",
-  "Störung melden",
-  "Foto / Video direkt zum Ticket hochladen",
 ];
 
 const protocolTypeOptions = [
@@ -1846,9 +1797,7 @@ export default function Home() {
   const [ticketAkteDocumentSearch, setTicketAkteDocumentSearch] = useState("");
   const [ticketCreateUploadCategory, setTicketCreateUploadCategory] = useState("Fotos");
   const [ticketCreateFile, setTicketCreateFile] = useState<File | null>(null);
-  const [qrSearchTerm, setQrSearchTerm] = useState("");
-  const [qrSelectedDeviceId, setQrSelectedDeviceId] = useState("");
-  const [qrManualCode, setQrManualCode] = useState("");
+  const [qrSearchTerm, setQrSearchTerm] = useState("");const [qrManualCode, setQrManualCode] = useState("");
   const [qrScanStatus, setQrScanStatus] = useState("Scanner bereit.");
   const [qrScannerActive, setQrScannerActive] = useState(false);
   const qrScannerRef = useRef<any>(null);
@@ -2416,15 +2365,7 @@ export default function Home() {
       setActivePage("Geräte");
       setSelectedDeviceView(foundDevice);
     }
-  }, [devices]);
-
-  const customerNames = useMemo(() => {
-    return customers
-      .map((item) => item.company || "")
-      .filter((item) => item.trim() !== "");
-  }, [customers]);
-
-  const filteredTickets = useMemo(() => {
+  }, [devices]);const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
       if (userProfile?.role === "customer") {
         const linkedCustomer = userProfile.customer_id
@@ -2637,7 +2578,7 @@ export default function Home() {
       ).length,
       assigned: sourceTickets.filter((ticket) => ticket.status === "Zugewiesen").length,
       inProgress: sourceTickets.filter((ticket) => ticket.status === "In Bearbeitung").length,
-      waitingParts: sourceTickets.filter((ticket) => ticket.status === "Wartet auf Ersatzteile").length,
+      waitingParts: sourceTickets.filter((ticket) => ticket.status === "Wartet auf Ersatzteil").length,
       completed: sourceTickets.filter(
         (ticket) =>
           ticket.status === "Abgeschlossen" || ticket.status === "Erledigt",
