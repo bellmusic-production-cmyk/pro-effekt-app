@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.52 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.53 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10023,12 +10023,18 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
     const { error } = await supabase
       .from("customers")
       .update({
-        customer_number: customerNumber.trim(),
+        customer_number: isTechnician
+          ? editingCustomer.customer_number
+          : customerNumber.trim(),
         customer_type: customerType,
         company: isPrivateCustomer ? null : normalizedCustomerCompany,
         contact_person: customerContact || privateCustomerName || null,
-        first_name: customerFirstName.trim() || null,
-        last_name: customerLastName.trim() || null,
+        first_name: isTechnician
+          ? editingCustomer.first_name
+          : customerFirstName.trim() || null,
+        last_name: isTechnician
+          ? editingCustomer.last_name
+          : customerLastName.trim() || null,
         email: customerEmail,
         phone: customerPhone,
         address: buildCustomerAddressFromForm() || customerAddress,
@@ -31651,7 +31657,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
           {activePage === "Kunden" && (
             <div className={`grid gap-8 ${isAdmin ? "2xl:grid-cols-[minmax(680px,0.95fr)_minmax(820px,1.2fr)]" : "xl:grid-cols-1"}`}>
-              {isAdmin && (
+              {canCreateOrEditMasterData && (
               <div
                 className={`min-w-0 overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm md:p-8 ${
                   editingCustomer ? "ring-4 ring-sky-200" : ""
@@ -31661,13 +31667,22 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   {editingCustomer ? "Kunde bearbeiten" : "Neuer Kunde"}
                 </h3>
 
+                {editingCustomer && isTechnician && (
+                  <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-bold leading-6 text-sky-800">
+                    Vor-Ort-Bearbeitung: Kontakt-, Adress- und Servicedaten dürfen aktualisiert werden.
+                    Kundennummer sowie Vor- und Nachname bleiben geschützt.
+                  </div>
+                )}
+
                 <div className="mt-5 space-y-4">
                   <div className="grid gap-3 md:grid-cols-2">
                     <input
                       value={customerNumber}
                       onChange={(e) => setCustomerNumber(e.target.value)}
                       placeholder="Kundennummer"
-                      className="rounded-2xl border border-slate-300 px-5 py-3 font-bold"
+                      disabled={Boolean(editingCustomer && isTechnician)}
+                      title={editingCustomer && isTechnician ? "Kundennummer kann nur vom Admin geändert werden." : undefined}
+                      className="rounded-2xl border border-slate-300 px-5 py-3 font-bold disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     />
 
                     <input
@@ -31702,14 +31717,18 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                       value={customerFirstName}
                       onChange={(e) => setCustomerFirstName(e.target.value)}
                       placeholder="Vorname Ansprechpartner"
-                      className="rounded-2xl border border-slate-300 px-5 py-3"
+                      disabled={Boolean(editingCustomer && isTechnician)}
+                      title={editingCustomer && isTechnician ? "Vorname kann nur vom Admin geändert werden." : undefined}
+                      className="rounded-2xl border border-slate-300 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     />
 
                     <input
                       value={customerLastName}
                       onChange={(e) => setCustomerLastName(e.target.value)}
                       placeholder="Nachname Ansprechpartner"
-                      className="rounded-2xl border border-slate-300 px-5 py-3"
+                      disabled={Boolean(editingCustomer && isTechnician)}
+                      title={editingCustomer && isTechnician ? "Nachname kann nur vom Admin geändert werden." : undefined}
+                      className="rounded-2xl border border-slate-300 px-5 py-3 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                     />
                   </div>
 
@@ -32180,9 +32199,10 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     {customers.length} Kunden geladen
                   </span>
                 </div>
-                {!isAdmin && (
+                {isTechnician && (
                   <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
-                    Such- und Lesemodus: Techniker können Kundendaten ansehen, aber nicht bearbeiten.
+                    Vor-Ort-Modus: Techniker können Kunden anlegen und bestehende Kontakt-, Adress- und Servicedaten bearbeiten.
+                    Kundennummer sowie Vor- und Nachname bestehender Kunden bleiben geschützt; Löschen ist Admin-only.
                   </p>
                 )}
 
