@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.49 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
+// TRYBUN Service Management System v4.13.50 · Kunden-Stammdatensuche vor manueller Geräteerfassung · geprüfter Workflow Kunde → Techniker → Admin
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -10320,8 +10320,13 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
   }
 
   function isOwnCustomerTicket(ticket: Ticket) {
-    if (!userProfile?.customer_id) return false;
-    return ticket.customer_id === userProfile.customer_id;
+    const currentCustomerId = Number(userProfile?.customer_id || 0);
+    if (!currentCustomerId) return false;
+
+    return (
+      Number(ticket.customer_id || 0) === currentCustomerId ||
+      Number(ticket.billing_customer_id || 0) === currentCustomerId
+    );
   }
 
   function canCustomerCancelTicket(ticket: Ticket) {
