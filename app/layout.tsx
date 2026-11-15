@@ -13,8 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trybun.de",
-  description: "TRYBUN Service Management System",
+  title: "TRYBUN | Service-Management-Software für Unternehmen",
+  description:
+    "TRYBUN unterstützt technische Serviceunternehmen bei Kundenverwaltung, Serviceeinsätzen, Geräteverwaltung, Wartungen und digitaler Dokumentation.",
+  openGraph: {
+    title: "TRYBUN | Service-Management-Software für Unternehmen",
+    description:
+      "Kunden, Geräte, Serviceeinsätze und Wartungen zentral mit TRYBUN verwalten.",
+    locale: "de_DE",
+    type: "website",
+    siteName: "TRYBUN",
+  },
   applicationName: "TRYBUN",
   icons: {
     icon: "/trybun-logo.png",
