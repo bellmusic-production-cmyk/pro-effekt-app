@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.70
+// TRYBUN Service Management System v4.13.71
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -34441,8 +34441,8 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
           )}
 
           {activePage === "Abnahmeprotokoll" && (
-            <div className="space-y-6">
-              <div className="trybun-page-header overflow-hidden bg-[#07111d] p-6 text-white shadow-xl md:p-8">
+            <div className="flex min-w-0 max-w-full flex-col gap-4 sm:gap-6">
+              <div className="trybun-page-header order-2 overflow-hidden bg-[#07111d] p-6 text-white shadow-xl sm:order-1 md:p-8">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
                   <div>
                     <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
@@ -34463,13 +34463,16 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 </div>
               </div>
 
-              <div className="flex min-w-0 flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" role="tablist" aria-label="Prüfungen und Prüfsiegel">
+              {/* Dieselben beiden Fachfunktionen für Desktop, Tablet und Smartphone.
+                  Auf Smartphones stehen die Reiter VOR dem großen Seitenkopf, damit
+                  Prüfsiegel nicht erst nach langem Scrollen entdeckt werden. */}
+              <div className="order-1 grid w-full min-w-0 grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:order-2 sm:flex sm:flex-wrap" role="tablist" aria-label="Prüfungen und Prüfsiegel">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={inspectionHubTab === "protocols"}
                   onClick={() => setInspectionHubTab("protocols")}
-                  className={`min-w-0 flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors sm:flex-none ${inspectionHubTab === "protocols" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                  className={`min-w-0 w-full whitespace-normal break-words rounded-lg px-2 py-3 text-center text-xs font-semibold leading-snug transition-colors sm:w-auto sm:px-4 sm:text-sm ${inspectionHubTab === "protocols" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}
                 >
                   Prüfungen & Abnahmen
                 </button>
@@ -34478,14 +34481,18 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                   role="tab"
                   aria-selected={inspectionHubTab === "badges"}
                   onClick={() => setInspectionHubTab("badges")}
-                  className={`min-w-0 flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors sm:flex-none ${inspectionHubTab === "badges" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                  className={`min-w-0 w-full whitespace-normal break-words rounded-lg px-2 py-3 text-center text-xs font-semibold leading-snug transition-colors sm:w-auto sm:px-4 sm:text-sm ${inspectionHubTab === "badges" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}
                 >
                   Prüfsiegel & Fristen
                 </button>
               </div>
 
+              <p className="order-2 text-xs leading-relaxed text-slate-600 sm:hidden">
+                Beide Funktionen stehen auch auf dem Smartphone zur Verfügung. Wähle oben Prüfprotokolle oder Prüfsiegel &amp; Fristen.
+              </p>
+
               {inspectionHubTab === "protocols" && (
-              <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.65fr)]">
+              <div className="order-3 grid min-w-0 max-w-full gap-6 2xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.65fr)]">
                 <div className="space-y-6">
                   <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">1 · Vorgang</p>
@@ -34809,7 +34816,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
               )}
 
               {inspectionHubTab === "badges" && (
-                <div className="min-w-0 space-y-4">
+                <div className="order-3 min-w-0 max-w-full space-y-4">
                   <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
                     <strong className="font-semibold text-slate-900">Dokumentation statt Zertifizierung:</strong> Prüfsiegel hier nur nach tatsächlich durchgeführter und dokumentierter Prüfung erfassen. Die bestehende Funktion speichert Siegelinformationen direkt am Gerät; sie erzeugt noch keinen automatischen Aufkleber oder öffentlichen QR-Nachweis.
                   </div>
