@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.75
+// TRYBUN Service Management System v4.13.76
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1404,6 +1404,16 @@ export default function Home() {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
+    // Ein Browser-Reload soll immer auf der Startseite beginnen. Ein frisch
+    // geoeffneter QR-Link (?device=...) bleibt dagegen weiterhin nutzbar.
+    const navigationEntry = window.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (navigationEntry?.type === "reload") {
+      const cleanUrl = new URL(window.location.href);
+      if (cleanUrl.searchParams.has("device")) {
+        cleanUrl.searchParams.delete("device");
+        window.history.replaceState(window.history.state, "", cleanUrl.toString());
+      }
+    }
     const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
     resetScroll();
     const frame = window.requestAnimationFrame(resetScroll);
@@ -2611,7 +2621,7 @@ export default function Home() {
     );
 
     if (foundDevice) {
-      setActivePage("Geräte");
+      setActivePage("QR-Scan");
       setSelectedDeviceView(foundDevice);
     }
   }, [devices]);const filteredTickets = useMemo(() => {
@@ -11816,7 +11826,7 @@ Dieser Bericht wurde aus Techniker-Stichpunkten strukturiert vorbereitet und vor
 
   function openDeviceFromQr(item: Device) {
     setSelectedDeviceView(item);
-    setActivePage("Geräte");
+    setActivePage("QR-Scan");
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -22096,6 +22106,15 @@ ${tenantBrandName}`,
     resetCustomerForm();
     resetPartForm();
     setSelectedDeviceView(null);
+    // Ein alter QR-Geraetelink darf die gerade gewaehlte Seite bei Reload
+    // nicht unbemerkt wieder mit dem Geraetepass ueberschreiben.
+    if (typeof window !== "undefined") {
+      const cleanUrl = new URL(window.location.href);
+      if (cleanUrl.searchParams.has("device")) {
+        cleanUrl.searchParams.delete("device");
+        window.history.replaceState(window.history.state, "", cleanUrl.toString());
+      }
+    }
 
     if (item !== "Dokumente") {
       setDocumentQuickFilter("Alle");
@@ -33412,7 +33431,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
               </div>
             </div>
           )}
-          {activePage === "Geräte" && selectedDeviceView && (
+          {activePage === "QR-Scan" && selectedDeviceView && (
             <div className="trybun-device-record mb-6 min-w-0 space-y-5">
               <div className="trybun-page-header border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -33751,6 +33770,9 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     onClick={() => {
                       setSelectedDeviceView(null);
                       if (typeof window !== "undefined") {
+                        const cleanUrl = new URL(window.location.href);
+                        cleanUrl.searchParams.delete("device");
+                        window.history.replaceState(window.history.state, "", cleanUrl.toString());
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }}
@@ -36164,7 +36186,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
           
 
-          {activePage === "QR-Scan" && (
+          {activePage === "QR-Scan" && !selectedDeviceView && (
             <div className="trybun-device-directory min-w-0 space-y-5">
 
               <section className="trybun-page-header min-w-0 p-5 text-white shadow-sm sm:p-7" aria-label="Geräteakte durchsuchen">
