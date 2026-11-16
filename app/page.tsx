@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.57
+// TRYBUN Service Management System v4.13.58
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -24488,6 +24488,66 @@ ${tenantBrandName}`,
             }
           }
 
+          /* v4.13.58 · Premium Business Design – Dashboard only.
+             Markenlogo, Firmenfarben, Statusbedeutungen, Funktionen und Datenfluesse bleiben erhalten. */
+          .trybun-premium-ui .trybun-dashboard-premium {
+            --trybun-ui-line: rgba(148, 163, 184, 0.24);
+          }
+          .trybun-premium-ui .trybun-dashboard-premium .trybun-page-header {
+            box-shadow: 0 3px 16px rgba(15, 23, 42, 0.07) !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-kpis > div {
+            border-color: var(--trybun-ui-line) !important;
+            background-color: rgba(18, 28, 44, 0.86) !important;
+            box-shadow: none !important;
+            padding: 1rem 1.15rem !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-kpis > div p[class*="uppercase"] {
+            font-size: 11px !important;
+            letter-spacing: 0.075em !important;
+            font-weight: 600 !important;
+            color: #bdcde0 !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-kpis > div p[class*="text-3xl"] {
+            font-weight: 650 !important;
+            letter-spacing: -0.035em !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-workspaces > button {
+            min-height: 126px !important;
+            border-color: var(--trybun-ui-line) !important;
+            background-color: rgba(18, 28, 44, 0.72) !important;
+            box-shadow: none !important;
+            padding: 1rem 1.15rem !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-workspaces > button:hover {
+            background-color: rgba(31, 47, 68, 0.92) !important;
+            border-color: rgba(125, 170, 216, 0.48) !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-workspaces > button p[class*="uppercase"] {
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.07em !important;
+            color: #d1dceb !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-workspaces > button p[class*="text-3xl"] {
+            margin-top: 0.7rem !important;
+            font-weight: 650 !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-intelligence {
+            box-shadow: 0 3px 18px rgba(15, 23, 42, 0.06) !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-intelligence button[class*="min-h-[252px]"] {
+            min-height: 206px !important;
+          }
+          .trybun-premium-ui .trybun-dashboard-premium button:focus-visible {
+            outline: 2px solid var(--pe-blue, #3b82f6);
+            outline-offset: 3px;
+          }
+          @media (max-width: 767px) {
+            .trybun-premium-ui .trybun-dashboard-workspaces > button { min-height: 112px !important; }
+            .trybun-premium-ui .trybun-dashboard-intelligence button[class*="min-h-[252px]"] { min-height: 170px !important; }
+          }
+
           .trybun-premium-ui.trybun-dark { background: #07111d !important; color: #e5edf7 !important; }
           .trybun-premium-ui.trybun-dark .bg-white { background-color: #101c2b !important; }
           .trybun-premium-ui.trybun-dark .bg-slate-50 { background-color: #0b1624 !important; }
@@ -25112,7 +25172,7 @@ ${tenantBrandName}`,
           )}
 
           {activePage === "Dashboard" && (
-            <div className="space-y-6">
+            <div className="trybun-dashboard-premium space-y-6">
 <div className="trybun-page-header overflow-hidden border border-slate-800 bg-slate-950 p-4 text-white shadow-xl shadow-slate-950/20 sm:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
@@ -25150,7 +25210,7 @@ ${tenantBrandName}`,
                   </div>
                 ) : (
                   <div className="mt-6 space-y-5">
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+                    <div className="trybun-dashboard-kpis grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
                       <div className="rounded-3xl border border-sky-500/40 bg-slate-900/90 p-4 shadow-sm">
                         <div className="flex items-center gap-3">
                           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-lg">🎫</span>
@@ -25229,7 +25289,7 @@ ${tenantBrandName}`,
                           </button>
                         </div>
 
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="trybun-dashboard-workspaces mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <button
                             type="button"
                             onClick={() => openPage("Kalender")}
@@ -25330,7 +25390,7 @@ ${tenantBrandName}`,
                     )}
 
                     {isAdmin && (
-                      <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white text-slate-950 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+                      <section className="trybun-dashboard-intelligence overflow-hidden rounded-[14px] border border-slate-200 bg-white text-slate-950 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
                         <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] px-4 py-5 sm:px-6 sm:py-6">
                           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                             <div className="min-w-0">
