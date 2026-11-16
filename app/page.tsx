@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.64
+// TRYBUN Service Management System v4.13.65
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -38403,105 +38403,131 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
           )}
 
                     {activePage === "Gerätebestand" && (
-            <div className="space-y-6">
-              <div className="trybun-page-header bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Lager</p>
-                <h2 className="mt-2 text-3xl font-black">Gerätebestand</h2>
-                <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-300">Lagerfähige Verkaufsgeräte nach Hersteller und Modell verwalten. Kundengeräte mit Seriennummer bleiben davon getrennt.</p>
+            <div className="min-w-0 space-y-5">
+              <header className="trybun-page-header min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Lagerverwaltung / Geräte</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Gerätebestand</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Verfügbare Verkaufsgeräte, Lagerorte und Bestandswarnungen auf einen Blick. Kundengeräte mit Seriennummer werden separat geführt.</p>
+              </header>
+
+              <div className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:grid-cols-3">
+                {[
+                  { label: "Lager-Modelle", value: stockedDeviceModels.length },
+                  { label: "Einheiten gesamt", value: stockedDeviceModels.reduce((sum, modelItem) => sum + Number(modelItem.stock || 0), 0) },
+                  { label: "Meldebestand erreicht", value: stockedDeviceModels.filter((modelItem) => Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0)).length },
+                ].map((metric) => (
+                  <div key={metric.label} className="min-w-0 bg-white px-5 py-4 sm:px-6">
+                    <p className="text-xs font-medium text-slate-500">{metric.label}</p>
+                    <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{metric.value}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <StatCard label="Lager-Modelle" value={stockedDeviceModels.length} />
-                <StatCard label="Einheiten gesamt" value={stockedDeviceModels.reduce((sum, modelItem) => sum + Number(modelItem.stock || 0), 0)} />
-                <StatCard label="Kritisch" value={stockedDeviceModels.filter((modelItem) => Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0)).length} />
-              </div>
-
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-                  <input value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-device-stock-search" placeholder="Gerätebestand suchen: Modell, Kategorie, Hersteller, Lagerort …" className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold outline-none focus:border-sky-400" />
-                  <select value={inventoryManufacturerFilter} onChange={(e) => setInventoryManufacturerFilter(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+              <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-label="Gerätebestand filtern">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-base font-semibold text-slate-900">Bestandsübersicht</h3>
+                  <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">{filteredInventoryModels.length} von {stockedDeviceModels.length} Modellen</span>
+                </div>
+                <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(200px,260px)]">
+                  <input value={inventorySearchTerm} onChange={(e) => setInventorySearchTerm(e.target.value)} type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-device-stock-search" aria-label="Gerätebestand durchsuchen" placeholder="Modell, Kategorie oder Lagerort suchen …" className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:border-sky-400" />
+                  <select value={inventoryManufacturerFilter} onChange={(e) => setInventoryManufacturerFilter(e.target.value)} aria-label="Geräte nach Hersteller filtern" className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800">
                     <option value="Alle">Alle Hersteller</option>
                     {manufacturers.map((manufacturerItem) => <option key={manufacturerItem.id} value={manufacturerItem.id}>{manufacturerItem.name}</option>)}
                   </select>
                 </div>
-                <p className="mt-3 text-sm font-semibold text-slate-500">{filteredInventoryModels.length} von {stockedDeviceModels.length} lagerfähigen Modellen angezeigt.</p>
-              </div>
+              </section>
 
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-3">
                 {getPagedItems("inventory-models", filteredInventoryModels, 10).map((modelItem) => {
                   const critical = Number(modelItem.stock || 0) <= Number(modelItem.min_stock || 0);
-                  return <div key={`model-${modelItem.id}`} className="rounded-[24px] border border-sky-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">{getManufacturerNameById(modelItem.manufacturer_id) || "Ohne Hersteller"}</p><h3 className="mt-1 break-words text-xl font-black">{getDeviceModelDisplayName(modelItem)}</h3><p className="mt-1 text-sm font-semibold text-slate-500">{getDeviceModelTypeName(modelItem)} · Lagerort: {modelItem.storage_location || "nicht angegeben"}</p></div>
-                      <div className="flex flex-wrap items-center gap-2"><span className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black">{modelItem.stock ?? 0} {modelItem.unit || "Stück"}</span><span className={`rounded-full px-3 py-2 text-xs font-black ${critical ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{critical ? "Nachbestellen" : "Verfügbar"}</span></div>
-                    </div>
-                  </div>;
+                  return (
+                    <article key={`model-${modelItem.id}`} className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                      <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                        <div className="min-w-0">
+                          <p className="break-words text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{getManufacturerNameById(modelItem.manufacturer_id) || "Ohne Hersteller"}</p>
+                          <h3 className="mt-1 break-words text-base font-semibold leading-snug text-slate-900 sm:text-lg">{getDeviceModelDisplayName(modelItem)}</h3>
+                          <div className="mt-2 flex min-w-0 flex-wrap gap-x-5 gap-y-1 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                            <span className="min-w-0 break-words">{getDeviceModelTypeName(modelItem)}</span>
+                            <span className="min-w-0 break-words">Lagerort: {modelItem.storage_location || "nicht angegeben"}</span>
+                            <span>Mindestbestand: {modelItem.min_stock ?? 0}</span>
+                          </div>
+                        </div>
+                        <div className="flex min-w-0 flex-wrap items-center gap-3 sm:justify-end">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                            <p className="text-[11px] font-medium text-slate-500">Verfügbarer Bestand</p>
+                            <p className="text-lg font-semibold tabular-nums text-slate-900">{modelItem.stock ?? 0} <span className="text-xs font-medium text-slate-600">{modelItem.unit || "Stück"}</span></p>
+                          </div>
+                          <span className={`rounded-lg border px-3 py-2 text-xs font-semibold ${critical ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{critical ? "Nachbestellen" : "Verfügbar"}</span>
+                        </div>
+                      </div>
+                    </article>
+                  );
                 })}
                 {renderListPagination("inventory-models", filteredInventoryModels.length, 10)}
-                {filteredInventoryModels.length === 0 && <div className="rounded-[24px] bg-white p-6 text-center font-bold text-slate-500 shadow-sm">Keine passenden Lagergeräte gefunden. Modelle werden hier erst angezeigt, wenn sie als Lagerware geführt werden.</div>}
+                {filteredInventoryModels.length === 0 && <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">Keine passenden Lagergeräte gefunden. Modelle werden hier erst angezeigt, wenn sie als Lagerware geführt werden.</div>}
               </div>
             </div>
           )}
 
 {activePage === "Ersatzteile" && (
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-4">
-                <StatCard
-                  label="Ersatzteile aktiv"
-                  value={activeServiceParts.length}
-                />
-                <StatCard
-                  label="Nachbestellen"
-                  value={
-                    activeServiceParts.filter(
-                      (part) =>
-                        Number(part.stock || 0) <= Number(part.min_stock || 0),
-                    ).length
-                  }
-                />
-                <StatCard
-                  label="Leer"
-                  value={
-                    activeServiceParts.filter((part) => Number(part.stock || 0) <= 0)
-                      .length
-                  }
-                />
-                <StatCard label="Verbrauch gebucht" value={partUsages.length} />
+            <div className="min-w-0 space-y-5">
+              <header className="trybun-page-header min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Lagerverwaltung / Ersatzteile</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Ersatzteile</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Bestände verwalten, Materialverbräuche buchen und offene Ersatzteilbedarfe im Blick behalten.</p>
+              </header>
+              <div className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
+                {[
+                  { label: "Aktive Ersatzteile", value: activeServiceParts.length },
+                  { label: "Nachbestellen", value: activeServiceParts.filter((part) => Number(part.stock || 0) <= Number(part.min_stock || 0)).length },
+                  { label: "Ohne Bestand", value: activeServiceParts.filter((part) => Number(part.stock || 0) <= 0).length },
+                  { label: "Verbrauchsbuchungen", value: partUsages.length },
+                ].map((metric) => (
+                  <div key={metric.label} className="min-w-0 bg-white px-4 py-4 sm:px-6">
+                    <p className="break-words text-xs font-medium text-slate-500">{metric.label}</p>
+                    <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{metric.value}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="rounded-[24px] bg-white p-4 shadow-sm">
-                <div className="grid gap-3 md:grid-cols-[1fr_280px]">
+              <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-label="Ersatzteile durchsuchen und filtern">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-base font-semibold text-slate-900">Ersatzteilübersicht</h3>
+                  <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">{filteredActiveServiceParts.length} von {activeServiceParts.length} Artikeln</span>
+                </div>
+                <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(200px,260px)]">
                   <input
                     value={partSearchTerm}
                     onChange={(e) => setPartSearchTerm(e.target.value)}
                     type="search" autoComplete="off" autoCorrect="off" spellCheck={false} enterKeyHint="search" name="trybun-spare-parts-search"
                     placeholder="Ersatzteile suchen: Bezeichnung, Artikelnummer, Hersteller, Lagerort …"
-                    className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold outline-none focus:border-sky-400"
+                    className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium outline-none focus:border-sky-400"
                   />
-                  <select value={partManufacturerFilter} onChange={(e) => setPartManufacturerFilter(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                  <select value={partManufacturerFilter} onChange={(e) => setPartManufacturerFilter(e.target.value)} className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium">
                     <option value="Alle">Alle Hersteller</option>
                     {manufacturers.map((manufacturerItem) => <option key={manufacturerItem.id} value={manufacturerItem.id}>{manufacturerItem.name}</option>)}
                   </select>
                 </div>
-                <p className="mt-3 text-sm font-semibold text-slate-500">{filteredActiveServiceParts.length} von {activeServiceParts.length} aktiven Ersatzteilen angezeigt.</p>
-              </div>
+              </section>
 
-              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className="min-w-0 space-y-4">
                 {isAdmin && (
                   <div
-                    className={`rounded-[24px] bg-white p-4 shadow-sm ${editingPart ? "ring-4 ring-sky-200" : ""}`}
+                    className={`min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 ${editingPart ? "ring-2 ring-sky-300" : ""}`}
                   >
-                    <h3 className="text-xl font-black">
-                      {editingPart
-                        ? "Ersatzteil bearbeiten"
-                        : "Neues Ersatzteil"}
-                    </h3>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        {editingPart ? "Ersatzteil bearbeiten" : "Ersatzteil erfassen"}
+                      </h3>
+                      <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">Artikelstammdaten</span>
+                    </div>
                     <p className="mt-2 text-slate-600">
                       Lagerartikel mit Bestand, Mindestbestand, Standort und
                       Notiz anlegen.
                     </p>
 
                     <div className="mt-5 space-y-4">
+                      <div className="grid min-w-0 gap-3 lg:grid-cols-3">
                       <input
                         value={partName}
                         onChange={(e) => setPartName(e.target.value)}
@@ -38518,8 +38544,9 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         value={partCategory}
                         onChange={(e) => setPartCategory(e.target.value)}
                         placeholder="Kategorie, z. B. Mechanik, Elektronik, Verschleißteil"
-                        className="w-full rounded-2xl border border-slate-300 px-5 py-3"
+                        className="min-w-0 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"
                       />
+                      </div>
 
                       <div className="grid gap-3 md:grid-cols-3">
                         <label className="space-y-2">
@@ -38550,10 +38577,10 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         className="w-full rounded-2xl border border-slate-300 px-5 py-3"
                       />
 
-                      <div className="grid gap-3 md:grid-cols-2">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <button
                           onClick={saveServicePart}
-                          className="rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                          className="w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white sm:w-auto"
                         >
                           {editingPart
                             ? "Ersatzteil speichern"
@@ -38562,7 +38589,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         {editingPart && (
                           <button
                             onClick={resetPartForm}
-                            className="rounded-2xl border border-slate-300 py-4 font-bold"
+                            className="w-full rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold sm:w-auto"
                           >
                             Abbrechen
                           </button>
@@ -38573,9 +38600,9 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                 )}
 
                 <div
-                  className={`rounded-[24px] bg-white p-4 shadow-sm ${isAdmin ? "" : "xl:col-span-2"}`}
+                  className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
                 >
-                  <h3 className="text-xl font-black">Verbrauch buchen</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">Materialverbrauch buchen</h3>
                   <p className="mt-2 text-slate-600">
                     Techniker und Admin können Ersatzteile einem Gerät, Ticket oder
                     Einsatzhinweis zuordnen.
@@ -38641,7 +38668,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
                     <button
                       onClick={consumeServicePart}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-bold text-white"
+                      className="w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white sm:w-auto"
                     >
                       Verbrauch buchen
                     </button>
@@ -38649,8 +38676,8 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                 </div>
               </div>
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Ersatzteilbestand</h3>
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <h3 className="text-lg font-semibold text-slate-900">Ersatzteilbestand</h3>
                 <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                   {filteredActiveServiceParts.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
@@ -38664,11 +38691,11 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       return (
                         <div
                           key={part.id}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
                         >
-                          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                            <div>
-                              <p className="text-xs font-bold text-sky-500">
+                          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0 flex-1">
+                              <p className="break-words text-xs font-medium text-slate-500">
                                 {part.sku || part.category || "Ersatzteil"}
                               </p>
                               <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
@@ -38733,8 +38760,8 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               )}
                             </div>
 
-                            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                              <div className="rounded-2xl bg-white px-5 py-3 text-center">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-center">
                                 <p className="text-xs text-slate-500">
                                   Bestand
                                 </p>
@@ -38751,13 +38778,13 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 <>
                                   <button
                                     onClick={() => startEditPart(part)}
-                                    className="w-full rounded-2xl bg-sky-100 px-3 py-3 text-center text-xs font-bold text-sky-600 md:text-sm"
+                                    className="min-w-0 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-center text-xs font-semibold text-slate-800 sm:text-sm"
                                   >
                                     Bearbeiten
                                   </button>
                                   <button
                                     onClick={() => deleteServicePart(part.id)}
-                                    className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
+                                    className="min-w-0 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-center text-xs font-semibold text-red-700 sm:text-sm"
                                   >
                                     Archivieren
                                   </button>
