@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.66
+// TRYBUN Service Management System v4.13.67
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -24400,6 +24400,53 @@ ${tenantBrandName}`,
           .trybun-premium-ui.trybun-light .bg-white.shadow-2xl {
             box-shadow: 0 4px 20px rgba(15, 23, 42, 0.075) !important;
           }
+          /* v4.13.67 – Geräteakte und QR nutzen dieselbe ruhige Business-CI.
+             Ausschließlich Layout/Lesbarkeit; keine Änderungen an Handlern oder Daten. */
+          .trybun-premium-ui .trybun-device-directory,
+          .trybun-premium-ui .trybun-device-record {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+          }
+          .trybun-premium-ui .trybun-device-directory .trybun-device-item,
+          .trybun-premium-ui .trybun-device-record .trybun-device-facts > div {
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui .trybun-device-record .trybun-device-record-metrics > div,
+          .trybun-premium-ui .trybun-device-directory .trybun-device-metrics > div {
+            min-width: 0;
+            border: 0;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+          .trybun-premium-ui.trybun-light .trybun-device-record .trybun-device-facts > div {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px !important;
+            padding: 12px 14px;
+          }
+          .trybun-premium-ui .trybun-device-record .trybun-device-actions > button {
+            min-width: 0;
+            border-radius: 9px !important;
+            padding: 11px 14px;
+            font-size: 13px;
+            font-weight: 600 !important;
+          }
+          .trybun-premium-ui .trybun-device-directory input,
+          .trybun-premium-ui .trybun-device-directory button,
+          .trybun-premium-ui .trybun-device-record button {
+            max-width: 100%;
+          }
+          @media (max-width: 639px) {
+            .trybun-premium-ui .trybun-device-directory .trybun-device-item,
+            .trybun-premium-ui .trybun-device-record {
+              overflow-wrap: anywhere;
+            }
+            .trybun-premium-ui .trybun-device-record .trybun-device-record-metrics p,
+            .trybun-premium-ui .trybun-device-directory .trybun-device-metrics p {
+              overflow-wrap: anywhere;
+            }
+          }
           .trybun-premium-ui .trybun-page-header button {
             max-width: 100%;
           }
@@ -33097,7 +33144,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
             </div>
           )}
           {activePage === "Geräte" && selectedDeviceView && (
-            <div className="mb-6 space-y-6">
+            <div className="trybun-device-record mb-6 min-w-0 space-y-5">
               <div className="trybun-page-header border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
@@ -33122,8 +33169,8 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="trybun-device-record-metrics grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
+                <div className="min-w-0 bg-white p-4 sm:px-5">
                   <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">Offene Tickets</p>
                   <p className="mt-2 text-3xl font-black text-slate-950">{selectedDeviceOpenTickets.length}</p>
                   <p className="mt-1 text-xs font-semibold text-slate-500">{selectedDeviceCompletedTickets.length} abgeschlossen</p>
@@ -33145,8 +33192,8 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 </div>
               </div>
 
-              <div className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex min-w-0 flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
@@ -33156,7 +33203,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     <p className="text-sm font-bold text-slate-500">Digitaler Gerätepass</p>
                   </div>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="trybun-device-facts mt-5 grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     <div className="rounded-xl bg-slate-50 p-4">
                       <p className="text-xs font-bold text-slate-500">Kunde</p>
                       <p className="mt-1 break-words font-black text-slate-900">
@@ -33343,7 +33390,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                   )}
                 </div>
 
-                <div className="flex w-full flex-col gap-3 xl:w-64">
+                <div className="trybun-device-actions flex min-w-0 w-full flex-col gap-2 xl:w-64">
                   <button
                     onClick={() => createTicketFromDevice(selectedDeviceView)}
                     className="rounded-2xl bg-sky-500 px-4 py-4 font-bold text-white"
@@ -35813,27 +35860,23 @@ placeholder="Gerät / Anlage / Modell suchen..."
           )}
 
           {activePage === "QR-Scan" && (
-            <div className="space-y-6">
+            <div className="trybun-device-directory min-w-0 space-y-5">
 
-              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
-                <div className="mb-5">
-                  <SoftwareLogo />
-                </div>
-
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Geräteakte & QR
+              <section className="trybun-page-header min-w-0 p-5 text-white shadow-sm sm:p-7" aria-label="Geräteakte durchsuchen">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
+                  Geräteverwaltung / Geräteakte & QR
                 </p>
 
-                <h3 className="mt-2 text-4xl font-black">
-                  Serviceobjekt suchen oder QR-Code scannen
+                <h3 className="mt-2 break-words text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+                  Geräteakte & QR
                 </h3>
 
-                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                <p className="mt-2 max-w-3xl text-sm font-normal leading-relaxed text-slate-300">
                   Öffnen Sie die digitale Geräteakte über die Suche oder optional per QR-Code. Historie,
                   Dokumente, Tickets und Gerätepass bleiben am Serviceobjekt gebündelt.
                 </p>
 
-                <div className="mt-6 grid gap-3 lg:grid-cols-[1fr_auto]">
+                <div className="mt-5 grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
                   <input
                     value={qrManualCode}
                     onChange={(e) => {
@@ -35852,26 +35895,26 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     enterKeyHint="search"
                     name="trybun-qr-quick-device-search"
                     placeholder="Gerät, Seriennummer, Hersteller, Modell, Kunde, Standort oder ID suchen..."
-                    className="rounded-2xl border border-white/10 bg-white px-5 py-4 font-bold text-slate-900"
+                    className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                   />
 
                   <button
                     onClick={() => openDeviceFromScanValue(qrManualCode)}
-                    className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                    className="min-w-0 rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white"
                   >
                     Gerät öffnen
                   </button>
                 </div>
 
-                <div className="mt-4 rounded-2xl bg-white/10 p-4 text-sm font-bold text-slate-200">
+                <div className="mt-4 min-w-0 break-words rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm font-normal text-slate-200">
                   {qrScanStatus}
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2">
                   <button
                     onClick={startQrScanner}
                     disabled={qrScannerActive}
-                    className="rounded-2xl bg-sky-500 px-6 py-5 text-lg font-black text-white disabled:opacity-50"
+                    className="min-w-0 rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     QR-Scan starten
                   </button>
@@ -35879,7 +35922,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                   <button
                     onClick={stopQrScanner}
                     disabled={!qrScannerActive}
-                    className="rounded-2xl bg-white/10 px-6 py-5 text-lg font-black text-white disabled:opacity-50"
+                    className="min-w-0 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                   >
                     Scanner stoppen
                   </button>
@@ -35893,9 +35936,9 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     />
                   </div>
                 )}
-              </div>
+              </section>
 
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="trybun-device-metrics grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
                 <StatCard label={qrSearchTerm.trim() ? "Treffer" : "Geräte gesamt"} value={qrMatchedDeviceCount} />
                 <StatCard
                   label="Vorschau"
@@ -35919,14 +35962,14 @@ placeholder="Gerät / Anlage / Modell suchen..."
 
               <div
                 id="trybun-device-knowledge-workspace"
-                className="scroll-mt-24 rounded-[32px] bg-white p-6 shadow-sm"
+                className="trybun-device-workspace scroll-mt-24 min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-700">
-                      Gerätewissen · Lifecycle
+                <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+                      Kundenservice / Lifecycle
                     </p>
-                    <h3 className="mt-1 text-2xl font-black">Gerätewissen & digitale Geräteakte</h3>
+                    <h3 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Geräteübersicht</h3>
                     <p className="mt-2 text-slate-600">
                       Serviceobjekt auswählen und die zentrale Geräteakte mit Historie, Dokumenten,
                       Tickets und Gerätepass öffnen.
@@ -35947,11 +35990,11 @@ spellCheck={false}
 enterKeyHint="search"
 name="trybun-qr-device-query"
 placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
-                    className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                    className="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium lg:max-w-md"
                   />
                 </div>
 
-                <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-600">
+                <div className="mt-4 min-w-0 rounded-lg bg-slate-50 px-4 py-3 text-sm font-normal leading-relaxed text-slate-600">
                   {qrSearchTerm.trim()
                     ? qrMatchedDeviceCount > 12
                       ? `${qrMatchedDeviceCount} Treffer gefunden. Die ersten 12 werden angezeigt – bitte Suche verfeinern.`
@@ -35959,7 +36002,7 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                     : `${qrMatchedDeviceCount} Geräte vorhanden. Die ersten ${filteredQrDevices.length} werden alphabetisch als Vorschau angezeigt.`}
                 </div>
 
-                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                <div className="mt-5 grid min-w-0 gap-3 xl:grid-cols-2">
                   {filteredQrDevices.length === 0 ? (
                     <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
                       Keine Geräte gefunden.
@@ -35974,23 +36017,23 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                       return (
                         <div
                           key={item.id}
-                          className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                          className="trybun-device-item min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
                         >
-                          <div className="flex flex-col gap-5 md:flex-row md:items-start">
-                            <div className="rounded-2xl bg-white p-3">
+                          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start">
+                            <div className="w-fit shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-2">
                               <img
                                 src={getDeviceQrCodeUrl(item)}
                                 alt={`QR-Code ${item.name}`}
-                                className="h-32 w-32"
+                                className="h-24 w-24 object-contain sm:h-28 sm:w-28"
                               />
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-black text-sky-500">
+                              <p className="max-w-full break-words text-xs font-medium leading-relaxed text-slate-500 [overflow-wrap:anywhere]">
                                 ID {item.id} · {linkedCustomer?.company || "Kein Kunde"} · {item.serial_number || "Keine Seriennummer"}
                               </p>
 
-                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
+                              <h4 className="mt-1 break-words text-base font-semibold leading-snug text-slate-900 sm:text-lg [overflow-wrap:anywhere]">
                                 {item.name || "Unbenanntes Gerät"}
                               </h4>
 
@@ -36008,31 +36051,31 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                                 </span>
                               </div>
 
-                              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                              <div className="mt-4 grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2">
                                 <button
                                   onClick={() => openDeviceFromQr(item)}
-                                  className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-black text-white"
+                                  className="min-w-0 break-words rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white"
                                 >
                                   Geräteakte öffnen
                                 </button>
 
                                 <button
                                   onClick={() => printDeviceQrLabel(item)}
-                                  className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
+                                  className="min-w-0 break-words rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700"
                                 >
                                   QR-Etikett
                                 </button>
 
                                 <button
                                   onClick={() => createTicketFromDevice(item)}
-                                  className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700"
+                                  className="min-w-0 break-words rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700"
                                 >
                                   Ticket
                                 </button>
 
                                 <button
                                   onClick={() => createMaintenancePlanForDevice(item)}
-                                  className="rounded-2xl bg-yellow-100 px-4 py-3 text-sm font-black text-yellow-800"
+                                  className="min-w-0 break-words rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700"
                                 >
                                   Wartung
                                 </button>
