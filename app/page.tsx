@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.74
+// TRYBUN Service Management System v4.13.75
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1394,6 +1394,38 @@ export default function Home() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptDigitalDocumentation, setAcceptDigitalDocumentation] = useState(false);
   const [activePage, setActivePage] = useState("Dashboard");
+
+  // v4.13.75: Ein Neuladen startet oben in der Startansicht, statt die
+  // Browser-Scrollposition aus der zuvor besuchten Fachseite zu übernehmen.
+  // Absichtliche Geräte-Deep-Links (?device=...) bleiben weiterhin möglich.
+  const initialLandingScrollDoneRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    resetScroll();
+    const frame = window.requestAnimationFrame(resetScroll);
+    const delayed = window.setTimeout(resetScroll, 350);
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) resetScroll();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(delayed);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, []);
+  useEffect(() => {
+    if (initialLandingScrollDoneRef.current || !session?.user?.id || !userProfile?.role) return;
+    initialLandingScrollDoneRef.current = true;
+    if (typeof window === "undefined") return;
+    // Authentifizierung kann nach dem ersten Rendern Inhalte oberhalb hinzufügen.
+    window.requestAnimationFrame(() => window.scrollTo(0, 0));
+  }, [session?.user?.id, userProfile?.role]);
+
   const [appearanceMode, setAppearanceMode] = useState<"light" | "dark">("light");
   const [listPages, setListPages] = useState<Record<string, number>>({});
   const isDarkMode = appearanceMode === "dark";
@@ -24687,6 +24719,59 @@ ${tenantBrandName}`,
           .trybun-premium-ui.trybun-dark table thead { background: #0b1624 !important; }
           .trybun-premium-ui.trybun-dark table tbody tr:hover { background-color: #132338 !important; }
 
+
+          /* v4.13.75 — Service Intelligence: garantiert lesbare Kontraste.
+             Nur diese Dashboard-Komponente, keine generischen .bg-white/.text-*-Overrides. */
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence,
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > div:first-child {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+          }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > div:first-child h3,
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > div:first-child p:not([class*="text-sky-"]) {
+            color: #172238 !important;
+          }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > div:first-child p.text-sky-700 {
+            color: #075985 !important;
+          }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            min-width: 0;
+          }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-slate-950,
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-slate-800 {
+            color: #111827 !important;
+          }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-slate-500 {
+            color: #475569 !important;
+          }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-sky-700 { color: #075985 !important; }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-emerald-700 { color: #047857 !important; }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-amber-700 { color: #92400e !important; }
+          .trybun-premium-ui.trybun-light .trybun-dashboard-intelligence > .grid > button p.text-indigo-700 { color: #4338ca !important; }
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > .grid > button,
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > div:first-child {
+            background-color: #101c2b !important;
+          }
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > div:first-child h3,
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > .grid > button p.text-slate-950,
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > .grid > button p.text-slate-800 {
+            color: #f8fafc !important;
+          }
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > .grid > button p.text-slate-500,
+          .trybun-premium-ui.trybun-dark .trybun-dashboard-intelligence > div:first-child p.text-slate-600 {
+            color: #cbd5e1 !important;
+          }
+          @media (max-width: 639px) {
+            .trybun-premium-ui .trybun-dashboard-intelligence > .grid > button {
+              min-height: 0;
+              padding: 1rem;
+            }
+            .trybun-premium-ui .trybun-dashboard-intelligence > .grid > button p {
+              overflow-wrap: anywhere;
+            }
+          }
 
           /* v4.13.70 — Dokumente / Serviceberichte: gleiche ruhige CI wie die Startseite. */
           .trybun-premium-ui .trybun-documents-workspace,
