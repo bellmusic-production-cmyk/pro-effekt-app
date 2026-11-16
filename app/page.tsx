@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.65
+// TRYBUN Service Management System v4.13.66
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -24351,10 +24351,68 @@ ${tenantBrandName}`,
           }
 
           /* v4.12.64 · ruhigere Geometrie mit kleineren Ecken */
+          /* v4.13.66 · einheitliche TRYBUN-Seitenkopf-CI auf allen Fachseiten.
+             Dunkler Hintergrund UND kontrastreiche Schrift gehören untrennbar zusammen.
+             Keine Änderungen an Navigation, Formularabläufen oder fachlichen Statusfarben. */
           .trybun-premium-ui .trybun-page-header {
+            min-width: 0;
             border-radius: 12px !important;
-            background-color: #07111d !important;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+            border: 1px solid #25344c !important;
+            background-color: #101a2b !important;
+            color: #f8fafc !important;
+            box-shadow: 0 3px 14px rgba(15, 23, 42, 0.075) !important;
+          }
+          .trybun-premium-ui .trybun-page-header h1,
+          .trybun-premium-ui .trybun-page-header h2,
+          .trybun-premium-ui .trybun-page-header h3,
+          .trybun-premium-ui .trybun-page-header h4,
+          .trybun-premium-ui .trybun-page-header h5 {
+            color: #f8fafc !important;
+            font-weight: 600 !important;
+            letter-spacing: -0.025em;
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui .trybun-page-header p.text-slate-900,
+          .trybun-premium-ui .trybun-page-header p.text-slate-800,
+          .trybun-premium-ui .trybun-page-header p.text-slate-700,
+          .trybun-premium-ui .trybun-page-header p.text-slate-600,
+          .trybun-premium-ui .trybun-page-header p.text-slate-500,
+          .trybun-premium-ui .trybun-page-header p.text-slate-400,
+          .trybun-premium-ui .trybun-page-header p.text-slate-300 {
+            color: #cbd5e1 !important;
+          }
+          .trybun-premium-ui .trybun-page-header p[class*="uppercase"],
+          .trybun-premium-ui .trybun-page-header p.text-sky-400,
+          .trybun-premium-ui .trybun-page-header p.text-sky-300 {
+            color: #93c5fd !important;
+            font-weight: 600 !important;
+          }
+          .trybun-premium-ui .trybun-page-header > p,
+          .trybun-premium-ui .trybun-page-header > div > p {
+            line-height: 1.65;
+          }
+          /* Gemeinsame Fachkarten- und Formular-Anmutung statt seitenweiser Schatten. */
+          .trybun-premium-ui.trybun-light .bg-white.shadow-sm {
+            border-color: #dce3ed;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.045) !important;
+          }
+          .trybun-premium-ui.trybun-light .bg-white.shadow-xl,
+          .trybun-premium-ui.trybun-light .bg-white.shadow-2xl {
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.075) !important;
+          }
+          .trybun-premium-ui .trybun-page-header button {
+            max-width: 100%;
+          }
+          .trybun-premium-ui .trybun-page-header p {
+            font-weight: 400;
+          }
+          .trybun-premium-ui .trybun-page-header p[class*="uppercase"] {
+            font-weight: 600;
+          }
+          @media (max-width: 767px) {
+            .trybun-premium-ui .trybun-page-header {
+              overflow-wrap: anywhere;
+            }
           }
 
           .trybun-premium-ui [class*="rounded-[36px]"],
@@ -25100,15 +25158,15 @@ ${tenantBrandName}`,
             </div>
           )}
 
-          {standardPageHeader && (
-            <div className="trybun-page-header mb-6 border border-slate-800 bg-[#07111d] p-5 text-white shadow-sm sm:p-6">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-sky-400">
+          {standardPageHeader && activePage !== "Ersatzteile" && (
+            <div className="trybun-page-header mb-6 min-w-0 border border-slate-800 bg-[#101a2b] p-5 text-white shadow-sm sm:p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
                 {standardPageHeader.eyebrow}
               </p>
-              <h2 className="mt-2 text-3xl font-black leading-tight">
+              <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-tight">
                 {standardPageHeader.title}
               </h2>
-              <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
+              <p className="mt-2 max-w-4xl text-sm font-normal leading-6 text-slate-300">
                 {standardPageHeader.description}
               </p>
             </div>
@@ -38404,10 +38462,10 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
                     {activePage === "Gerätebestand" && (
             <div className="min-w-0 space-y-5">
-              <header className="trybun-page-header min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Lagerverwaltung / Geräte</p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Gerätebestand</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Verfügbare Verkaufsgeräte, Lagerorte und Bestandswarnungen auf einen Blick. Kundengeräte mit Seriennummer werden separat geführt.</p>
+              <header className="trybun-page-header min-w-0 rounded-2xl border border-slate-700 bg-[#101a2b] p-5 text-white shadow-sm sm:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">Lagerverwaltung / Geräte</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Gerätebestand</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Verfügbare Verkaufsgeräte, Lagerorte und Bestandswarnungen auf einen Blick. Kundengeräte mit Seriennummer werden separat geführt.</p>
               </header>
 
               <div className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm sm:grid-cols-3">
@@ -38471,10 +38529,10 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
 
 {activePage === "Ersatzteile" && (
             <div className="min-w-0 space-y-5">
-              <header className="trybun-page-header min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Lagerverwaltung / Ersatzteile</p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Ersatzteile</h2>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">Bestände verwalten, Materialverbräuche buchen und offene Ersatzteilbedarfe im Blick behalten.</p>
+              <header className="trybun-page-header min-w-0 rounded-2xl border border-slate-700 bg-[#101a2b] p-5 text-white shadow-sm sm:p-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">Lagerverwaltung / Ersatzteile</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Ersatzteile</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Bestände verwalten, Materialverbräuche buchen und offene Ersatzteilbedarfe im Blick behalten.</p>
               </header>
               <div className="grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
                 {[
