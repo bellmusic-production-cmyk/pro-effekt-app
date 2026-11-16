@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.76
+// TRYBUN Service Management System v4.13.77
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1428,13 +1428,6 @@ export default function Home() {
       window.removeEventListener("pageshow", onPageShow);
     };
   }, []);
-  useEffect(() => {
-    if (initialLandingScrollDoneRef.current || !session?.user?.id || !userProfile?.role) return;
-    initialLandingScrollDoneRef.current = true;
-    if (typeof window === "undefined") return;
-    // Authentifizierung kann nach dem ersten Rendern Inhalte oberhalb hinzufügen.
-    window.requestAnimationFrame(() => window.scrollTo(0, 0));
-  }, [session?.user?.id, userProfile?.role]);
 
   const [appearanceMode, setAppearanceMode] = useState<"light" | "dark">("light");
   const [listPages, setListPages] = useState<Record<string, number>>({});
@@ -1543,6 +1536,13 @@ export default function Home() {
   const [newAccountPasswordRepeat, setNewAccountPasswordRepeat] = useState("");
   const [passwordSetupSaving, setPasswordSetupSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  useEffect(() => {
+    if (initialLandingScrollDoneRef.current || !session?.user?.id || !userProfile?.role) return;
+    initialLandingScrollDoneRef.current = true;
+    if (typeof window === "undefined") return;
+    // Authentifizierung kann nach dem ersten Rendern Inhalte oberhalb hinzufügen.
+    window.requestAnimationFrame(() => window.scrollTo(0, 0));
+  }, [session?.user?.id, userProfile?.role]);
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const companyDataRef = useRef<CompanyData | null>(null);
 
