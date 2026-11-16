@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.67
+// TRYBUN Service Management System v4.13.68
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -24400,6 +24400,38 @@ ${tenantBrandName}`,
           .trybun-premium-ui.trybun-light .bg-white.shadow-2xl {
             box-shadow: 0 4px 20px rgba(15, 23, 42, 0.075) !important;
           }
+          /* v4.13.68 – Wartungen & Prüfungen: einheitliche Fachkarten-CI.
+             Ausschließlich layoutbezogen; Speicherung und Berechtigungen unverändert. */
+          .trybun-premium-ui .trybun-maintenance-view,
+          .trybun-premium-ui .trybun-inspections-view {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+          }
+          .trybun-premium-ui .trybun-service-metrics > div {
+            min-width: 0;
+            border: 0;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui .trybun-service-panel select,
+          .trybun-premium-ui .trybun-service-panel input,
+          .trybun-premium-ui .trybun-service-panel textarea,
+          .trybun-premium-ui .trybun-service-panel button {
+            max-width: 100%;
+          }
+          .trybun-premium-ui .trybun-service-panel p,
+          .trybun-premium-ui .trybun-service-panel h3,
+          .trybun-premium-ui .trybun-service-panel h4 {
+            overflow-wrap: anywhere;
+          }
+          @media (max-width: 639px) {
+            .trybun-premium-ui .trybun-maintenance-view .trybun-service-panel,
+            .trybun-premium-ui .trybun-inspections-view .trybun-service-panel {
+              padding: 1rem;
+            }
+          }
           /* v4.13.67 – Geräteakte und QR nutzen dieselbe ruhige Business-CI.
              Ausschließlich Layout/Lesbarkeit; keine Änderungen an Handlern oder Daten. */
           .trybun-premium-ui .trybun-device-directory,
@@ -34702,9 +34734,9 @@ placeholder="Gerät / Anlage / Modell suchen..."
           )}
 
           {activePage === "Wartungsplanung" && (
-            <div className="space-y-6">
+            <div className="trybun-maintenance-view min-w-0 space-y-5">
 
-              <div className="grid gap-4 md:grid-cols-5">
+              <div className="trybun-service-metrics grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm md:grid-cols-3 xl:grid-cols-5">
                 <StatCard label="Sicherheitsprüfung/Wartungen gesamt" value={maintenancePlans.length} />
                 <StatCard
                   label="Geplant"
@@ -34725,23 +34757,23 @@ placeholder="Gerät / Anlage / Modell suchen..."
               </div>
 
               {(isAdmin || isTechnician) && (
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Abnahmeprotokoll</h3>
-                  <p className="mt-2 text-slate-600">
+                <div className="trybun-service-panel min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-900">Wartung planen</h3>
+                  <p className="mt-2 text-sm font-normal leading-relaxed text-slate-600">
                     Plane Sicherheitsprüfungen und Wartungen zuerst kundenbezogen und danach nur für Geräte dieses Kunden.
                   </p>
-                  <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+                  <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm font-normal leading-relaxed text-slate-600">
                     Sicherheitsprüfung- und Sicherheitsprüfungen dienen der Betriebssicherheit, Unfallvermeidung und nachvollziehbaren Dokumentation. Alle Prüfungen werden digital dokumentiert, archiviert und können später über Geräteakte, Ticket, Servicebericht oder Kundendokumente nachvollzogen werden.
                   </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-5 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <select
                       value={maintenanceCustomerId}
                       onChange={(e) => {
                         setMaintenanceCustomerId(e.target.value);
                         setMaintenanceDeviceId("");
                       }}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                     >
                       <option value="">Kunde auswählen</option>
                       {customers.map((item) => (
@@ -34755,7 +34787,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       value={maintenanceDeviceId}
                       onChange={(e) => setMaintenanceDeviceId(e.target.value)}
                       disabled={!maintenanceCustomerId}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold disabled:bg-slate-100 disabled:text-slate-400"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option value="">
                         {maintenanceCustomerId ? "Gerät dieses Kunden auswählen" : "Erst Kunde auswählen"}
@@ -34770,7 +34802,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     <select
                       value={maintenanceType}
                       onChange={(e) => applyMaintenanceTemplate(e.target.value)}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                     >
                       <option>Sicherheitsprüfung-Wartung</option>
                       <option>Sicherheitsprüfung-Prüfung</option>
@@ -34791,7 +34823,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       value={maintenanceNextDue}
                       onChange={(e) => setMaintenanceNextDue(e.target.value)}
                       type="date"
-                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                     />
 
                     <input
@@ -34800,13 +34832,13 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       type="number"
                       min="0"
                       placeholder="Intervall in Tagen"
-                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                     />
 
                     <select
                       value={maintenanceAssignedTo}
                       onChange={(e) => setMaintenanceAssignedTo(e.target.value)}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                     >
                       <option value="">Techniker nicht zugewiesen</option>
                       {technicians.map((technician) => (
@@ -34819,7 +34851,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     <select
                       value={maintenanceStatus}
                       onChange={(e) => setMaintenanceStatus(e.target.value)}
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                     >
                       <option>Geplant</option>
                       <option>In Arbeit</option>
@@ -34828,8 +34860,8 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     </select>
                   </div>
 
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <label className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white px-5 py-4 font-black text-slate-800">
+                  <div className="mt-3 grid min-w-0 gap-3 md:grid-cols-2">
+                    <label className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-800">
                       <input
                         type="checkbox"
                         checked={maintenanceReminderEnabled}
@@ -34845,7 +34877,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       type="number"
                       min="1"
                       placeholder="Tage vorher erinnern"
-                      className="rounded-2xl border border-slate-300 px-5 py-4"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                     />
                   </div>
 
@@ -34854,19 +34886,19 @@ placeholder="Gerät / Anlage / Modell suchen..."
                     onChange={(e) => setMaintenanceNote(e.target.value)}
                     placeholder="Hinweis für Techniker / Admin"
                     rows={4}
-                    className="mt-3 w-full rounded-2xl border border-slate-300 px-5 py-4"
+                    className="mt-3 min-w-0 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm"
                   />
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
                     <button
                       onClick={saveMaintenancePlan}
-                      className="rounded-2xl bg-sky-500 py-4 font-black text-white"
+                      className="min-w-0 rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white"
                     >
                       Wartung speichern
                     </button>
                     <button
                       onClick={resetMaintenanceForm}
-                      className="rounded-2xl border border-slate-300 bg-white py-4 font-black"
+                      className="min-w-0 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
                     >
                       Formular leeren
                     </button>
@@ -34874,17 +34906,17 @@ placeholder="Gerät / Anlage / Modell suchen..."
                 </div>
               )}
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">
+              <div className="trybun-service-panel min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <h3 className="text-xl font-semibold tracking-tight text-slate-900">
                   {isTechnician ? "Meine Wartungen" : isCustomer ? "Meine kommenden Wartungen" : "Wartungsübersicht"}
                 </h3>
-                <p className="mt-2 text-slate-600">
+                <p className="mt-2 text-sm font-normal leading-relaxed text-slate-600">
                   Übersicht aller geplanten und laufenden Wartungen.
                 </p>
 
-                <div className="mt-6 space-y-4">
+                <div className="mt-5 min-w-0 space-y-3">
                   {assignedMaintenancePlans.length === 0 ? (
-                    <div className="rounded-2xl bg-slate-100 p-4 text-slate-500">
+                    <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
                       Keine Wartungen vorhanden.
                     </div>
                   ) : (
@@ -34896,45 +34928,45 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       return (
                         <div
                           key={plan.id}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-sky-500">
+                              <p className="break-words text-xs font-medium text-slate-500 [overflow-wrap:anywhere]">
                                 {plan.maintenance_type || "Wartung"} · {deviceItem?.serial_number || "Keine Seriennummer"}
                               </p>
-                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
+                              <h4 className="mt-1 break-words text-lg font-semibold leading-snug tracking-tight text-slate-900 md:text-xl [overflow-wrap:anywhere]">
                                 {plan.title || `Wartung ${deviceItem?.name || ""}`}
                               </h4>
                               <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {getCustomerNameById(plan.customer_id || deviceItem?.customer_id || null)}
                               </p>
-                              <p className="mt-1 text-sm text-slate-600">
+                              <p className="mt-1 break-words text-sm text-slate-600 [overflow-wrap:anywhere]">
                                 Gerät: {deviceItem?.name || "Unbekanntes Gerät"} · Termin: {plan.next_due || "Nicht geplant"}
                               </p>
-                              <p className="mt-1 text-sm text-slate-600">
+                              <p className="mt-1 break-words text-sm text-slate-600 [overflow-wrap:anywhere]">
                                 Techniker: {getMaintenanceAssignedName(plan.assigned_to)} · Intervall: {plan.interval_days || "-"} Tage
                               </p>
-                              <p className="mt-2 inline-flex rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700">
+                              <p className="mt-3 inline-flex max-w-full break-words rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 [overflow-wrap:anywhere]">
                                 {reminderInfo.detail}
                               </p>
                               {plan.note && (
-                                <p className="mt-3 rounded-2xl bg-white p-3 text-sm text-slate-600">
+                                <p className="mt-3 break-words rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 [overflow-wrap:anywhere]">
                                   {plan.note}
                                 </p>
                               )}
                             </div>
 
-                            <div className="flex flex-col gap-3 xl:w-64">
-                              <span className={`rounded-full px-4 py-2 text-center text-sm font-bold ${status.className}`}>
+                            <div className="flex min-w-0 flex-col gap-2 xl:w-64">
+                              <span className={`break-words rounded-md px-3 py-2 text-center text-xs font-semibold sm:text-sm ${status.className}`}>
                                 {status.label}
                               </span>
 
-                              <span className="rounded-full bg-blue-100 px-4 py-2 text-center text-sm font-bold text-blue-700">
+                              <span className="break-words rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-700 sm:text-sm">
                                 Status: {plan.status || "Geplant"}
                               </span>
 
-                              <span className={`rounded-full px-4 py-2 text-center text-sm font-bold ${reminderInfo.className}`}>
+                              <span className={`break-words rounded-md px-3 py-2 text-center text-xs font-semibold sm:text-sm ${reminderInfo.className}`}>
                                 {reminderInfo.label}
                               </span>
 
@@ -34942,7 +34974,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                                 <select
                                   value={plan.status || "Geplant"}
                                   onChange={(e) => updateMaintenanceStatus(plan, e.target.value)}
-                                  className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
+                                  className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm font-medium text-slate-700"
                                 >
                                   <option>Geplant</option>
                                   <option>In Arbeit</option>
@@ -34954,7 +34986,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                               {(isAdmin || isTechnician) && (
                                 <button
                                   onClick={() => markMaintenanceReminderSent(plan)}
-                                  className="w-full rounded-2xl bg-emerald-100 px-3 py-3 text-center text-xs font-bold text-emerald-700 md:text-sm"
+                                  className="min-w-0 w-full break-words rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-center text-xs font-semibold text-emerald-700 sm:text-sm"
                                 >
                                   Erinnerung als gesendet markieren
                                 </button>
@@ -34963,7 +34995,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                               {(isAdmin || isTechnician) && (
                                 <button
                                   onClick={() => deleteMaintenancePlan(plan.id)}
-                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
+                                  className="min-w-0 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-center text-xs font-semibold text-red-700 sm:text-sm"
                                 >
                                   Löschen
                                 </button>
@@ -35691,31 +35723,31 @@ placeholder="Gerät / Anlage / Modell suchen..."
           
 
           {activePage === "Prüfungen" && (
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-4">
+            <div className="trybun-inspections-view min-w-0 space-y-5">
+              <div className="trybun-service-metrics grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
                 <StatCard label="Gültig" value={inspectionStats.ok} />
                 <StatCard label="Bald fällig" value={inspectionStats.soon} />
                 <StatCard label="Überfällig" value={inspectionStats.overdue} />
                 <StatCard label="Ohne Datum" value={inspectionStats.missing} />
               </div>
 
-              <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                <h3 className="text-xl font-black">Prüfungen & Prüfsiegel</h3>
+              <div className="trybun-service-panel min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <h3 className="text-xl font-semibold tracking-tight text-slate-900">Prüfungen & Prüfsiegel</h3>
                 {(isAdmin || isTechnician) && (
-                  <div className="mt-5 rounded-[28px] border border-sky-200 bg-sky-50 p-5">
-                    <h4 className="text-xl font-black text-slate-900">
+                  <div className="mt-5 min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <h4 className="text-lg font-semibold tracking-tight text-slate-900">
                       Prüfsiegel eintragen
                     </h4>
-                    <p className="mt-1 text-sm font-semibold text-slate-600">
+                    <p className="mt-1 text-sm font-normal leading-relaxed text-slate-600">
                       Speichert Prüfsiegelnummer, Prüfdatum, Ablaufdatum und
                       Ergebnis direkt am Gerät.
                     </p>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
                       <select
                         value={inspectionDeviceId}
                         onChange={(e) => setInspectionDeviceId(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                       >
                         <option value="">Gerät auswählen</option>
                         {devices.map((item) => (
@@ -35731,13 +35763,13 @@ placeholder="Gerät / Anlage / Modell suchen..."
                           setInspectionBadgeNumber(e.target.value)
                         }
                         placeholder="Prüfsiegel-Nr."
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                       />
 
                       <select
                         value={inspectionResult}
                         onChange={(e) => setInspectionResult(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
                       >
                         <option>Bestanden</option>
                         <option>Mängel festgestellt</option>
@@ -35748,36 +35780,36 @@ placeholder="Gerät / Anlage / Modell suchen..."
                         value={inspectionDate}
                         onChange={(e) => setInspectionDate(e.target.value)}
                         type="date"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                       />
 
                       <input
                         value={inspectionExpires}
                         onChange={(e) => setInspectionExpires(e.target.value)}
                         type="date"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                       />
 
                       <input
                         value={inspectionComment}
                         onChange={(e) => setInspectionComment(e.target.value)}
                         placeholder="Prüfhinweis / Mangel / Notiz"
-                        className="rounded-2xl border border-slate-300 px-5 py-4"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
                       />
                     </div>
 
                     <button
                       onClick={saveInspectionBadge}
-                      className="mt-4 rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                      className="mt-4 w-full rounded-lg bg-sky-600 px-5 py-3 text-sm font-semibold text-white sm:w-auto"
                     >
                       Prüfsiegel speichern
                     </button>
                   </div>
                 )}
 
-                <div className="mt-6 space-y-4">
+                <div className="mt-5 min-w-0 space-y-3">
                   {devices.length === 0 ? (
-                    <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
+                    <div className="rounded-lg bg-slate-50 p-5 text-sm text-slate-500">
                       Noch keine Geräte vorhanden.
                     </div>
                   ) : (
@@ -35787,54 +35819,54 @@ placeholder="Gerät / Anlage / Modell suchen..."
                       return (
                         <div
                           key={item.id}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
                         >
-                          <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
-                            <div>
-                              <p className="text-xs font-bold text-sky-500">
+                          <div className="flex min-w-0 flex-col justify-between gap-4 xl:flex-row xl:items-center">
+                            <div className="min-w-0 flex-1">
+                              <p className="break-words text-xs font-medium text-slate-500 [overflow-wrap:anywhere]">
                                 {item.serial_number || "Keine Seriennummer"}
                               </p>
 
-                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
+                              <h4 className="mt-1 break-words text-lg font-semibold leading-snug tracking-tight text-slate-900 md:text-xl [overflow-wrap:anywhere]">
                                 {item.name}
                               </h4>
 
-                              <p className="mt-1 text-sm text-slate-600">
+                              <p className="mt-1 break-words text-sm text-slate-600 [overflow-wrap:anywhere]">
                                 Standort: {item.location || "Nicht angegeben"}
                               </p>
                             </div>
 
-                            <div className="grid gap-3 sm:grid-cols-3 xl:w-[540px]">
-                              <div className="rounded-2xl bg-white p-4">
+                            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-[480px]">
+                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
                                 <p className="text-xs text-slate-500">
                                   Nächste Prüfung
                                 </p>
-                                <p className="font-bold">
+                                <p className="break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
                                   {item.next_check || "Nicht geplant"}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-white p-4">
+                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
                                 <p className="text-xs text-slate-500">Frist</p>
-                                <p className="font-bold">
+                                <p className="break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
                                   {inspection.daysText}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-white p-4">
+                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
                                 <p className="text-xs text-slate-500">Status</p>
                                 <span
-                                  className={`mt-1 inline-block rounded-full px-3 py-1 text-sm font-bold ${inspection.className}`}
+                                  className={`mt-1 inline-block max-w-full break-words rounded-md px-3 py-1 text-xs font-semibold sm:text-sm ${inspection.className}`}
                                 >
                                   {inspection.label}
                                 </span>
                               </div>
                             </div>
 
-                            <div className="flex flex-col gap-3 xl:w-56">
+                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row xl:w-48 xl:flex-col">
                               <button
                                 onClick={() => startEditDevice(item)}
-                                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
+                                className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
                               >
                                 Prüfung bearbeiten
                               </button>
@@ -35842,7 +35874,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
                               {inspection.label !== "Gültig" && (
                                 <button
                                   onClick={() => createInspectionTicket(item)}
-                                  className="rounded-2xl bg-sky-500 px-4 py-3 text-sm font-bold text-white"
+                                  className="min-w-0 w-full rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white"
                                 >
                                   Ticket erstellen
                                 </button>
