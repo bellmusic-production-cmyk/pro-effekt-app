@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.59
+// TRYBUN Service Management System v4.13.60
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1967,7 +1967,7 @@ export default function Home() {
   const [previewName, setPreviewName] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTicketFormOpen, setMobileTicketFormOpen] = useState(false);
-  const [mobileTicketListOpen, setMobileTicketListOpen] = useState(false);
+  const [mobileTicketListOpen, setMobileTicketListOpen] = useState(true);
 
   const [isOnline, setIsOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
@@ -8074,7 +8074,9 @@ async function loadInvoices() {
     setIssue(parsedTicketIssue.subject);
     setDescription(ticket.description || "");
     setPriority(ticket.priority || "Mittel");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => {
+      document.getElementById("trybun-ticket-create")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   }
 
   function openAdminDeviceReview(ticket: Ticket) {
@@ -8421,6 +8423,7 @@ async function loadInvoices() {
     }
 
     resetTicketForm();
+    setMobileTicketFormOpen(false);
     await loadTickets();
     await loadDocuments();
     alert(
@@ -36193,28 +36196,52 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                 </div>
               )}
 
-              <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className="flex min-w-0 flex-col gap-6">
                 <div
-                  className={`rounded-[24px] bg-white p-4 shadow-sm ${
+                  id="trybun-ticket-create"
+                  className={`scroll-mt-24 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 ${
                     editingTicket ? "ring-4 ring-sky-200" : ""
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setMobileTicketFormOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Ticketverwaltung</p>
+                      <h3 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                        {editingTicket ? "Ticket bearbeiten" : "Neues Service-Ticket"}
+                      </h3>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        {editingTicket
+                          ? "Bestehenden Serviceauftrag aktualisieren."
+                          : "Neuen Serviceauftrag strukturiert erfassen."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-expanded={Boolean(mobileTicketFormOpen || editingTicket)}
+                      aria-controls="trybun-ticket-form-fields"
+                      onClick={() => {
+                        if (editingTicket) {
+                          resetTicketForm();
+                          setMobileTicketFormOpen(false);
+                        } else {
+                          setMobileTicketFormOpen((prev) => !prev);
+                        }
+                      }}
+                      className={`inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 ${
+                        mobileTicketFormOpen || editingTicket
+                          ? "border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+                          : "bg-sky-600 text-white hover:bg-sky-700"
+                      }`}
+                    >
+                      {mobileTicketFormOpen || editingTicket ? "Formular schließen" : "Neues Ticket erstellen"}
+                      <span aria-hidden="true">{mobileTicketFormOpen || editingTicket ? "−" : "+"}</span>
+                    </button>
+                  </div>
+
+                  <div
+                    id="trybun-ticket-form-fields"
+                    className={`mt-5 min-w-0 space-y-4 ${mobileTicketFormOpen || editingTicket ? "block" : "hidden"} lg:grid-cols-2 lg:items-start lg:gap-5 lg:space-y-0 ${mobileTicketFormOpen || editingTicket ? "lg:grid" : ""}`}
                   >
-                    <span>{editingTicket ? "Ticket bearbeiten" : "Neues Ticket erstellen"}</span>
-                    <span>{mobileTicketFormOpen || editingTicket ? "▲" : "⌄"}</span>
-                  </button>
-
-                  <h3 className="hidden text-xl font-black md:block">
-                    {editingTicket
-                      ? "Ticket bearbeiten"
-                      : "Neues Service-Ticket"}
-                  </h3>
-
-                  <div className={`mt-5 space-y-4 ${mobileTicketFormOpen || editingTicket ? "block" : "hidden"} md:block`}>
                     {isCustomer ? (
                       <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
                         <p className="text-sm font-bold text-sky-600">
@@ -37374,18 +37401,22 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
 
                 <div
                   id="trybun-ticket-directory"
-                  className="scroll-mt-24 min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm"
+                  className="scroll-mt-24 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
                 >
                   <button
                     type="button"
                     onClick={() => setMobileTicketListOpen((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-2xl bg-sky-500 px-5 py-4 text-left text-base font-black text-white md:hidden"
+                    aria-expanded={mobileTicketListOpen}
+                    className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-5 py-4 text-left text-base font-semibold text-slate-900 md:hidden"
                   >
                     <span>Ticketliste</span>
                     <span>{mobileTicketListOpen ? "▲" : "⌄"}</span>
                   </button>
 
-                  <h3 className="hidden text-xl font-black md:block">Ticketliste</h3>
+                  <div className="hidden md:block">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Übersicht</p>
+                    <h3 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Ticketliste</h3>
+                  </div>
 
                   <div className={`${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
                     <div className="mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4">
@@ -37468,7 +37499,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         return (
                         <div
                           key={ticket.id}
-                          className={`min-w-0 overflow-hidden rounded-3xl border bg-white p-4 shadow-sm ${
+                          className={`min-w-0 overflow-hidden rounded-xl border bg-white p-4 shadow-sm sm:p-5 ${
                             ticket.priority === "Hoch"
                               ? "border-red-200"
                               : "border-slate-200"
@@ -37832,10 +37863,10 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               )}
                             </div>
 
-                            <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
+                            <div className="grid min-w-0 grid-cols-2 gap-2 md:w-56 md:shrink-0 xl:w-60">
                               <button
                                 onClick={() => setSelectedTicketView(ticket)}
-                                className="w-full rounded-2xl bg-slate-900 px-3 py-3 text-center text-xs font-bold text-white md:text-sm"
+                                className="w-full rounded-lg bg-slate-900 px-3 py-3 text-center text-xs font-bold text-white md:text-sm"
                               >
                                 Akte
                               </button>
@@ -37843,7 +37874,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {!isCustomer && (
                                 <button
                                   onClick={() => startEdit(ticket)}
-                                  className="w-full rounded-2xl bg-sky-100 px-3 py-3 text-center text-xs font-bold text-sky-600 md:text-sm"
+                                  className="w-full rounded-lg bg-sky-50 px-3 py-3 text-center text-xs font-bold text-sky-800 md:text-sm"
                                 >
                                   Bearbeiten
                                 </button>
@@ -37852,7 +37883,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {!isCustomer && (
                                 <button
                                   onClick={() => openTicketPartRequirement(ticket)}
-                                  className="w-full rounded-2xl bg-violet-100 px-3 py-3 text-center text-xs font-black text-violet-700 md:text-sm"
+                                  className="w-full rounded-lg bg-slate-100 px-3 py-3 text-center text-xs font-semibold text-slate-800 md:text-sm"
                                 >
                                   Ersatzteilbedarf
                                 </button>
@@ -37864,7 +37895,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 ticketNeedsManufacturerOrModelReview(ticket, ticketDevice) && (
                                   <button
                                     onClick={() => openAdminDeviceReview(ticket)}
-                                    className="w-full rounded-2xl bg-amber-100 px-3 py-3 text-center text-xs font-black text-amber-800 md:text-sm"
+                                    className="w-full rounded-lg bg-amber-50 px-3 py-3 text-center text-xs font-semibold text-amber-800 md:text-sm"
                                   >
                                     Geräteprüfung
                                   </button>
@@ -37873,7 +37904,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {!isCustomer && (
                                 <button
                                   onClick={() => openServiceReportSigning(ticket)}
-                                  className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
+                                  className="w-full rounded-lg bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-800 md:text-sm"
                                 >
                                   PDF / Signatur
                                 </button>
@@ -37882,7 +37913,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
-                                  className="w-full rounded-2xl bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
+                                  className="w-full rounded-lg bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
                                 >
                                   Stornieren
                                 </button>
@@ -37891,7 +37922,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {isAdmin && (
                                 <button
                                   onClick={() => deleteTicket(ticket.id)}
-                                  className="w-full rounded-2xl bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
+                                  className="w-full rounded-lg bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
                                   Löschen
                                 </button>
