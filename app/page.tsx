@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.62
+// TRYBUN Service Management System v4.13.63
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -32591,40 +32591,40 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
           )}
 
                     {activePage === "Geräte" && !selectedDeviceView && (isAdmin || isTechnician) && (
-            <div className="space-y-6">
-              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
+            <div className="min-w-0 space-y-5 sm:space-y-6">
+              <div className="trybun-page-header border border-slate-800 bg-[#07111d] px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-300">
                   {isAdmin ? "Admin-Katalog" : "Techniker-Suche"}
                 </p>
-                <h3 className="mt-2 text-3xl font-black md:text-4xl">
+                <h3 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
                   Hersteller & Modelle
                 </h3>
-                <p className="mt-3 max-w-4xl text-sm font-semibold text-slate-300">
+                <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-slate-300">
                   Ein zentraler Bereich für Herstellerkontakte, Gerätetypen und Modellbezeichnungen. Modelle sind Stammdaten ohne Kunden- oder Seriennummern.
                 </p>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-                <div className="space-y-6">
+              <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
+                <div className="min-w-0 space-y-4">
                   {isAdmin && (
-                    <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingManufacturer)}>
-                      <summary className="cursor-pointer text-xl font-black">
+                    <details className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" open={Boolean(editingManufacturer)}>
+                      <summary className="cursor-pointer text-lg font-semibold tracking-tight text-slate-900 marker:text-slate-500 sm:text-xl">
                         {editingManufacturer ? "Hersteller bearbeiten" : "Hersteller anlegen"}
                       </summary>
 
-                      <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                      <div className="mt-5 min-w-0 space-y-3 border-t border-slate-100 pt-5">
                         <input
                           value={manufacturerName}
                           onChange={(e) => setManufacturerName(e.target.value)}
                           placeholder="Herstellername"
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3 font-bold"
                         />
 
                         <input
                           value={manufacturerDealerNumber}
                           onChange={(e) => setManufacturerDealerNumber(e.target.value)}
                           placeholder="Händler-/Kundennummer beim Lieferanten"
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3"
                         />
 
                         <div className="grid gap-3 md:grid-cols-2">
@@ -32632,14 +32632,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                             value={manufacturerWebsite}
                             onChange={(e) => setManufacturerWebsite(e.target.value)}
                             placeholder="Webseite"
-                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                            className="rounded-lg border border-slate-300 px-4 py-3"
                           />
 
                           <input
                             value={manufacturerPartsUrl}
                             onChange={(e) => setManufacturerPartsUrl(e.target.value)}
                             placeholder="Ersatzteil-Link / Shop"
-                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                            className="rounded-lg border border-slate-300 px-4 py-3"
                           />
                         </div>
 
@@ -32648,7 +32648,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                             value={manufacturerPhone}
                             onChange={(e) => setManufacturerPhone(e.target.value)}
                             placeholder="Telefon"
-                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                            className="rounded-lg border border-slate-300 px-4 py-3"
                           />
 
                           <input
@@ -32656,7 +32656,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                             onChange={(e) => setManufacturerEmail(e.target.value)}
                             placeholder="E-Mail"
                             type="email"
-                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                            className="rounded-lg border border-slate-300 px-4 py-3"
                           />
                         </div>
 
@@ -32664,7 +32664,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           value={manufacturerContactPerson}
                           onChange={(e) => setManufacturerContactPerson(e.target.value)}
                           placeholder="Ansprechpartner"
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3"
                         />
 
                         <textarea
@@ -32672,7 +32672,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           onChange={(e) => setManufacturerAddress(e.target.value)}
                           placeholder="Adresse"
                           rows={3}
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3"
                         />
 
                         <textarea
@@ -32680,20 +32680,20 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           onChange={(e) => setManufacturerNote(e.target.value)}
                           placeholder="Interne Support-Notiz"
                           rows={3}
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3"
                         />
 
                         <div className="grid gap-3 md:grid-cols-2">
                           <button
                             onClick={saveManufacturer}
-                            className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                            className="rounded-lg bg-sky-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-sky-700"
                           >
                             {editingManufacturer ? "Änderungen speichern" : "Hersteller speichern"}
                           </button>
 
                           <button
                             onClick={resetManufacturerForm}
-                            className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
+                            className="rounded-lg border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50"
                           >
                             Formular leeren
                           </button>
@@ -32703,16 +32703,16 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   )}
 
                   {isAdmin && (
-                    <details className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm" open={Boolean(editingDeviceModel)}>
-                      <summary className="cursor-pointer text-xl font-black">
+                    <details className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" open={Boolean(editingDeviceModel)}>
+                      <summary className="cursor-pointer text-lg font-semibold tracking-tight text-slate-900 marker:text-slate-500 sm:text-xl">
                         {editingDeviceModel ? "Modell bearbeiten" : "Modell anlegen"}
                       </summary>
 
-                      <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                      <div className="mt-5 min-w-0 space-y-3 border-t border-slate-100 pt-5">
                         <select
                           value={modelManufacturerId}
                           onChange={(e) => setModelManufacturerId(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                          className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-bold"
                         >
                           <option value="">Hersteller wählen</option>
                           {manufacturers.map((item) => (
@@ -32726,7 +32726,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           value={modelName}
                           onChange={(e) => setModelName(e.target.value)}
                           placeholder="Modellbezeichnung, z. B. Run Forma, 95T, RowErg"
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3 font-bold"
                         />
 
                         <div className="grid gap-3 md:grid-cols-2">
@@ -32734,14 +32734,14 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                             value={modelCategory}
                             onChange={(e) => setModelCategory(e.target.value)}
                             placeholder="Kategorie, z. B. Cardio, Kraft, Functional"
-                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                            className="rounded-lg border border-slate-300 px-4 py-3"
                           />
 
                           <input
                             value={modelType}
                             onChange={(e) => setModelType(e.target.value)}
                             placeholder="Gerätetyp, z. B. Steuerung, Pumpe, Anlage"
-                            className="rounded-2xl border border-slate-300 px-5 py-4"
+                            className="rounded-lg border border-slate-300 px-4 py-3"
                           />
                         </div>
 
@@ -32767,20 +32767,20 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                           onChange={(e) => setModelNote(e.target.value)}
                           placeholder="Modellnotiz / Ersatzteilhinweise"
                           rows={3}
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                          className="w-full rounded-lg border border-slate-300 px-4 py-3"
                         />
 
                         <div className="grid gap-3 md:grid-cols-2">
                           <button
                             onClick={saveDeviceModel}
-                            className="rounded-2xl bg-sky-500 px-6 py-4 font-black text-white"
+                            className="rounded-lg bg-sky-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-sky-700"
                           >
                             {editingDeviceModel ? "Modell speichern" : "Modell hinzufügen"}
                           </button>
 
                           <button
                             onClick={resetDeviceModelForm}
-                            className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-black"
+                            className="rounded-lg border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 hover:bg-slate-50"
                           >
                             Formular leeren
                           </button>
@@ -32790,15 +32790,19 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   )}
                 </div>
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Modelle</h3>
+                <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                  <div className="border-b border-slate-100 pb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">Stammdaten durchsuchen</p>
+                    <h3 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">Hersteller &amp; Modelle</h3>
+                    <p className="mt-1 text-sm font-normal leading-5 text-slate-500">Hersteller auswählen und passende Modelle einsehen.</p>
+                  </div>
                   {!isAdmin && (
                     <p className="mt-2 rounded-2xl bg-blue-50 p-3 text-sm font-bold text-blue-700">
                       Such- und Lesemodus: Techniker können Hersteller und Modelle einsehen, aber nicht bearbeiten.
                     </p>
                   )}
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
                     <input
                       value={manufacturerDirectorySearch}
                       onChange={(e) => {
@@ -32812,7 +32816,7 @@ spellCheck={false}
 enterKeyHint="search"
 name="trybun-manufacturer-directory-query"
 placeholder="Hersteller suchen"
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal text-slate-900"
                     />
 
                     <input
@@ -32825,16 +32829,16 @@ spellCheck={false}
 enterKeyHint="search"
 name="trybun-model-directory-query"
 placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
-                      className="rounded-2xl border border-slate-300 px-5 py-4 font-semibold"
+                      className="min-w-0 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-normal text-slate-900"
                     />
                   </div>
 
-                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                  <div className="mt-4 min-w-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                      <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Hersteller-Treffer
                       </label>
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-700">
+                      <span className="rounded-md bg-slate-200/80 px-2.5 py-1 text-xs font-semibold text-slate-700">
                         {filteredManufacturerDirectory.length} gefunden
                       </span>
                     </div>
@@ -32844,7 +32848,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                         Keine passenden Hersteller gefunden.
                       </p>
                     ) : (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2">
                         {filteredManufacturerDirectory.slice(0, 6).map((item) => {
                           const modelCount = deviceModels.filter(
                             (modelItem) => modelItem.manufacturer_id === item.id,
@@ -32856,24 +32860,24 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                               key={item.id}
                               type="button"
                               onClick={() => setCatalogManufacturerId(String(item.id))}
-                              className={`rounded-2xl border p-4 text-left transition ${
+                              className={`min-w-0 rounded-lg border p-3 text-left transition-colors sm:p-4 ${
                                 selected
-                                  ? "border-sky-400 bg-sky-50 shadow-sm"
-                                  : "border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/60"
+                                  ? "border-sky-400 bg-sky-50"
+                                  : "border-slate-200 bg-white hover:border-sky-300 hover:bg-slate-50"
                               }`}
                             >
                               <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0 w-full sm:w-auto">
-                                  <div className="break-words text-base font-black text-[#07111d] sm:truncate">
+                                  <div className="break-words text-sm font-semibold text-slate-900 sm:text-base">
                                     {item.name}
                                   </div>
-                                  <div className="mt-1 text-xs font-bold text-slate-500">
+                                  <div className="mt-1 text-xs font-normal text-slate-500">
                                     {modelCount} Modell(e)
                                   </div>
                                 </div>
-                                <span className={`self-start shrink-0 rounded-full px-3 py-1 text-xs font-black sm:self-auto ${
+                                <span className={`self-start shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold sm:self-auto ${
                                   selected
-                                    ? "bg-sky-500 text-white"
+                                    ? "bg-sky-600 text-white"
                                     : "bg-slate-100 text-slate-600"
                                 }`}>
                                   {selected ? "Geöffnet" : "Öffnen"}
@@ -32896,7 +32900,7 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                     </p>
                   </div>
 
-                  <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                  <div className="mt-5 min-w-0 space-y-3 border-t border-slate-100 pt-5">
                     {filteredManufacturerDirectory.length === 0 ? null : !catalogManufacturerId ? (
                       <p className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-500">
                         Bitte einen Hersteller-Treffer anklicken, um die zugehörigen Modelle und Herstellerdaten anzuzeigen.
