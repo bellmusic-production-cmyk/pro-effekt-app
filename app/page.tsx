@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.63
+// TRYBUN Service Management System v4.13.64
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -31770,18 +31770,27 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
           )}
 
           {activePage === "Kunden" && (
-            <div className={`grid gap-8 ${isAdmin ? "2xl:grid-cols-[minmax(680px,0.95fr)_minmax(820px,1.2fr)]" : "xl:grid-cols-1"}`}>
+            <div className="min-w-0 space-y-5 sm:space-y-6">
+              <header className="trybun-page-header border border-slate-800 bg-[#07111d] px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-300">Kundenverwaltung · CRM</p>
+                <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Kunden & Ansprechpartner</h2>
+                <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-slate-300">Kundenstamm durchsuchen, Kontakte pflegen und zugehörige Geräte verwalten.</p>
+              </header>
               {canCreateOrEditMasterData && (
-              <div
-                className={`min-w-0 overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm md:p-8 ${
-                  editingCustomer ? "ring-4 ring-sky-200" : ""
+              <details
+                id="trybun-customer-editor"
+                open={Boolean(editingCustomer)}
+                className={`group min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ${
+                  editingCustomer ? "ring-2 ring-sky-200" : ""
                 }`}
               >
-                <h3 className="text-xl font-black">
-                  {editingCustomer ? "Kunde bearbeiten" : "Neuer Kunde"}
-                </h3>
-
-                <div className="mt-5 space-y-4">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-5 py-5 text-slate-900 marker:hidden sm:px-7 [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-0"><span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-600">Kundenstammdaten</span><span className="mt-1 block text-lg font-semibold tracking-tight sm:text-xl">{editingCustomer ? "Kundendaten bearbeiten" : "+ Neuen Kunden anlegen"}</span></span>
+                  <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 group-open:hidden">Formular öffnen ↓</span>
+                  <span className="hidden rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 group-open:inline">Formular schließen ↑</span>
+                </summary>
+                <div className="border-t border-slate-100 px-5 pb-6 pt-5 sm:px-7">
+                <div className="space-y-4">
                   <div className="grid gap-3 md:grid-cols-2">
                     <input
                       value={customerNumber}
@@ -32284,19 +32293,20 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                     </button>
                   )}
                 </div>
-              </div>
+                </div>
+              </details>
               )}
 
-              <div className="min-w-0 overflow-hidden rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm md:p-8">
+              <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                   <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-sky-500">CRM</p>
-                    <h3 className="break-words text-2xl font-black tracking-tight text-slate-950 md:text-3xl">Kundenstamm</h3>
-                    <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500 md:text-base">
+                    <h3 className="break-words text-2xl font-semibold tracking-tight text-slate-950 md:text-3xl">Kundenstamm</h3>
+                    <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-slate-500 md:text-base">
                       Kunden schnell finden, prüfen und zugeordneten Geräten sauber zuordnen.
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-sky-50 px-4 py-2 text-sm font-black text-sky-600">
+                  <span className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                     {customers.length} Kunden geladen
                   </span>
                 </div>
@@ -32307,16 +32317,16 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                   </p>
                 )}
 
-                <div className="mt-6 rounded-[14px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-600">
                         Kunden durchsuchen
                       </p>
-                      <h4 className="mt-1 text-lg font-bold text-slate-950">
+                      <h4 className="mt-1 text-base font-semibold text-slate-950">
                         Kunden direkt browsen oder schrittweise filtern
                       </h4>
-                      <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
+                      <p className="mt-1 text-sm font-normal leading-6 text-slate-600">
                         Die Treffer werden mit jedem Zeichen enger: „m“ → „mü“ → „mül“. TRYBUN sortiert überall zuerst nach Name/Bezeichnung, danach nach Nummern und erst anschließend nach Ort, Kontakt oder Notizen.
                       </p>
                     </div>
@@ -32542,7 +32552,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                             </div>
                           </div>
 
-                          <div className="grid min-w-0 grid-cols-2 gap-2 md:flex md:w-32 md:flex-col">
+                          <div className="grid min-w-0 grid-cols-2 gap-2 md:w-40 md:flex-shrink-0">
                             <button
                               onClick={() => createTicketFromCustomer(item)}
                               className="w-full rounded-2xl bg-blue-100 px-3 py-3 text-center text-xs font-bold text-blue-700 md:text-sm"
@@ -32604,8 +32614,8 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
                 </p>
               </div>
 
-              <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
-                <div className="min-w-0 space-y-4">
+              <div className="grid min-w-0 items-start gap-5">
+                <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
                   {isAdmin && (
                     <details className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" open={Boolean(editingManufacturer)}>
                       <summary className="cursor-pointer text-lg font-semibold tracking-tight text-slate-900 marker:text-slate-500 sm:text-xl">
