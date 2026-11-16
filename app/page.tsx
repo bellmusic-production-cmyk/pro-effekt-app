@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.58
+// TRYBUN Service Management System v4.13.59
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -24488,66 +24488,6 @@ ${tenantBrandName}`,
             }
           }
 
-          /* v4.13.58 · Premium Business Design – Dashboard only.
-             Markenlogo, Firmenfarben, Statusbedeutungen, Funktionen und Datenfluesse bleiben erhalten. */
-          .trybun-premium-ui .trybun-dashboard-premium {
-            --trybun-ui-line: rgba(148, 163, 184, 0.24);
-          }
-          .trybun-premium-ui .trybun-dashboard-premium .trybun-page-header {
-            box-shadow: 0 3px 16px rgba(15, 23, 42, 0.07) !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-kpis > div {
-            border-color: var(--trybun-ui-line) !important;
-            background-color: rgba(18, 28, 44, 0.86) !important;
-            box-shadow: none !important;
-            padding: 1rem 1.15rem !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-kpis > div p[class*="uppercase"] {
-            font-size: 11px !important;
-            letter-spacing: 0.075em !important;
-            font-weight: 600 !important;
-            color: #bdcde0 !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-kpis > div p[class*="text-3xl"] {
-            font-weight: 650 !important;
-            letter-spacing: -0.035em !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-workspaces > button {
-            min-height: 126px !important;
-            border-color: var(--trybun-ui-line) !important;
-            background-color: rgba(18, 28, 44, 0.72) !important;
-            box-shadow: none !important;
-            padding: 1rem 1.15rem !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-workspaces > button:hover {
-            background-color: rgba(31, 47, 68, 0.92) !important;
-            border-color: rgba(125, 170, 216, 0.48) !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-workspaces > button p[class*="uppercase"] {
-            font-size: 11px !important;
-            font-weight: 600 !important;
-            letter-spacing: 0.07em !important;
-            color: #d1dceb !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-workspaces > button p[class*="text-3xl"] {
-            margin-top: 0.7rem !important;
-            font-weight: 650 !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-intelligence {
-            box-shadow: 0 3px 18px rgba(15, 23, 42, 0.06) !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-intelligence button[class*="min-h-[252px]"] {
-            min-height: 206px !important;
-          }
-          .trybun-premium-ui .trybun-dashboard-premium button:focus-visible {
-            outline: 2px solid var(--pe-blue, #3b82f6);
-            outline-offset: 3px;
-          }
-          @media (max-width: 767px) {
-            .trybun-premium-ui .trybun-dashboard-workspaces > button { min-height: 112px !important; }
-            .trybun-premium-ui .trybun-dashboard-intelligence button[class*="min-h-[252px]"] { min-height: 170px !important; }
-          }
-
           .trybun-premium-ui.trybun-dark { background: #07111d !important; color: #e5edf7 !important; }
           .trybun-premium-ui.trybun-dark .bg-white { background-color: #101c2b !important; }
           .trybun-premium-ui.trybun-dark .bg-slate-50 { background-color: #0b1624 !important; }
@@ -25173,33 +25113,20 @@ ${tenantBrandName}`,
 
           {activePage === "Dashboard" && (
             <div className="trybun-dashboard-premium space-y-6">
-<div className="trybun-page-header overflow-hidden border border-slate-800 bg-slate-950 p-4 text-white shadow-xl shadow-slate-950/20 sm:p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+<div className="trybun-page-header overflow-hidden rounded-2xl border border-slate-700/60 bg-[#101a2b] px-5 py-5 text-white shadow-sm sm:px-7 sm:py-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-400">
-                      TRYBUN Service Operating System
-                    </p>
-                    <h3 className="mt-2 flex items-center gap-3 text-3xl font-black leading-tight tracking-[-0.04em] text-white sm:text-4xl">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500/15 text-xl">
-                        ◔
-                      </span>
-                      Leitstand
-                    </h3>
-                    <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-300">
-                      Steuern Sie den gesamten Service-Lifecycle zentral: Einsatzkalender, Gerätewissen, Nachweise, Wartungen, Material, Kommunikation und Abrechnung.
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">Serviceübersicht</p>
+                    <h3 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">Leitstand</h3>
+                    <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-slate-300">
+                      Alle Serviceprozesse auf einen Blick – aktuelle Aufgaben, Termine und Handlungsbedarf.
                     </p>
                   </div>
-
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <div className="rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-xs font-bold leading-5 text-slate-300">
-                      Letzte Aktualisierung: jetzt
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => void loadApplicationData()}
-                      className="inline-flex min-h-[48px] items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.98]"
-                    >
-                      Dashboard neu laden
+                  <div className="flex items-center gap-3">
+                    <span className="hidden text-xs font-medium text-slate-400 sm:inline">Stand: aktuell</span>
+                    <button type="button" onClick={() => void loadApplicationData()}
+                      className="inline-flex min-h-10 items-center justify-center rounded-lg border border-sky-300/25 bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300">
+                      ↻ Aktualisieren
                     </button>
                   </div>
                 </div>
@@ -25210,183 +25137,58 @@ ${tenantBrandName}`,
                   </div>
                 ) : (
                   <div className="mt-6 space-y-5">
-                    <div className="trybun-dashboard-kpis grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-                      <div className="rounded-3xl border border-sky-500/40 bg-slate-900/90 p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-lg">🎫</span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-black uppercase tracking-[0.08em] text-sky-300">Gesamt Tickets</p>
-                            <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-white">{ticketStats.total}</p>
-                            <p className="text-xs font-bold text-slate-400">Alle Ticketarten</p>
-                          </div>
+                    <div className="trybun-dashboard-kpis grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-700/70 bg-slate-700/60 sm:grid-cols-3 xl:grid-cols-5">
+                      {[
+                        { label: "Gesamt Tickets", value: ticketStats.total, hint: "Alle Tickets" },
+                        { label: "Offen", value: ticketStats.open, hint: "Noch nicht abgeschlossen" },
+                        { label: "In Bearbeitung", value: ticketStats.inProgress, hint: "Aktive Bearbeitung" },
+                        { label: "Erledigt", value: ticketStats.completed, hint: "Abgeschlossen" },
+                        { label: "Heute", value: ticketStats.today, hint: "Geplante Einsätze" },
+                      ].map((stat) => (
+                        <div key={stat.label} className="min-w-0 bg-[#172237] px-4 py-4 sm:px-5">
+                          <p className="text-xs font-medium text-slate-300">{stat.label}</p>
+                          <p className="mt-1 text-[2rem] font-semibold leading-none tracking-tight text-white">{stat.value}</p>
+                          <p className="mt-2 text-xs font-normal text-slate-400">{stat.hint}</p>
                         </div>
-                      </div>
-
-                      <div className="rounded-3xl border border-sky-500/40 bg-slate-900/90 p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-lg">📋</span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-black uppercase tracking-[0.08em] text-sky-300">Offen</p>
-                            <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-white">{ticketStats.open}</p>
-                            <p className="text-xs font-bold text-slate-400">Benötigen Bearbeitung</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-3xl border border-orange-500/40 bg-slate-900/90 p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-400/50 bg-orange-500/15 text-lg">⚙️</span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-black uppercase tracking-[0.08em] text-orange-300">In Bearbeitung</p>
-                            <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-white">{ticketStats.inProgress}</p>
-                            <p className="text-xs font-bold text-slate-400">Aktuell in Arbeit</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-3xl border border-emerald-500/40 bg-slate-900/90 p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/50 bg-emerald-500/15 text-lg">✓</span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-black uppercase tracking-[0.08em] text-emerald-300">Erledigt</p>
-                            <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-white">{ticketStats.completed}</p>
-                            <p className="text-xs font-bold text-slate-400">Abgeschlossen</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-3xl border border-violet-500/40 bg-slate-900/90 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-violet-400/50 bg-violet-500/15 text-lg">📅</span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-black uppercase tracking-[0.08em] text-violet-300">Heute Einsätze</p>
-                            <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-white">{ticketStats.today}</p>
-                            <p className="text-xs font-bold text-slate-400">Geplant für heute</p>
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
                     {isAdmin && (
-                      <div className="rounded-[28px] border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-400">
-                              Prioritäten
-                            </p>
-                            <h3 className="mt-1 text-2xl font-black tracking-[-0.03em] text-white">Servicezentrale im Überblick</h3>
-                            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
-                              Sofort sehen, wo gehandelt werden muss und welche Bereiche aktuell stabil laufen.
-                            </p>
+                      <section className="rounded-xl border border-slate-700/70 bg-[#131e30] px-4 py-5 sm:px-6">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-sky-300">Betriebsübersicht</p>
+                            <h3 className="mt-1 text-xl font-semibold text-white">Servicebereiche</h3>
+                            <p className="mt-1 text-sm font-normal text-slate-400">Wichtige Vorgänge und direkte Zugänge zu allen Bereichen.</p>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => openPage("Kalender")}
-                            className="rounded-2xl border border-sky-400/40 bg-sky-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-sky-950/30 transition hover:bg-sky-400 active:scale-[0.98]"
-                          >
-                            📅 Einsatzkalender öffnen
+                          <button type="button" onClick={() => openPage("Kalender")}
+                            className="rounded-lg border border-slate-600 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700">
+                            Einsatzkalender öffnen →
                           </button>
                         </div>
-
-                        <div className="trybun-dashboard-workspaces mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                          <button
-                            type="button"
-                            onClick={() => openPage("Kalender")}
-                            className="min-h-[148px] rounded-3xl border border-sky-500/45 bg-sky-950/20 p-4 text-left transition hover:bg-sky-950/35 active:scale-[0.98]"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-sky-400/50 bg-sky-500/15 text-lg">🚚</span>
+                        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                          {[
+                            { title: "Geplante Einsätze", count: technicianPremiumPlannedTickets.length, detail: `Heute: ${technicianPremiumTodayTickets.length} · 7 Tage: ${technicianPremiumWeekTickets.length}`, page: "Kalender" },
+                            { title: "Reparaturen", count: repairDashboardStats.active, detail: `Wartet auf Ersatzteile: ${repairDashboardStats.waitingParts}`, page: "Service-Tickets" },
+                            { title: "Wartungen", count: maintenancePremiumStats.dueToday + maintenancePremiumStats.dueSoon + maintenancePremiumStats.overdue, detail: "Fällig oder bald fällig", page: "Kalender" },
+                            { title: "Prüfungen", count: inspectionStats.overdue, detail: `Überfällig: ${inspectionStats.overdue} · Bald: ${inspectionStats.soon}`, page: "Abnahmeprotokoll" },
+                            { title: "Ersatzteile", count: activeTicketPartUsages.length, detail: `Tickets mit Teilen: ${activeTicketsWithPartsCount} · Niedrigbestand: ${lowStockParts.length}`, page: "Ersatzteile" },
+                            { title: "Kommunikation", count: ticketChatUnreadCount, detail: `Ungelesen: ${ticketChatUnreadCount} · E-Mail-Fehler: ${emailStatusStats.failed}`, page: "Benachrichtigungen" },
+                          ].map((entry) => (
+                            <button key={entry.title} type="button" onClick={() => openPage(entry.page)}
+                              className="group flex min-w-0 items-center justify-between gap-4 rounded-lg border border-slate-700/80 bg-[#1a273c] px-4 py-4 text-left transition hover:border-sky-500/50 hover:bg-[#22324a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400">
                               <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-sky-300">Geplante Einsätze</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Alle aktiven Tickets mit Termin</p>
+                                <p className="text-sm font-semibold text-slate-100">{entry.title}</p>
+                                <p className="mt-1 truncate text-xs font-normal text-slate-400" title={entry.detail}>{entry.detail}</p>
                               </div>
-                            </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{technicianPremiumPlannedTickets.length}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Heute: {technicianPremiumTodayTickets.length} · Nächste 7 Tage: {technicianPremiumWeekTickets.length}</p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openPage("Service-Tickets")}
-                            className="min-h-[148px] rounded-3xl border border-orange-500/45 bg-orange-950/20 p-4 text-left transition hover:bg-orange-950/35 active:scale-[0.98]"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-orange-400/50 bg-orange-500/15 text-lg">🔧</span>
-                              <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-orange-300">Reparaturen</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Aktive Reparaturfälle</p>
-                              </div>
-                            </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{repairDashboardStats.active}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Wartet Ersatzteile: {repairDashboardStats.waitingParts}</p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openPage("Kalender")}
-                            className="min-h-[148px] rounded-3xl border border-yellow-500/45 bg-yellow-950/20 p-4 text-left transition hover:bg-yellow-950/35 active:scale-[0.98]"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-yellow-400/50 bg-yellow-500/15 text-lg">⚙️</span>
-                              <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-yellow-300">Wartungen</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Fällige Wartungspläne</p>
-                              </div>
-                            </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{maintenancePremiumStats.dueToday + maintenancePremiumStats.dueSoon + maintenancePremiumStats.overdue}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Fällig oder bald fällig</p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openPage("Abnahmeprotokoll")}
-                            className="min-h-[148px] rounded-3xl border border-red-500/45 bg-red-950/20 p-4 text-left transition hover:bg-red-950/35 active:scale-[0.98]"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-red-400/50 bg-red-500/15 text-lg">🛡️</span>
-                              <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-red-300">Prüfungen</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Sicherheitsstatus Geräte</p>
-                              </div>
-                            </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{inspectionStats.overdue}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Überfällig: {inspectionStats.overdue} · Bald: {inspectionStats.soon}</p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openPage("Ersatzteile")}
-                            className="min-h-[148px] rounded-3xl border border-cyan-500/45 bg-cyan-950/20 p-4 text-left transition hover:bg-cyan-950/35 active:scale-[0.98]"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/50 bg-cyan-500/15 text-lg">📦</span>
-                              <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-cyan-300">Ersatzteile</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Verwendung in offenen Tickets</p>
-                              </div>
-                            </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{activeTicketPartUsages.length}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Offene Tickets mit Teilen: {activeTicketsWithPartsCount} · Unter Mindestbestand: {lowStockParts.length}</p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => openPage("Benachrichtigungen")}
-                            className="min-h-[148px] rounded-3xl border border-emerald-500/45 bg-emerald-950/20 p-4 text-left transition hover:bg-emerald-950/35 active:scale-[0.98]"
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/50 bg-emerald-500/15 text-lg">💬</span>
-                              <div className="min-w-0">
-                                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-emerald-300">Kommunikation</p>
-                                <p className="mt-1 text-xs font-bold leading-5 text-slate-400">Chats und E-Mail-Status</p>
-                              </div>
-                            </div>
-                            <p className="mt-4 text-3xl font-black tracking-[-0.04em] text-white">{ticketChatUnreadCount}</p>
-                            <p className="mt-1 text-sm font-bold leading-5 text-slate-300">Ungelesen: {ticketChatUnreadCount} · Fehler: {emailStatusStats.failed}</p>
-                          </button>
+                              <span className="flex shrink-0 items-center gap-2">
+                                <span className="text-2xl font-semibold tabular-nums text-white">{entry.count}</span>
+                                <span aria-hidden="true" className="text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-sky-300">→</span>
+                              </span>
+                            </button>
+                          ))}
                         </div>
-                      </div>
+                      </section>
                     )}
 
                     {isAdmin && (
