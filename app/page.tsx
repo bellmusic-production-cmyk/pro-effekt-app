@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.71
+// TRYBUN Service Management System v4.13.72
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -28394,12 +28394,12 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
           )}
 
           {activePage === "Buchhaltung" && isAdmin && (
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-5">
               <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
                 <div className="border-b border-slate-200 bg-slate-50/80 p-4 sm:p-5 md:p-6">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                         TRYBUN Finance Hub
                       </p>
                       <h3 className="mt-1 text-2xl font-bold tracking-[-0.03em] text-slate-950 sm:text-3xl">
@@ -28438,12 +28438,12 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   </div>
                 </div>
 
-                <div className="grid gap-px bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid min-w-0 grid-cols-2 gap-px bg-slate-200 xl:grid-cols-4">
                   <div className="bg-white p-4 sm:p-5">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                       Netto-Umsatz
                     </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                    <p className="mt-2 break-words text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">
                       {accountingNetRevenue.toLocaleString("de-DE", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -28452,10 +28452,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     <p className="mt-1 text-xs font-medium text-slate-500">{accountingPeriod}</p>
                   </div>
                   <div className="bg-white p-4 sm:p-5">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-sky-700">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700">
                       Brutto-Umsatz
                     </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                    <p className="mt-2 break-words text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">
                       {accountingGrossRevenue.toLocaleString("de-DE", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -28469,10 +28469,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     </p>
                   </div>
                   <div className="bg-white p-4 sm:p-5">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">
                       Offene Forderungen
                     </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                    <p className="mt-2 break-words text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">
                       {accountingOpenAmount.toLocaleString("de-DE", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -28483,10 +28483,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     </p>
                   </div>
                   <div className="bg-white p-4 sm:p-5">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-indigo-700">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-700">
                       Umwandlung möglich
                     </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950">
+                    <p className="mt-2 break-words text-lg font-bold tracking-tight text-slate-950 sm:text-2xl">
                       {accountingConversionCandidates.length}
                     </p>
                     <p className="mt-1 text-xs font-medium text-slate-500">
@@ -28498,7 +28498,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
               <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     Schnellaktionen
                   </p>
                   <h3 className="mt-1 text-xl font-bold text-slate-950">
@@ -28509,7 +28509,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   </p>
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-5">
                   <button
                     type="button"
                     onClick={() => {
@@ -28567,7 +28567,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm"
               >
                 <div className="border-b border-slate-200 bg-slate-50/80 px-3 py-3 sm:px-4">
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     {[
                       "Übersicht",
                       "Auftrag / Lieferschein",
@@ -28586,7 +28586,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               | "Rechnungen & Angebote",
                           )
                         }
-                        className={`min-h-[42px] shrink-0 rounded-[8px] border px-3.5 py-2 text-sm font-bold transition ${
+                        className={`min-h-[44px] min-w-0 whitespace-normal rounded-[8px] border px-2 py-2 text-center text-xs font-semibold leading-5 sm:px-3.5 sm:text-sm transition ${
                           accountingWorkspaceView === view
                             ? "border-slate-950 bg-slate-950 text-white"
                             : "border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50"
@@ -28622,7 +28622,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
               <section className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                       Belegsuche
                     </p>
                     <h3 className="mt-1 text-xl font-bold text-slate-950">Geschäftsvorgänge durchsuchen</h3>
@@ -28690,7 +28690,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     getPagedItems("accounting", filteredAccountingRecords, 20).map((record) => (
                       <div
                         key={record.key}
-                        className="grid gap-3 rounded-[10px] border border-slate-200 bg-white p-3 sm:p-4 lg:grid-cols-[150px_minmax(0,1fr)_180px_160px_auto] lg:items-center"
+                        className="grid gap-3 rounded-[10px] border border-slate-200 bg-white p-3 sm:p-4 lg:grid-cols-[130px_minmax(0,1fr)_150px_145px_auto] lg:items-center"
                       >
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-[0.12em] text-sky-700">
@@ -28700,8 +28700,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           <p className="mt-1 text-xs font-medium text-slate-500">{formatDate(record.date)}</p>
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-slate-950">{record.title}</p>
-                          <p className="mt-1 truncate text-xs font-medium text-slate-500">{record.customerName}</p>
+                          <p className="break-words text-sm font-bold text-slate-950">{record.title}</p>
+                          <p className="mt-1 break-words text-xs font-medium text-slate-500">{record.customerName}</p>
                         </div>
                         <div>
                           {record.amountGross != null ? (
@@ -29153,17 +29153,17 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
               )}
 
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
                 <StatCard label="Gesamt" value={visibleInvoices.length} />
                 <StatCard label="Entwürfe" value={visibleInvoices.filter((item) => item.status === "Entwurf").length} />
                 <StatCard label="Offen" value={visibleInvoices.filter((item) => item.status === "Offen").length} />
                 <StatCard label="Bezahlt" value={visibleInvoices.filter((item) => item.status === "Bezahlt").length} />
               </div>
 
-              <div className={`grid gap-6 ${canCreateInvoiceDocument ? "xl:grid-cols-[0.9fr_1.1fr]" : "xl:grid-cols-1"}`}>
+              <div className="grid min-w-0 grid-cols-1 gap-5">
                 {canCreateInvoiceDocument && (
-                <div id="invoice-create" className="min-w-0 scroll-mt-6 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Rechnung / Angebot erstellen</h3>
+                <div id="invoice-create" className="min-w-0 scroll-mt-6 rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-950">Rechnung / Angebot erstellen</h3>
                   <p className="mt-2 text-slate-600">
                     {isTechnician
                       ? "Erstelle beim Kunden einen Rechnungs- oder Angebotsentwurf mit Positionen und Unterschrift."
@@ -29174,7 +29174,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     <select
                       value={invoiceType}
                       onChange={(e) => setInvoiceType(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold"
                     >
                       <option>Rechnung</option>
                       <option>Angebot</option>
@@ -29263,7 +29263,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           setInvoicePriceMode(getDefaultBusinessPriceMode(selectedCustomer));
                         }
                       }}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold"
+                      className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold"
                     >
                       <option value="">Kein Ticket verknüpfen</option>
                       {tickets
@@ -29283,7 +29283,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       value={invoiceTitle}
                       onChange={(e) => setInvoiceTitle(e.target.value)}
                       placeholder="Leistung / Position"
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4"
                     />
 
                     <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
@@ -29467,7 +29467,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div>
                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
-                        <select value={invoicePriceMode} onChange={(e) => setInvoicePriceMode(e.target.value as "netto" | "brutto")} className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold">
+                        <select value={invoicePriceMode} onChange={(e) => setInvoicePriceMode(e.target.value as "netto" | "brutto")} className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold">
                           <option value="netto">Nettopreise</option>
                           <option value="brutto">Bruttopreise</option>
                         </select>
@@ -29495,7 +29495,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           value={invoiceStatus}
                           onChange={(e) => setInvoiceStatus(e.target.value)}
                           disabled={isTechnician && !canTechnicianFinalizeInvoice}
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-bold disabled:bg-slate-100 disabled:text-slate-500"
+                          className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold disabled:bg-slate-100 disabled:text-slate-500"
                         >
                           <option>Entwurf</option>
                           {(!isTechnician || canTechnicianFinalizeInvoice) && (
@@ -29528,7 +29528,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           type="date"
                           value={invoiceDueDate}
                           onChange={(e) => setInvoiceDueDate(e.target.value)}
-                          className="w-full rounded-2xl border border-slate-300 px-5 py-4 font-semibold sm:max-w-sm"
+                          className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-semibold sm:max-w-sm"
                         />
                       </div>
                     )}
@@ -29538,7 +29538,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       onChange={(e) => setInvoiceNote(e.target.value)}
                       placeholder="Hinweis / Leistungsbeschreibung"
                       rows={4}
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-4"
+                      className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4"
                     />
 
                     <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
@@ -29559,7 +29559,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
                     <button
                       onClick={saveInvoice}
-                      className="w-full rounded-2xl bg-sky-500 py-4 font-black text-white"
+                      className="min-h-[46px] w-full rounded-[9px] bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
                       {invoiceType} speichern
                     </button>
@@ -29567,8 +29567,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                 </div>
                 )}
 
-                <div className="min-w-0 overflow-hidden rounded-[24px] bg-white p-4 shadow-sm">
-                  <h3 className="text-xl font-black">Rechnungen & Angebote</h3>
+                <div className="min-w-0 rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                  <h3 className="text-xl font-semibold tracking-tight text-slate-950">Rechnungen & Angebote</h3>
 
                   <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
                     {visibleInvoices.length === 0 ? (
@@ -29579,20 +29579,20 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       getPagedItems("invoices", visibleInvoices, 10).map((item) => (
                         <div
                           key={item.id}
-                          className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                          className="min-w-0 rounded-[10px] border border-slate-200 bg-white p-4 sm:p-5"
                         >
                           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                             <div>
-                              <p className="text-xs font-black text-sky-500">
+                              <p className="text-xs font-semibold text-slate-600">
                                 {item.type} · {item.number}
                               </p>
-                              <h4 className="mt-1 break-words text-lg font-black leading-tight md:text-xl">
+                              <h4 className="mt-1 break-words text-lg font-semibold leading-tight text-slate-950 md:text-xl">
                                 {item.title}
                               </h4>
                               <p className="mt-2 break-words text-sm text-slate-600">
                                 Kunde: {getInvoiceCustomerName(item)}
                               </p>
-                              <p className="mt-1 text-sm font-bold text-slate-800">
+                              <p className="mt-1 break-words text-sm font-semibold text-slate-800">
                                 Netto: {item.amount_net.toFixed(2)} € · Brutto: {item.amount_gross.toFixed(2)} €
                               </p>
                               <div className="mt-2 flex flex-wrap gap-2">
@@ -29615,12 +29615,12 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               )}
                             </div>
 
-                            <div className="flex flex-col gap-2 xl:w-52">
+                            <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto xl:w-52">
 {isAdmin && (
                               <select
                                 value={item.status}
                                 onChange={(e) => updateInvoiceStatus(item.id, e.target.value)}
-                                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold"
+                                className="rounded-[9px] border border-slate-300 bg-white px-3 py-3 text-sm font-bold"
                               >
                                 <option>Entwurf</option>
                                 <option>Offen</option>
@@ -29632,7 +29632,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
                               <button
                                 onClick={() => printInvoice(item)}
-                                className="rounded-2xl bg-blue-100 px-4 py-3 text-sm font-black text-blue-700"
+                                className="rounded-[9px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800"
                               >
                                 PDF / Druck
                               </button>
@@ -29640,7 +29640,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                               {isAdmin && item.type === "Rechnung" && item.status !== "Storniert" && (
                                 <button
                                   onClick={() => sendInvoiceToCustomer(item)}
-                                  className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white"
+                                  className="rounded-[9px] bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
                                 >
                                   Rechnung an Kunde senden
                                 </button>
@@ -29649,7 +29649,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 {isAdmin && (
                               <button
                                 onClick={() => deleteInvoice(item.id)}
-                                className="rounded-2xl bg-red-100 px-4 py-3 text-sm font-black text-red-700"
+                                className="rounded-[9px] border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700"
                               >
                                 Löschen
                               </button>
