@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.73
+// TRYBUN Service Management System v4.13.74
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -21670,22 +21670,22 @@ ${tenantBrandName}`,
 
   function renderCommercialDocumentWorkspace() {
     return (
-                <div id="commercial-document-create" className="scroll-mt-24 rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+                <div id="commercial-document-create" className="min-w-0 scroll-mt-24 rounded-[10px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-8">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-600">Kaufmännischer Beleg</p>
-                    <h3 className="mt-1 text-xl font-black text-slate-950">Auftrag / Lieferschein erstellen</h3>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Kaufmännischer Beleg · Entwurf</p>
+                    <h3 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{commercialDocumentType === "Auftrag" ? "Auftrag erstellen" : "Lieferschein erstellen"}</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                       Erstelle Auftrag oder Lieferschein mit Kunde, Ticket, Positionen und Unterschriften. Die PDF-Fassung wird automatisch im zentralen Dokumentenarchiv abgelegt.
                     </p>
                   </div>
 
                   <div className="mt-5 grid gap-4 lg:grid-cols-2">
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Dokumenttyp</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Dokumenttyp</label>
                       <select
                         value={commercialDocumentType}
                         onChange={(e) => setCommercialDocumentType(e.target.value as "Auftrag" | "Lieferschein")}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                        className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-bold"
                       >
                         <option value="Auftrag">Auftrag</option>
                         <option value="Lieferschein">Lieferschein</option>
@@ -21693,7 +21693,7 @@ ${tenantBrandName}`,
                     </div>
 
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Kunde</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Kunde</label>
                       <select
                         value={commercialDocumentCustomerId}
                         onChange={(e) => {
@@ -21702,7 +21702,7 @@ ${tenantBrandName}`,
                           const selectedCustomer = customers.find((item) => item.id === Number(e.target.value));
                           setCommercialDocumentPriceMode(getDefaultBusinessPriceMode(selectedCustomer));
                         }}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                        className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-bold"
                       >
                         <option value="">Kunde auswählen</option>
                         {[...customers]
@@ -21716,7 +21716,7 @@ ${tenantBrandName}`,
                     </div>
 
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Ticket optional</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Ticket optional</label>
                       <select
                         value={commercialDocumentTicketId}
                         onChange={(e) => {
@@ -21732,7 +21732,7 @@ ${tenantBrandName}`,
                             setCommercialDocumentTitle(`${selectedTicket.issue}${selectedTicket.device ? ` · ${selectedTicket.device}` : ""}`);
                           }
                         }}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold"
+                        className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-bold"
                       >
                         <option value="">Kein Ticket verknüpfen</option>
                         {tickets
@@ -21750,65 +21750,65 @@ ${tenantBrandName}`,
                     </div>
 
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Datum</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Datum</label>
                       <input
                         type="date"
                         value={commercialDocumentDate}
                         onChange={(e) => setCommercialDocumentDate(e.target.value)}
                         min={APP_DATE_MIN}
                         max={APP_DATE_MAX}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                        className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-semibold"
                       />
                     </div>
                   </div>
 
                   <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bezeichnung / Betreff</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Bezeichnung / Betreff</label>
                       <input
                         value={commercialDocumentTitle}
                         onChange={(e) => setCommercialDocumentTitle(e.target.value)}
                         placeholder={commercialDocumentType === "Auftrag" ? "z. B. Wartungsauftrag Heizungsanlage" : "z. B. Lieferung Ersatzteile"}
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                        className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-semibold"
                       />
                     </div>
 
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Referenz optional</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Referenz optional</label>
                       <input
                         value={commercialDocumentReference}
                         onChange={(e) => setCommercialDocumentReference(e.target.value)}
                         placeholder="Bestellnummer / Vorgang / Kundenreferenz"
-                        className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                        className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-semibold"
                       />
                     </div>
                   </div>
 
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
-                      <select value={commercialDocumentPriceMode} onChange={(e) => setCommercialDocumentPriceMode(e.target.value as "netto" | "brutto")} className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-bold">
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Preisart</label>
+                      <select value={commercialDocumentPriceMode} onChange={(e) => setCommercialDocumentPriceMode(e.target.value as "netto" | "brutto")} className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-bold">
                         <option value="netto">Nettopreise</option>
                         <option value="brutto">Bruttopreise</option>
                       </select>
                       <p className="mt-2 text-xs font-semibold text-slate-500">B2B wird standardmäßig netto, Endkunde standardmäßig brutto vorbelegt. Die Auswahl bleibt änderbar.</p>
                     </div>
                     <div>
-                      <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Mehrwertsteuer</label>
-                      <div className="mt-2 flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
+                      <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Mehrwertsteuer</label>
+                      <div className="mt-2 flex overflow-hidden rounded-[8px] border border-slate-300 bg-white">
                         <input value={commercialDocumentTaxRate} onChange={(e) => setCommercialDocumentTaxRate(e.target.value)} type="number" min="0" step="0.01" placeholder="19" className="min-w-0 flex-1 border-0 px-5 py-4 font-semibold outline-none" />
                         <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">%</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-[24px] border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                  <section className="mt-6 min-w-0 border-t border-slate-200 pt-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Lagerpositionen</p>
+                        <p className="text-base font-semibold text-slate-900">Positionen</p>
                         <p className="mt-1 text-sm font-semibold text-slate-600">Modelle/Verkaufsgeräte und Ersatzteile auswählen. Ein Lieferschein bucht diese Positionen aus dem Lager aus.</p>
                       </div>
-                      <button type="button" onClick={() => setCommercialDocumentLines([...commercialDocumentLines, createStockDocumentLine()])} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white">+ Position</button>
+                      <button type="button" onClick={() => setCommercialDocumentLines([...commercialDocumentLines, createStockDocumentLine()])} className="rounded-[8px] bg-slate-900 px-4 py-3 text-sm font-semibold text-white">+ Position</button>
                     </div>
 
                     {commercialDocumentLines.length === 0 ? (
@@ -21816,24 +21816,24 @@ ${tenantBrandName}`,
                     ) : (
                       <div className="mt-4 space-y-3">
                         {commercialDocumentLines.map((line) => (
-                          <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
+                          <div key={line.key} className="min-w-0 rounded-[8px] border border-slate-200 bg-white p-3 sm:p-4">
                             <div className="grid gap-3 lg:grid-cols-[150px_minmax(0,1fr)_110px_140px_auto]">
-                              <select value={line.itemType} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-xl border border-slate-300 px-3 py-3 font-bold">
+                              <select value={line.itemType} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemType: e.target.value as "device_model" | "spare_part", itemId: "", unitPrice: "" })} className="rounded-[8px] border border-slate-300 px-3 py-3 font-bold">
                                 <option value="device_model">Modell / Gerät</option>
                                 <option value="spare_part">Ersatzteil</option>
                               </select>
-                              <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-xl border border-slate-300 px-3 py-3 font-semibold">
+                              <select value={line.itemId} onChange={(e) => { const next = { ...line, itemId: e.target.value }; updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { itemId: e.target.value, unitPrice: getDefaultStockLinePrice(next) }); }} className="min-w-0 rounded-[8px] border border-slate-300 px-3 py-3 font-semibold">
                                 <option value="">Artikel auswählen</option>
                                 {line.itemType === "device_model"
                                   ? deviceModels.filter((item) => item.is_stocked).sort((a,b) => getDeviceModelDisplayName(a).localeCompare(getDeviceModelDisplayName(b), "de")).map((item) => <option key={item.id} value={item.id}>{getManufacturerNameById(item.manufacturer_id)} · {getDeviceModelDisplayName(item)} · Bestand {Number(item.stock || 0)}</option>)
                                   : serviceParts.filter((item) => !item.is_archived).sort((a,b) => a.name.localeCompare(b.name, "de")).map((item) => <option key={item.id} value={item.id}>{item.name}{item.sku ? ` · ${item.sku}` : ""} · Bestand {Number(item.stock || 0)}</option>)}
                               </select>
-                              <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-xl border border-slate-300 px-3 py-3" />
-                              <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
+                              <input type="number" min="1" step="1" value={line.quantity} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { quantity: e.target.value })} placeholder="Menge" className="rounded-[8px] border border-slate-300 px-3 py-3" />
+                              <div className="flex overflow-hidden rounded-[8px] border border-slate-300 bg-white"><input type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { unitPrice: e.target.value })} placeholder="Preis" className="min-w-0 flex-1 border-0 px-3 py-3 outline-none" /><span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span></div>
                               <button type="button" onClick={() => setCommercialDocumentLines(commercialDocumentLines.filter((item) => item.key !== line.key))} className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700">Entfernen</button>
                             </div>
                             <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                              <input value={line.description} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { description: e.target.value })} placeholder="Positionsbeschreibung optional" className="rounded-xl border border-slate-300 px-3 py-3" />
+                              <input value={line.description} onChange={(e) => updateStockDocumentLine(commercialDocumentLines, setCommercialDocumentLines, line.key, { description: e.target.value })} placeholder="Positionsbeschreibung optional" className="rounded-[8px] border border-slate-300 px-3 py-3" />
                               <span className="text-xs font-bold text-slate-500">Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}</span>
                             </div>
                           </div>
@@ -21848,22 +21848,22 @@ ${tenantBrandName}`,
                       </label>
                     )}
                     {commercialDocumentType === "Lieferschein" && commercialDocumentLines.length > 0 && (
-                      <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-800">Beim Erstellen des Lieferscheins werden die Positionen unmittelbar aus dem physischen Lagerbestand ausgebucht.</div>
+                      <div className="mt-4 rounded-[8px] border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">Beim Erstellen des Lieferscheins werden die Positionen unmittelbar aus dem physischen Lagerbestand ausgebucht.</div>
                     )}
-                  </div>
+                  </section>
 
                   <div className="mt-4">
-                    <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Bemerkung / Inhalt</label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Bemerkung / Inhalt</label>
                     <textarea
                       value={commercialDocumentNote}
                       onChange={(e) => setCommercialDocumentNote(e.target.value)}
                       rows={4}
                       placeholder={commercialDocumentType === "Auftrag" ? "Auftragsumfang, Hinweise, gewünschte Ausführung ..." : "Gelieferte Positionen, Mengen, Hinweise ..."}
-                      className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold"
+                      className="mt-2 w-full rounded-[8px] border border-slate-300 bg-white px-5 py-4 font-semibold"
                     />
                   </div>
 
-                  <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="mt-5 rounded-[9px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Digitale Freigabe</p>
                     <h4 className="mt-1 text-lg font-black text-slate-900">Unterschriften</h4>
                     <p className="mt-1 text-sm font-semibold text-slate-500">Optional direkt mit Finger, Stift oder Maus unterschreiben. Die Signaturen werden in die archivierte Dokumentfassung übernommen.</p>
@@ -21885,7 +21885,7 @@ ${tenantBrandName}`,
                     type="button"
                     onClick={createCommercialDocument}
                     disabled={commercialDocumentBusy}
-                    className="mt-4 w-full rounded-2xl bg-sky-600 px-5 py-4 font-black text-white shadow-sm hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    className="mt-4 w-full rounded-[8px] bg-slate-900 px-5 py-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                   >
                     {commercialDocumentBusy ? "Dokument wird erstellt …" : `${commercialDocumentType} erstellen & archivieren`}
                   </button>
@@ -29194,28 +29194,34 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
 
               <div className="grid min-w-0 grid-cols-1 gap-5">
                 {canCreateInvoiceDocument && (
-                <div id="invoice-create" className="min-w-0 scroll-mt-6 rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
-                  <h3 className="text-xl font-semibold tracking-tight text-slate-950">Rechnung / Angebot erstellen</h3>
-                  <p className="mt-2 text-slate-600">
-                    {isTechnician
-                      ? "Erstelle beim Kunden einen Rechnungs- oder Angebotsentwurf mit Positionen und Unterschrift."
-                      : "Erstelle Angebote oder Rechnungen auf Basis eines Tickets oder frei als Admin."}
-                  </p>
+                <div id="invoice-create" className="min-w-0 scroll-mt-6 rounded-[10px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-8">
+                  <div className="mb-5 flex min-w-0 flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Kaufmännischer Beleg · Entwurf</p>
+                      <h3 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{invoiceType === "Angebot" ? "Angebot erstellen" : "Rechnung erstellen"}</h3>
+                      <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Empfänger, Leistungen und Preise erfassen. Summen werden laufend berechnet.</p>
+                    </div>
+                    <span className="w-fit rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">Noch nicht gespeichert</span>
+                  </div>
 
-                  <div className="mt-5 space-y-4">
+                  <div className="space-y-5">
+                    <label className="block text-sm font-semibold text-slate-800" htmlFor="trybun-invoice-document-type">Belegart</label>
                     <select
+                      id="trybun-invoice-document-type"
                       value={invoiceType}
                       onChange={(e) => setInvoiceType(e.target.value)}
-                      className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold"
+                      className="w-full min-w-0 rounded-[8px] border border-slate-300 bg-white px-3 py-3 text-sm font-medium text-slate-950 sm:max-w-sm"
                     >
                       <option>Rechnung</option>
                       <option>Angebot</option>
                     </select>
 
-                    <div className="rounded-[14px] border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-sky-600">
-                        Kunde / Rechnungsempfänger
-                      </p>
+                    <section className="min-w-0 border-t border-slate-200 pt-5">
+                      <div className="mb-3 flex items-center gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white">1</span>
+                        <h4 className="text-base font-semibold text-slate-900">Empfänger und Vorgang</h4>
+                      </div>
+                      <label className="block text-sm font-medium text-slate-700" htmlFor="trybun-invoice-customer-search">Kunde / Rechnungsempfänger</label>
                       <input
                         value={invoiceCustomerSearch}
                         onChange={(e) => {
@@ -29223,6 +29229,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           if (invoiceCustomerId) setInvoiceCustomerId("");
                         }}
                         type="search"
+                        id="trybun-invoice-customer-search"
                         autoComplete="off"
                         placeholder="Firma, Name oder Kundennummer suchen..."
                         className="mt-3 min-h-[48px] w-full rounded-[9px] border border-slate-300 bg-white px-4 font-semibold outline-none focus:border-sky-500"
@@ -29276,8 +29283,11 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           ))}
                         </div>
                       )}
-                    </div>
+                    </section>
 
+                    <div className="min-w-0 grid gap-4 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Zugeordnetes Ticket (optional)</label>
                     <select
                       value={invoiceTicketId}
                       onChange={(e) => {
@@ -29310,35 +29320,38 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           </option>
                         ))}
                     </select>
-
+                    </div>
+                    <div className="min-w-0">
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Betreff / Leistungsbeschreibung</label>
                     <input
                       value={invoiceTitle}
                       onChange={(e) => setInvoiceTitle(e.target.value)}
-                      placeholder="Leistung / Position"
-                      className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4"
+                      placeholder="z. B. Wartung und Reparatur"
+                      className="w-full min-w-0 rounded-[8px] border border-slate-300 bg-white px-3 py-3 sm:px-4"
                     />
+                    </div>
+                    </div>
 
-                    <div className="min-w-0 rounded-[12px] border border-slate-200 bg-slate-50 p-3 sm:p-5">
-                      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Positionen</p>
-                          <p className="mt-1 text-sm font-semibold text-slate-600">
-                            Anfahrt, Arbeitszeit, Installation, Geräteverkauf und Ersatzteile gemeinsam auf einer Rechnung erfassen.
-                          </p>
+                    <section className="min-w-0 border-t border-slate-200 pt-5">
+                      <div className="mb-4 flex min-w-0 flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white">2</span>
+                          <h4 className="text-base font-semibold text-slate-900">Positionen <span className="ml-1 text-sm font-normal text-slate-500">({invoiceStockLines.length})</span></h4>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("travel")])} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700">+ Anfahrt</button>
-                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("labor")])} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700">+ Arbeitszeit</button>
-                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("installation")])} className="rounded-xl bg-white px-3 py-2 text-xs font-black text-slate-700">+ Installation</button>
-                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine("spare_part")])} className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white">+ Ersatzteil</button>
-                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine("device_model")])} className="rounded-xl bg-sky-600 px-3 py-2 text-xs font-black text-white">+ Gerät</button>
-                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("other")])} className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-black text-white">+ Sonstiges</button>
+                        <p className="text-sm leading-6 text-slate-600">Füge Leistungen oder Artikel hinzu. Jede Zeile zeigt ihren berechneten Betrag.</p>
+                        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("travel")])} className="min-w-0 rounded-[8px] border border-slate-300 bg-white px-2 py-3 text-center text-xs font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50">+ Anfahrt</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("labor")])} className="min-w-0 rounded-[8px] border border-slate-300 bg-white px-2 py-3 text-center text-xs font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50">+ Arbeitszeit</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("installation")])} className="min-w-0 rounded-[8px] border border-slate-300 bg-white px-2 py-3 text-center text-xs font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50">+ Installation</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine("spare_part")])} className="min-w-0 rounded-[8px] border border-slate-300 bg-white px-2 py-3 text-center text-xs font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50">+ Ersatzteil</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createStockDocumentLine("device_model")])} className="min-w-0 rounded-[8px] border border-slate-300 bg-white px-2 py-3 text-center text-xs font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50">+ Gerät</button>
+                          <button type="button" onClick={() => setInvoiceStockLines([...invoiceStockLines, createManualInvoiceLine("other")])} className="min-w-0 rounded-[8px] border border-slate-300 bg-white px-2 py-3 text-center text-xs font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50">+ Sonstiges</button>
                         </div>
                       </div>
 
                       {invoiceStockLines.length === 0 ? (
-                        <div className="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold text-slate-500">
-                          Noch keine Position. Füge Anfahrt, Arbeitszeit, Installation, Gerät oder Ersatzteil hinzu.
+                        <div className="mt-3 rounded-[8px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm leading-6 text-slate-600">
+                          Noch keine Position erfasst. Wähle oben die passende Leistungsart oder einen Artikel.
                         </div>
                       ) : (
                         <div className="mt-4 space-y-3">
@@ -29349,8 +29362,13 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                 : line.itemType;
 
                             return (
-                              <div key={line.key} className="rounded-2xl border border-emerald-100 bg-white p-3">
-                                <div className="grid gap-3 xl:grid-cols-[150px_minmax(0,1fr)_95px_110px_135px_auto]">
+                              <div key={line.key} className="min-w-0 rounded-[9px] border border-slate-200 bg-white p-3 sm:p-4">
+                                <div className="mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                                  <span className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Position {invoiceStockLines.findIndex((item) => item.key === line.key) + 1}</span>
+                                  <strong className="text-sm font-semibold tabular-nums text-slate-900">{euroInvoice(invoiceDraftTotals.positions.find((position) => position.key === line.key)?.amount || 0)}</strong>
+                                </div>
+                                <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-12">
+                                  <div className="col-span-2 min-w-0 lg:col-span-2"><label className="mb-1 block text-xs font-medium text-slate-600">Art</label>
                                   <select
                                     value={kindValue}
                                     onChange={(e) => {
@@ -29380,7 +29398,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                         });
                                       }
                                     }}
-                                    className="rounded-xl border border-slate-300 px-3 py-3 font-bold"
+                                    className="w-full min-w-0 rounded-[8px] border border-slate-300 bg-white px-3 py-3 text-sm font-medium"
                                   >
                                     <option value="travel">Anfahrt</option>
                                     <option value="labor">Arbeitszeit</option>
@@ -29389,8 +29407,9 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                     <option value="other">Sonstige Leistung</option>
                                     <option value="device_model">Gerät / Modell</option>
                                     <option value="spare_part">Ersatzteil</option>
-                                  </select>
+                                  </select></div>
 
+                                  <div className="col-span-2 min-w-0 lg:col-span-4"><label className="mb-1 block text-xs font-medium text-slate-600">Leistung / Artikel</label>
                                   {line.itemType === "manual" ? (
                                     <input
                                       value={line.description}
@@ -29430,8 +29449,9 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                               </option>
                                             ))}
                                     </select>
-                                  )}
+                                  )}</div>
 
+                                  <div className="min-w-0 lg:col-span-1"><label className="mb-1 block text-xs font-medium text-slate-600">Menge</label>
                                   <input
                                     type="number"
                                     min="0.01"
@@ -29439,17 +29459,19 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                     value={line.quantity}
                                     onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { quantity: e.target.value })}
                                     placeholder="Menge"
-                                    className="rounded-xl border border-slate-300 px-3 py-3"
-                                  />
+                                    className="w-full min-w-0 rounded-[8px] border border-slate-300 px-3 py-3 text-sm"
+                                  /></div>
 
+                                  <div className="min-w-0 lg:col-span-2"><label className="mb-1 block text-xs font-medium text-slate-600">Einheit</label>
                                   <input
                                     value={getStockLineUnit(line)}
                                     onChange={(e) => updateStockDocumentLine(invoiceStockLines, setInvoiceStockLines, line.key, { unit: e.target.value })}
                                     disabled={line.itemType !== "manual"}
-                                    className="rounded-xl border border-slate-300 px-3 py-3 text-sm disabled:bg-slate-100"
-                                  />
+                                    className="w-full min-w-0 rounded-[8px] border border-slate-300 px-3 py-3 text-sm disabled:bg-slate-100"
+                                  /></div>
 
-                                  <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white">
+                                  <div className="col-span-2 min-w-0 lg:col-span-2"><label className="mb-1 block text-xs font-medium text-slate-600">Einzelpreis ({invoicePriceMode === "netto" ? "netto" : "brutto"})</label>
+                                  <div className="flex min-w-0 overflow-hidden rounded-[8px] border border-slate-300 bg-white">
                                     <input
                                       type="number"
                                       min="0"
@@ -29459,16 +29481,16 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                       placeholder="Preis"
                                       className="min-w-0 flex-1 border-0 px-3 py-3 outline-none"
                                     />
-                                    <span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 font-black text-slate-600">€</span>
-                                  </div>
+                                    <span className="flex items-center border-l border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-600">€</span>
+                                  </div></div>
 
-                                  <button
+                                  <div className="col-span-2 flex items-end lg:col-span-1"><button
                                     type="button"
                                     onClick={() => setInvoiceStockLines(invoiceStockLines.filter((item) => item.key !== line.key))}
-                                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 font-black text-red-700"
+                                    className="w-full rounded-[8px] border border-slate-200 bg-white px-2 py-3 text-xs font-medium text-red-700 hover:bg-red-50"
                                   >
                                     Entfernen
-                                  </button>
+                                  </button></div>
                                 </div>
 
                                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
@@ -29477,9 +29499,6 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                       ? "Kilometer × Preis je km (für Pauschale Einheit ändern)"
                                       : "Menge × Einzelpreis"}
                                   </span>
-                                  <strong className="font-semibold tabular-nums text-slate-950">
-                                    {euroInvoice(invoiceDraftTotals.positions.find((position) => position.key === line.key)?.amount || 0)}
-                                  </strong>
                                 </div>
                                 {line.itemType !== "manual" && (
                                   <p className="mt-2 text-xs font-bold text-slate-500">
@@ -29504,11 +29523,16 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                           )}
                         </div>
                       )}
-                    </div>
+                    </section>
 
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div>
-                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
+                    <section className="min-w-0 border-t border-slate-200 pt-5">
+                      <div className="mb-4 flex items-center gap-3">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white">3</span>
+                        <h4 className="text-base font-semibold text-slate-900">Preise und Abrechnung</h4>
+                      </div>
+                    <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="min-w-0">
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-600">Preisart</label>
                         <select value={invoicePriceMode} onChange={(e) => changeInvoicePriceMode(e.target.value as "netto" | "brutto")} className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold">
                           <option value="netto">Nettopreise</option>
                           <option value="brutto">Bruttopreise</option>
@@ -29563,7 +29587,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       </div>
                     </div>
 
-                    <section aria-label={invoiceType === "Angebot" ? "Angebotssumme" : "Rechnungssumme"} className="min-w-0 rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                    <section aria-label={invoiceType === "Angebot" ? "Angebotssumme" : "Rechnungssumme"} className="mt-5 min-w-0 rounded-[9px] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h4 className="text-base font-semibold text-slate-950">{invoiceType === "Angebot" ? "Angebotssumme" : "Rechnungssumme"}</h4>
                         <span className="text-xs text-slate-500">Live berechnet · {invoicePriceMode === "netto" ? "Eingabe netto" : "Eingabe brutto"}</span>
@@ -29590,6 +29614,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       <p className="mt-2 text-xs leading-relaxed text-slate-500">
                         Steuerliche Sonderfälle (z. B. Reverse Charge, Steuerbefreiung) sind hier nicht automatisch abgebildet. Bitte vor dem Ausstellen prüfen.
                       </p>
+                    </section>
                     </section>
 
                     {invoiceType === "Rechnung" && (
