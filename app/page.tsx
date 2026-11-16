@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.69
+// TRYBUN Service Management System v4.13.70
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -24655,6 +24655,57 @@ ${tenantBrandName}`,
           .trybun-premium-ui.trybun-dark table thead { background: #0b1624 !important; }
           .trybun-premium-ui.trybun-dark table tbody tr:hover { background-color: #132338 !important; }
 
+
+          /* v4.13.70 — Dokumente / Serviceberichte: gleiche ruhige CI wie die Startseite. */
+          .trybun-premium-ui .trybun-documents-workspace,
+          .trybun-premium-ui .trybun-service-report-modal,
+          .trybun-premium-ui .trybun-service-report-panel { min-width: 0; }
+          .trybun-premium-ui .trybun-documents-workspace > div,
+          .trybun-premium-ui .trybun-documents-workspace .grid > div { min-width: 0; }
+          .trybun-premium-ui .trybun-documents-header { border-color: #e2e8f0; }
+          .trybun-premium-ui .trybun-documents-workspace button,
+          .trybun-premium-ui .trybun-service-report-modal button,
+          .trybun-premium-ui .trybun-service-report-panel button {
+            border-radius: 9px !important;
+            box-shadow: none !important;
+            font-weight: 600 !important;
+          }
+          .trybun-premium-ui .trybun-documents-workspace input,
+          .trybun-premium-ui .trybun-documents-workspace select,
+          .trybun-premium-ui .trybun-documents-workspace textarea,
+          .trybun-premium-ui .trybun-service-report-modal input,
+          .trybun-premium-ui .trybun-service-report-modal textarea,
+          .trybun-premium-ui .trybun-service-report-panel input,
+          .trybun-premium-ui .trybun-service-report-panel textarea { border-radius: 9px !important; }
+          .trybun-premium-ui .trybun-service-report-modal .rounded-3xl,
+          .trybun-premium-ui .trybun-service-report-panel .rounded-3xl { border-radius: 12px !important; }
+          .trybun-premium-ui .trybun-service-report-modal .bg-purple-50,
+          .trybun-premium-ui .trybun-service-report-panel .bg-purple-50,
+          .trybun-premium-ui .trybun-service-report-modal .bg-sky-50,
+          .trybun-premium-ui .trybun-service-report-panel.bg-sky-50 { background-color: #f8fafc !important; }
+          .trybun-premium-ui .trybun-service-report-modal .border-purple-200,
+          .trybun-premium-ui .trybun-service-report-panel .border-purple-200,
+          .trybun-premium-ui .trybun-service-report-modal .border-sky-200 { border-color: #e2e8f0 !important; }
+          .trybun-premium-ui .trybun-service-report-modal .text-purple-500,
+          .trybun-premium-ui .trybun-service-report-panel .text-purple-500 { color: #475569 !important; }
+          .trybun-premium-ui .trybun-service-report-modal button.bg-purple-600,
+          .trybun-premium-ui .trybun-service-report-panel button.bg-purple-600 { background-color: #0f172a !important; color: #fff !important; }
+          .trybun-premium-ui .trybun-documents-workspace button:focus-visible,
+          .trybun-premium-ui .trybun-service-report-modal button:focus-visible,
+          .trybun-premium-ui .trybun-service-report-panel button:focus-visible { outline: 2px solid #0284c7; outline-offset: 2px; }
+          .trybun-premium-ui.trybun-dark .trybun-documents-header,
+          .trybun-premium-ui.trybun-dark .trybun-service-report-panel { background: #142234 !important; border-color: #304158 !important; }
+          .trybun-premium-ui.trybun-dark .trybun-service-report-modal .bg-purple-50,
+          .trybun-premium-ui.trybun-dark .trybun-service-report-modal .bg-sky-50,
+          .trybun-premium-ui.trybun-dark .trybun-service-report-panel .bg-purple-50 { background: #17283b !important; }
+          @media (max-width: 639px) {
+            .trybun-premium-ui .trybun-documents-workspace { width: 100%; max-width: 100%; }
+            .trybun-premium-ui .trybun-documents-workspace button { max-width: 100%; }
+            .trybun-premium-ui .trybun-service-report-modal .flex.items-center.justify-between { gap: 0.75rem; }
+            .trybun-premium-ui .trybun-service-report-modal h3 { overflow-wrap: anywhere; white-space: normal; }
+            .trybun-premium-ui .trybun-service-report-panel { padding: 1rem; }
+          }
+
           @media (min-width: 1024px) {
             .trybun-premium-ui {
               letter-spacing: -0.006em;
@@ -25040,8 +25091,8 @@ ${tenantBrandName}`,
               serviceSigningTicket;
 
             return (
-              <div className="fixed inset-0 z-[90] flex items-stretch justify-center bg-black/70 p-0 sm:items-center sm:p-4">
-                <div className="flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl sm:h-[92vh] sm:rounded-[32px]">
+              <div className="trybun-service-report-modal fixed inset-0 z-[90] flex items-stretch justify-center bg-black/70 p-0 sm:items-center sm:p-4">
+                <div className="flex h-[100dvh] w-full min-w-0 max-w-5xl flex-col overflow-hidden bg-white shadow-2xl sm:h-[92vh] sm:rounded-[12px]">
                   <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
                     <div className="min-w-0">
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-500">
@@ -27672,8 +27723,8 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                     </div>
                     )}
 
-                    <div className="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5">
-                      <h4 className="text-xl font-black text-sky-700">
+                    <div className="trybun-service-report-panel mt-5 rounded-[12px] border border-slate-200 bg-white p-4 sm:p-5">
+                      <h4 className="text-lg font-bold text-slate-900 sm:text-xl">
                         Servicebericht unterschreiben
                       </h4>
                       <p className="mt-2 text-sm font-bold text-slate-600">
@@ -29634,22 +29685,23 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
           )}
 
           {activePage === "Dokumente" && (
-            <div className="space-y-6">
-              <div className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)] sm:p-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h3 className="text-xl font-black">Zentrales Dokumentenarchiv</h3>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">
-                      Alle archivierten Dateien mit Kunde, Ticket und Gerät nachvollziehen. Kaufmännische Belege werden in der Buchhaltung erstellt und hier nur archiviert.
+            <div className="trybun-documents-workspace min-w-0 space-y-5 sm:space-y-6">
+              <div className="trybun-documents-header rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Dokumente · Zentrales Archiv</p>
+                    <h3 className="mt-1 text-xl font-bold text-slate-950 sm:text-2xl">Dokumente &amp; Nachweise</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      Dateien, Serviceberichte und Prüfunterlagen zentral verwalten – nachvollziehbar mit Kunden, Tickets und Geräten verknüpft.
                     </p>
                   </div>
-
-                  <p className="rounded-[8px] bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600">
-                    {filteredDocuments.length} Dateien
-                  </p>
+                  <div className="flex shrink-0 items-center gap-2 rounded-[9px] border border-slate-200 bg-slate-50 px-3.5 py-2.5">
+                    <span className="text-lg font-bold text-slate-900">{filteredDocuments.length}</span>
+                    <span className="text-xs font-semibold text-slate-600">Dateien</span>
+                  </div>
                 </div>
 
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                <div className="mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="Dokumentenkategorien">
                   {compactDocumentCategories.map((category) => (
                     <button
                       key={category}
@@ -29695,8 +29747,8 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-600">
                         Admin-Upload
                       </p>
-                      <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-slate-950">
-                        Dokument hochladen & archivieren
+                      <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-slate-950 sm:text-xl">
+                        Dokument hochladen &amp; archivieren
                       </h3>
                       <p className="mt-1 max-w-3xl text-sm font-medium leading-6 text-slate-600">
                         Externe oder nachträglich eingegangene Dateien sauber mit Kunde, Ticket und optional Gerät verknüpfen.
