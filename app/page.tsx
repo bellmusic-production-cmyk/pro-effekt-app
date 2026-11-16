@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.72
+// TRYBUN Service Management System v4.13.73
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -351,6 +351,29 @@ type StockDocumentLine = {
   lineType?: "travel" | "labor" | "installation" | "service" | "other" | null;
   ticketPartRequirementId?: number | null;
 };
+
+// Einheitliche Berechnung fuer Live-Vorschau und Speichern. Bestehende Datenfelder bleiben gleich.
+function calculateInvoiceDraftTotals(
+  lines: StockDocumentLine[],
+  manualAmount: string,
+  priceMode: "netto" | "brutto",
+  taxRateText: string,
+) {
+  const asNumber = (value: string) => Number(String(value || "0").replace(",", ".")) || 0;
+  const roundCents = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
+  const taxRate = Math.max(0, asNumber(taxRateText));
+  const factor = 1 + taxRate / 100;
+  const positions = lines.map((line) => ({
+    key: line.key,
+    amount: roundCents(asNumber(line.quantity) * asNumber(line.unitPrice)),
+  }));
+  const entered = lines.length > 0
+    ? roundCents(positions.reduce((sum, position) => sum + position.amount, 0))
+    : roundCents(asNumber(manualAmount));
+  const net = priceMode === "brutto" ? roundCents(entered / factor) : entered;
+  const gross = priceMode === "brutto" ? entered : roundCents(net * factor);
+  return { positions, net, gross, tax: roundCents(gross - net), taxRate, entered };
+}
 
 type TicketPartRequirement = {
   id: number;
@@ -1848,6 +1871,29 @@ export default function Home() {
   const [invoiceSourceNumber, setInvoiceSourceNumber] = useState("");
   const [invoiceSourceDocumentId, setInvoiceSourceDocumentId] = useState<number | null>(null);
   const [invoiceSourceInvoiceId, setInvoiceSourceInvoiceId] = useState<number | null>(null);
+  const invoiceDraftTotals = calculateInvoiceDraftTotals(
+    invoiceStockLines, invoiceAmountNet, invoicePriceMode, invoiceTaxRate,
+  );
+  const euroInvoice = (amount: number) =>
+    amount.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+  function changeInvoicePriceMode(next: "netto" | "brutto") {
+    if (next === invoicePriceMode) return;
+    const rate = Math.max(0, Number(invoiceTaxRate.replace(",", ".")) || 0);
+    const factor = 1 + rate / 100;
+    const convert = (raw: string) => {
+      if (raw.trim() === "") return raw;
+      const number = Number(raw.replace(",", "."));
+      if (!Number.isFinite(number)) return raw;
+      return String(Math.round((next === "brutto" ? number * factor : number / factor) * 100) / 100);
+    };
+    setInvoiceStockLines((current) => current.map((line) => ({
+      ...line, unitPrice: convert(line.unitPrice),
+    })));
+    setInvoiceAmountNet((current) => convert(current));
+    setInvoicePriceMode(next);
+  }
+
 
   const [accountingSearch, setAccountingSearch] = useState("");
   const [accountingWorkspaceView, setAccountingWorkspaceView] = useState<
@@ -17906,25 +17952,11 @@ ${tenantBrandName}`,
       return;
     }
 
-    const tax = Math.max(0, Number(invoiceTaxRate.replace(",", ".")) || 0);
-    const lineEnteredTotal = invoiceStockLines.reduce((sum, line) => {
-      const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
-      const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
-      return sum + quantity * price;
-    }, 0);
-    const enteredAmount = lineEnteredTotal > 0 ? lineEnteredTotal : Number(invoiceAmountNet.replace(",", "."));
-
-    if (!Number.isFinite(enteredAmount) || enteredAmount < 0) {
+    const { taxRate: tax, gross, net } = invoiceDraftTotals;
+    if (invoiceStockLines.length === 0 && (!invoiceAmountNet.trim() || Number(invoiceAmountNet.replace(",", ".")) < 0)) {
       alert(`Bitte einen gültigen ${invoicePriceMode === "brutto" ? "Brutto" : "Netto"}-Betrag eingeben.`);
       return;
     }
-
-    const gross = invoicePriceMode === "brutto"
-      ? Math.round(enteredAmount * 100) / 100
-      : Math.round((enteredAmount * (1 + tax / 100)) * 100) / 100;
-    const net = invoicePriceMode === "brutto"
-      ? Math.round((enteredAmount / (1 + tax / 100 || 1)) * 100) / 100
-      : Math.round(enteredAmount * 100) / 100;
 
     const selectedTicket = invoiceTicketId
       ? tickets.find((ticket) => ticket.id === Number(invoiceTicketId))
@@ -29286,10 +29318,10 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                       className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4"
                     />
 
-                    <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="min-w-0 rounded-[12px] border border-slate-200 bg-slate-50 p-3 sm:p-5">
                       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         <div>
-                          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Rechnungspositionen</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Positionen</p>
                           <p className="mt-1 text-sm font-semibold text-slate-600">
                             Anfahrt, Arbeitszeit, Installation, Geräteverkauf und Ersatzteile gemeinsam auf einer Rechnung erfassen.
                           </p>
@@ -29439,6 +29471,16 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                                   </button>
                                 </div>
 
+                                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
+                                  <span className="text-slate-600">
+                                    {line.itemType === "manual" && line.lineType === "travel" && getStockLineUnit(line).toLowerCase().includes("km")
+                                      ? "Kilometer × Preis je km (für Pauschale Einheit ändern)"
+                                      : "Menge × Einzelpreis"}
+                                  </span>
+                                  <strong className="font-semibold tabular-nums text-slate-950">
+                                    {euroInvoice(invoiceDraftTotals.positions.find((position) => position.key === line.key)?.amount || 0)}
+                                  </strong>
+                                </div>
                                 {line.itemType !== "manual" && (
                                   <p className="mt-2 text-xs font-bold text-slate-500">
                                     Verfügbar: {getStockLineAvailable(line)} {getStockLineUnit(line)}
@@ -29467,19 +29509,21 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div>
                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Preisart</label>
-                        <select value={invoicePriceMode} onChange={(e) => setInvoicePriceMode(e.target.value as "netto" | "brutto")} className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold">
+                        <select value={invoicePriceMode} onChange={(e) => changeInvoicePriceMode(e.target.value as "netto" | "brutto")} className="w-full rounded-[9px] border border-slate-300 bg-white px-3 py-3 sm:px-4 font-bold">
                           <option value="netto">Nettopreise</option>
                           <option value="brutto">Bruttopreise</option>
                         </select>
                       </div>
 
-                      <div>
-                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">{invoicePriceMode === "brutto" ? "Brutto-Betrag" : "Netto-Betrag"}</label>
+                      {invoiceStockLines.length === 0 ? <div>
+                        <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">{invoicePriceMode === "brutto" ? "Brutto-Betrag (ohne Positionen)" : "Netto-Betrag (ohne Positionen)"}</label>
                         <div className="flex overflow-hidden rounded-2xl border border-slate-300 bg-white">
                           <input value={invoiceAmountNet} onChange={(e) => setInvoiceAmountNet(e.target.value)} placeholder="0,00" type="number" min="0" step="0.01" className="min-w-0 flex-1 border-0 px-5 py-4 outline-none" />
                           <span className="flex items-center border-l border-slate-200 bg-slate-50 px-4 font-black text-slate-600">€</span>
                         </div>
-                      </div>
+                      </div> : <div className="flex min-w-0 items-end rounded-[9px] border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
+                        Der Betrag ergibt sich automatisch aus den Positionen.
+                      </div>}
 
                       <div>
                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.14em] text-slate-500">Mehrwertsteuer</label>
@@ -29518,6 +29562,35 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                         )}
                       </div>
                     </div>
+
+                    <section aria-label={invoiceType === "Angebot" ? "Angebotssumme" : "Rechnungssumme"} className="min-w-0 rounded-[12px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h4 className="text-base font-semibold text-slate-950">{invoiceType === "Angebot" ? "Angebotssumme" : "Rechnungssumme"}</h4>
+                        <span className="text-xs text-slate-500">Live berechnet · {invoicePriceMode === "netto" ? "Eingabe netto" : "Eingabe brutto"}</span>
+                      </div>
+                      <div className="mt-4 space-y-3 text-sm">
+                        <div className="flex items-center justify-between gap-3 text-slate-600">
+                          <span>Zwischensumme netto</span>
+                          <span className="shrink-0 tabular-nums text-slate-950">{euroInvoice(invoiceDraftTotals.net)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-slate-600">
+                          <span>Umsatzsteuer ({invoiceDraftTotals.taxRate.toLocaleString("de-DE")} %)</span>
+                          <span className="shrink-0 tabular-nums text-slate-950">{euroInvoice(invoiceDraftTotals.tax)}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3 text-base font-semibold text-slate-950">
+                          <span>Gesamtbetrag brutto</span>
+                          <strong className="shrink-0 tabular-nums">{euroInvoice(invoiceDraftTotals.gross)}</strong>
+                        </div>
+                      </div>
+                      {invoiceStockLines.length > 0 && (
+                        <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                          Alle Positionen werden mit Menge × Einzelpreis berechnet. Der Betrag wird beim Speichern übernommen.
+                        </p>
+                      )}
+                      <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                        Steuerliche Sonderfälle (z. B. Reverse Charge, Steuerbefreiung) sind hier nicht automatisch abgebildet. Bitte vor dem Ausstellen prüfen.
+                      </p>
+                    </section>
 
                     {invoiceType === "Rechnung" && (
                       <div>
