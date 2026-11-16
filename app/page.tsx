@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.61
+// TRYBUN Service Management System v4.13.62
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -36009,8 +36009,8 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
               )}
 
               {!isCustomer && (
-                <div className="mb-6 rounded-[28px] border border-sky-200 bg-sky-50 p-5 shadow-sm">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="mb-6 w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-sky-200 bg-sky-50 p-3 shadow-sm sm:p-5">
+                  <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">
                         {isAdmin ? "Admin-Ticketzentrale · Teamüberblick" : "Einsatzübersicht"}
@@ -36026,14 +36026,14 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                  <div className="mt-4 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 md:grid-cols-4">
                     <StatCard label="Heute" value={technicianPremiumTodayTickets.length} />
                     <StatCard label="Diese Woche" value={technicianPremiumWeekTickets.length} />
                     <StatCard label="Überfällig" value={technicianPremiumOverdueTickets.length} />
                     <StatCard label="Fällige Wartungen" value={technicianPremiumMaintenancePlans.length} />
                   </div>
 
-                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                  <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2">
                     {[...technicianPremiumOverdueTickets, ...technicianPremiumTodayTickets, ...technicianPremiumWeekTickets]
                       .filter((ticket, index, list) => list.findIndex((item) => item.id === ticket.id) === index)
                       .slice(0, 6)
@@ -36042,38 +36042,38 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                         const checklist = buildTechnicianChecklistPremium(ticket);
 
                         return (
-                          <div key={ticket.id} className="rounded-2xl border border-sky-100 bg-white p-4">
-                            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                          <div key={ticket.id} className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-sky-100 bg-white p-3 sm:p-4">
+                            <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:justify-between">
                               <div className="min-w-0">
-                                <p className="truncate font-black text-slate-900">{ticket.ticket_number} · {ticket.issue}</p>
-                                <p className="mt-1 text-xs font-bold text-slate-500">
+                                <p className="min-w-0 max-w-full break-words font-black text-slate-900 [overflow-wrap:anywhere]">{ticket.ticket_number} · {ticket.issue}</p>
+                                <p className="mt-1 min-w-0 max-w-full break-words text-xs font-bold text-slate-500 [overflow-wrap:anywhere]">
                                   {ticket.customer} · {ticket.service_date ? formatServiceDate(ticket.service_date) : "ohne Termin"} {ticket.service_time ? `· ${formatServiceTime(ticket.service_time)}` : ""}
                                   {getCustomerAppointmentWorkflowState(ticket) ? ` · ${getCustomerAppointmentWorkflowState(ticket)?.label}` : ""}
                                 </p>
                               </div>
-                              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
+                              <span className={`w-fit max-w-full whitespace-normal break-words rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
                                 {ticket.status}
                               </span>
                             </div>
 
-                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                            <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 md:grid-cols-4">
                               {contact.phone && (
-                                <a href={`tel:${contact.phone}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Anrufen</a>
+                                <a href={`tel:${contact.phone}`} className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-700">Anrufen</a>
                               )}
                               {contact.email && (
-                                <a href={`mailto:${contact.email}?subject=${encodeURIComponent(ticket.ticket_number + " · " + ticket.issue)}`} className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-black text-slate-700">Mail</a>
+                                <a href={`mailto:${contact.email}?subject=${encodeURIComponent(ticket.ticket_number + " · " + ticket.issue)}`} className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-700">Mail</a>
                               )}
-                              <button type="button" onClick={() => openNavigationForTicketPremium(ticket)} className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700">Navigation</button>
-                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="rounded-xl bg-sky-500 px-3 py-2 text-xs font-black text-white">Akte</button>
+                              <button type="button" onClick={() => openNavigationForTicketPremium(ticket)} className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-slate-100 px-2 py-2 text-xs font-black text-slate-700">Navigation</button>
+                              <button type="button" onClick={() => setSelectedTicketView(ticket)} className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-sky-500 px-2 py-2 text-xs font-black text-white">Akte</button>
                             </div>
 
-                            <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                            <div className="mt-3 grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2 md:grid-cols-4">
                               {["Unterwegs", "Vor Ort", "In Bearbeitung", "Abgeschlossen"].map((nextStatus) => (
                                 <button
                                   key={nextStatus}
                                   type="button"
                                   onClick={() => quickTechnicianStatusPremium(ticket, nextStatus)}
-                                  className="rounded-xl border border-[#c3cede] bg-white px-3 py-2 text-xs font-black text-slate-700"
+                                  className="min-w-0 w-full whitespace-normal break-words rounded-lg border border-[#c3cede] bg-white px-2 py-2 text-xs font-black text-slate-700"
                                 >
                                   {nextStatus}
                                 </button>
@@ -36099,10 +36099,10 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                               );
 
                               return (
-                                <div className="mt-3 grid gap-2">
+                                <div className="mt-3 grid min-w-0 grid-cols-1 gap-2">
                                   {workflowState && (
                                     <div
-                                      className={`rounded-xl px-3 py-2 text-xs font-black ${
+                                      className={`min-w-0 max-w-full break-words rounded-xl px-3 py-2 text-xs font-black [overflow-wrap:anywhere] ${
                                         workflowState.kind === "confirmed"
                                           ? "bg-emerald-50 text-emerald-800"
                                           : workflowState.kind === "reschedule"
@@ -36124,13 +36124,13 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                                       ticket,
                                       linkedDevice,
                                     ) && (
-                                      <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-900">
+                                      <div className="min-w-0 max-w-full break-words rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 [overflow-wrap:anywhere]">
                                         ⚠ Geräteprüfung offen · Hersteller oder Modell fehlt
                                       </div>
                                     )}
 
                                   {waitingPart && (
-                                    <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-900">
+                                    <div className="min-w-0 max-w-full break-words rounded-xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-900 [overflow-wrap:anywhere]">
                                       ⚠ Ersatzteilstatus:{" "}
                                       {String(waitingPart.status) === "ordered"
                                         ? "Bestellt"
@@ -36139,25 +36139,25 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                                   )}
 
                                   {availablePart && (
-                                    <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+                                    <div className="min-w-0 max-w-full break-words rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 [overflow-wrap:anywhere]">
                                       ✓ Ersatzteil verfügbar · Einbautermin möglich
                                     </div>
                                   )}
 
                                   {installedPart && (
-                                    <div className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-blue-800">
+                                    <div className="min-w-0 max-w-full break-words rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-blue-800 [overflow-wrap:anywhere]">
                                       ✓ Ersatzteil eingebaut
                                     </div>
                                   )}
 
                                   {ticket.status === "Abgeschlossen" && (
-                                    <div className="rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-800">
+                                    <div className="min-w-0 max-w-full break-words rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-800 [overflow-wrap:anywhere]">
                                       Technisch abgeschlossen · kaufmännische Bearbeitung kann noch offen sein
                                     </div>
                                   )}
 
                                   {ticket.status === "Erledigt" && (
-                                    <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800">
+                                    <div className="min-w-0 max-w-full break-words rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-800 [overflow-wrap:anywhere]">
                                       ✓ Vorgang vollständig erledigt
                                     </div>
                                   )}
@@ -36165,11 +36165,11 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                               );
                             })()}
 
-                            <div className="mt-3 rounded-2xl bg-slate-50 p-3">
+                            <div className="mt-3 min-w-0 max-w-full overflow-hidden rounded-xl bg-slate-50 p-3">
                               <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Checkliste</p>
-                              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                              <div className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
                                 {checklist.map((item) => (
-                                  <div key={item.label} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                                  <div key={item.label} className="flex min-w-0 items-start gap-2 break-words text-xs font-bold text-slate-700 [overflow-wrap:anywhere]">
                                     <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"}`}>
                                       {item.done ? "✓" : "–"}
                                     </span>
@@ -36185,7 +36185,7 @@ placeholder="Gerät, Kunde, Seriennummer, Standort oder ID suchen..."
                                 setSelectedTicketView(ticket);
                                 openServiceReportSigning(ticket);
                               }}
-                              className="mt-3 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
+                              className="mt-3 min-w-0 w-full whitespace-normal break-words rounded-xl bg-slate-900 px-3 py-3 text-sm font-black text-white"
                             >
                               Servicebericht / Signatur öffnen
                             </button>
