@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.68
+// TRYBUN Service Management System v4.13.69
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -1643,6 +1643,8 @@ export default function Home() {
   const [deviceCustomValuesEditing, setDeviceCustomValuesEditing] = useState(false);
   const [deviceCustomValuesSaving, setDeviceCustomValuesSaving] = useState(false);
 
+  // Gemeinsame Oberfläche: bestehende Prüfprotokolle und vorhandene Prüfsiegel-Funktion.
+  const [inspectionHubTab, setInspectionHubTab] = useState<"protocols" | "badges">("protocols");
   const [inspectionDeviceId, setInspectionDeviceId] = useState("");
   const [inspectionBadgeNumber, setInspectionBadgeNumber] = useState("");
   const [inspectionDate, setInspectionDate] = useState("");
@@ -34409,6 +34411,28 @@ placeholder="Kategorie oder Modell suchen, z. B. Steuerung, Pumpe, Modellname"
                 </div>
               </div>
 
+              <div className="flex min-w-0 flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" role="tablist" aria-label="Prüfungen und Prüfsiegel">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inspectionHubTab === "protocols"}
+                  onClick={() => setInspectionHubTab("protocols")}
+                  className={`min-w-0 flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors sm:flex-none ${inspectionHubTab === "protocols" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                >
+                  Prüfungen & Abnahmen
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inspectionHubTab === "badges"}
+                  onClick={() => setInspectionHubTab("badges")}
+                  className={`min-w-0 flex-1 rounded-lg px-4 py-3 text-sm font-semibold transition-colors sm:flex-none ${inspectionHubTab === "badges" ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+                >
+                  Prüfsiegel & Fristen
+                </button>
+              </div>
+
+              {inspectionHubTab === "protocols" && (
               <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.65fr)]">
                 <div className="space-y-6">
                   <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
@@ -34730,6 +34754,182 @@ placeholder="Gerät / Anlage / Modell suchen..."
                   </div>
                 </div>
               </div>
+              )}
+
+              {inspectionHubTab === "badges" && (
+                <div className="min-w-0 space-y-4">
+                  <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                    <strong className="font-semibold text-slate-900">Dokumentation statt Zertifizierung:</strong> Prüfsiegel hier nur nach tatsächlich durchgeführter und dokumentierter Prüfung erfassen. Die bestehende Funktion speichert Siegelinformationen direkt am Gerät; sie erzeugt noch keinen automatischen Aufkleber oder öffentlichen QR-Nachweis.
+                  </div>
+
+            <div className="trybun-inspections-view min-w-0 space-y-5">
+              <div className="trybun-service-metrics grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
+                <StatCard label="Gültig" value={inspectionStats.ok} />
+                <StatCard label="Bald fällig" value={inspectionStats.soon} />
+                <StatCard label="Überfällig" value={inspectionStats.overdue} />
+                <StatCard label="Ohne Datum" value={inspectionStats.missing} />
+              </div>
+
+              <div className="trybun-service-panel min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <h3 className="text-xl font-semibold tracking-tight text-slate-900">Prüfungen & Prüfsiegel</h3>
+                {(isAdmin || isTechnician) && (
+                  <div className="mt-5 min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <h4 className="text-lg font-semibold tracking-tight text-slate-900">
+                      Prüfsiegel eintragen
+                    </h4>
+                    <p className="mt-1 text-sm font-normal leading-relaxed text-slate-600">
+                      Speichert Prüfsiegelnummer, Prüfdatum, Ablaufdatum und
+                      Ergebnis direkt am Gerät.
+                    </p>
+
+                    <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      <select
+                        value={inspectionDeviceId}
+                        onChange={(e) => setInspectionDeviceId(e.target.value)}
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
+                      >
+                        <option value="">Gerät auswählen</option>
+                        {devices.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        value={inspectionBadgeNumber}
+                        onChange={(e) =>
+                          setInspectionBadgeNumber(e.target.value)
+                        }
+                        placeholder="Prüfsiegel-Nr."
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                      />
+
+                      <select
+                        value={inspectionResult}
+                        onChange={(e) => setInspectionResult(e.target.value)}
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
+                      >
+                        <option>Bestanden</option>
+                        <option>Mängel festgestellt</option>
+                        <option>Nicht bestanden</option>
+                      </select>
+
+                      <input
+                        value={inspectionDate}
+                        onChange={(e) => setInspectionDate(e.target.value)}
+                        type="date"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                      />
+
+                      <input
+                        value={inspectionExpires}
+                        onChange={(e) => setInspectionExpires(e.target.value)}
+                        type="date"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                      />
+
+                      <input
+                        value={inspectionComment}
+                        onChange={(e) => setInspectionComment(e.target.value)}
+                        placeholder="Prüfhinweis / Mangel / Notiz"
+                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                      />
+                    </div>
+
+                    <button
+                      onClick={saveInspectionBadge}
+                      className="mt-4 w-full rounded-lg bg-sky-600 px-5 py-3 text-sm font-semibold text-white sm:w-auto"
+                    >
+                      Prüfsiegel speichern
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-5 min-w-0 space-y-3">
+                  {devices.length === 0 ? (
+                    <div className="rounded-lg bg-slate-50 p-5 text-sm text-slate-500">
+                      Noch keine Geräte vorhanden.
+                    </div>
+                  ) : (
+                    getPagedItems("inspections", devices, 10).map((item) => {
+                      const inspection = getInspectionStatus(item.next_check);
+
+                      return (
+                        <div
+                          key={item.id}
+                          className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
+                        >
+                          <div className="flex min-w-0 flex-col justify-between gap-4 xl:flex-row xl:items-center">
+                            <div className="min-w-0 flex-1">
+                              <p className="break-words text-xs font-medium text-slate-500 [overflow-wrap:anywhere]">
+                                {item.serial_number || "Keine Seriennummer"}
+                              </p>
+
+                              <h4 className="mt-1 break-words text-lg font-semibold leading-snug tracking-tight text-slate-900 md:text-xl [overflow-wrap:anywhere]">
+                                {item.name}
+                              </h4>
+
+                              <p className="mt-1 break-words text-sm text-slate-600 [overflow-wrap:anywhere]">
+                                Standort: {item.location || "Nicht angegeben"}
+                              </p>
+                            </div>
+
+                            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-[480px]">
+                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs text-slate-500">
+                                  Nächste Prüfung
+                                </p>
+                                <p className="break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
+                                  {item.next_check || "Nicht geplant"}
+                                </p>
+                              </div>
+
+                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs text-slate-500">Frist</p>
+                                <p className="break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
+                                  {inspection.daysText}
+                                </p>
+                              </div>
+
+                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <p className="text-xs text-slate-500">Status</p>
+                                <span
+                                  className={`mt-1 inline-block max-w-full break-words rounded-md px-3 py-1 text-xs font-semibold sm:text-sm ${inspection.className}`}
+                                >
+                                  {inspection.label}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row xl:w-48 xl:flex-col">
+                              <button
+                                onClick={() => startEditDevice(item)}
+                                className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+                              >
+                                Prüfung bearbeiten
+                              </button>
+
+                              {inspection.label !== "Gültig" && (
+                                <button
+                                  onClick={() => createInspectionTicket(item)}
+                                  className="min-w-0 w-full rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white"
+                                >
+                                  Ticket erstellen
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  {renderListPagination("inspections", devices.length, 10)}
+                </div>
+              </div>
+            </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -35721,175 +35921,6 @@ placeholder="Gerät / Anlage / Modell suchen..."
           )}
 
           
-
-          {activePage === "Prüfungen" && (
-            <div className="trybun-inspections-view min-w-0 space-y-5">
-              <div className="trybun-service-metrics grid min-w-0 grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 shadow-sm lg:grid-cols-4">
-                <StatCard label="Gültig" value={inspectionStats.ok} />
-                <StatCard label="Bald fällig" value={inspectionStats.soon} />
-                <StatCard label="Überfällig" value={inspectionStats.overdue} />
-                <StatCard label="Ohne Datum" value={inspectionStats.missing} />
-              </div>
-
-              <div className="trybun-service-panel min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-                <h3 className="text-xl font-semibold tracking-tight text-slate-900">Prüfungen & Prüfsiegel</h3>
-                {(isAdmin || isTechnician) && (
-                  <div className="mt-5 min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                    <h4 className="text-lg font-semibold tracking-tight text-slate-900">
-                      Prüfsiegel eintragen
-                    </h4>
-                    <p className="mt-1 text-sm font-normal leading-relaxed text-slate-600">
-                      Speichert Prüfsiegelnummer, Prüfdatum, Ablaufdatum und
-                      Ergebnis direkt am Gerät.
-                    </p>
-
-                    <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      <select
-                        value={inspectionDeviceId}
-                        onChange={(e) => setInspectionDeviceId(e.target.value)}
-                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
-                      >
-                        <option value="">Gerät auswählen</option>
-                        {devices.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        value={inspectionBadgeNumber}
-                        onChange={(e) =>
-                          setInspectionBadgeNumber(e.target.value)
-                        }
-                        placeholder="Prüfsiegel-Nr."
-                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-                      />
-
-                      <select
-                        value={inspectionResult}
-                        onChange={(e) => setInspectionResult(e.target.value)}
-                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900"
-                      >
-                        <option>Bestanden</option>
-                        <option>Mängel festgestellt</option>
-                        <option>Nicht bestanden</option>
-                      </select>
-
-                      <input
-                        value={inspectionDate}
-                        onChange={(e) => setInspectionDate(e.target.value)}
-                        type="date"
-                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-                      />
-
-                      <input
-                        value={inspectionExpires}
-                        onChange={(e) => setInspectionExpires(e.target.value)}
-                        type="date"
-                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-                      />
-
-                      <input
-                        value={inspectionComment}
-                        onChange={(e) => setInspectionComment(e.target.value)}
-                        placeholder="Prüfhinweis / Mangel / Notiz"
-                        className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-                      />
-                    </div>
-
-                    <button
-                      onClick={saveInspectionBadge}
-                      className="mt-4 w-full rounded-lg bg-sky-600 px-5 py-3 text-sm font-semibold text-white sm:w-auto"
-                    >
-                      Prüfsiegel speichern
-                    </button>
-                  </div>
-                )}
-
-                <div className="mt-5 min-w-0 space-y-3">
-                  {devices.length === 0 ? (
-                    <div className="rounded-lg bg-slate-50 p-5 text-sm text-slate-500">
-                      Noch keine Geräte vorhanden.
-                    </div>
-                  ) : (
-                    getPagedItems("inspections", devices, 10).map((item) => {
-                      const inspection = getInspectionStatus(item.next_check);
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-4 sm:p-5"
-                        >
-                          <div className="flex min-w-0 flex-col justify-between gap-4 xl:flex-row xl:items-center">
-                            <div className="min-w-0 flex-1">
-                              <p className="break-words text-xs font-medium text-slate-500 [overflow-wrap:anywhere]">
-                                {item.serial_number || "Keine Seriennummer"}
-                              </p>
-
-                              <h4 className="mt-1 break-words text-lg font-semibold leading-snug tracking-tight text-slate-900 md:text-xl [overflow-wrap:anywhere]">
-                                {item.name}
-                              </h4>
-
-                              <p className="mt-1 break-words text-sm text-slate-600 [overflow-wrap:anywhere]">
-                                Standort: {item.location || "Nicht angegeben"}
-                              </p>
-                            </div>
-
-                            <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:w-[480px]">
-                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs text-slate-500">
-                                  Nächste Prüfung
-                                </p>
-                                <p className="break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
-                                  {item.next_check || "Nicht geplant"}
-                                </p>
-                              </div>
-
-                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs text-slate-500">Frist</p>
-                                <p className="break-words text-sm font-semibold text-slate-800 [overflow-wrap:anywhere]">
-                                  {inspection.daysText}
-                                </p>
-                              </div>
-
-                              <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                <p className="text-xs text-slate-500">Status</p>
-                                <span
-                                  className={`mt-1 inline-block max-w-full break-words rounded-md px-3 py-1 text-xs font-semibold sm:text-sm ${inspection.className}`}
-                                >
-                                  {inspection.label}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row xl:w-48 xl:flex-col">
-                              <button
-                                onClick={() => startEditDevice(item)}
-                                className="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
-                              >
-                                Prüfung bearbeiten
-                              </button>
-
-                              {inspection.label !== "Gültig" && (
-                                <button
-                                  onClick={() => createInspectionTicket(item)}
-                                  className="min-w-0 w-full rounded-lg bg-sky-600 px-4 py-3 text-sm font-semibold text-white"
-                                >
-                                  Ticket erstellen
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                  {renderListPagination("inspections", devices.length, 10)}
-                </div>
-              </div>
-            </div>
-          )}
 
           {activePage === "QR-Scan" && (
             <div className="trybun-device-directory min-w-0 space-y-5">
