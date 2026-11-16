@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.60
+// TRYBUN Service Management System v4.13.61
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -37419,7 +37419,7 @@ placeholder="Auftraggeber suchen: Firma, Kundennummer, Ort, E-Mail, Telefon..."
                   </div>
 
                   <div className={`${mobileTicketListOpen ? "block" : "hidden"} md:block`}>
-                    <div className="mt-5 min-w-0 overflow-hidden rounded-3xl bg-slate-50 p-4">
+                    <div className="mt-5 min-w-0 max-w-full overflow-hidden rounded-xl bg-slate-50 p-2.5 sm:p-4">
                     <input
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -37430,14 +37430,14 @@ spellCheck={false}
 enterKeyHint="search"
 name="trybun-ticket-directory-query"
 placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Telefon, Gerät oder Seriennummer suchen..."
-                      className="w-full rounded-2xl border border-slate-300 px-5 py-3"
+                      className="block w-full min-w-0 max-w-full rounded-xl border border-slate-300 px-3 py-3 sm:px-5"
                     />
 
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-3">
                       <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-4 py-3"
+                        className="w-full min-w-0 max-w-full rounded-xl border border-slate-300 px-3 py-3 sm:px-4"
                       >
                         {filterStatusOptions.map((item) => (
                           <option key={item}>{item}</option>
@@ -37447,7 +37447,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                       <select
                         value={priorityFilter}
                         onChange={(e) => setPriorityFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-300 px-4 py-3"
+                        className="w-full min-w-0 max-w-full rounded-xl border border-slate-300 px-3 py-3 sm:px-4"
                       >
                         {filterPriorityOptions.map((item) => (
                           <option key={item}>{item}</option>
@@ -37461,14 +37461,14 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                           setPriorityFilter("Alle");
                           setTicketListFocus("Alle");
                         }}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3 font-bold"
+                        className="w-full min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-bold sm:px-4"
                       >
                         Reset
                       </button>
                     </div>
                   </div>
 
-                    <div className="mt-5 min-w-0 space-y-3 overflow-hidden">
+                    <div className="mt-5 min-w-0 max-w-full space-y-3 overflow-hidden">
                     {filteredTickets.length === 0 ? (
                       <div className="rounded-3xl bg-slate-50 p-6 text-slate-500">
                         Keine Tickets gefunden.
@@ -37499,7 +37499,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         return (
                         <div
                           key={ticket.id}
-                          className={`min-w-0 overflow-hidden rounded-xl border bg-white p-4 shadow-sm sm:p-5 ${
+                          className={`w-full min-w-0 max-w-full overflow-hidden [overflow-wrap:anywhere] rounded-xl border bg-white p-3 shadow-sm sm:p-5 ${
                             ticket.priority === "Hoch"
                               ? "border-red-200"
                               : "border-slate-200"
@@ -37507,24 +37507,24 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                         >
                           <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-black text-sky-600">
+                              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                                <span className="max-w-full whitespace-normal break-words rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold sm:font-black text-sky-600">
                                   {ticket.ticket_number}
                                 </span>
-                                <span className={`rounded-full px-3 py-1 text-xs font-black ${statusClass(ticket.status)}`}>
+                                <span className={`max-w-full whitespace-normal break-words rounded-full px-3 py-1 text-xs font-semibold sm:font-black ${statusClass(ticket.status)}`}>
                                   {statusIcon(ticket.status)} {ticket.status}
                                 </span>
-                                <span className={`rounded-full px-3 py-1 text-xs font-black ${priorityClass(ticket.priority)}`}>
+                                <span className={`max-w-full whitespace-normal break-words rounded-full px-3 py-1 text-xs font-semibold sm:font-black ${priorityClass(ticket.priority)}`}>
                                   Priorität {ticket.priority}
                                 </span>
                                 {ticket.device_review_status === "pending" &&
                                   ticketNeedsManufacturerOrModelReview(ticket, ticketDevice) && (
-                                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
+                                    <span className="max-w-full whitespace-normal break-words rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold sm:font-black text-amber-800">
                                       Geräteprüfung offen
                                     </span>
                                   )}
                                 {ticket.device_review_status === "technician_updated" && (
-                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                  <span className={`max-w-full whitespace-normal break-words rounded-full px-3 py-1 text-xs font-semibold sm:font-black ${
                                     ticketNeedsManufacturerOrModelReview(ticket, ticketDevice)
                                       ? "bg-amber-100 text-amber-800"
                                       : "bg-blue-100 text-blue-700"
@@ -37535,12 +37535,12 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   </span>
                                 )}
                                 {ticket.device_review_status === "approved" && (
-                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
+                                  <span className="max-w-full whitespace-normal break-words rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold sm:font-black text-emerald-700">
                                     Gerät geprüft
                                   </span>
                                 )}
                                 {getCustomerAppointmentResponseState(ticket) && (
-                                  <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                                  <span className={`max-w-full whitespace-normal break-words rounded-full px-3 py-1 text-xs font-semibold sm:font-black ${
                                     getCustomerAppointmentResponseState(ticket)?.kind === "confirmed"
                                       ? "bg-emerald-100 text-emerald-800"
                                       : "bg-amber-100 text-amber-900"
@@ -37550,36 +37550,36 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                   </span>
                                 )}
                                 {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "available") && (
-                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+                                  <span className="max-w-full whitespace-normal break-words rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold sm:font-black text-emerald-800">
                                     ✓ Ersatzteil verfügbar
                                   </span>
                                 )}
                                 {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "ordered") && (
-                                  <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-800">
+                                  <span className="max-w-full whitespace-normal break-words rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold sm:font-black text-violet-800">
                                     Ersatzteil bestellt
                                   </span>
                                 )}
                                 {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "delivery_created") && (
-                                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">
+                                  <span className="max-w-full whitespace-normal break-words rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold sm:font-black text-amber-800">
                                     Lieferschein erstellt
                                   </span>
                                 )}
                                 {getTicketPartRequirements(ticket.id).some((item) => getTicketPartRequirementStatus(item) === "invoiced") && (
-                                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-black text-blue-800">
+                                  <span className="max-w-full whitespace-normal break-words rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold sm:font-black text-blue-800">
                                     In Rechnung gestellt
                                   </span>
                                 )}
                               </div>
 
-                              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                              <div className="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2">
+                                <div className="min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
                                     Auftraggeber
                                   </p>
-                                  <h4 className="mt-1 break-words text-lg font-black leading-tight text-slate-900">
+                                  <h4 className="mt-1 min-w-0 break-words text-lg font-black leading-tight text-slate-900">
                                     {ticket.customer || "Auftraggeber nicht zugeordnet"}
                                   </h4>
-                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                  <p className="mt-1 min-w-0 break-words text-xs font-bold text-slate-600">
                                     {billingCustomer?.customer_number
                                       ? `Kundennr.: ${billingCustomer.customer_number}`
                                       : "Kundennr.: nicht hinterlegt"}
@@ -37587,57 +37587,57 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 </div>
 
                                 {hasDifferentServiceLocation(ticket, billingCustomer) && (
-                                  <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3">
+                                  <div className="min-w-0 max-w-full rounded-xl border border-sky-200 bg-sky-50 p-3">
                                     <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-600">
                                       Einsatzort
                                     </p>
-                                    <h4 className="mt-1 break-words text-lg font-black leading-tight text-slate-900">
+                                    <h4 className="mt-1 min-w-0 break-words text-lg font-black leading-tight text-slate-900">
                                       {serviceLocation}
                                     </h4>
                                     {serviceAddress && (
-                                      <p className="mt-1 whitespace-pre-wrap break-words text-xs font-bold text-slate-600">
+                                      <p className="mt-1 min-w-0 whitespace-pre-wrap break-words text-xs font-bold text-slate-600">
                                         {serviceAddress}
                                       </p>
                                     )}
                                     {(ticket.service_contact_name || ticket.service_contact_phone) && (
-                                      <p className="mt-1 break-words text-xs font-black text-slate-700">
+                                      <p className="mt-1 min-w-0 break-words text-xs font-black text-slate-700">
                                         {ticket.service_contact_name || "Ansprechpartner"}{ticket.service_contact_phone ? ` · ${ticket.service_contact_phone}` : ""}
                                       </p>
                                     )}
                                   </div>
                                 )}
 
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                                <div className="min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
                                     Geräteangabe
                                   </p>
                                   {getTicketDeviceSummary(ticket, ticketDevice).deviceName && (
-                                    <p className="mt-1 break-words text-sm font-black text-slate-900">
+                                    <p className="mt-1 min-w-0 break-words text-sm font-black text-slate-900">
                                       {getTicketDeviceSummary(ticket, ticketDevice).deviceName}
                                     </p>
                                   )}
-                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                  <p className="mt-1 min-w-0 break-words text-xs font-bold text-slate-600">
                                     Hersteller: {getTicketDeviceSummary(ticket, ticketDevice).manufacturer}
                                   </p>
-                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                  <p className="mt-1 min-w-0 break-words text-xs font-bold text-slate-600">
                                     Modell: {getTicketDeviceSummary(ticket, ticketDevice).model}
                                   </p>
-                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                  <p className="mt-1 min-w-0 break-words text-xs font-bold text-slate-600">
                                     Seriennummer: {getTicketDeviceSummary(ticket, ticketDevice).serial}
                                   </p>
-                                  <p className="mt-1 break-words text-xs font-bold text-slate-500">
+                                  <p className="mt-1 min-w-0 break-words text-xs font-bold text-slate-500">
                                     Standort: {getTicketDeviceSummary(ticket, ticketDevice).location}
                                   </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                                <div className="min-w-0 max-w-full rounded-xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
                                     Techniker / Termin
                                   </p>
-                                  <p className="mt-1 break-words text-sm font-black text-slate-900">
+                                  <p className="mt-1 min-w-0 break-words text-sm font-black text-slate-900">
                                     {getTechnicianNameById(ticket.assigned_to)}
                                   </p>
-                                  <p className="mt-1 break-words text-xs font-bold text-slate-600">
+                                  <p className="mt-1 min-w-0 break-words text-xs font-bold text-slate-600">
                                     {formatServiceAppointment(ticket.service_date, ticket.service_time)}
                                     {ticket.service_status ? ` · ${ticket.service_status}` : ""}
                                   </p>
@@ -37717,14 +37717,14 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 </div>
                               </div>
 
-                              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                              <div className="mt-3 min-w-0 max-w-full rounded-xl border border-slate-200 bg-white p-3">
                                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
                                   Leistung
                                 </p>
-                                <p className="mt-1 break-words text-sm font-black text-slate-900">
+                                <p className="mt-1 min-w-0 break-words text-sm font-black text-slate-900">
                                   {ticketServiceTypeText(ticket)}
                                 </p>
-                                <p className="mt-1 break-words text-sm font-semibold text-slate-700">
+                                <p className="mt-1 min-w-0 break-words text-sm font-semibold text-slate-700">
                                   {ticketSubjectText(ticket)}
                                 </p>
                                 <p className="mt-2 line-clamp-3 break-words text-sm font-medium text-slate-600">
@@ -37732,7 +37732,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 </p>
                               </div>
 
-                              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                              <div className="mt-3 min-w-0 max-w-full rounded-xl border border-slate-200 bg-white p-3">
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                                   Einsatzplanung
                                 </p>
@@ -37815,17 +37815,17 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                     />
                                   </div>
                                 ) : (
-                                  <p className="mt-2 break-words text-sm font-bold text-slate-700">
+                                  <p className="mt-2 min-w-0 break-words text-sm font-bold text-slate-700">
                                     {getTechnicianNameById(ticket.assigned_to)} · {ticket.service_date ? formatServiceAppointment(ticket.service_date, ticket.service_time) : "kein Termin"}
                                   </p>
                                 )}
                               </div>
 
-                              <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                              <div className="mt-3 min-w-0 max-w-full rounded-xl border border-blue-100 bg-blue-50 p-3">
                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">
                                   Nachweise
                                 </p>
-                                <p className="mt-1 break-words text-sm font-bold text-slate-700">
+                                <p className="mt-1 min-w-0 break-words text-sm font-bold text-slate-700">
                                   {getDocumentsForTicket(ticket).length} Datei(en) zugeordnet
                                 </p>
                                 {getDocumentsForTicket(ticket).length > 0 && (
@@ -37853,7 +37853,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                         e.target.value,
                                       )
                                     }
-                                    className="max-w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm font-bold"
+                                    className="w-full min-w-0 max-w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-bold sm:w-auto"
                                   >
                                     {statusOptions.map((item) => (
                                       <option key={item}>{item}</option>
@@ -37863,10 +37863,10 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               )}
                             </div>
 
-                            <div className="grid min-w-0 grid-cols-2 gap-2 md:w-56 md:shrink-0 xl:w-60">
+                            <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 md:w-56 md:shrink-0 md:grid-cols-1 xl:w-60">
                               <button
                                 onClick={() => setSelectedTicketView(ticket)}
-                                className="w-full rounded-lg bg-slate-900 px-3 py-3 text-center text-xs font-bold text-white md:text-sm"
+                                className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-slate-900 px-3 py-3 text-center text-xs font-bold text-white md:text-sm"
                               >
                                 Akte
                               </button>
@@ -37874,7 +37874,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {!isCustomer && (
                                 <button
                                   onClick={() => startEdit(ticket)}
-                                  className="w-full rounded-lg bg-sky-50 px-3 py-3 text-center text-xs font-bold text-sky-800 md:text-sm"
+                                  className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-sky-50 px-3 py-3 text-center text-xs font-bold text-sky-800 md:text-sm"
                                 >
                                   Bearbeiten
                                 </button>
@@ -37883,7 +37883,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {!isCustomer && (
                                 <button
                                   onClick={() => openTicketPartRequirement(ticket)}
-                                  className="w-full rounded-lg bg-slate-100 px-3 py-3 text-center text-xs font-semibold text-slate-800 md:text-sm"
+                                  className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-slate-100 px-3 py-3 text-center text-xs font-semibold text-slate-800 md:text-sm"
                                 >
                                   Ersatzteilbedarf
                                 </button>
@@ -37895,7 +37895,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                                 ticketNeedsManufacturerOrModelReview(ticket, ticketDevice) && (
                                   <button
                                     onClick={() => openAdminDeviceReview(ticket)}
-                                    className="w-full rounded-lg bg-amber-50 px-3 py-3 text-center text-xs font-semibold text-amber-800 md:text-sm"
+                                    className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-amber-50 px-3 py-3 text-center text-xs font-semibold sm:font-black text-amber-800 md:text-sm"
                                   >
                                     Geräteprüfung
                                   </button>
@@ -37904,7 +37904,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {!isCustomer && (
                                 <button
                                   onClick={() => openServiceReportSigning(ticket)}
-                                  className="w-full rounded-lg bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-800 md:text-sm"
+                                  className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-slate-100 px-3 py-3 text-center text-xs font-bold text-slate-800 md:text-sm"
                                 >
                                   PDF / Signatur
                                 </button>
@@ -37913,7 +37913,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {canCustomerCancelTicket(ticket) && (
                                 <button
                                   onClick={() => cancelOwnCustomerTicket(ticket)}
-                                  className="w-full rounded-lg bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
+                                  className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-orange-100 px-3 py-3 text-center text-xs font-bold text-orange-700 md:text-sm"
                                 >
                                   Stornieren
                                 </button>
@@ -37922,7 +37922,7 @@ placeholder="Ticket, Auftraggeber, Kundennummer, Einsatzort, Ansprechpartner, Te
                               {isAdmin && (
                                 <button
                                   onClick={() => deleteTicket(ticket.id)}
-                                  className="w-full rounded-lg bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
+                                  className="min-w-0 w-full whitespace-normal break-words rounded-lg bg-red-100 px-3 py-3 text-center text-xs font-bold text-red-700 md:text-sm"
                                 >
                                   Löschen
                                 </button>
