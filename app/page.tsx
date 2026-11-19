@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.79
+// TRYBUN Service Management System v4.13.80
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -8995,7 +8995,7 @@ async function loadInvoices() {
     pdf.text(companyDisplayName, headerTextX, y);
     pdf.setFontSize(8.5);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`${companySubtitle} · Servicebericht Premium`, headerTextX, y + 6);
+    pdf.text(`${companySubtitle} · Servicebericht`, headerTextX, y + 6);
     pdf.text(companyContactLine, headerTextX, y + 11);
 
     pdf.setFont("helvetica", "bold");
@@ -9505,7 +9505,7 @@ async function loadInvoices() {
           <div class="top">
             <div>
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">${tenantLogoUrl ? `<img src="${tenantLogoUrl}" onerror="this.style.display=\'none\'" style="height:38px;max-width:160px;object-fit:contain;" />` : ""}<h1 style="margin:0;">${companyDisplayName}</h1></div>
-              <p class="muted">${companySubtitle} · Servicebericht Premium</p>
+              <p class="muted">${companySubtitle} · Servicebericht</p>
               <span class="badge">Servicebericht / Prüfbericht</span>
             </div>
             <div>
@@ -23884,10 +23884,7 @@ ${tenantBrandName}`,
             </div>
 
             <div className="mt-7 border-t border-slate-800 pt-5 text-center">
-              <p className="text-xs font-semibold leading-5 text-slate-500">
-                TRYBUN befindet sich derzeit in der Entwicklungs- und Pilotphase.
-              </p>
-              <div className="mt-3 flex items-center justify-center gap-4 text-xs font-bold">
+              <div className="flex items-center justify-center gap-4 text-xs font-bold">
                 <a
                   href="/impressum"
                   className="text-slate-400 underline decoration-slate-600 underline-offset-4 transition hover:text-sky-400"
@@ -26518,10 +26515,10 @@ ${tenantBrandName}`,
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
-                          Dispo-Arbeitsvorrat
+                          Einsatzübersicht
                         </p>
                         <h4 className="mt-1 text-xl font-bold tracking-[-0.025em] text-slate-950">
-                          Alles, was noch geplant oder geprüft werden muss
+                          Offene Einsätze und Wartungen
                         </h4>
                         <p className="mt-1 text-sm font-medium leading-6 text-slate-600">
                           Ungeplante Tickets, überfällige Einsätze und fällige Wartungen direkt am Einsatzkalender bearbeiten.
@@ -27964,7 +27961,7 @@ placeholder="Suche Empfänger, Betreff, Ticket, Fehler..."
                       </div>
 
                       <p className="mt-4 text-xs font-semibold leading-5 text-slate-500">
-                        Der Service Copilot ist in dieser Ausbaustufe vollständig datenbasiert und arbeitet ohne externe KI-Auswertung. Technische Entscheidungen bleiben beim qualifizierten Servicepersonal.
+                        Der Service Copilot nutzt vorhandene TRYBUN-Daten und führt keine externe KI-Auswertung durch. Technische Entscheidungen bleiben beim qualifizierten Servicepersonal.
                       </p>
                     </div>
                     )}
@@ -28312,7 +28309,7 @@ placeholder="Bestehendes Dokument suchen und diesem Ticket zuordnen..."
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">
-                        Wartungsplaner Premium
+                        Wartungsplanung
                       </p>
                       <h3 className="mt-1 text-xl font-black text-slate-900">
                         Automatische Ticketvorschläge aus fälligen Wartungen
@@ -35906,7 +35903,7 @@ placeholder="Gerät / Anlage / Modell suchen..."
             <div className="space-y-5 pb-24">
               <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Mobile Techniker Premium
+                  Technikerübersicht
                 </p>
                 <h3 className="mt-2 text-3xl font-black md:text-4xl">
                   Techniker-Einsatzmodus
