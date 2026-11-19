@@ -1,7 +1,7 @@
 ﻿
 "use client";
 
-// TRYBUN Service Management System v4.13.77
+// TRYBUN Service Management System v4.13.79
 
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
@@ -16930,6 +16930,8 @@ ${tenantBrandName}`,
     }
   }
 
+  // Gemeinsame A4-Dokumentvorlage für Rechnung, Angebot, Auftrag, Lieferschein und Vertrag.
+  // Ausschließlich Darstellung: Beträge/Positionen stammen unverändert aus dem bestehenden Workflow.
   async function createBrandedBusinessPdfBlob(options: {
     documentType: string;
     number: string;
@@ -16952,281 +16954,285 @@ ${tenantBrandName}`,
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 14;
-    const contentWidth = pageWidth - margin * 2;
+    const margin = 17;
+    const right = pageWidth - margin;
+    const contentWidth = pageWidth - 2 * margin;
     const companyName = tenantBrandName;
     const companyAddress = companyData?.address || "";
-    const companyContact = [companyData?.phone, companyData?.email, companyData?.website]
-      .filter(Boolean)
-      .join(" · ");
+    const companyContact = [companyData?.phone, companyData?.email, companyData?.website].filter(Boolean).join(" · ");
     const footerText = companyData?.pdf_footer || `${companyName} · erstellt mit TRYBUN`;
     const logoDataUrl = await getCompanyPdfLogoDataUrl();
-    let y = 14;
+    const kind = String(options.documentType || "Dokument").trim();
+    const isDeliveryNote = /lieferschein/i.test(kind);
+    const isInvoice = /rechnung/i.test(kind);
+    const isOffer = /angebot/i.test(kind);
+    const showFinancials = !isDeliveryNote;
+    const navy: [number, number, number] = [20, 33, 57];
+    const muted: [number, number, number] = [88, 102, 122];
+    const border: [number, number, number] = [220, 226, 234];
+    const pale: [number, number, number] = [246, 248, 251];
+    let y = 19;
 
-    const clean = (value: any) =>
-      String(value ?? "")
-        .replace(/<[^>]*>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    const money = (value: number | null | undefined) =>
-      Number(value || 0).toLocaleString("de-DE", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }) + " EUR";
-
-    const drawFooter = () => {
-      const currentY = pageHeight - 9;
-      pdf.setDrawColor(203, 213, 225);
-      pdf.line(margin, currentY - 4, pageWidth - margin, currentY - 4);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(100, 116, 139);
-      const footerLines = pdf.splitTextToSize(clean(footerText), contentWidth - 24);
-      pdf.text(footerLines.slice(0, 2), margin, currentY);
-      pdf.text(`Seite ${pdf.getNumberOfPages()}`, pageWidth - margin, currentY, { align: "right" });
+    const clean = (value: any) => String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const money = (value: number | null | undefined) => Number(value || 0).toLocaleString("de-DE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + " EUR";
+    const dateText = (value: string | null | undefined) => {
+      const raw = clean(value);
+      return /^\d{4}-\d{2}-\d{2}$/.test(raw)
+        ? new Date(`${raw}T00:00:00`).toLocaleDateString("de-DE")
+        : raw || "-";
     };
-
+    const setNavy = () => pdf.setTextColor(...navy);
+    const setMuted = () => pdf.setTextColor(...muted);
+    const safeLines = (value: any, width: number): string[] => pdf.splitTextToSize(clean(value) || "-", width);
+    const drawFooter = () => {
+      const footerY = pageHeight - 13;
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.2);
+      pdf.line(margin, footerY - 5, right, footerY - 5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.2);
+      setMuted();
+      const lines: string[] = safeLines(footerText, contentWidth - 24);
+      pdf.text(lines.slice(0, 2), margin, footerY);
+      pdf.text(`Seite ${pdf.getNumberOfPages()}`, right, footerY, { align: "right" });
+    };
     const addPage = () => {
       drawFooter();
       pdf.addPage();
-      y = 14;
+      y = 20;
     };
-
     const ensureSpace = (height: number) => {
-      if (y + height <= pageHeight - 20) return;
-      addPage();
+      if (y + height > pageHeight - 25) addPage();
     };
-
-    const sectionTitle = (title: string) => {
-      ensureSpace(12);
+    const sectionTitle = (label: string) => {
+      ensureSpace(16);
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.setTextColor(2, 132, 199);
-      pdf.text(title, margin, y);
+      pdf.setFontSize(10.5);
+      setNavy();
+      pdf.text(label, margin, y);
       y += 3;
-      pdf.setDrawColor(2, 132, 199);
-      pdf.line(margin, y, pageWidth - margin, y);
+      pdf.setDrawColor(...border);
+      pdf.setLineWidth(0.25);
+      pdf.line(margin, y, right, y);
       y += 7;
-      pdf.setTextColor(15, 23, 42);
     };
-
-    const drawTextBox = (label: string, value: any, minHeight = 18) => {
-      const lines = pdf.splitTextToSize(clean(value) || "-", contentWidth - 8);
-      const height = Math.max(minHeight, 13 + lines.length * 4.3);
-      ensureSpace(height + 4);
-      pdf.setDrawColor(203, 213, 225);
-      pdf.roundedRect(margin, y, contentWidth, height, 3, 3);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(label.toUpperCase(), margin + 4, y + 6);
+    const drawParagraph = (content: string) => {
+      const lines = safeLines(content, contentWidth);
+      const height = Math.max(8, lines.length * 4.5 + 2);
+      ensureSpace(height);
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9.5);
-      pdf.setTextColor(15, 23, 42);
-      pdf.text(lines, margin + 4, y + 12);
-      y += height + 4;
+      pdf.setFontSize(9);
+      setNavy();
+      pdf.text(lines, margin, y + 3);
+      y += height;
     };
-
-    const drawInfoGrid = (fields: Array<[string, any]>) => {
+    const drawDetails = (fields: Array<[string, string]>) => {
       if (!fields.length) return;
-      const rowHeight = 18;
-      const rows = Math.ceil(fields.length / 2);
-      const height = rows * rowHeight + 5;
-      ensureSpace(height + 3);
-      pdf.setDrawColor(203, 213, 225);
-      pdf.roundedRect(margin, y, contentWidth, height, 3, 3);
-      fields.forEach((field, index) => {
-        const column = index % 2;
-        const row = Math.floor(index / 2);
-        const x = margin + 4 + column * (contentWidth / 2);
-        const rowY = y + 7 + row * rowHeight;
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(7.3);
-        pdf.setTextColor(100, 116, 139);
-        pdf.text(clean(field[0]).toUpperCase(), x, rowY);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(9.2);
-        pdf.setTextColor(15, 23, 42);
-        const lines = pdf.splitTextToSize(clean(field[1]) || "-", contentWidth / 2 - 10);
-        pdf.text(lines.slice(0, 2), x, rowY + 5);
-      });
-      y += height + 4;
+      const columnWidth = (contentWidth - 10) / 2;
+      for (let index = 0; index < fields.length; index += 2) {
+        const pair = fields.slice(index, index + 2);
+        const lineGroups = pair.map(([_, value]) => safeLines(value, columnWidth - 3).slice(0, 4));
+        const height = Math.max(14, ...lineGroups.map((lines) => 8 + lines.length * 4.2));
+        ensureSpace(height + 1);
+        pair.forEach(([label], offset) => {
+          const x = margin + offset * (columnWidth + 10);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(7.3);
+          setMuted();
+          pdf.text(clean(label).toUpperCase(), x, y + 3);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(9);
+          setNavy();
+          pdf.text(lineGroups[offset], x, y + 9);
+        });
+        y += height + 3;
+      }
     };
-
-    const drawStockTable = (lines: StockDocumentLine[]) => {
+    const drawTable = (lines: StockDocumentLine[]) => {
       if (!lines.length) return;
-      sectionTitle("Positionen");
-
-      const colX = [margin, margin + 72, margin + 120, margin + 145, pageWidth - margin];
-      const drawHeader = () => {
-        ensureSpace(10);
-        pdf.setFillColor(241, 245, 249);
+      sectionTitle(isDeliveryNote ? "Gelieferte Positionen" : "Positionen");
+      // Feste Spaltenbreiten: keine Preisfelder auf Lieferscheinen.
+      const descriptionWidth = isDeliveryNote ? 129 : 76;
+      const qtyX = isDeliveryNote ? right - 1 : margin + 88;
+      const priceX = margin + 128;
+      const header = () => {
+        ensureSpace(11);
+        pdf.setFillColor(...pale);
         pdf.rect(margin, y, contentWidth, 9, "F");
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(71, 85, 105);
-        pdf.text("ARTIKEL / MODELL", colX[0] + 2, y + 6);
-        pdf.text("MENGE", colX[1] + 2, y + 6);
-        pdf.text(options.priceMode === "brutto" ? "EINZEL BRUTTO" : options.priceMode === "netto" ? "EINZEL NETTO" : "EINZEL", colX[2] + 2, y + 6);
-        pdf.text(options.priceMode === "brutto" ? "GESAMT BRUTTO" : options.priceMode === "netto" ? "GESAMT NETTO" : "GESAMT", colX[3] + 2, y + 6);
-        y += 10;
+        pdf.setFontSize(7.4);
+        setMuted();
+        pdf.text("POS. / ARTIKEL / LEISTUNG", margin + 2, y + 6);
+        if (isDeliveryNote) {
+          pdf.text("MENGE", qtyX, y + 6, { align: "right" });
+        } else {
+          pdf.text("MENGE", qtyX, y + 6, { align: "right" });
+          pdf.text(options.priceMode === "brutto" ? "PREIS BRUTTO" : "PREIS NETTO", priceX, y + 6, { align: "right" });
+          pdf.text("BETRAG", right - 2, y + 6, { align: "right" });
+        }
+        y += 11;
       };
-
-      drawHeader();
-
-      lines.forEach((line) => {
+      header();
+      lines.forEach((line, index) => {
         const quantity = Number(String(line.quantity).replace(",", ".")) || 0;
-        const price = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
-        const total = quantity * price;
+        const unitPrice = Number(String(line.unitPrice || "0").replace(",", ".")) || 0;
         const label = getStockLineLabel(line);
         const description = clean(line.description);
-        const articleLines = pdf.splitTextToSize(
-          description ? `${label} - ${description}` : label,
-          67,
-        );
-        const rowHeight = Math.max(10, articleLines.length * 4.2 + 3);
-        if (y + rowHeight > pageHeight - 22) {
+        const rowLines = safeLines(`${index + 1}. ${label}${description ? ` – ${description}` : ""}`, descriptionWidth);
+        const rowHeight = Math.max(11, rowLines.length * 4.3 + 4);
+        if (y + rowHeight > pageHeight - 25) {
           addPage();
-          sectionTitle("Positionen - Fortsetzung");
-          drawHeader();
+          sectionTitle("Positionen – Fortsetzung");
+          header();
         }
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(8.5);
-        pdf.setTextColor(15, 23, 42);
-        pdf.text(articleLines, colX[0] + 2, y + 5);
-        pdf.text(`${quantity.toLocaleString("de-DE")} ${getStockLineUnit(line)}`, colX[1] + 2, y + 5);
-        pdf.text(price ? money(price) : "-", colX[2] + 2, y + 5);
-        pdf.text(price ? money(total) : "-", pageWidth - margin - 2, y + 5, { align: "right" });
-        pdf.setDrawColor(226, 232, 240);
-        pdf.line(margin, y + rowHeight, pageWidth - margin, y + rowHeight);
-        y += rowHeight + 1;
+        pdf.setFontSize(8.4);
+        setNavy();
+        pdf.text(rowLines, margin + 2, y + 5);
+        pdf.text(`${quantity.toLocaleString("de-DE")} ${getStockLineUnit(line)}`, qtyX, y + 5, { align: "right" });
+        if (!isDeliveryNote) {
+          // Bisherige Preiswerte nicht verändern: reine Ausgabe, keine neue Abrechnungslogik.
+          pdf.text(money(unitPrice), priceX, y + 5, { align: "right" });
+          pdf.text(money(quantity * unitPrice), right - 2, y + 5, { align: "right" });
+        }
+        pdf.setDrawColor(...border);
+        pdf.setLineWidth(0.17);
+        pdf.line(margin, y + rowHeight, right, y + rowHeight);
+        y += rowHeight + 2;
       });
-      y += 3;
+      y += 5;
     };
-
-    const drawSignatures = () => {
-      const techSignature = options.technicianSignature || "";
-      const customerSignature = options.customerSignature || "";
-      if (!techSignature && !customerSignature) return;
-      sectionTitle("Digitale Unterschriften");
+    const drawTotals = () => {
+      if (!showFinancials || options.amountNet == null || options.amountGross == null) return;
+      const net = Number(options.amountNet || 0);
+      const gross = Number(options.amountGross || 0);
+      const tax = gross - net;
+      const width = 85;
+      const x = right - width;
       ensureSpace(40);
-      const leftX = margin;
-      const rightX = margin + contentWidth / 2 + 4;
-      const width = contentWidth / 2 - 8;
-      const signatureY = y + 21;
-
-      pdf.setDrawColor(203, 213, 225);
-      pdf.roundedRect(leftX, y, width, 32, 3, 3);
-      pdf.roundedRect(rightX, y, width, 32, 3, 3);
-
-      if (techSignature) {
-        try {
-          pdf.addImage(techSignature, "PNG", leftX + 4, y + 5, 55, 14);
-        } catch {
-          // Signatur konnte nicht eingebettet werden.
-        }
-      }
-      if (customerSignature) {
-        try {
-          pdf.addImage(customerSignature, "PNG", rightX + 4, y + 5, 55, 14);
-        } catch {
-          // Signatur konnte nicht eingebettet werden.
-        }
-      }
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(8);
-      pdf.setTextColor(15, 23, 42);
-      pdf.text("Mitarbeiter / Techniker", leftX + 4, signatureY + 4);
-      pdf.text("Kunde / Auftraggeber", rightX + 4, signatureY + 4);
+      pdf.setFillColor(...pale);
+      pdf.roundedRect(x - 3, y - 3, width + 3, 37, 2, 2, "F");
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7.5);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text(techSignature ? "digital signiert" : "nicht signiert", leftX + 4, signatureY + 9);
-      pdf.text(customerSignature ? "digital signiert" : "nicht signiert", rightX + 4, signatureY + 9);
-      y += 37;
+      pdf.setFontSize(8.5);
+      setMuted();
+      pdf.text("Zwischensumme netto", x, y + 5);
+      pdf.text(money(net), right - 3, y + 5, { align: "right" });
+      pdf.text(`Umsatzsteuer (${Number(options.taxRate || 0).toLocaleString("de-DE")} %)`, x, y + 13);
+      pdf.text(money(tax), right - 3, y + 13, { align: "right" });
+      pdf.setDrawColor(...border);
+      pdf.line(x, y + 17, right - 3, y + 17);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      setNavy();
+      pdf.text(isOffer ? "Angebotssumme" : isInvoice ? "Rechnungsbetrag" : "Gesamtbetrag", x, y + 26);
+      pdf.text(money(gross), right - 3, y + 26, { align: "right" });
+      y += 41;
+    };
+    const drawSignatures = () => {
+      const tech = options.technicianSignature || "";
+      const customer = options.customerSignature || "";
+      if (!tech && !customer) return;
+      sectionTitle("Unterschriften");
+      ensureSpace(42);
+      const width = (contentWidth - 9) / 2;
+      const slots = [
+        { x: margin, label: "Mitarbeiter / Techniker", signature: tech },
+        { x: margin + width + 9, label: "Kunde / Auftraggeber", signature: customer },
+      ];
+      slots.forEach(({ x, label, signature }) => {
+        pdf.setDrawColor(...border);
+        pdf.roundedRect(x, y, width, 33, 2, 2);
+        if (signature) {
+          try { pdf.addImage(signature, "PNG", x + 4, y + 3, 50, 16); } catch { /* bestehende fehlertolerante Signaturausgabe */ }
+        }
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        setNavy();
+        pdf.text(label, x + 4, y + 24);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.2);
+        setMuted();
+        pdf.text(signature ? "digital signiert" : "nicht signiert", x + 4, y + 29);
+      });
+      y += 38;
     };
 
-    const headerTextX = logoDataUrl ? margin + 36 : margin;
+    // Briefkopf mit Firmenlogo und rechtsbündiger, klarer Belegkennzeichnung.
+    const headerTextX = logoDataUrl ? margin + 29 : margin;
     if (logoDataUrl) {
-      try {
-        pdf.addImage(logoDataUrl, "PNG", margin, y - 4, 28, 20);
-      } catch {
-        // Firmenlogo konnte nicht eingebettet werden.
-      }
+      try { pdf.addImage(logoDataUrl, "PNG", margin, y - 4, 23, 17); } catch { /* Logo optional */ }
     }
-
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.setTextColor(2, 132, 199);
-    pdf.text(companyName, headerTextX, y);
+    pdf.setFontSize(15);
+    setNavy();
+    const companyLines = safeLines(companyName, right - headerTextX - 65);
+    pdf.text(companyLines.slice(0, 2), headerTextX, y);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(8.2);
-    pdf.setTextColor(100, 116, 139);
-    if (companyAddress) pdf.text(clean(companyAddress), headerTextX, y + 6);
-    if (companyContact) pdf.text(clean(companyContact), headerTextX, y + 11);
-
+    pdf.setFontSize(7.5);
+    setMuted();
+    if (companyAddress) pdf.text(safeLines(companyAddress, right - headerTextX - 65).slice(0, 2), headerTextX, y + 5);
+    if (companyContact) pdf.text(safeLines(companyContact, right - headerTextX - 65).slice(0, 2), headerTextX, y + 13);
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(clean(options.documentType), pageWidth - margin, y, { align: "right" });
-    pdf.setFontSize(9);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text(clean(options.number), pageWidth - margin, y + 6, { align: "right" });
-    if (options.date) {
-      const displayDate = /^\d{4}-\d{2}-\d{2}$/.test(options.date)
-        ? new Date(`${options.date}T00:00:00`).toLocaleDateString("de-DE")
-        : clean(options.date);
-      pdf.text(displayDate, pageWidth - margin, y + 11, { align: "right" });
-    }
+    pdf.setFontSize(17);
+    setNavy();
+    pdf.text(kind.toUpperCase(), right, y, { align: "right" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+    setMuted();
+    pdf.text(clean(options.number), right, y + 6, { align: "right" });
+    pdf.text(dateText(options.date), right, y + 11, { align: "right" });
+    y += 27;
+    pdf.setDrawColor(...navy);
+    pdf.setLineWidth(0.65);
+    pdf.line(margin, y, right, y);
+    y += 10;
 
-    y += 25;
-    pdf.setDrawColor(2, 132, 199);
-    pdf.setLineWidth(0.8);
-    pdf.line(margin, y, pageWidth - margin, y);
-    y += 8;
-
-    sectionTitle("Kunde / Auftraggeber");
-    drawInfoGrid([
-      ["Kunde", options.customerName || "Nicht zugeordnet"],
-      ["Adresse", options.customerAddress || "-"],
-      ["Referenz", options.reference || "-"],
-      ["Ticket", options.ticketLabel || "-"],
-    ]);
+    // Empfänger wie in einem Geschäftsbrief; Metadaten kompakt daneben.
+    ensureSpace(38);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    setMuted();
+    pdf.text("EMPFÄNGER", margin, y);
+    pdf.setFontSize(10.2);
+    setNavy();
+    pdf.text(safeLines(options.customerName || "Nicht zugeordnet", 93).slice(0, 2), margin, y + 7);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.7);
+    setMuted();
+    pdf.text(safeLines(options.customerAddress || "", 93).slice(0, 4), margin, y + 17);
+    const metaX = margin + 105;
+    pdf.setFontSize(8);
+    pdf.text("BELEGNUMMER", metaX, y + 1);
+    pdf.text("DATUM", metaX, y + 12);
+    pdf.text("REFERENZ", metaX, y + 23);
+    pdf.setFont("helvetica", "bold");
+    setNavy();
+    pdf.text(safeLines(options.number, 52).slice(0, 1), right, y + 6, { align: "right" });
+    pdf.text(dateText(options.date), right, y + 17, { align: "right" });
+    pdf.text(safeLines(options.reference || "-", 52).slice(0, 1), right, y + 28, { align: "right" });
+    y += 43;
 
     if (options.title) {
-      sectionTitle("Bezeichnung");
-      drawTextBox("Betreff / Leistung", options.title, 18);
+      sectionTitle(clean(options.title));
     }
-
+    if (options.ticketLabel && options.ticketLabel !== "-") {
+      drawParagraph(`Vorgang: ${clean(options.ticketLabel)}`);
+      y += 2;
+    }
+    drawTable(options.lines || []);
+    drawTotals();
     if (options.extraFields?.length) {
-      sectionTitle("Details");
-      drawInfoGrid(options.extraFields);
+      sectionTitle("Weitere Angaben");
+      drawDetails(options.extraFields);
     }
-
     if (options.note) {
-      sectionTitle("Hinweise / Leistungsumfang");
-      drawTextBox("Bemerkung", options.note, 22);
+      sectionTitle("Hinweise");
+      drawParagraph(options.note);
+      y += 4;
     }
-
-    drawStockTable(options.lines || []);
-
-    if (
-      options.amountNet !== undefined &&
-      options.amountNet !== null &&
-      options.amountGross !== undefined &&
-      options.amountGross !== null
-    ) {
-      sectionTitle("Betrag");
-      drawInfoGrid([
-        ["Preisangabe", options.priceMode === "brutto" ? "Bruttopreise" : "Nettopreise"],
-        ["Netto", money(options.amountNet)],
-        ["MwSt.", `${Number(options.taxRate || 0).toLocaleString("de-DE")} % · ${money(Number(options.amountGross || 0) - Number(options.amountNet || 0))}`],
-        ["Brutto", money(options.amountGross)],
-      ]);
-    }
-
     drawSignatures();
     drawFooter();
     return pdf.output("blob");
@@ -24792,6 +24798,110 @@ ${tenantBrandName}`,
             }
           }
 
+
+          /* v4.13.79 – Gemeinsame TRYBUN Business-CI, Phase 1.
+             Nur visuelle Komponenten: Kalender, Auswertungen und Einstellungen.
+             Keine Navigation, Berechnung, Berechtigung oder Datenverarbeitung verändert. */
+          .trybun-premium-ui .trybun-ci-calendar,
+          .trybun-premium-ui .trybun-ci-analytics,
+          .trybun-premium-ui .trybun-ci-settings {
+            min-width: 0;
+            max-width: 100%;
+          }
+          .trybun-premium-ui .trybun-ci-calendar :is(h3, h4),
+          .trybun-premium-ui .trybun-ci-analytics :is(h3, h4),
+          .trybun-premium-ui .trybun-ci-settings :is(h3, h4) {
+            letter-spacing: -0.025em;
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui .trybun-ci-calendar :is(button, select),
+          .trybun-premium-ui .trybun-ci-analytics button,
+          .trybun-premium-ui .trybun-ci-settings :is(button, select, input, textarea) {
+            max-width: 100%;
+            border-radius: 8px !important;
+          }
+          .trybun-premium-ui .trybun-ci-calendar button,
+          .trybun-premium-ui .trybun-ci-analytics button,
+          .trybun-premium-ui .trybun-ci-settings button {
+            font-weight: 600 !important;
+            box-shadow: none !important;
+          }
+          .trybun-premium-ui .trybun-ci-calendar-header .flex.flex-wrap.items-center.gap-2 {
+            min-width: 0;
+          }
+          .trybun-premium-ui .trybun-ci-calendar-header .flex.flex-wrap.items-center.gap-2 > button {
+            min-height: 42px;
+            border-color: rgba(148, 163, 184, .32);
+          }
+          .trybun-premium-ui .trybun-ci-calendar-header .mt-6.grid > div {
+            min-width: 0;
+            border-radius: 9px !important;
+            border-color: rgba(148, 163, 184, .24);
+          }
+          .trybun-premium-ui .trybun-ci-analytics-kpis > div {
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui .trybun-ci-analytics-kpis p.text-xl {
+            font-size: clamp(1.15rem, 2vw, 1.5rem);
+            font-weight: 650 !important;
+            line-height: 1.25;
+          }
+          .trybun-premium-ui.trybun-light .trybun-ci-settings > div:not(.trybun-page-header),
+          .trybun-premium-ui.trybun-light .trybun-ci-settings > section {
+            border-color: #dce3ed;
+            border-radius: 12px !important;
+            box-shadow: 0 1px 3px rgba(15,23,42,.045) !important;
+          }
+          .trybun-premium-ui .trybun-ci-settings > div,
+          .trybun-premium-ui .trybun-ci-settings > section {
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui.trybun-light .trybun-ci-settings > div.bg-white,
+          .trybun-premium-ui.trybun-light .trybun-ci-settings > section.bg-white {
+            background-color: #fff !important;
+          }
+          .trybun-premium-ui .trybun-ci-settings :is(label, summary) {
+            overflow-wrap: anywhere;
+          }
+          .trybun-premium-ui.trybun-dark .trybun-ci-analytics-kpis {
+            border-color: #334155;
+            background-color: #334155;
+          }
+          .trybun-premium-ui.trybun-dark .trybun-ci-analytics-kpis > div {
+            background-color: #101c2b !important;
+          }
+          .trybun-premium-ui.trybun-dark .trybun-ci-calendar-header {
+            background-color: #101a2b !important;
+            border-color: #334155 !important;
+          }
+          @media (max-width: 767px) {
+            .trybun-premium-ui .trybun-ci-calendar-header > div {
+              padding: 1rem !important;
+            }
+            .trybun-premium-ui .trybun-ci-calendar-header .flex.flex-wrap.items-center.gap-2 {
+              width: 100%;
+            }
+            .trybun-premium-ui .trybun-ci-calendar-header .flex.flex-wrap.items-center.gap-2 > button {
+              flex: 1 1 auto;
+              min-width: 0;
+              white-space: normal;
+              overflow-wrap: anywhere;
+              font-size: 12px;
+              padding: .65rem .7rem;
+            }
+            .trybun-premium-ui .trybun-ci-calendar-header .mt-6.grid {
+              grid-template-columns: minmax(0, 1fr) !important;
+            }
+            .trybun-premium-ui .trybun-ci-calendar-header .mt-6.grid > * {
+              width: 100%;
+              min-width: 0;
+            }
+            .trybun-premium-ui .trybun-ci-analytics-kpis > div { padding: .9rem !important; }
+            .trybun-premium-ui .trybun-ci-settings > div,
+            .trybun-premium-ui .trybun-ci-settings > section { max-width: 100%; }
+          }
+
           /* v4.13.70 — Dokumente / Serviceberichte: gleiche ruhige CI wie die Startseite. */
           .trybun-premium-ui .trybun-documents-workspace,
           .trybun-premium-ui .trybun-service-report-modal,
@@ -26300,16 +26410,16 @@ ${tenantBrandName}`,
           )}
 
           {activePage === "Kalender" && (
-            <div className="space-y-6">
-              <div className="trybun-page-header overflow-hidden bg-[#07111d] text-white shadow-xl">
-                <div className="p-6 md:p-8">
+            <div className="trybun-ci-calendar min-w-0 space-y-5">
+              <div className="trybun-page-header trybun-ci-calendar-header overflow-hidden border border-slate-700/60 bg-[#101a2b] text-white shadow-sm">
+                <div className="p-5 sm:p-6">
                   <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                     <div>
-                      <p className="text-sm font-black uppercase tracking-[0.22em] text-sky-400">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
                         Disposition
                       </p>
-                      <h3 className="mt-2 text-3xl font-black md:text-4xl">Einsatzkalender</h3>
-                      <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+                      <h3 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">Einsatzkalender</h3>
+                      <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-slate-300">
                         Zentrale Disposition für Serviceeinsätze, Wartungen und Techniker – planen, prüfen und im Kalender steuern.
                       </p>
                     </div>
@@ -30673,7 +30783,7 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
 
 
           {activePage === "Einstellungen" && isAdmin && (
-            <div className="flex min-w-0 max-w-full flex-col gap-6 overflow-x-hidden">
+            <div className="trybun-ci-settings flex min-w-0 max-w-full flex-col gap-5 overflow-x-hidden">
               <div className="rounded-[12px] border border-[#b8c5d8] bg-slate-50 shadow-[0_1px_2px_rgba(15,23,42,0.04)] px-4 py-4 sm:px-5">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">
                   Empfohlene Import-Reihenfolge
@@ -31962,44 +32072,40 @@ placeholder="Suche: Kunde, Gerät, Ticket, Datei..."
           )}
 
           {activePage === "Auswertungen" && (
-            <div className="space-y-6">
+            <div className="trybun-ci-analytics min-w-0 space-y-5">
 
-              <div className="trybun-page-header bg-[#07111d] p-6 text-white shadow-sm">
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-sky-400">
-                  Business Dashboard
-                </p>
-                <h3 className="mt-2 text-4xl font-black">
-                  TRYBUN Auswertungen
-                </h3>
-                <p className="mt-3 max-w-3xl text-sm font-semibold text-slate-300">
+              <div className="trybun-page-header border border-slate-700/60 bg-[#101a2b] px-5 py-5 text-white shadow-sm sm:px-6 sm:py-6">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">Business Dashboard</p>
+                <h3 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">TRYBUN Auswertungen</h3>
+                <p className="mt-2 max-w-3xl text-sm font-normal leading-6 text-slate-300">
                   Kennzahlen für Umsatz, Tickets, Wartungen, Prüfungen, Technikerleistung und Kundenaktivität.
                 </p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">Umsatz bezahlt</p>
+              <div className="trybun-ci-analytics-kpis grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="min-w-0 bg-white p-4 sm:p-5">
+                  <p className="text-xs font-medium text-slate-600">Umsatz bezahlt</p>
                   <p className="mt-2 text-xl font-black text-sky-600">
                     {euro(invoiceRevenueGross)}
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">Offene Beträge</p>
+                <div className="min-w-0 bg-white p-4 sm:p-5">
+                  <p className="text-xs font-medium text-slate-600">Offene Beträge</p>
                   <p className="mt-2 text-xl font-black text-yellow-700">
                     {euro(openInvoiceGross)}
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">Ticketquote</p>
+                <div className="min-w-0 bg-white p-4 sm:p-5">
+                  <p className="text-xs font-medium text-slate-600">Ticketquote</p>
                   <p className="mt-2 text-xl font-black text-blue-700">
                     {completionRate}%
                   </p>
                 </div>
 
-                <div className="rounded-3xl bg-white p-6 shadow-sm">
-                  <p className="text-sm font-bold text-slate-500">Sicherheitsprüfung-/Wartungsquote</p>
+                <div className="min-w-0 bg-white p-4 sm:p-5">
+                  <p className="text-xs font-medium text-slate-600">Sicherheitsprüfung-/Wartungsquote</p>
                   <p className="mt-2 text-xl font-black text-purple-700">
                     {maintenanceCompletionRate}%
                   </p>
